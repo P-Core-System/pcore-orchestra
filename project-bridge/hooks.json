@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "node .cursor/hooks/bridge.js orchestra-session-start.js"
+      }
+    ],
+    "beforeSubmitPrompt": [
+      {
+        "command": "node .cursor/hooks/bridge.js orchestra-prompt.js",
+        "matcher": "UserPromptSubmit",
+        "timeout": 5
+      }
+    ],
+    "subagentStop": [
+      {
+        "command": "node .cursor/hooks/bridge.js orchestra-subagent-stop.js",
+        "matcher": "orchestra-planner|orchestra-implementer|orchestra-verifier|orchestra-reviewer",
+        "loop_limit": 12
+      }
+    ],
+    "stop": [
+      {
+        "command": "node .cursor/hooks/bridge.js orchestra-stop.js",
+        "loop_limit": 5
+      }
+    ]
+  }
+}

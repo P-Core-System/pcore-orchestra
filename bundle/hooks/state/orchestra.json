@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "ambient": true,
+  "active": false,
+  "goal": "",
+  "phase": "idle",
+  "started_at": null,
+  "last_subagent": null,
+  "iteration": 0,
+  "max_iterations": 8,
+  "last_prompt": null,
+  "auto_started": null
+}

@@ -1,0 +1,44 @@
+---
+description: Triggers global orchestra multi-agent loop (/orchestra)
+alwaysApply: true
+---
+
+# Orchestra loop (global, ambient)
+
+Orchestration runs **automatically** in Cursor Agent — the user does **not** need `/orchestra`.
+
+## Default behavior (ambient ON)
+
+For prompts that **implement, fix, build, refactor, deploy, install, configure, migrate, integrate, debug, or continue** work:
+
+1. Hooks auto-activate orchestra state (`beforeSubmitPrompt`).
+2. Run **orchestra-planner** → **orchestra-implementer** → **orchestra-verifier** → **orchestra-reviewer** via Task subagents.
+3. Hooks chain phases on `subagentStop` without user typing anything.
+
+## Skip orchestra (no subagent chain)
+
+- Pure questions: "what is…", "how does…", "explain…"
+- User says: **no orchestra**, **just explain**, **quick answer**
+- Trivial messages: hi, thanks, ok
+
+## Explicit commands
+
+| User says | Action |
+|-----------|--------|
+| `/orchestra <goal>` | Force start (same as ambient) |
+| `/orchestra stop` | `orchestra-enable.js stop` |
+| `disable orchestra` / `orchestra off` | Ambient off |
+| `enable orchestra` / `orchestra on` | Ambient on |
+
+## Parent agent rules
+
+- Use Task with subagent names `orchestra-planner`, `orchestra-implementer`, `orchestra-verifier`, `orchestra-reviewer` — not `generalPurpose`.
+- On `FIX_REQUIRED` or `VERIFY_FAIL`, re-run implementer → verifier → reviewer.
+- One global goal at a time (`~/.cursor/hooks/state/orchestra.json`).
+- Read skill `orchestra-loop` when unsure.
+
+## Six-File Context (when `context/` exists in workspace)
+
+If the project has `context/project-overview.md` (and related files), hooks inject read order at session start. Subagents must read present context files before acting. Bootstrap blanks: `bash scripts/init-context.sh <project-dir>` from the cursor-orchestra repo.
+
+Files: `~/.cursor/hooks.json`, `~/.cursor/agents/orchestra-*.md`.
