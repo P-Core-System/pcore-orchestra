@@ -25,9 +25,9 @@ Cursor Orchestra implements a three-layer agent architecture:
 
 The innermost layer: the ReAct pattern implementation.
 
-- **What it does:** Calls the model, executes tool calls, feeds results back, repeats until done
+- **What it does:** Implements the ReAct cycle: think → act → observe → repeat until done
 - **In cursor-orchestra:** The phase chain (plan → implement → verify → review)
-- **Files:** `orchestra-lib.js` (PHASE_CHAIN, state transitions)
+- **Files:** `bundle/hooks/orchestra-lib.js` (PHASE_CHAIN, state transitions)
 
 ### Scaffold (Structural)
 
@@ -43,7 +43,7 @@ The complete software layer that makes the agent run.
 
 - **What it does:** Calls the model, handles tool invocations, manages state, error recovery
 - **In cursor-orchestra:** Hook scripts, state persistence, phase chaining, error handling
-- **Files:** `bundle/hooks/*.js`, `orchestra.json`, install scripts
+- **Files:** `bundle/hooks/*.js`, `~/.cursor/hooks/state/orchestra.json`, install scripts
 
 ## Mapping to Cursor Orchestra
 
@@ -61,7 +61,7 @@ The complete software layer that makes the agent run.
 
 ## References
 
-- HuggingFace Agent Glossary (2026)
-- Addy Osmani's Agent Harness Engineering
-- Martin Fowler's Harness Engineering article
-- Anthropic's Claude Code documentation
+- HuggingFace Agent Glossary — "Agentic Design Patterns" (https://huggingface.co/docs/transformers/agents)
+- Addy Osmani — "Building AI Agent Harnesses" (Chrome DevRel / AI engineering blog)
+- Martin Fowler — "Harness Engineering" (martinfowler.com)
+- Anthropic — Claude Code documentation (https://docs.anthropic.com/en/docs/claude-code)
