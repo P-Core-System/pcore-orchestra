@@ -39,3 +39,15 @@ scripts/init-context.sh             # project scaffolding
 - `node bundle/hooks/orchestra-health.js` — run from repo before release.
 - Manual smoke: classify prompt samples in `orchestra-lib.js` mentally or via small test script if added later.
 - No committed secrets; no `.env` in this repo.
+
+## Terminology: Harness > Scaffold > Loop
+
+Use consistent terminology when discussing agent architecture:
+
+- **Loop:** The execution cycle (ReAct pattern: think → act → observe)
+- **Scaffold:** Behavior definition (prompts, tools, context, memory)
+- **Harness:** Complete software layer (execution, state, error handling)
+
+When modifying hook scripts, you are working on the **harness** layer.
+When modifying agent prompts, you are working on the **scaffold** layer.
+When modifying phase transitions, you are working on the **loop** layer.
