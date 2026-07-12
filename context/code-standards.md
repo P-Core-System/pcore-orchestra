@@ -44,9 +44,9 @@ scripts/init-context.sh             # project scaffolding
 
 Use consistent terminology when discussing agent architecture:
 
-- **Loop:** The execution cycle (ReAct pattern: think → act → observe)
+- **Loop:** The execution cycle (ReAct pattern: think → act → observe → repeat)
 - **Scaffold:** Behavior definition (prompts, tools, context, memory)
-- **Harness:** Complete software layer (execution, state, error handling)
+- **Harness:** Complete software layer (execution, state, error handling, orchestration)
 
 When modifying hook scripts, you are working on the **harness** layer.
 When modifying agent prompts, you are working on the **scaffold** layer.
