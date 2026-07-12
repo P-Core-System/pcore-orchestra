@@ -47,6 +47,16 @@ idle → plan (planner) → implement → verify → review → done
 
 `subagentStop` hook reads subagent name, advances phase, emits follow-up user message for parent agent to launch next subagent via Task tool.
 
+## Agent Architecture: Harness > Scaffold > Loop
+
+Cursor Orchestra implements a three-layer agent architecture (see `context/harness-scaffold-loop.md` for full details):
+
+- **Loop:** Phase chain (plan → implement → verify → review)
+- **Scaffold:** Agent prompts, context injection, ambient policy  
+- **Harness:** Hook scripts, state management, error handling
+
+The harness calls the scaffold, which defines the loop behavior.
+
 ## Invariants
 
 1. Hook scripts must exit quickly and emit valid JSON on stdout; never throw uncaught errors (use `.catch(() => emit({}))`).
