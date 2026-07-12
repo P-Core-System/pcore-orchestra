@@ -74,6 +74,16 @@ deploy to VPS
 
 Orchestra auto-runs: planner → implementer → verifier → reviewer.
 
+## Architecture: Harness > Scaffold > Loop
+
+Cursor Orchestra implements a three-layer agent architecture:
+
+- **Loop:** The execution cycle (plan → implement → verify → review)
+- **Scaffold:** Behavior definition (agent prompts, context injection)
+- **Harness:** Runtime execution (hooks, state management, error handling)
+
+See `context/harness-scaffold-loop.md` for full details.
+
 | Command | Effect |
 |---------|--------|
 | `no orchestra` | Skip for one prompt |
