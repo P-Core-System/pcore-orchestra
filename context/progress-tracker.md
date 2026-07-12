@@ -18,6 +18,7 @@ Update this file after every meaningful implementation change.
 - Global `~/.cursor/` install refreshed on dev machine
 - crypto-trader docs point to standalone repo
 - Git: `main` with 2 commits locally
+- Harness > Scaffold > Loop architecture documentation
 
 ## In Progress
 
