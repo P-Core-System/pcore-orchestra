@@ -52,6 +52,6 @@ After `ORCHESTRA_COMPLETE`, the reviewer suggests the final commit message if al
 
 ## Six-File Context (when `context/` exists in workspace)
 
-If the project has `context/project-overview.md` (and related files), hooks inject read order at session start. Subagents must read present context files before acting. Bootstrap blanks: `bash scripts/init-context.sh <project-dir>` from the cursor-orchestra repo.
+If the project has `context/project-overview.md` (and related files), hooks inject read order at session start. Subagents must read present context files before acting. Bootstrap blanks: `bash scripts/init-context.sh <project-dir>` from the pcore-agents repo.
 
 Files: `~/.cursor/hooks.json`, `~/.cursor/agents/orchestra-*.md`.

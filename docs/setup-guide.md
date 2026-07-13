@@ -1,6 +1,6 @@
 ---
 title: Setup Guide
-description: Complete guide to setup cursor-orchestra on any machine and configure it for any project — global installation, project bootstrap, and reusable workflows.
+description: Complete guide to setup pcore-agents on any machine and configure it for any project — global installation, project bootstrap, and reusable workflows.
 last_updated: 2026-07-13
 tags: [setup, installation, configuration, new-project, new-machine]
 related: [bypass-strategies.md, token-optimization.md]
@@ -8,7 +8,7 @@ related: [bypass-strategies.md, token-optimization.md]
 
 # Setup Guide
 
-Complete guide to setup cursor-orchestra on any machine and configure it for any project.
+Complete guide to setup pcore-agents on any machine and configure it for any project.
 
 > **TL;DR:** Install globally once (`bash install.sh`), bootstrap context for each project (`bash init-context.sh <dir>`), use normally.
 
@@ -33,8 +33,8 @@ Complete guide to setup cursor-orchestra on any machine and configure it for any
 
 ```bash
 # One command installs everything
-git clone https://github.com/peterlianpi/cursor-orchestra.git /tmp/orchestra
-cd /tmp/orchestra && bash install.sh && cd - && rm -rf /tmp/orchestra
+git clone https://github.com/peterlianpi/pcore-agents.git /tmp/pcore-agents
+cd /tmp/pcore-agents && bash install.sh && cd - && rm -rf /tmp/pcore-agents
 
 # Verify
 node ~/.cursor/hooks/orchestra-health.js
@@ -57,37 +57,37 @@ bash ~/.cursor/scripts/init-context.sh /path/to/your-project
 ### Option A: Quick install (Cursor only)
 
 ```bash
-git clone https://github.com/peterlianpi/cursor-orchestra.git /tmp/cursor-orchestra
-cd /tmp/cursor-orchestra
+git clone https://github.com/peterlianpi/pcore-agents.git /tmp/pcore-agents
+cd /tmp/pcore-agents
 bash install.sh
-rm -rf /tmp/cursor-orchestra
+rm -rf /tmp/pcore-agents
 ```
 
 ### Option B: Full install (Cursor + OpenCode)
 
 ```bash
-git clone https://github.com/peterlianpi/cursor-orchestra.git /tmp/cursor-orchestra
-cd /tmp/cursor-orchestra
+git clone https://github.com/peterlianpi/pcore-agents.git /tmp/pcore-agents
+cd /tmp/pcore-agents
 bash install.sh --all
-rm -rf /tmp/cursor-orchestra
+rm -rf /tmp/pcore-agents
 ```
 
 ### Option C: With project bridge
 
 ```bash
-git clone https://github.com/peterlianpi/cursor-orchestra.git /tmp/cursor-orchestra
-cd /tmp/cursor-orchestra
+git clone https://github.com/peterlianpi/pcore-agents.git /tmp/pcore-agents
+cd /tmp/pcore-agents
 bash install.sh --project
-rm -rf /tmp/cursor-orchestra
+rm -rf /tmp/pcore-agents
 ```
 
 ### Option D: Windows
 
 ```powershell
-git clone https://github.com/peterlianpi/cursor-orchestra.git C:\temp\cursor-orchestra
-cd C:\temp\cursor-orchestra
+git clone https://github.com/peterlianpi/pcore-agents.git C:\temp\pcore-agents
+cd C:\temp\pcore-agents
 powershell -ExecutionPolicy Bypass -File install.ps1
-Remove-Item -Recurse C:\temp\cursor-orchestra
+Remove-Item -Recurse C:\temp\pcore-agents
 ```
 
 ### Verify installation
@@ -436,22 +436,22 @@ git clone <repo>
 
 ### Team installation script
 
-Create `scripts/setup-orchestra.sh` in your project:
+Create `scripts/setup-agents.sh` in your project:
 
 ```bash
 #!/bin/bash
 set -euo pipefail
 
-echo "Setting up Cursor Orchestra..."
+echo "Setting up P-Core Agents..."
 
-# Check if orchestra is installed globally
+# Check if agents is installed globally
 if [ ! -f ~/.cursor/hooks/orchestra-session-start.js ]; then
-    echo "Orchestra not found. Installing..."
-    git clone https://github.com/peterlianpi/cursor-orchestra.git /tmp/cursor-orchestra
-    cd /tmp/cursor-orchestra
+    echo "P-Core Agents not found. Installing..."
+    git clone https://github.com/peterlianpi/pcore-agents.git /tmp/pcore-agents
+    cd /tmp/pcore-agents
     bash install.sh
     cd -
-    rm -rf /tmp/cursor-orchestra
+    rm -rf /tmp/pcore-agents
 fi
 
 # Check if context files exist
@@ -472,9 +472,9 @@ Add to your project's `README.md`:
 ```markdown
 ## Development Setup
 
-### Cursor Orchestra (ambient AI agent)
+### P-Core Agents (ambient AI agent)
 
-1. Install orchestra: `bash scripts/setup-orchestra.sh`
+1. Install agents: `bash scripts/setup-agents.sh`
 2. Fill `context/` files with project details
 3. Restart Cursor
 4. Use normally: "fix the login bug", "add install script", etc.

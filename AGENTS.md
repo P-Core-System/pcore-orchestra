@@ -1,4 +1,4 @@
-# Cursor Orchestra — agent notes
+# P-Core Agents — agent notes
 
 ## Application building context
 

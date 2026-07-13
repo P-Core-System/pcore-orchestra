@@ -26,7 +26,7 @@ Cursor Orchestra implements a three-layer agent architecture:
 The innermost layer: the ReAct pattern implementation.
 
 - **What it does:** Implements the ReAct cycle: think → act → observe → repeat until done
-- **In cursor-orchestra:** The phase chain (plan → implement → verify → review)
+- **In pcore-agents:** The phase chain (plan → implement → verify → review)
 - **Files:** `bundle/hooks/orchestra-lib.js` (PHASE_CHAIN, state transitions)
 
 ### Scaffold (Structural)
@@ -34,7 +34,7 @@ The innermost layer: the ReAct pattern implementation.
 The behavior-defining layer around the loop.
 
 - **What it does:** Defines system prompts, tool descriptions, context management, memory
-- **In cursor-orchestra:** Agent markdown files, six-file context injection, ambient policy
+- **In pcore-agents:** Agent markdown files, six-file context injection, ambient policy
 - **Files:** `bundle/agents/*.md`, `bundle/skills/orchestra-loop/`, context detection
 
 ### Harness (Execution)
@@ -42,7 +42,7 @@ The behavior-defining layer around the loop.
 The complete software layer that makes the agent run.
 
 - **What it does:** Calls the model, handles tool invocations, manages state, error recovery
-- **In cursor-orchestra:** Hook scripts, state persistence, phase chaining, error handling
+- **In pcore-agents:** Hook scripts, state persistence, phase chaining, error handling
 - **Files:** `bundle/hooks/*.js`, `~/.cursor/hooks/state/orchestra.json`, install scripts
 
 ## Mapping to Cursor Orchestra
