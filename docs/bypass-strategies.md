@@ -2,6 +2,22 @@
 
 Reference guide for extending usage beyond Cursor and OpenCode free-tier limits. All strategies are legitimate (BYOK is officially supported by both platforms) or documented for awareness.
 
+## Quick Reference
+
+| Platform | Strategy | Command | Cost |
+|----------|----------|---------|------|
+| Cursor | BYOK | `bash scripts/setup-cursor-byok.sh` | $20 + API |
+| Cursor | LiteLLM proxy | `bash scripts/setup-cursor-byok.sh --litellm` | $20 + API |
+| OpenCode | Free Zen models | `bash scripts/setup-opencode-proxy.sh --free` | $0 |
+| OpenCode | Multi-key rotation | `bash scripts/setup-opencode-proxy.sh --multi-key` | $10-30/mo |
+| OpenCode | Optimized config | `bash scripts/setup-opencode-optimal.sh --balanced` | varies |
+
+**Best value:** Cursor BYOK + Hypereal ($20 + API) or OpenCode Go + multi-key ($10-30)
+
+**Zero budget:** OpenCode Zen free models + local Ollama fallback
+
+---
+
 ## Table of Contents
 
 - [Cursor IDE](#cursor-ide)
