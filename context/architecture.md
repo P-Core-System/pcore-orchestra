@@ -28,7 +28,8 @@
 
 | Data | Location | Notes |
 |------|----------|-------|
-| Orchestra state | `~/.cursor/hooks/state/orchestra.json` | Machine-local; not committed |
+| Orchestra state | `~/.cursor/hooks/state/orchestra.json` | V2: lifecycle, heartbeat, memory, resumable |
+| Long-term memory | `~/.cursor/hooks/state/orchestra-memory.json` | Persistent across sessions, capped at 100 goals |
 | Installed bundle | `~/.cursor/hooks`, `agents`, `skills`, `rules` | Copied from `bundle/` on install |
 | Target project context | `<project>/context/*.md` | Created by `init-context` or manually |
 | Target entry point | `<project>/AGENTS.md` | Points agents to six files |
@@ -41,8 +42,10 @@ No network auth in orchestra itself. Hooks run locally with the user's Cursor se
 
 ```
 idle → plan (planner) → implement → verify → review → done
-                              ↑                    |
-                              └── FIX_REQUIRED ────┘
+  ↑        ↑                                      |
+  |        └──────── FIX_REQUIRED ─────────────────┘
+  │
+  └── resume (from checkpoint)
 ```
 
 `subagentStop` hook reads subagent name, advances phase, emits follow-up user message for parent agent to launch next subagent via Task tool.

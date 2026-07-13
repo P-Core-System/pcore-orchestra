@@ -13,6 +13,8 @@
 - YAML frontmatter: `name`, `description`, optional `readonly: true` for planner.
 - Imperative sections: "When invoked", numbered steps, structured output templates.
 - End markers on their own line: `PLAN_READY`, `IMPLEMENT_DONE`, `VERIFY_PASS`, `VERIFY_FAIL`, `ORCHESTRA_COMPLETE`, `FIX_REQUIRED`.
+- Each agent includes: self-review checklist, error-free rules, git workflow (where applicable).
+- Output templates include git commit status for implementer, git status for verifier, git review for reviewer.
 
 ## Install scripts
 
@@ -34,11 +36,26 @@ scripts/init-context.sh             # project scaffolding
 - `context/progress-tracker.md`: update after every meaningful change to this repo.
 - Credit Six-File Context Methodology (JavaScript Mastery) in README; templates are derived from user-provided download.
 
-## Testing
+## Code quality
 
-- `node bundle/hooks/orchestra-health.js` — run from repo before release.
-- Manual smoke: classify prompt samples in `orchestra-lib.js` mentally or via small test script if added later.
-- No committed secrets; no `.env` in this repo.
+- **Single responsibility**: each function does one thing
+- **Early returns**: avoid deep nesting, return early on error
+- **Descriptive names**: functions say what they do, variables say what they hold
+- **No magic numbers**: extract constants with meaningful names
+- **Error messages**: include context (what failed, why, what to do)
+- **Minimal dependencies**: prefer built-in modules, justify every npm package
+- **Consistent style**: match existing code in the repo
+
+## Clean code checklist (for implementer)
+
+Before submitting code:
+- [ ] No commented-out code (delete it, git has history)
+- [ ] No console.log in production hooks (use emit() for output)
+- [ ] No hardcoded values (extract to constants)
+- [ ] Functions under 50 lines (break if longer)
+- [ ] Max 3 levels of nesting (extract if deeper)
+- [ ] Error handling for all async operations
+- [ ] No unused imports or variables
 
 ## Terminology: Harness > Scaffold > Loop
 

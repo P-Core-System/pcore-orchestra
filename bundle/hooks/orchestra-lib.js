@@ -4,9 +4,12 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const STATE_PATH = path.join(__dirname, "state", "orchestra.json");
+const MEMORY_PATH = path.join(__dirname, "state", "orchestra-memory.json");
+
+// ── Default State (V2) ──────────────────────────────────────────────
 
 const DEFAULT_STATE = {
-  version: 1,
+  version: 2,
   ambient: true,
   active: false,
   goal: "",
@@ -16,21 +19,77 @@ const DEFAULT_STATE = {
   iteration: 0,
   max_iterations: 8,
   last_prompt: null,
+  auto_started: null,
+
+  // Lifecycle events
+  lifecycle: {
+    events: [],
+    phase_history: [],
+  },
+
+  // Heartbeat
+  heartbeat: {
+    last_beat: null,
+    phase_started_at: null,
+    stall_threshold_ms: 300000, // 5 minutes
+    interval_ms: 60000,         // 1 minute
+  },
+
+  // Short-term memory (cleared on orchestration complete/reset)
+  memory: {
+    phases_completed: [],
+    files_changed: [],
+    errors: [],
+    decisions: [],
+    context_summary: "",
+  },
+
+  // Resumable state
+  resumable: {
+    paused: false,
+    paused_at: null,
+    pause_reason: null,
+    checkpoint: null,
+    last_save: null,
+  },
 };
+
+// ── State Management ────────────────────────────────────────────────
 
 function loadState() {
   try {
-    if (!fs.existsSync(STATE_PATH)) return { ...DEFAULT_STATE };
-    return { ...DEFAULT_STATE, ...JSON.parse(fs.readFileSync(STATE_PATH, "utf8")) };
+    if (!fs.existsSync(STATE_PATH)) return { ...DEFAULT_STATE, ...cloneDefaults() };
+    const raw = JSON.parse(fs.readFileSync(STATE_PATH, "utf8"));
+    const merged = { ...DEFAULT_STATE, ...raw };
+    // Migrate V1 → V2 with deep merge for nested sections
+    merged.lifecycle = { ...DEFAULT_STATE.lifecycle, ...merged.lifecycle };
+    merged.lifecycle.events = merged.lifecycle.events || [];
+    merged.lifecycle.phase_history = merged.lifecycle.phase_history || [];
+    merged.heartbeat = { ...DEFAULT_STATE.heartbeat, ...merged.heartbeat };
+    merged.memory = { ...DEFAULT_STATE.memory, ...merged.memory };
+    merged.resumable = { ...DEFAULT_STATE.resumable, ...merged.resumable };
+    merged.version = 2;
+    return merged;
   } catch {
-    return { ...DEFAULT_STATE };
+    return { ...DEFAULT_STATE, ...cloneDefaults() };
   }
+}
+
+function cloneDefaults() {
+  return {
+    lifecycle: { events: [], phase_history: [] },
+    heartbeat: { ...DEFAULT_STATE.heartbeat },
+    memory: { ...DEFAULT_STATE.memory },
+    resumable: { ...DEFAULT_STATE.resumable },
+  };
 }
 
 function saveState(state) {
   fs.mkdirSync(path.dirname(STATE_PATH), { recursive: true });
   fs.writeFileSync(STATE_PATH, JSON.stringify(state, null, 2));
 }
+
+// ── Stdin / Stdout ──────────────────────────────────────────────────
 
 function readStdinJson() {
   return new Promise((resolve) => {
@@ -53,7 +112,8 @@ function emit(obj) {
   process.stdout.write(JSON.stringify(obj));
 }
 
-/** Normalize user prompt from hook payload */
+// ── Prompt Extraction ───────────────────────────────────────────────
+
 function extractPrompt(input) {
   const candidates = [
     input.prompt,
@@ -67,6 +127,8 @@ function extractPrompt(input) {
   }
   return "";
 }
+
+// ── Prompt Classification ───────────────────────────────────────────
 
 const QUESTION_ONLY_RE =
   /^(what is|what are|how does|why does|explain|describe|tell me about)\b/i;
@@ -82,10 +144,6 @@ const IMPLEMENT_RE =
 
 const TRIVIAL_RE = /^(hi|hello|hey|thanks|thank you|ok|okay|yes|no|stop|status)\.?$/i;
 
-/**
- * Decide if ambient orchestration should activate for this prompt.
- * Returns { activate, reason, goal }
- */
 function classifyPrompt(prompt, state) {
   const text = (prompt || "").trim();
   if (!text || text.length < 8) {
@@ -102,7 +160,6 @@ function classifyPrompt(prompt, state) {
   const explicit = OPT_IN_EXPLICIT_RE.test(text);
   const implement = IMPLEMENT_RE.test(text);
 
-  // Pure questions without action verbs — skip even if long
   if (QUESTION_ONLY_RE.test(text) && !implement && !explicit) {
     return { activate: false, reason: "question_only" };
   }
@@ -111,7 +168,6 @@ function classifyPrompt(prompt, state) {
     return { activate: false, reason: "opt_out" };
   }
 
-  // Multi-step signals: file paths, "and then", multiple sentences with action verbs
   const multiStep =
     (text.match(/\band\b/gi) || []).length >= 2 ||
     /\b(then|after that|also|next)\b/i.test(text) ||
@@ -136,6 +192,8 @@ function classifyPrompt(prompt, state) {
   return { activate: false, reason: "no_match" };
 }
 
+// ── Orchestra Start ─────────────────────────────────────────────────
+
 function startOrchestra(goal, state, source) {
   state.active = true;
   state.goal = goal;
@@ -145,8 +203,31 @@ function startOrchestra(goal, state, source) {
   state.iteration = 0;
   state.last_prompt = goal;
   state.auto_started = source || "ambient";
+
+  // Initialize lifecycle
+  state.lifecycle = { events: [], phase_history: [] };
+  emitLifecycleEvent(state, "orchestra_start", "plan", { goal, source });
+
+  // Initialize heartbeat
+  state.heartbeat.last_beat = new Date().toISOString();
+  state.heartbeat.phase_started_at = new Date().toISOString();
+
+  // Initialize short-term memory
+  state.memory = { phases_completed: [], files_changed: [], errors: [], decisions: [], context_summary: "" };
+
+  // Clear resumable state for fresh start
+  state.resumable = {
+    paused: false,
+    paused_at: null,
+    pause_reason: null,
+    checkpoint: null,
+    last_save: null,
+  };
+
   saveState(state);
 }
+
+// ── Phase Chain ─────────────────────────────────────────────────────
 
 const PHASE_CHAIN = {
   "orchestra-planner": {
@@ -182,6 +263,328 @@ function reviewerNeedsFix(input) {
   return /\bFIX_REQUIRED\b/i.test(blob) || /\bVERIFY_FAIL\b/i.test(blob);
 }
 
+// ── Lifecycle Events ────────────────────────────────────────────────
+
+const LIFECYCLE_MAX_EVENTS = 200;
+
+function emitLifecycleEvent(state, type, phase, data) {
+  if (!state.lifecycle) state.lifecycle = { events: [], phase_history: [] };
+  const event = { type, phase, timestamp: new Date().toISOString(), data: data || null };
+  state.lifecycle.events.push(event);
+  if (state.lifecycle.events.length > LIFECYCLE_MAX_EVENTS) {
+    state.lifecycle.events = state.lifecycle.events.slice(-LIFECYCLE_MAX_EVENTS);
+  }
+}
+
+function startPhaseTimer(state, phase, subagent) {
+  if (!state.heartbeat) state.heartbeat = { ...DEFAULT_STATE.heartbeat };
+  state.heartbeat.phase_started_at = new Date().toISOString();
+  if (!state.lifecycle) state.lifecycle = { events: [], phase_history: [] };
+  state.lifecycle.phase_history.push({
+    phase,
+    started_at: state.heartbeat.phase_started_at,
+    ended_at: null,
+    subagent,
+    status: "running",
+    duration_ms: null,
+  });
+}
+
+function endPhaseTimer(state, status) {
+  const history = state.lifecycle?.phase_history;
+  if (!history || history.length === 0) return;
+  const current = history[history.length - 1];
+  if (current.status !== "running") return;
+  const ended = new Date().toISOString();
+  current.ended_at = ended;
+  current.status = status || "completed";
+  current.duration_ms = new Date(ended) - new Date(current.started_at);
+  if (state.heartbeat) state.heartbeat.phase_started_at = null;
+}
+
+function getPhaseElapsedMs(state) {
+  if (!state.heartbeat?.phase_started_at) return 0;
+  return Date.now() - new Date(state.heartbeat.phase_started_at).getTime();
+}
+
+// ── Heartbeat ───────────────────────────────────────────────────────
+
+function writeHeartbeat(state) {
+  if (!state.heartbeat) state.heartbeat = { ...DEFAULT_STATE.heartbeat };
+  state.heartbeat.last_beat = new Date().toISOString();
+}
+
+function isStalled(state) {
+  if (!state.active || !state.heartbeat?.phase_started_at) return false;
+  const elapsed = Date.now() - new Date(state.heartbeat.phase_started_at).getTime();
+  const threshold = state.heartbeat.stall_threshold_ms || 300000;
+  return elapsed > threshold;
+}
+
+function getStallDurationMs(state) {
+  if (!state.heartbeat?.phase_started_at) return 0;
+  return Date.now() - new Date(state.heartbeat.phase_started_at).getTime();
+}
+
+// ── Memory ──────────────────────────────────────────────────────────
+
+const DEFAULT_LONG_TERM_MEMORY = {
+  version: 1,
+  completed_goals: [],
+  project_patterns: {},
+  recent_files: [],
+  error_patterns: [],
+  user_preferences: {},
+};
+
+const MEMORY_MAX_COMPLETED = 100;
+const MEMORY_MAX_RECENT_FILES = 50;
+const MEMORY_MAX_ERROR_PATTERNS = 50;
+
+function loadLongTermMemory() {
+  try {
+    if (!fs.existsSync(MEMORY_PATH)) return { ...DEFAULT_LONG_TERM_MEMORY };
+    return { ...DEFAULT_LONG_TERM_MEMORY, ...JSON.parse(fs.readFileSync(MEMORY_PATH, "utf8")) };
+  } catch {
+    return { ...DEFAULT_LONG_TERM_MEMORY };
+  }
+}
+
+function saveLongTermMemory(mem) {
+  fs.mkdirSync(path.dirname(MEMORY_PATH), { recursive: true });
+  if (mem.completed_goals.length > MEMORY_MAX_COMPLETED) {
+    mem.completed_goals = mem.completed_goals.slice(-MEMORY_MAX_COMPLETED);
+  }
+  if (mem.recent_files.length > MEMORY_MAX_RECENT_FILES) {
+    mem.recent_files = mem.recent_files.slice(-MEMORY_MAX_RECENT_FILES);
+  }
+  if (mem.error_patterns.length > MEMORY_MAX_ERROR_PATTERNS) {
+    mem.error_patterns = mem.error_patterns.slice(-MEMORY_MAX_ERROR_PATTERNS);
+  }
+  fs.writeFileSync(MEMORY_PATH, JSON.stringify(mem, null, 2));
+}
+
+function flushShortToLong(state, outcome) {
+  const ltm = loadLongTermMemory();
+  const stm = state.memory || {};
+
+  const duration = state.started_at
+    ? Date.now() - new Date(state.started_at).getTime()
+    : 0;
+
+  ltm.completed_goals.push({
+    goal: state.goal || "",
+    outcome: outcome || "completed",
+    duration_ms: duration,
+    timestamp: new Date().toISOString(),
+    lessons: (stm.decisions || []).map((d) => d.decision).filter(Boolean),
+    phase_count: (stm.phases_completed || []).length,
+  });
+
+  for (const f of (stm.files_changed || [])) {
+    const existing = ltm.recent_files.find((r) => r.path === f);
+    if (existing) {
+      existing.count++;
+      existing.last_seen = new Date().toISOString();
+    } else {
+      ltm.recent_files.push({ path: f, count: 1, last_seen: new Date().toISOString() });
+    }
+  }
+
+  for (const e of (stm.errors || [])) {
+    const errorType = (e.error || "").slice(0, 100);
+    const existing = ltm.error_patterns.find((p) => p.error_type === errorType);
+    if (existing) {
+      existing.count++;
+      existing.last_seen = new Date().toISOString();
+    } else {
+      ltm.error_patterns.push({
+        error_type: errorType,
+        solution: "",
+        count: 1,
+        last_seen: new Date().toISOString(),
+      });
+    }
+  }
+
+  saveLongTermMemory(ltm);
+}
+
+function buildMemoryContext(ltm) {
+  if (!ltm || !ltm.completed_goals || ltm.completed_goals.length === 0) return "";
+
+  const lines = ["Long-term memory (past orchestration results):"];
+
+  const recent = ltm.completed_goals.slice(-5);
+  if (recent.length > 0) {
+    lines.push("Recent completed goals:");
+    for (const g of recent) {
+      lines.push(`  - "${g.goal}" (${g.outcome}, ${Math.round(g.duration_ms / 1000)}s, ${g.phase_count} phases)`);
+    }
+  }
+
+  const topFiles = ltm.recent_files.sort((a, b) => b.count - a.count).slice(0, 5);
+  if (topFiles.length > 0) {
+    lines.push("Frequently modified files:");
+    for (const f of topFiles) {
+      lines.push(`  - ${f.path} (modified ${f.count}x)`);
+    }
+  }
+
+  const topErrors = ltm.error_patterns.sort((a, b) => b.count - a.count).slice(0, 3);
+  if (topErrors.length > 0) {
+    lines.push("Recurring error patterns:");
+    for (const e of topErrors) {
+      lines.push(`  - ${e.error_type} (${e.count}x${e.solution ? ", solution: " + e.solution : ""})`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+// ── Resumable Tasks ─────────────────────────────────────────────────
+
+function createCheckpoint(state) {
+  return {
+    phase: state.phase,
+    goal: state.goal,
+    iteration: state.iteration,
+    last_subagent: state.last_subagent,
+    started_at: state.started_at,
+    lifecycle_snapshot: state.lifecycle?.events?.slice(-20) || [],
+    memory_snapshot: state.memory || {},
+    timestamp: new Date().toISOString(),
+  };
+}
+
+function saveCheckpoint(state) {
+  if (!state.resumable) state.resumable = { ...DEFAULT_STATE.resumable };
+  state.resumable.checkpoint = createCheckpoint(state);
+  state.resumable.last_save = new Date().toISOString();
+  saveState(state);
+}
+
+function pauseOrchestra(state, reason) {
+  if (!state.active) return false;
+  state.resumable.paused = true;
+  state.resumable.paused_at = new Date().toISOString();
+  state.resumable.pause_reason = reason || "manual";
+  saveCheckpoint(state);
+  return true;
+}
+
+function resumeOrchestra(state) {
+  if (!state.resumable?.paused || !state.resumable?.checkpoint) return null;
+  const cp = state.resumable.checkpoint;
+  state.active = true;
+  state.phase = cp.phase;
+  state.goal = cp.goal;
+  state.iteration = cp.iteration;
+  state.last_subagent = cp.last_subagent;
+  state.started_at = cp.started_at;
+  state.resumable.paused = false;
+  state.resumable.paused_at = null;
+  state.resumable.pause_reason = null;
+  state.heartbeat.last_beat = new Date().toISOString();
+  state.heartbeat.phase_started_at = new Date().toISOString();
+  saveState(state);
+  return cp;
+}
+
+function isStaleState(state, staleThresholdMs) {
+  if (!state.active || !state.started_at) return false;
+  const elapsed = Date.now() - new Date(state.started_at).getTime();
+  return elapsed > (staleThresholdMs || 600000);
+}
+
+function detectCrashRecovery(state) {
+  if (!state.active) return null;
+  const lastBeat = state.heartbeat?.last_beat;
+  if (lastBeat) {
+    const sinceBeat = Date.now() - new Date(lastBeat).getTime();
+    if (sinceBeat > 600000) {
+      return {
+        phase: state.phase,
+        goal: state.goal,
+        iteration: state.iteration,
+        last_activity: lastBeat,
+      };
+    }
+  }
+  if (isStaleState(state)) {
+    return {
+      phase: state.phase,
+      goal: state.goal,
+      iteration: state.iteration,
+      last_activity: state.started_at,
+    };
+  }
+  return null;
+}
+
+function abortOrchestra(state, reason) {
+  if (!state.active) return false;
+  recordOrchestrationRun(state, "aborted");
+  state.active = false;
+  state.phase = "idle";
+  state.resumable.paused = true;
+  state.resumable.paused_at = new Date().toISOString();
+  state.resumable.pause_reason = reason || "aborted";
+  saveCheckpoint(state);
+  return true;
+}
+
+// ── Orchestration History ───────────────────────────────────────────
+
+const HISTORY_MAX_RUNS = 50;
+
+function recordOrchestrationRun(state, outcome) {
+  const historyPath = path.join(__dirname, "state", "orchestra-history.json");
+  let history = [];
+  try {
+    if (fs.existsSync(historyPath)) {
+      history = JSON.parse(fs.readFileSync(historyPath, "utf8"));
+    }
+  } catch {
+    history = [];
+  }
+
+  const duration = state.started_at
+    ? Date.now() - new Date(state.started_at).getTime()
+    : 0;
+
+  history.push({
+    goal: state.goal || "",
+    outcome,
+    started_at: state.started_at,
+    completed_at: new Date().toISOString(),
+    duration_ms: duration,
+    iterations: state.iteration || 0,
+    phases_completed: state.memory?.phases_completed?.map((p) => p.phase) || [],
+    files_changed: state.memory?.files_changed || [],
+    errors: state.memory?.errors?.length || 0,
+  });
+
+  if (history.length > HISTORY_MAX_RUNS) {
+    history = history.slice(-HISTORY_MAX_RUNS);
+  }
+
+  fs.mkdirSync(path.dirname(historyPath), { recursive: true });
+  fs.writeFileSync(historyPath, JSON.stringify(history, null, 2));
+}
+
+function loadOrchestrationHistory() {
+  const historyPath = path.join(__dirname, "state", "orchestra-history.json");
+  try {
+    if (!fs.existsSync(historyPath)) return [];
+    return JSON.parse(fs.readFileSync(historyPath, "utf8"));
+  } catch {
+    return [];
+  }
+}
+
+// ── Context Detection ───────────────────────────────────────────────
+
 const AMBIENT_CONTEXT = [
   "Global orchestra (ambient mode ON): for implementation/fix/build/refactor tasks,",
   "run plan → implement → verify → review using Task subagents:",
@@ -191,7 +594,6 @@ const AMBIENT_CONTEXT = [
   "Stop: /orchestra stop or node ~/.cursor/hooks/orchestra-enable.js stop",
 ].join(" ");
 
-/** Six-File Context Methodology — fixed read order (matches AGENTS.md / CLAUDE.md). */
 const SIX_FILE_CONTEXT = [
   { file: "project-overview.md", label: "product definition, goals, features, scope" },
   { file: "architecture.md", label: "system structure, boundaries, invariants" },
@@ -272,9 +674,13 @@ function buildContextInjection(ctx) {
   return lines.join("\n");
 }
 
+// ── Exports ─────────────────────────────────────────────────────────
+
 module.exports = {
   STATE_PATH,
+  MEMORY_PATH,
   DEFAULT_STATE,
+  DEFAULT_LONG_TERM_MEMORY,
   loadState,
   saveState,
   readStdinJson,
@@ -290,4 +696,30 @@ module.exports = {
   detectSixFileContext,
   detectContextInWorkspaces,
   buildContextInjection,
+  // Lifecycle
+  emitLifecycleEvent,
+  startPhaseTimer,
+  endPhaseTimer,
+  getPhaseElapsedMs,
+  LIFECYCLE_MAX_EVENTS,
+  // Heartbeat
+  writeHeartbeat,
+  isStalled,
+  getStallDurationMs,
+  // Memory
+  loadLongTermMemory,
+  saveLongTermMemory,
+  flushShortToLong,
+  buildMemoryContext,
+  // Resumable
+  createCheckpoint,
+  saveCheckpoint,
+  pauseOrchestra,
+  resumeOrchestra,
+  isStaleState,
+  detectCrashRecovery,
+  abortOrchestra,
+  // History
+  recordOrchestrationRun,
+  loadOrchestrationHistory,
 };

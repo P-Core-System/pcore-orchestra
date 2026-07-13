@@ -1,0 +1,32 @@
+{
+  "version": 2,
+  "ambient": true,
+  "active": false,
+  "goal": "",
+  "phase": "idle",
+  "iteration": 0,
+  "max_iterations": 8,
+  "started_at": null,
+  "last_subagent": null,
+  "lifecycle": { "events": [], "phase_history": [] },
+  "heartbeat": {
+    "last_beat": null,
+    "phase_started_at": null,
+    "stall_threshold_ms": 300000,
+    "interval_ms": 60000
+  },
+  "memory": {
+    "phases_completed": [],
+    "files_changed": [],
+    "errors": [],
+    "decisions": [],
+    "context_summary": ""
+  },
+  "resumable": {
+    "paused": false,
+    "paused_at": null,
+    "pause_reason": null,
+    "checkpoint": null,
+    "last_save": null
+  }
+}

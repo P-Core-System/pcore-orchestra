@@ -117,12 +117,63 @@ cursor-orchestra/
 ├── AGENTS.md                 # this repo's entry point
 ├── context/                  # filled six files (dogfooding)
 ├── templates/context/        # blank templates for init-context
-├── bundle/                   # → ~/.cursor/ on install
+├── bundle/                   # → ~/.cursor/ + ~/.config/opencode/ on install
 ├── project-bridge/
-├── scripts/init-context.*
+├── scripts/
+│   ├── init-context.*        # project scaffolding
+│   ├── setup-cursor-byok.sh  # Cursor BYOK bypass guide
+│   ├── setup-opencode-proxy.sh  # OpenCode free model + multi-key setup
+│   └── setup-opencode-optimal.sh  # OpenCode token optimization config
+├── docs/
+│   ├── bypass-strategies.md  # limit bypass reference
+│   └── token-optimization.md # token efficiency guide
 ├── install.sh / install.ps1
 └── README.md
 ```
+
+## Bypass Limits
+
+Orchestra runs multiple subagents per cycle, which burns through API quotas fast. Two strategies to keep orchestration free or uncapped:
+
+### Cursor: BYOK (Bring Your Own Key)
+
+Cursor supports custom API keys — requests bypass the monthly fast-request counter entirely.
+
+```bash
+bash scripts/setup-cursor-byok.sh          # interactive guide
+bash scripts/setup-cursor-byok.sh --litellm # GPT-5.5 proxy (blocked models)
+```
+
+Setup: Cursor → Settings → Models → paste key → Override Base URL → Verify. See `docs/bypass-strategies.md` for providers and cost comparison.
+
+### OpenCode: Free Zen Models + Multi-Key Rotation
+
+Use free models for orchestration, or pool multiple keys to bypass rate limits.
+
+```bash
+bash scripts/setup-opencode-proxy.sh --free       # free Zen models
+bash scripts/setup-opencode-proxy.sh --multi-key  # rotation guide
+```
+
+Best free models for orchestration: `north-mini-code-free`, `minimax-m2.5-free`. For production: OpenCode Go ($10/mo) with `opencode-go-multi-auth` rotation.
+
+See `docs/bypass-strategies.md` for full details.
+
+## Token Optimization
+
+Orchestra's 4-subagent cycle is the biggest token consumer. Optimize with phase-specific models and aggressive compaction:
+
+```bash
+bash scripts/setup-opencode-optimal.sh --balanced  # recommended
+bash scripts/setup-opencode-optimal.sh --budget    # free models only
+```
+
+**Quick wins:**
+- Planner/Verifier/Reviewer on budget model, Implementer on capable model = 60-75% savings
+- `compaction.prune: true` removes old tool outputs = 30-50% savings in long sessions
+- Agent step limits prevent runaway loops
+
+See `docs/token-optimization.md` for the full guide.
 
 ## Credits
 

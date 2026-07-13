@@ -36,6 +36,19 @@ For prompts that **implement, fix, build, refactor, deploy, install, configure, 
 - On `FIX_REQUIRED` or `VERIFY_FAIL`, re-run implementer → verifier → reviewer.
 - One global goal at a time (`~/.cursor/hooks/state/orchestra.json`).
 - Read skill `orchestra-loop` when unsure.
+- **Do not modify files between phases** — let subagents handle their own work.
+- **Do not commit between phases** — implementer commits, others are read-only.
+
+## Git commit workflow per phase
+
+| Phase | Commits? | Who commits | Convention |
+|-------|----------|-------------|------------|
+| Plan | No | — | Plan is output text only |
+| Implement | **Yes** | Implementer | `<type>(<scope>): <desc>` |
+| Verify | No | — | Checks only, verifies clean tree |
+| Review | No | — | Reviews diff, suggests final message |
+
+After `ORCHESTRA_COMPLETE`, the reviewer suggests the final commit message if all changes are in one commit. The parent agent can use it or create their own.
 
 ## Six-File Context (when `context/` exists in workspace)
 

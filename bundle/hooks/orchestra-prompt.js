@@ -12,6 +12,10 @@ const {
   detectContextInWorkspaces,
   buildContextInjection,
   AMBIENT_CONTEXT,
+  resumeOrchestra,
+  loadLongTermMemory,
+  buildMemoryContext,
+  detectCrashRecovery,
 } = require("./orchestra-lib.js");
 
 async function main() {
@@ -35,6 +39,87 @@ async function main() {
   if (/\b(enable orchestra|orchestra on|ambient on)\b/i.test(prompt)) {
     state.ambient = true;
     saveState(state);
+  }
+
+  // Resume from checkpoint (works for both paused and crash recovery)
+  if (/\b(resume orchestra|continue orchestra)\b/i.test(prompt)) {
+    // Crash recovery: state is active but stale — offer to reset and resume
+    const crash = detectCrashRecovery(state);
+    if (state.active && crash) {
+      // Reset stale state, keep checkpoint for resume
+      state.active = false;
+      state.phase = "idle";
+      state.resumable.paused = true;
+      state.resumable.paused_at = new Date().toISOString();
+      state.resumable.pause_reason = "crash_recovery";
+      if (!state.resumable.checkpoint) {
+        state.resumable.checkpoint = {
+          phase: crash.phase,
+          goal: crash.goal,
+          iteration: crash.iteration,
+          last_subagent: state.last_subagent,
+          started_at: state.started_at,
+          timestamp: new Date().toISOString(),
+        };
+      }
+      saveState(state);
+    }
+    if (state.resumable?.paused && state.resumable?.checkpoint) {
+      const cp = resumeOrchestra(state);
+      if (cp) {
+        const phaseAgent = {
+          plan: "orchestra-planner",
+          implement: "orchestra-implementer",
+          verify: "orchestra-verifier",
+          review: "orchestra-reviewer",
+        };
+        const agent = phaseAgent[cp.phase] || "orchestra-planner";
+        emit({
+          additional_context: [
+            AMBIENT_CONTEXT,
+            crash ? `Orchestra recovered from crash (was stuck at ${crash.last_activity}).` : `Orchestra RESUMED from checkpoint (paused at ${cp.timestamp}).`,
+            `Goal: ${cp.goal}`,
+            `Phase: ${cp.phase} (iteration ${cp.iteration}).`,
+            `Launch **${agent}** subagent to continue.`,
+          ].join("\n\n"),
+        });
+        return;
+      }
+    }
+    emit({
+      additional_context: "No paused orchestration found to resume. Starting fresh if needed.",
+    });
+    return;
+  }
+
+  // Manual resume (bare "resume" / "continue")
+  if (/\b(resume|continue)\b/i.test(prompt) && !state.active) {
+    if (state.resumable?.paused && state.resumable?.checkpoint) {
+      const cp = resumeOrchestra(state);
+      if (cp) {
+        const phaseAgent = {
+          plan: "orchestra-planner",
+          implement: "orchestra-implementer",
+          verify: "orchestra-verifier",
+          review: "orchestra-reviewer",
+        };
+        const agent = phaseAgent[cp.phase] || "orchestra-planner";
+        emit({
+          additional_context: [
+            AMBIENT_CONTEXT,
+            `Orchestra RESUMED from checkpoint (paused at ${cp.timestamp}).`,
+            `Goal: ${cp.goal}`,
+            `Phase: ${cp.phase} (iteration ${cp.iteration}).`,
+            `Launch **${agent}** subagent to continue.`,
+          ].join("\n\n"),
+        });
+        return;
+      }
+    }
+    emit({
+      additional_context: "No paused orchestration found to resume. Starting fresh if needed.",
+    });
+    return;
   }
 
   const { activate, reason, goal } = classifyPrompt(prompt, state);
@@ -67,12 +152,17 @@ async function main() {
 
   startOrchestra(goal || prompt, state, reason);
 
+  // Inject long-term memory context
+  const ltm = loadLongTermMemory();
+  const memCtx = buildMemoryContext(ltm);
+
   const parts = [
     AMBIENT_CONTEXT,
     `Orchestra auto-started (${reason}) — no /orchestra needed.`,
     `Goal: ${goal || prompt}`,
     "Phase: plan — launch **orchestra-planner** subagent first (Task tool).",
   ];
+  if (memCtx) parts.push(memCtx);
   if (ctxBlock) {
     parts.push(ctxBlock);
     parts.push("Planner: read all present context/*.md files before PLAN_READY.");

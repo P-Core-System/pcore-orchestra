@@ -23,14 +23,36 @@ When the user asks to **add, fix, build, refactor, deploy, install, configure, m
 
 ## Phases
 
-| # | Subagent | Role |
-|---|----------|------|
-| 1 | `orchestra-planner` | Plan only (`readonly`) |
-| 2 | `orchestra-implementer` | Minimal implementation |
-| 3 | `orchestra-verifier` | Tests / lint / smoke |
-| 4 | `orchestra-reviewer` | Final gate (`readonly`) |
+| # | Subagent | Role | Git workflow |
+|---|----------|------|-------------|
+| 1 | `orchestra-planner` | Plan only (`readonly`) | No commit — plan is output text |
+| 2 | `orchestra-implementer` | Minimal implementation | **Commits all changes** with `<type>(<scope>): <desc>` |
+| 3 | `orchestra-verifier` | Tests / lint / smoke | No commit — checks only, verifies clean tree |
+| 4 | `orchestra-reviewer` | Final gate (`readonly`) | No commit — reviews diff, suggests final message |
 
-`FIX_REQUIRED` / `VERIFY_FAIL` → hooks loop back to **orchestra-implementer**.
+`FIX_REQUIRED` / `VERIFY_FAIL` → hooks loop back to **orchestra-implementer** (which commits fixes).
+
+## Git commit convention
+
+All commits follow: `<type>(<scope>): <description>`
+
+Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
+
+- **Planner** includes commit strategy in the plan
+- **Implementer** commits after ALL changes (not mid-implementation)
+- **Verifier** checks `git status --porcelain` for clean tree
+- **Reviewer** reviews commit messages and suggests final commit if ORCHESTRA_COMPLETE
+
+## Self-review & error-free rules
+
+Each subagent has a self-review checklist and error-free rules:
+
+| Subagent | Key self-review | Error-free rule |
+|----------|----------------|-----------------|
+| Planner | Goal clear, files exist, done-when testable | No assumptions about undocumented behavior |
+| Implementer | All plan items done, no scope creep, committed | Zero tolerance: syntax, debug code, secrets |
+| Verifier | All checks run, git clean, verdict clear | Never skip, never assume PASS, never fix code |
+| Reviewer | Read actual diff, findings are file:line, verdict matches | Never approve if tests fail or secrets in code |
 
 ## User commands
 
@@ -57,6 +79,8 @@ node $env:USERPROFILE\.cursor\hooks\orchestra-enable.js stop
 - Use Task with **`orchestra-*` names** — hooks matchers require exact names.
 - Do not nest orchestra inside orchestra.
 - After `ORCHESTRA_COMPLETE`, summarize and run `orchestra-enable.js stop`.
+- **Do not modify files between phases** — let subagents handle their own work.
+- **Do not commit between phases** — implementer commits, others are read-only.
 - Works in **Cursor IDE Agent** (user hooks). Not cloud agents unless project hooks copied.
 
 ## Hooks
@@ -71,6 +95,30 @@ node $env:USERPROFILE\.cursor\hooks\orchestra-enable.js stop
 ## Opt out
 
 Say **"no orchestra"** or run `ambient-off`. Pure Q&A never triggers the chain.
+
+## Heartbeat & stall detection
+
+Heartbeat timestamps are written on every hook execution. If a phase runs >5min (configurable), stall detection emits recovery nudges. After 2 stalls, orchestration aborts.
+
+## Memory
+
+- **Short-term**: Tracked during each run (phases, files, errors, decisions). Available to subagents.
+- **Long-term**: Persistent `~/.cursor/hooks/state/orchestra-memory.json`. Planner reads past goals/errors; reviewer writes lessons.
+
+```bash
+node ~/.cursor/hooks/orchestra-enable.js memory          # View
+node ~/.cursor/hooks/orchestra-enable.js memory clear    # Clear
+```
+
+## Resumable tasks
+
+- **Crash recovery**: `sessionStart` detects stale state, offers resume via "resume orchestra"
+- **Manual pause/resume**: `pause [reason]` / `resume` commands or chat
+- **Checkpoint**: `checkpoint` saves state without pausing
+
+## Lifecycle events
+
+Every phase transition recorded to state. Last 200 events retained. Phase durations tracked.
 
 ## Six-File Context
 

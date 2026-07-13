@@ -48,6 +48,16 @@ Update when implementation changes:
 4. Verifier runs checks listed in target `ai-workflow-rules.md` when present.
 5. Reviewer confirms `progress-tracker.md` update requirement before `ORCHESTRA_COMPLETE`.
 
+## Git workflow rules
+
+- **Only the implementer commits** — planner, verifier, reviewer are read-only.
+- Commits follow `<type>(<scope>): <description>` convention.
+- Implementer commits after ALL changes, not mid-implementation.
+- Verifier checks `git status --porcelain` for clean working tree.
+- Reviewer reviews commit messages and suggests final commit on ORCHESTRA_COMPLETE.
+- On FIX_REQUIRED loop, implementer commits fixes as a separate commit.
+- Parent agent does NOT modify files or commit between phases.
+
 ## Before moving to the next unit
 
 1. `node bundle/hooks/orchestra-health.js` passes (or global install health after copy).
