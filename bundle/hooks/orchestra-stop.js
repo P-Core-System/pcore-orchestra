@@ -3,9 +3,12 @@
 
 const {
   loadState,
+  saveState,
   readStdinJson,
   emit,
   AMBIENT_CONTEXT,
+  isStalled,
+  writeHeartbeat,
 } = require("./orchestra-lib.js");
 
 async function main() {
@@ -20,6 +23,16 @@ async function main() {
 
   const state = loadState();
   if (!state.active) {
+    emit({});
+    return;
+  }
+
+  // Write heartbeat alive signal on every stop event
+  writeHeartbeat(state);
+  saveState(state);
+
+  // Don't nudge if stalled (heartbeat.js handles that)
+  if (isStalled(state)) {
     emit({});
     return;
   }

@@ -3,7 +3,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { loadState, classifyPrompt } = require("./orchestra-lib.js");
+const { loadState, classifyPrompt, MEMORY_PATH } = require("./orchestra-lib.js");
 
 const HOOKS_DIR = __dirname;
 const ROOT = path.join(HOOKS_DIR, "..");
@@ -15,6 +15,9 @@ const scripts = [
   "orchestra-subagent-stop.js",
   "orchestra-stop.js",
   "orchestra-enable.js",
+  "orchestra-heartbeat.js",
+  "orchestra-lifecycle.js",
+  "orchestra-memory.js",
 ];
 
 console.log("=== Orchestra health check ===\n");
@@ -35,6 +38,16 @@ if (fs.existsSync(hooksJson)) {
     const cfg = JSON.parse(fs.readFileSync(hooksJson, "utf8"));
     const events = Object.keys(cfg.hooks || {});
     console.log("    events:", events.join(", "));
+    // Verify new hook entries
+    const subagentHooks = cfg.hooks?.subagentStop || [];
+    const stopHooks = cfg.hooks?.stop || [];
+    const hasLifecycle = subagentHooks.some((h) => h.command?.includes("orchestra-lifecycle"));
+    const hasMemory = subagentHooks.some((h) => h.command?.includes("orchestra-memory"));
+    const hasHeartbeat = stopHooks.some((h) => h.command?.includes("orchestra-heartbeat"));
+    console.log("    lifecycle hook:", hasLifecycle ? "OK" : "MISSING");
+    console.log("    memory hook:", hasMemory ? "OK" : "MISSING");
+    console.log("    heartbeat hook:", hasHeartbeat ? "OK" : "MISSING");
+    if (!hasLifecycle || !hasMemory || !hasHeartbeat) ok = false;
   } catch (e) {
     console.log("BAD hooks.json parse:", e.message);
     ok = false;
@@ -46,7 +59,29 @@ if (fs.existsSync(hooksJson)) {
 
 const state = loadState();
 console.log("\n=== State ===");
-console.log(JSON.stringify(state, null, 2));
+console.log("    version:", state.version || "1 (legacy)");
+console.log("    active:", state.active);
+console.log("    phase:", state.phase);
+console.log("    ambient:", state.ambient);
+console.log("    heartbeat:", state.heartbeat ? "present" : "MISSING");
+console.log("    lifecycle:", state.lifecycle ? "present" : "MISSING");
+console.log("    memory:", state.memory ? "present" : "MISSING");
+console.log("    resumable:", state.resumable ? "present" : "MISSING");
+
+// Check long-term memory file
+console.log("\n=== Long-term Memory ===");
+const memExists = fs.existsSync(MEMORY_PATH);
+console.log(memExists ? "OK  " : "MISS ", "state/orchestra-memory.json");
+if (memExists) {
+  try {
+    const mem = JSON.parse(fs.readFileSync(MEMORY_PATH, "utf8"));
+    console.log(`    completed_goals: ${mem.completed_goals?.length || 0}`);
+    console.log(`    recent_files: ${mem.recent_files?.length || 0}`);
+    console.log(`    error_patterns: ${mem.error_patterns?.length || 0}`);
+  } catch (e) {
+    console.log("    WARN: memory file is invalid JSON:", e.message);
+  }
+}
 
 console.log("\n=== Classification samples ===");
 const samples = [

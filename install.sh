@@ -1,59 +1,85 @@
 #!/usr/bin/env bash
-# Install Cursor Orchestra bundle to ~/.cursor (global, all projects)
+# Install Orchestra bundle to ~/.cursor AND ~/.config/opencode (global, all projects)
 # Usage:
-#   bash cursor-orchestra/install.sh
-#   bash cursor-orchestra/install.sh --project   # also install project bridge in current repo
+#   bash install.sh              # install both Cursor + OpenCode (default)
+#   bash install.sh --all        # same as default
+#   bash install.sh --cursor     # Cursor only
+#   bash install.sh --opencode   # OpenCode only
+#   bash install.sh --project    # also install project bridge in current repo
+#   bash install.sh --all --project
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 BUNDLE="$ROOT/bundle"
 CURSOR="${CURSOR_HOME:-$HOME/.cursor}"
+OPENCODE="${OPENCODE_CONFIG_DIR:-$HOME/.config/opencode}"
+AGENTS_SKILLS="${AGENTS_SKILLS:-$HOME/.agents/skills}"
+
+INSTALL_CURSOR=0
+INSTALL_OPENCODE=0
 INSTALL_PROJECT=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --project) INSTALL_PROJECT=1; shift ;;
+    --all)        INSTALL_CURSOR=1; INSTALL_OPENCODE=1; shift ;;
+    --cursor)     INSTALL_CURSOR=1; shift ;;
+    --opencode)   INSTALL_OPENCODE=1; shift ;;
+    --project)    INSTALL_PROJECT=1; shift ;;
     -h|--help)
-      echo "Usage: bash cursor-orchestra/install.sh [--project]"
+      cat <<'HELP'
+Usage: bash install.sh [--all|--cursor|--opencode] [--project]
+
+Options:
+  --all        Install for both Cursor and OpenCode (default)
+  --cursor     Install for Cursor IDE only
+  --opencode   Install for OpenCode CLI only
+  --project    Also install project bridge (.cursor/) in current repo
+
+No flags = --all. Restart IDE/editor after install.
+HELP
       exit 0 ;;
-    *) echo "Unknown option: $1"; exit 1 ;;
+    *) echo "Unknown option: $1 (try --help)"; exit 1 ;;
   esac
 done
 
-need_cmd() {
-  command -v "$1" >/dev/null 2>&1 || { echo "ERROR: '$1' required (install Node.js 18+)"; exit 1; }
-}
-need_cmd node
-
-echo "==> Installing Cursor Orchestra to $CURSOR"
-
-mkdir -p "$CURSOR/hooks/state" "$CURSOR/agents" "$CURSOR/skills" "$CURSOR/rules"
-
-# Hooks scripts
-cp -f "$BUNDLE/hooks/"orchestra-*.js "$CURSOR/hooks/"
-
-# Default state (don't overwrite if exists)
-if [[ ! -f "$CURSOR/hooks/state/orchestra.json" ]]; then
-  cp -f "$BUNDLE/hooks/state/orchestra.json" "$CURSOR/hooks/state/orchestra.json"
+# Default: both
+if [[ "$INSTALL_CURSOR" -eq 0 && "$INSTALL_OPENCODE" -eq 0 ]]; then
+  INSTALL_CURSOR=1
+  INSTALL_OPENCODE=1
 fi
 
-# Agents, skill, rule, docs
-cp -f "$BUNDLE/agents/"orchestra-*.md "$CURSOR/agents/"
-mkdir -p "$CURSOR/skills/orchestra-loop"
-cp -f "$BUNDLE/skills/orchestra-loop/SKILL.md" "$CURSOR/skills/orchestra-loop/"
-cp -f "$BUNDLE/rules/orchestra-loop.mdc" "$CURSOR/rules/"
-cp -f "$BUNDLE/ORCHESTRA.md" "$CURSOR/ORCHESTRA.md"
+echo "============================================"
+echo " Orchestra Installer (Cursor + OpenCode)"
+echo "============================================"
+echo ""
 
-# Optional: link skill for .agents/skills discovery
-AGENTS_SKILLS="${AGENTS_SKILLS:-$HOME/.agents/skills}"
-mkdir -p "$AGENTS_SKILLS"
-if [[ ! -e "$AGENTS_SKILLS/orchestra-loop" ]]; then
-  ln -sf "$CURSOR/skills/orchestra-loop" "$AGENTS_SKILLS/orchestra-loop" 2>/dev/null || \
-    cp -r "$CURSOR/skills/orchestra-loop" "$AGENTS_SKILLS/orchestra-loop"
-fi
+###############################################################################
+# Cursor installation
+###############################################################################
+install_cursor() {
+  echo "==> Installing Cursor Orchestra to $CURSOR"
 
-# Merge hooks.json
-node - "$CURSOR" "$BUNDLE/hooks.json" <<'NODE'
+  command -v node >/dev/null 2>&1 || { echo "ERROR: 'node' required (install Node.js 18+)"; exit 1; }
+
+  mkdir -p "$CURSOR/hooks/state" "$CURSOR/agents" "$CURSOR/skills" "$CURSOR/rules"
+
+  # Hook scripts
+  cp -f "$BUNDLE/hooks/"orchestra-*.js "$CURSOR/hooks/"
+
+  # Default state (don't overwrite)
+  if [[ ! -f "$CURSOR/hooks/state/orchestra.json" ]]; then
+    cp -f "$BUNDLE/hooks/state/orchestra.json" "$CURSOR/hooks/state/orchestra.json"
+  fi
+
+  # Agents, skill, rule, docs
+  cp -f "$BUNDLE/agents/"orchestra-*.md "$CURSOR/agents/"
+  mkdir -p "$CURSOR/skills/orchestra-loop"
+  cp -f "$BUNDLE/skills/orchestra-loop/SKILL.md" "$CURSOR/skills/orchestra-loop/"
+  cp -f "$BUNDLE/rules/orchestra-loop.mdc" "$CURSOR/rules/"
+  cp -f "$BUNDLE/ORCHESTRA.md" "$CURSOR/ORCHESTRA.md"
+
+  # Merge hooks.json (dedup by command name)
+  node - "$CURSOR" "$BUNDLE/hooks.json" <<'MERGE'
 const fs = require("fs");
 const path = require("path");
 const cursor = process.argv[2];
@@ -74,31 +100,126 @@ for (const [event, entries] of Object.entries(src.hooks || {})) {
   dest.hooks[event] = existing;
 }
 fs.writeFileSync(destPath, JSON.stringify(dest, null, 2) + "\n");
-console.log("Merged hooks.json ->", destPath);
-NODE
+console.log("  Merged hooks.json ->", destPath);
+MERGE
 
-if [[ "$INSTALL_PROJECT" -eq 1 ]]; then
-  REPO_ROOT="$(pwd)"
+  # Link skill for external discovery
+  mkdir -p "$AGENTS_SKILLS"
+  if [[ ! -e "$AGENTS_SKILLS/orchestra-loop" ]]; then
+    ln -sf "$CURSOR/skills/orchestra-loop" "$AGENTS_SKILLS/orchestra-loop" 2>/dev/null || \
+      cp -r "$CURSOR/skills/orchestra-loop" "$AGENTS_SKILLS/orchestra-loop"
+  fi
+
+  echo "  Cursor agents:  $CURSOR/agents/orchestra-*.md"
+  echo "  Cursor hooks:   $CURSOR/hooks/"
+  echo "  Cursor skill:   $CURSOR/skills/orchestra-loop/"
+  echo "  Cursor rule:    $CURSOR/rules/orchestra-loop.mdc"
+}
+
+###############################################################################
+# OpenCode installation
+###############################################################################
+install_opencode() {
+  echo "==> Installing OpenCode Orchestra to $OPENCODE"
+
+  mkdir -p "$OPENCODE/agents" "$OPENCODE/skills/orchestra-loop" "$OPENCODE/state"
+
+  # Copy OpenCode agents
+  cp -f "$BUNDLE/opencode/agents/"orchestra-*.md "$OPENCODE/agents/"
+
+  # Copy OpenCode skill
+  cp -f "$BUNDLE/opencode/skills/orchestra-loop/SKILL.md" "$OPENCODE/skills/orchestra-loop/"
+
+  # Copy health check
+  mkdir -p "$OPENCODE/hooks"
+  cp -f "$BUNDLE/opencode/hooks/orchestra-health-opencode.js" "$OPENCODE/hooks/"
+
+  # Default state (don't overwrite)
+  if [[ ! -f "$OPENCODE/state/orchestra.json" ]]; then
+    cp -f "$BUNDLE/opencode/state/orchestra.json" "$OPENCODE/state/orchestra.json"
+  fi
+
+  # Link to external skills directory
+  mkdir -p "$AGENTS_SKILLS"
+  rm -f "$AGENTS_SKILLS/orchestra-loop"
+  ln -sf "$OPENCODE/skills/orchestra-loop" "$AGENTS_SKILLS/orchestra-loop" 2>/dev/null || \
+    cp -r "$OPENCODE/skills/orchestra-loop" "$AGENTS_SKILLS/orchestra-loop"
+
+  echo "  OpenCode agents:  $OPENCODE/agents/orchestra-*.md"
+  echo "  OpenCode skill:   $OPENCODE/skills/orchestra-loop/"
+  echo "  OpenCode state:   $OPENCODE/state/orchestra.json"
+  echo "  External link:    $AGENTS_SKILLS/orchestra-loop -> $OPENCODE/skills/orchestra-loop"
+}
+
+###############################################################################
+# Health checks
+###############################################################################
+health_cursor() {
+  if [[ -f "$CURSOR/hooks/orchestra-health.js" ]]; then
+    echo ""
+    echo "==> Cursor health check"
+    node "$CURSOR/hooks/orchestra-health.js" || true
+  fi
+}
+
+health_opencode() {
+  echo ""
+  echo "==> OpenCode health check"
+  if [[ -f "$OPENCODE/hooks/orchestra-health-opencode.js" ]]; then
+    node "$OPENCODE/hooks/orchestra-health-opencode.js" || true
+  else
+    echo "WARN: health check script not found at $OPENCODE/hooks/orchestra-health-opencode.js"
+  fi
+}
+
+###############################################################################
+# Project bridge
+###############################################################################
+install_project_bridge() {
+  REPO_ROOT="$(cd "$ROOT/.." && pwd)"
   echo "==> Installing project bridge to $REPO_ROOT/.cursor"
   mkdir -p "$REPO_ROOT/.cursor/hooks"
   cp -f "$ROOT/project-bridge/hooks.json" "$REPO_ROOT/.cursor/hooks.json"
   cp -f "$ROOT/project-bridge/hooks/bridge.js" "$REPO_ROOT/.cursor/hooks/bridge.js"
+}
+
+###############################################################################
+# Main
+###############################################################################
+if [[ "$INSTALL_CURSOR" -eq 1 ]]; then
+  install_cursor
+fi
+
+if [[ "$INSTALL_OPENCODE" -eq 1 ]]; then
+  install_opencode
+fi
+
+if [[ "$INSTALL_PROJECT" -eq 1 ]]; then
+  install_project_bridge
+fi
+
+# Health checks
+if [[ "$INSTALL_CURSOR" -eq 1 ]]; then
+  health_cursor
+fi
+if [[ "$INSTALL_OPENCODE" -eq 1 ]]; then
+  health_opencode
 fi
 
 echo ""
-echo "==> Health check"
-node "$CURSOR/hooks/orchestra-health.js" || true
-
-echo ""
 echo "============================================"
-echo " Cursor Orchestra installed!"
-echo "  Global:  $CURSOR"
-echo "  Docs:    $CURSOR/ORCHESTRA.md"
+echo " Orchestra installed!"
 echo ""
-echo "  Restart Cursor IDE, then check Settings → Hooks"
+if [[ "$INSTALL_CURSOR" -eq 1 ]]; then
+  echo "  Cursor global:   $CURSOR"
+  echo "  Cursor hooks:    Settings → Hooks (restart Cursor IDE)"
+  echo "  Cursor test:     node $CURSOR/hooks/orchestra-health.js"
+  echo "  Cursor status:   node $CURSOR/hooks/orchestra-enable.js status"
+fi
+if [[ "$INSTALL_OPENCODE" -eq 1 ]]; then
+  echo "  OpenCode global: $OPENCODE"
+  echo "  OpenCode test:   node $OPENCODE/hooks/orchestra-health-opencode.js"
+fi
 echo ""
-echo "  Test:    node $CURSOR/hooks/orchestra-health.js"
-echo "  Status:  node $CURSOR/hooks/orchestra-enable.js status"
-echo "  Off:     node $CURSOR/hooks/orchestra-enable.js ambient-off"
-echo "  Bootstrap context: bash $ROOT/scripts/init-context.sh /path/to/project"
+echo "  Restart Cursor IDE or opencode for changes to take effect."
 echo "============================================"

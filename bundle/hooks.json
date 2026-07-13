@@ -18,11 +18,25 @@
         "command": "node ./hooks/orchestra-subagent-stop.js",
         "matcher": "orchestra-planner|orchestra-implementer|orchestra-verifier|orchestra-reviewer",
         "loop_limit": 12
+      },
+      {
+        "command": "node ./hooks/orchestra-lifecycle.js",
+        "matcher": "orchestra-planner|orchestra-implementer|orchestra-verifier|orchestra-reviewer",
+        "loop_limit": 12
+      },
+      {
+        "command": "node ./hooks/orchestra-memory.js",
+        "matcher": "orchestra-planner|orchestra-implementer|orchestra-verifier|orchestra-reviewer",
+        "loop_limit": 12
       }
     ],
     "stop": [
       {
         "command": "node ./hooks/orchestra-stop.js",
+        "loop_limit": 5
+      },
+      {
+        "command": "node ./hooks/orchestra-heartbeat.js",
         "loop_limit": 5
       }
     ]

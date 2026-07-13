@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "ambient": true,
   "active": false,
   "goal": "",
@@ -8,6 +8,30 @@
   "last_subagent": null,
   "iteration": 0,
   "max_iterations": 8,
-  "last_prompt": null,
-  "auto_started": null
+  "last_prompt": "test recovery",
+  "auto_started": "manual",
+  "lifecycle": {
+    "events": [],
+    "phase_history": []
+  },
+  "heartbeat": {
+    "last_beat": "2026-07-13T14:22:34.250Z",
+    "phase_started_at": "2026-07-13T14:22:22.810Z",
+    "stall_threshold_ms": 300000,
+    "interval_ms": 60000
+  },
+  "memory": {
+    "phases_completed": [],
+    "files_changed": [],
+    "errors": [],
+    "decisions": [],
+    "context_summary": ""
+  },
+  "resumable": {
+    "paused": false,
+    "paused_at": null,
+    "pause_reason": null,
+    "checkpoint": null,
+    "last_save": null
+  }
 }
