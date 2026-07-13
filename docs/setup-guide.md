@@ -493,7 +493,7 @@ Add to your project's `README.md`:
 
 ```bash
 # Reinstall
-cd /path/to/cursor-orchestra
+cd /path/to/pcore-agents
 bash install.sh
 
 # Check hooks.json
