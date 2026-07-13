@@ -2,6 +2,26 @@
 
 Maximize coding performance per token spent. Every technique here is based on OpenCode's official config options and proven prompting patterns.
 
+## Quick Reference
+
+| Setting | Value | Impact |
+|---------|-------|--------|
+| `compaction.prune` | `true` | Saves 30-50% tokens |
+| `small_model` | `gpt-5-nano` | Saves $0.50-5.00/session |
+| Planner budget | 10,000 tokens | Prevents runaway reads |
+| Implementer budget | 30,000 tokens | Enough for complex tasks |
+| Verifier budget | 15,000 tokens | Enough for test runs |
+| Reviewer budget | 8,000 tokens | Read-only, minimal |
+| **Total per cycle** | **~63k tokens** | vs unlimited before |
+| **Cost per cycle** | **$0.03-0.11** | vs $0.15-0.40 before |
+
+**One-liner setup:**
+```bash
+bash scripts/setup-opencode-optimal.sh --balanced
+```
+
+---
+
 ## Table of Contents
 
 - [The Token Budget Problem](#token-budget)

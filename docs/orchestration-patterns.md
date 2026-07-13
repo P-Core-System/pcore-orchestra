@@ -1,121 +1,219 @@
 # Orchestration Patterns
 
-This document explains the orchestration patterns used in cursor-orchestra and the research behind these choices.
+How cursor-orchestra chains agents, why we chose this pattern, and how to adapt it.
 
-## Patterns considered
+## The Pattern We Use: Prompt Chaining + ReAct
 
-### 1. Prompt Chaining (sequential pipeline)
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     User Prompt                              │
+│               "fix the login bug"                            │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  orchestra-planner                                          │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ THOUGHT: What files are involved? What's the bug?   │   │
+│  │ ACTION: grep for auth patterns, read relevant files  │   │
+│  │ OBSERVATION: Found null check missing in auth.ts:42  │   │
+│  │ REFLECT: Simple fix, no architecture changes needed  │   │
+│  └─────────────────────────────────────────────────────┘   │
+│  Output: structured plan (50 lines max)                     │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  orchestra-implementer                                      │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ THOUGHT: Add null check before session access       │   │
+│  │ ACTION: edit auth.ts:42                              │   │
+│  │ OBSERVATION: Edit applied successfully               │   │
+│  │ REFLECT: Run syntax check to verify                  │   │
+│  └─────────────────────────────────────────────────────┘   │
+│  Output: files changed + validation results                 │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  orchestra-verifier                                         │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ THOUGHT: What could this change break?               │   │
+│  │ ACTION: run auth tests, check for null pointer       │   │
+│  │ OBSERVATION: All 12 auth tests pass                  │   │
+│  │ REFLECT: Convergence criteria met (tests pass)       │   │
+│  └─────────────────────────────────────────────────────┘   │
+│  Output: VERIFY_PASS                                        │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  orchestra-reviewer                                         │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ THOUGHT: Is this change reversible? Scope correct?   │   │
+│  │ ACTION: review diff, check for security issues       │   │
+│  │ OBSERVATION: Clean fix, no scope creep               │   │
+│  │ REFLECT: Approve — low risk, high confidence         │   │
+│  └─────────────────────────────────────────────────────┘   │
+│  Output: ORCHESTRA_COMPLETE                                 │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  User receives summary of changes                           │
+└─────────────────────────────────────────────────────────────┘
+```
 
-**What:** Fixed sequence of agents, each output feeds the next.
+---
 
-**Used in cursor-orchestra:** Yes — our core loop is `plan → implement → verify → review`.
+## Patterns Considered
+
+### 1. Prompt Chaining (what we use)
+
+**Fixed sequence: plan → implement → verify → review**
+
+```
+Input → [Agent 1] → [Agent 2] → [Agent 3] → [Agent 4] → Output
+```
+
+| Aspect | Assessment |
+|--------|------------|
+| **Simplicity** | ★★★★★ Easiest to implement and debug |
+| **Reliability** | ★★★★☆ Predictable behavior, clear failure modes |
+| **Token efficiency** | ★★★★☆ Each agent only sees its input |
+| **Adaptability** | ★★★☆☆ Fixed sequence may not suit all tasks |
+| **Parallelism** | ★★☆☆☆ Sequential by nature |
 
 **When to use:**
 - Deterministic workflows with clear phase transitions
 - Each phase has a single well-defined output
 - Simple error handling (retry last phase)
 
-**Pros:**
-- Simple to implement and reason about
-- Easy to debug (clear input/output per phase)
-- Low token overhead (each agent only sees its input)
+### 2. ReAct (embedded in each agent)
 
-**Cons:**
-- No mid-phase corrections
-- Fixed sequence may not suit all tasks
-- Errors propagate to next phase
+**Reason → Act → Observe → Reflect cycle**
 
-### 2. ReAct (Reason + Act)
+```
+┌─────────────────────────────────────┐
+│  Agent (e.g., implementer)          │
+│                                     │
+│  ┌─────────────────────────────┐   │
+│  │ THOUGHT: What should I do?  │   │
+│  │         ↓                   │   │
+│  │ ACTION: Execute tool call   │   │
+│  │         ↓                   │   │
+│  │ OBSERVATION: What happened? │   │
+│  │         ↓                   │   │
+│  │ REFLECT: Did it work?       │   │
+│  │         ↓                   │   │
+│  │ [loop back to THOUGHT]      │   │
+│  └─────────────────────────────┘   │
+└─────────────────────────────────────┘
+```
 
-**What:** Agent reasons about what to do, acts, observes result, reflects, then decides next step.
-
-**Used in cursor-orchestra:** Yes — embedded within each agent.
+| Aspect | Assessment |
+|--------|------------|
+| **Simplicity** | ★★★☆☆ Requires clear reflection prompts |
+| **Reliability** | ★★★★☆ Catches errors early |
+| **Token efficiency** | ★★★☆☆ Reasoning overhead per step |
+| **Adaptability** | ★★★★★ Can change strategy based on observations |
+| **Parallelism** | ★★★☆☆ Single agent, sequential actions |
 
 **When to use:**
 - Complex tasks requiring adaptive behavior
 - Tasks where the agent needs to recover from errors
 - Multi-step operations with uncertain outcomes
 
-**Pros:**
-- Catches errors early (reflect after each action)
-- Adaptible — can change strategy based on observations
-- Reduces cascading mistakes
+### 3. Supervisor Pattern
 
-**Cons:**
-- Higher token cost per step (reasoning overhead)
-- Can overthink simple tasks
-- Requires clear reflection prompts
+**Central coordinator delegates to workers**
 
-### 3. Supervisor pattern
+```
+         ┌──────────────┐
+         │  Supervisor   │
+         └──────┬───────┘
+    ┌───────────┼───────────┐
+    ▼           ▼           ▼
+┌────────┐ ┌────────┐ ┌────────┐
+│Worker 1│ │Worker 2│ │Worker 3│
+└────────┘ └────────┘ └────────┘
+    │           │           │
+    └───────────┼───────────┘
+                ▼
+         ┌──────────────┐
+         │   Results     │
+         └──────────────┘
+```
 
-**What:** Central coordinator that delegates to specialized workers and synthesizes results.
-
-**Used in cursor-orchestra:** Partially — the main agent acts as supervisor launching subagents.
+| Aspect | Assessment |
+|--------|------------|
+| **Simplicity** | ★★★☆☆ Coordination overhead |
+| **Reliability** | ★★★★☆ Worker failures don't block whole task |
+| **Token efficiency** | ★★★☆☆ Each worker gets own context |
+| **Adaptability** | ★★★★☆ Workers can be specialized |
+| **Parallelism** | ★★★★★ True parallel execution |
 
 **When to use:**
 - Multiple independent subtasks
 - Results need aggregation or comparison
 - Worker failures should not block the whole task
 
-**Pros:**
-- Parallel execution possible
-- Clear ownership per subtask
-- Easy to add/remove workers
-
-**Cons:**
-- Supervisor needs to understand all worker outputs
-- Coordination overhead
-- Worker results may conflict
-
 ### 4. Hierarchical (orchestrator-workers)
 
-**What:** Multi-level delegation — orchestrator delegates to sub-orchestrators, who delegate to workers.
+**Multi-level delegation**
 
-**Used in cursor-orchestra:** No — flat structure preferred for simplicity.
+```
+         ┌──────────────┐
+         │  Orchestrator │
+         └──────┬───────┘
+    ┌───────────┼───────────┐
+    ▼           ▼           ▼
+┌────────┐ ┌────────┐ ┌────────┐
+│Sub-Org │ │Sub-Org │ │Sub-Org │
+└───┬────┘ └───┬────┘ └───┬────┘
+    │          │          │
+    ▼          ▼          ▼
+┌────────┐ ┌────────┐ ┌────────┐
+│Workers │ │Workers │ │Workers │
+└────────┘ └────────┘ └────────┘
+```
+
+| Aspect | Assessment |
+|--------|------------|
+| **Simplicity** | ★☆☆☆☆ Complex to implement |
+| **Reliability** | ★★★☆☆ Deep chains hard to debug |
+| **Token efficiency** | ★★☆☆☆ High coordination overhead |
+| **Adaptability** | ★★★★★ Each level specialized |
+| **Parallelism** | ★★★★★ Scales to complex projects |
 
 **When to use:**
 - Very large tasks with many independent components
 - Need for deep specialization at each level
 - Enterprise-scale workflows
 
-**Pros:**
-- Scales to complex projects
-- Each level has clear responsibility
+---
 
-**Cons:**
-- Complex to implement
-- High coordination overhead
-- Deep delegation chains hard to debug
+## Why Cursor Orchestra Uses Prompt Chaining + ReAct
 
-## Why cursor-orchestra uses Prompt Chaining + ReAct
+### Decision Matrix
 
-### Chosen architecture
-
-```
-User prompt
-    ↓
-[Supervisor: main agent]
-    ↓
-orchestra-planner (ReAct inside)
-    ↓ plan
-orchestra-implementer (ReAct inside)
-    ↓ changes
-orchestra-verifier (ReAct inside)
-    ↓ verdict
-orchestra-reviewer (ReAct inside)
-    ↓ verdict
-User gets summary
-```
+| Criterion | Chaining | ReAct | Supervisor | Hierarchical |
+|-----------|----------|-------|------------|--------------|
+| Implementation difficulty | ★ | ★★★ | ★★★★ | ★★★★★ |
+| Debugging ease | ★ | ★★★ | ★★★ | ★★★★★ |
+| Token efficiency | ★★ | ★★★ | ★★★ | ★★★★ |
+| Adaptability | ★★ | ★★★★★ | ★★★★ | ★★★★★ |
+| **Our choice** | ✅ | ✅ | Partial | ❌ |
 
 ### Rationale
 
 1. **Simplicity**: Prompt chaining is the easiest to implement, debug, and maintain.
 2. **Reliability**: Fixed phases mean predictable behavior and clear failure modes.
 3. **Token efficiency**: Each agent only receives its specific input, not full history.
-4. **Adaptability within phases**: ReAct inside each agent allows error recovery without breaking the pipeline.
+4. **Adaptability**: ReAct inside each agent allows error recovery without breaking the pipeline.
 5. **Clear ownership**: Each phase has one job — no ambiguity about who does what.
 
-### Why not pure ReAct loop?
+### Why not pure ReAct?
 
 A pure ReAct agent (single agent doing everything) works for simple tasks but:
 - Token costs explode with context growth
@@ -129,42 +227,97 @@ Full supervisor pattern with parallel workers:
 - Requires result aggregation logic
 - Overkill for most coding tasks (sequential by nature)
 
-## ReAct in practice
+---
 
-Each agent follows this internal loop:
-
-```
-1. THOUGHT: What's the current situation? What should I do next?
-2. ACTION: Execute one tool call (read, edit, bash, grep)
-3. OBSERVATION: What happened? Any errors?
-4. REFLECT: Did it work? What did I learn? What's next?
-```
-
-This is embedded in agent prompts without requiring framework support.
-
-## Error handling
+## Error Handling
 
 ### Phase-level errors
 
-- **VERIFY_FAIL**: Re-run implementer with numbered fixes from verifier
-- **FIX_REQUIRED**: Re-run implementer with numbered fixes from reviewer
-- **Max iterations**: 8 (prevents infinite loops)
+| Error | Response |
+|-------|----------|
+| `VERIFY_FAIL` | Re-run implementer with numbered fixes from verifier |
+| `FIX_REQUIRED` | Re-run implementer with numbered fixes from reviewer |
+| Max iterations (8) | Abort and escalate to human |
 
 ### Agent-level errors
 
-- Each agent has step limits (planner: 8, implementer: 25, verifier: 10, reviewer: 5)
-- Agents return structured output with clear success/failure signals
-- Parent agent decides whether to continue or abort
+| Error | Response |
+|-------|----------|
+| Step limit reached | Agent summarizes work, recommends next steps |
+| Tool call fails | Agent reflects, tries alternative approach |
+| Identical failure 2x | Stall detected — try different strategy |
+| Identical failure 3x | Abort — escalate to human |
 
 ### Recovery strategies
 
 1. **Retry last phase**: Most common — implementer fixes what verifier found
-2. **Skip to review**: If verifier passes but reviewer finds issues
-3. **Abort**: If max iterations reached or unrecoverable error
+2. **Fresh context**: Summarize failures, start clean (long failed transcripts poison attempts)
+3. **Different strategy**: Plan step must propose materially different approach
+4. **Abort to human**: File the issue, post summary, stop
+
+---
+
+## Convergence Criteria
+
+The loop exits when ANY of these are true:
+
+| Signal | Strength | Description | Example |
+|--------|----------|-------------|---------|
+| Tests pass | Strongest | All relevant tests pass | `pytest` returns 0 |
+| Diff empty | Strong | No changes in last iteration | `git diff` shows nothing |
+| Lint clean | Medium | Zero lint errors | `eslint` returns 0 |
+| Judge passes | Weakest | Reviewer approves | `ORCHESTRA_COMPLETE` |
+
+**Key insight**: Check for **progress**, not just completion. If verification fails with identical feedback 2 iterations in a row, the loop is stuck, not converging.
+
+---
+
+## Stall Detection
+
+```
+Iteration 1: FAIL — "null pointer in auth.ts:42"
+Iteration 2: FAIL — "null pointer in auth.ts:42"  ← STALL DETECTED
+    │
+    ├─► Try different strategy (fresh context, alternative approach)
+    │
+    ▼
+Iteration 3: FAIL — "null pointer in auth.ts:42"  ← 3RD FAILURE
+    │
+    └─► ABORT — escalate to human
+```
+
+**Why this matters**: Without stall detection, a loop that fails identically burns tokens without progress. The Operator Test: "If the agent cannot prove it is done, you are not engineering a loop; you are automating drift."
+
+---
+
+## Human Checkpoints
+
+Required for:
+- **Auth/payments/security changes** — high-risk, need human judgment
+- **Budget exhaustion** — max iterations/tokens/time hit
+- **Unresolvable failures** — 3rd identical error
+- **Scope creep** — agent touching out-of-scope files
+
+---
+
+## Token Budgets
+
+| Agent | Max Tokens | Max Output | Model | Why |
+|-------|------------|------------|-------|-----|
+| Planner | 10,000 | 50 lines | Budget | Read-only, simple task |
+| Implementer | 30,000 | 100 lines | Capable | Complex coding |
+| Verifier | 15,000 | 30 lines | Budget | Run checks, report results |
+| Reviewer | 8,000 | 30 lines | Budget | Read-only, simple task |
+
+**Total per cycle:** ~63k tokens max
+
+---
 
 ## References
 
 - [ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629)
 - [Building Effective Agents — Anthropic](https://docs.anthropic.com/en/docs/build-with-claude/agent-patterns)
-- [Prompt Chaining for Complex Workflows](https://www.anthropic.com/engineering/building-effective-agents)
-- [Agent Loop Optimization](https://opencode.ai/docs/agents)
+- [Loop Engineering — Jack Njoroge](https://www.jacknjoroge.com/loop-engineering/)
+- [The Agent Loop Architecture — Inngest](https://www.inngest.com/blog/agent-loop-architecture)
+- [Loop Engineering — Kunal Ganglani](https://www.kunalganglani.com/blog/loop-engineering-agent-loops)
+- [How to Build a Software Factory — freeCodeCamp](https://www.freecodecamp.org/news/how-to-build-software-factory-with-claude-code/)
