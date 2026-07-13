@@ -10,6 +10,8 @@
 
 **Repository:** [github.com/peterlianpi/cursor-orchestra](https://github.com/peterlianpi/cursor-orchestra)
 
+**Status:** Production-ready | **Version:** 1.0 | **Last updated:** July 2026
+
 ---
 
 ## Quick Start (2 minutes)
@@ -29,6 +31,17 @@ deploy to VPS
 ```
 
 Orchestra auto-runs: **planner → implementer → verifier → reviewer**.
+
+---
+
+## Requirements
+
+| Requirement | Version | Purpose |
+|-------------|---------|---------|
+| Node.js | 18+ | Hook scripts |
+| Cursor IDE | Latest | Agent mode (for Cursor) |
+| OpenCode CLI | Latest | Optional (for OpenCode) |
+| Git | 2.x | Version control |
 
 ---
 
@@ -212,6 +225,53 @@ bash scripts/setup-opencode-proxy.sh --multi-key  # rotation guide
 | [orchestration-patterns.md](docs/orchestration-patterns.md) | Patterns used and rationale |
 | [bypass-strategies.md](docs/bypass-strategies.md) | Cursor BYOK + OpenCode free model reference |
 | [token-optimization.md](docs/token-optimization.md) | Token efficiency guide |
+
+---
+
+## Uninstall
+
+```bash
+# Remove Cursor hooks
+rm -rf ~/.cursor/hooks/orchestra-*
+rm -rf ~/.cursor/agents/orchestra-*
+rm -rf ~/.cursor/skills/orchestra-loop
+rm -rf ~/.cursor/rules/orchestra-loop.mdc
+rm -f ~/.cursor/hooks.json
+
+# Remove OpenCode files
+rm -rf ~/.config/opencode/agents/orchestra-*
+rm -rf ~/.config/opencode/skills/orchestra-loop
+rm -f ~/.config/opencode/hooks/orchestra-health-opencode.js
+
+# Remove symlink
+rm -rf ~/.agents/skills/orchestra-loop
+```
+
+---
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## Project Status
+
+| Milestone | Status |
+|-----------|--------|
+| Core orchestration loop | ✅ Complete |
+| Convergence criteria | ✅ Complete |
+| Stall detection | ✅ Complete |
+| Human checkpoints | ✅ Complete |
+| Token budgets | ✅ Complete |
+| Documentation | ✅ Complete |
+| Durable skills | 🔜 Planned |
+| Branch isolation | 🔜 Planned |
+| MVP mode | 🔜 Planned |
 
 ---
 

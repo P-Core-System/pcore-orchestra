@@ -1,6 +1,16 @@
+---
+title: Token Optimization Guide
+description: Maximize coding performance per token — compaction, model routing, agent budgets, and prompt engineering for OpenCode and Cursor.
+last_updated: 2026-07-13
+tags: [token optimization, cost, compaction, model-routing, opencode]
+related: [bypass-strategies.md, orchestration-patterns.md]
+---
+
 # OpenCode Token Optimization Guide
 
 Maximize coding performance per token spent. Every technique here is based on OpenCode's official config options and proven prompting patterns.
+
+> **TL;DR:** Enable `compaction.prune: true`, use phase-specific models (budget for planner/verifier, capable for implementer), and set agent step limits. Saves 50-70% tokens.
 
 ## Quick Reference
 

@@ -1,6 +1,16 @@
+---
+title: Bypass Limit Strategies
+description: Reference guide for extending usage beyond Cursor and OpenCode free-tier limits — BYOK, free models, multi-key rotation, and cost comparison.
+last_updated: 2026-07-13
+tags: [bypass, byok, free-models, multi-key, cursor, opencode]
+related: [token-optimization.md]
+---
+
 # Bypass Limit Strategies
 
 Reference guide for extending usage beyond Cursor and OpenCode free-tier limits. All strategies are legitimate (BYOK is officially supported by both platforms) or documented for awareness.
+
+> **TL;DR:** Cursor BYOK + Hypereal ($20 + API) = unlimited. OpenCode Go + multi-key ($10-30/mo) = effectively unlimited. Zero budget: OpenCode Zen free models.
 
 ## Quick Reference
 
