@@ -1,14 +1,14 @@
 ---
 name: setup
 description: >-
-  Setup cursor-orchestra on a new machine or configure it for a new project.
+  Setup pcore-agents on a new machine or configure it for a new project.
   Use when: setting up orchestra, installing on new machine, adding to project,
   configuring context files, or troubleshooting setup issues.
 ---
 
-# Orchestra Setup Skill
+# P-Core Agents Setup Skill
 
-Setup cursor-orchestra globally on any machine and configure it for any project.
+Setup pcore-agents globally on any machine and configure it for any project.
 
 ## When invoked
 
@@ -25,20 +25,20 @@ Setup cursor-orchestra globally on any machine and configure it for any project.
 
 ```bash
 # Clone and install globally
-git clone https://github.com/peterlianpi/cursor-orchestra.git /tmp/cursor-orchestra
-cd /tmp/cursor-orchestra
+git clone https://github.com/peterlianpi/pcore-agents.git /tmp/pcore-agents
+cd /tmp/pcore-agents
 bash install.sh
 
 # Clean up
-rm -rf /tmp/cursor-orchestra
+rm -rf /tmp/pcore-agents
 ```
 
 ### Full setup with OpenCode
 
 ```bash
 # Clone
-git clone https://github.com/peterlianpi/cursor-orchestra.git /tmp/cursor-orchestra
-cd /tmp/cursor-orchestra
+git clone https://github.com/peterlianpi/pcore-agents.git /tmp/pcore-agents
+cd /tmp/pcore-agents
 
 # Install for both Cursor and OpenCode
 bash install.sh --all
@@ -55,14 +55,14 @@ node ~/.config/opencode/hooks/orchestra-health-opencode.js
 
 ```powershell
 # Clone
-git clone https://github.com/peterlianpi/cursor-orchestra.git C:\temp\cursor-orchestra
-cd C:\temp\cursor-orchestra
+git clone https://github.com/peterlianpi/pcore-agents.git C:\temp\pcore-agents
+cd C:\temp\pcore-agents
 
 # Install
 powershell -ExecutionPolicy Bypass -File install.ps1
 
 # Clean up
-Remove-Item -Recurse C:\temp\cursor-orchestra
+Remove-Item -Recurse C:\temp\pcore-agents
 ```
 
 ---
@@ -104,8 +104,8 @@ cp /path/to/existing-project/AGENTS.md /path/to/new-project/AGENTS.md
 
 ```bash
 # Templates are in the repo
-cp -r /tmp/cursor-orchestra/templates/context/ /path/to/new-project/context/
-cp /tmp/cursor-orchestra/templates/AGENTS.md /path/to/new-project/AGENTS.md
+cp -r /tmp/pcore-agents/templates/context/ /path/to/new-project/context/
+cp /tmp/pcore-agents/templates/AGENTS.md /path/to/new-project/AGENTS.md
 ```
 
 ---

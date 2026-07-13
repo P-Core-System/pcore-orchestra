@@ -1,4 +1,4 @@
-# Cursor Orchestra
+# P-Core Agents
 
 > Ambient multi-agent orchestration for **Cursor IDE** and **OpenCode CLI**
 > plan → implement → verify → review — automatically on build/fix/refactor prompts
@@ -8,7 +8,7 @@
 [![Cursor IDE](https://img.shields.io/badge/Cursor-IDE-000000.svg)](https://cursor.com)
 [![OpenCode](https://img.shields.io/badge/OpenCode-CLI-FF6B35.svg)](https://opencode.ai)
 
-**Repository:** [github.com/peterlianpi/cursor-orchestra](https://github.com/peterlianpi/cursor-orchestra)
+**Repository:** [github.com/peterlianpi/pcore-agents](https://github.com/peterlianpi/pcore-agents)
 
 **Status:** Production-ready | **Version:** 1.0 | **Last updated:** July 2026
 
@@ -18,8 +18,8 @@
 
 ```bash
 # 1. Clone and install
-git clone https://github.com/peterlianpi/cursor-orchestra.git
-cd cursor-orchestra
+git clone https://github.com/peterlianpi/pcore-agents.git
+cd pcore-agents
 bash install.sh
 
 # 2. Restart Cursor
@@ -57,6 +57,7 @@ Orchestra auto-runs: **planner → implementer → verifier → reviewer**.
 | **6 Hooks** | Session, prompt, stop, heartbeat, lifecycle, subagent-stop |
 | **Six-File Context** | Stable grounding across sessions (JavaScript Mastery methodology) |
 | **Free Model Support** | OpenCode Zen free models + multi-key rotation |
+| **Works With** | Cursor IDE, OpenCode CLI, any Node.js project |
 
 ---
 
@@ -273,6 +274,16 @@ rm -rf ~/.agents/skills/orchestra-loop
 | Durable skills | 🔜 Planned |
 | Branch isolation | 🔜 Planned |
 | MVP mode | 🔜 Planned |
+
+---
+
+## Part of P-Core
+
+P-Core Agents is part of the **P-Core** project ecosystem:
+
+- **pcore-agents** (this repo) — ambient multi-agent orchestration
+- **pcore-trader** — crypto trading bot with AI agents
+- **pcore-cli** — unified CLI for P-Core tools (planned)
 
 ---
 

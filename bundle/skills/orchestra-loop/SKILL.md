@@ -127,5 +127,5 @@ If the workspace has `context/project-overview.md` (Six-File Context Methodology
 Bootstrap in any project:
 
 ```bash
-bash /path/to/cursor-orchestra/scripts/init-context.sh /path/to/your-app --bridge
+bash /path/to/pcore-agents/scripts/init-context.sh /path/to/your-app --bridge
 ```

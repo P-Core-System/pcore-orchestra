@@ -12,7 +12,7 @@ Update this file after every meaningful implementation change.
 
 ## Completed
 
-- Standalone repo (cursor-orchestra)
+- Standalone repo (pcore-agents)
 - Six-File Context templates + `init-context` scripts
 - Hook/agent enhancements for context injection
 - Global `~/.cursor/` install refreshed on dev machine
@@ -82,7 +82,7 @@ Update this file after every meaningful implementation change.
 - Heartbeat stall threshold default: 5 minutes, auto-abort after 2 consecutive stalls
 - Memory injection at orchestration start (prompt.js) and session start
 - Crash recovery: detect stale active state, offer resume via "resume orchestra" prompt
-- Standalone repo name: `cursor-orchestra`
+- Standalone repo name: `pcore-agents`
 - crypto-trader keeps `.cursor/` project bridge + filled `context/` (orchestra auto-injects)
 - **Prompt Chaining + ReAct**: sequential pipeline with reasoning inside each agent (simplicity + adaptability)
 - **Flat agent structure**: no hierarchical delegation — each agent has one clear job

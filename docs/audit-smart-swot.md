@@ -1,12 +1,12 @@
 ---
 title: SMART & SWOT Audit
-description: Strategic analysis of cursor-orchestra — strengths, weaknesses, opportunities, threats, and gap recommendations with resolution status.
+description: Strategic analysis of pcore-agents — strengths, weaknesses, opportunities, threats, and gap recommendations with resolution status.
 last_updated: 2026-07-13
 tags: [audit, smart, swot, analysis, gap-analysis]
 related: [orchestration-patterns.md, token-optimization.md]
 ---
 
-# Cursor Orchestra — SMART & SWOT Audit
+# P-Core Agents — SMART & SWOT Audit
 
 > **TL;DR:** SMART score improved from 6.8→7.4/10. All 3 critical gaps (convergence, human checkpoints, budget) resolved. 2 medium gaps remain (durable skills, branch isolation).
 
