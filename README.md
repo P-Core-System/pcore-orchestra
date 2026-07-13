@@ -1,6 +1,6 @@
 # Cursor Orchestra
 
-Ambient multi-agent orchestration for **Cursor IDE**: plan → implement → verify → review — automatically on build/fix/refactor prompts. Integrates the **Six-File Context Methodology** so projects with a `context/` folder give agents stable grounding across sessions.
+Ambient multi-agent orchestration for **Cursor IDE** and **OpenCode CLI**: plan → implement → verify → review — automatically on build/fix/refactor prompts. Integrates the **Six-File Context Methodology** so projects with a `context/` folder give agents stable grounding across sessions.
 
 **Repository:** [github.com/peterlianpi/cursor-orchestra](https://github.com/peterlianpi/cursor-orchestra)
 
@@ -9,15 +9,77 @@ Ambient multi-agent orchestration for **Cursor IDE**: plan → implement → ver
 | Component | Purpose |
 |-----------|---------|
 | **4 subagents** | `orchestra-planner`, `implementer`, `verifier`, `reviewer` |
-| **4 hooks** | Auto-start on prompts, chain phases, inject six-file context |
+| **Convergence criteria** | Tests pass → diff empty → lint clean → judge passes |
+| **Stall detection** | Identical failures 2x → strategy change → 3rd → escalate |
+| **Human checkpoints** | Auth/payments/security/scope-creep require human review |
+| **Token budgets** | planner:10k, implementer:30k, verifier:15k, reviewer:8k (63k max/cycle) |
+| **6 hooks** | Session start, prompt, subagent stop, stop, heartbeat, lifecycle |
 | **Six-file bootstrap** | `scripts/init-context.sh` — templates → `context/` + `AGENTS.md` |
 | **Skill + rule** | Agent instructions for ambient mode |
 | **CLI** | `orchestra-enable.js` — start/stop/status/ambient on/off |
 
-## Requirements
+## Where it's set up
 
-- [Cursor IDE](https://cursor.com) (Agent mode)
-- **Node.js 18+** (hook scripts)
+### Cursor IDE (global install)
+```
+~/.cursor/
+├── hooks/                    # hook scripts
+│   ├── orchestra-*.js        # 6 event hooks
+│   ├── state/orchestra.json  # runtime state
+│   └── state/orchestra-memory.json  # long-term memory
+├── agents/                   # subagent definitions
+│   ├── orchestra-planner.md
+│   ├── orchestra-implementer.md
+│   ├── orchestra-verifier.md
+│   └── orchestra-reviewer.md
+├── skills/orchestra-loop/    # orchestration skill
+├── rules/orchestra-loop.mdc  # always-on rule
+└── hooks.json                # event bindings
+```
+
+### OpenCode CLI
+```
+~/.config/opencode/
+├── agents/                   # subagent definitions (same agents)
+├── skills/orchestra-loop/    # orchestration skill
+├── hooks/orchestra-health-opencode.js  # health check
+└── state/orchestra.json      # runtime state
+```
+
+### Per-project (with context/)
+```
+your-project/
+├── AGENTS.md                 # entry point — tells agents what to read
+├── context/
+│   ├── project-overview.md   # product definition, goals, features
+│   ├── architecture.md       # system structure, boundaries, invariants
+│   ├── code-standards.md     # conventions, patterns, quality rules
+│   ├── ui-context.md         # UI/design guidelines (N/A for CLI)
+│   ├── ai-workflow-rules.md  # scoping, doc sync, verification
+│   └── progress-tracker.md   # current phase, completed work, next steps
+└── .cursor/                  # project bridge (optional)
+    └── hooks.json            # delegates to global hooks
+```
+
+## Where it's used
+
+### Automatic triggers
+Orchestra auto-runs when you prompt with these verbs:
+- `add`, `fix`, `build`, `create`, `refactor`, `deploy`, `install`, `setup`, `configure`, `migrate`, `integrate`, `debug`, `continue`, `ship`
+
+### Manual commands
+| Command | Effect |
+|---------|--------|
+| `no orchestra` | Skip for one prompt |
+| `disable orchestra` | Turn ambient off |
+| `enable orchestra` | Turn ambient on |
+| `/orchestra stop` | Stop active loop |
+| `/orchestra <goal>` | Force start with specific goal |
+| `abort [reason]` | Save checkpoint and abort |
+
+### Projects using it
+- **cursor-orchestra** (this repo) — dogfooding with full context/
+- **crypto-trader** — production trading bot with project bridge
 
 ## Quick start
 
@@ -64,71 +126,69 @@ When `context/` exists, orchestra hooks inject the read order at session start a
 
 Fill templates using the AI prompts in the Six-File Context Methodology guide, or copy from a project like [crypto-trader](https://github.com/peterlianpi/crypto-trader) that already uses this pattern.
 
-## Usage (no special commands)
+## Architecture: Operator Loop Stack
+
+Cursor Orchestra follows the Operator Loop Stack pattern (Jack Njoroge, 2026):
 
 ```
-fix the login bug
-add install script
-deploy to VPS
+┌─────────────────────────────────────────────────────────┐
+│  Harness (runtime)                                      │
+│  ├── hooks (session, prompt, stop, heartbeat, lifecycle)│
+│  ├── state (orchestra.json, memory.json)                │
+│  └── error handling (stall detection, abort)            │
+├─────────────────────────────────────────────────────────┤
+│  Loop Contract (define before starting)                 │
+│  ├── Goal: what success looks like (testable)           │
+│  ├── Scope: files in scope, what must NOT change        │
+│  ├── Verifier: which tests/checks prove completion      │
+│  ├── Budget: max iterations (8), tokens (63k), time     │
+│  └── Escalation: when to pause for human                │
+├─────────────────────────────────────────────────────────┤
+│  State Layer (persistence)                              │
+│  ├── Short-term: current run (phases, files, errors)    │
+│  ├── Long-term: orchestra-memory.json (past goals)      │
+│  └── History: orchestra-history.json (last 50 runs)     │
+├─────────────────────────────────────────────────────────┤
+│  Checker (verification)                                 │
+│  ├── Convergence: tests pass > diff empty > lint clean  │
+│  ├── Stall detection: identical failures → escalate     │
+│  └── Human checkpoints: high-risk changes               │
+├─────────────────────────────────────────────────────────┤
+│  Human Checkpoint ( judgment gate)                      │
+│  ├── Auth/payments/security changes                     │
+│  ├── Budget exhaustion                                  │
+│  └── Unresolvable failures (3rd identical error)        │
+└─────────────────────────────────────────────────────────┘
 ```
 
-Orchestra auto-runs: planner → implementer → verifier → reviewer.
+## Convergence criteria
 
-## Architecture: Harness > Scaffold > Loop
+The loop exits when ANY of these are true:
 
-Cursor Orchestra implements a three-layer agent architecture:
+| Signal | Strength | Description |
+|--------|----------|-------------|
+| Tests pass | Strongest | All relevant tests pass |
+| Diff empty | Strong | No changes in last iteration (fixed-point) |
+| Lint clean | Medium | Zero lint errors |
+| Judge passes | Weakest | Reviewer approves (use last) |
 
-- **Loop:** The execution cycle (plan → implement → verify → review)
-- **Scaffold:** Behavior definition (agent prompts, context injection)
-- **Harness:** Runtime execution (hooks, state management, error handling)
+**If verifier fails with identical feedback 2x → try different strategy → 3rd → abort to human.**
 
-See `context/harness-scaffold-loop.md` for full details.
+## Token optimization
 
-| Command | Effect |
-|---------|--------|
-| `no orchestra` | Skip for one prompt |
-| `disable orchestra` | Turn ambient off |
-| `enable orchestra` | Turn ambient on |
-| `/orchestra stop` | Stop active loop |
+| Agent | Max tokens | Max output | Model |
+|-------|------------|------------|-------|
+| Planner | 10,000 | 50 lines | Budget (deepseek-v4-flash) |
+| Implementer | 30,000 | 100 lines | Capable (kimi-k2.5, claude-sonnet-5) |
+| Verifier | 15,000 | 30 lines | Budget |
+| Reviewer | 8,000 | 30 lines | Budget |
+
+**Total per cycle:** ~63k tokens max (vs unlimited before)
 
 ```bash
-node ~/.cursor/hooks/orchestra-enable.js status
-```
-
-## Install options
-
-```bash
-bash install.sh              # global ~/.cursor/
-bash install.sh --project    # + project bridge in cwd
-```
-
-```powershell
-powershell -File install.ps1 -Project
-```
-
-## Project bridge (per-repo)
-
-Copy `project-bridge/` into your repo's `.cursor/`, or use `init-context.sh --bridge`. The bridge delegates to global `~/.cursor/hooks/` scripts (needed for cloud agents in some setups).
-
-## Repo layout
-
-```
-cursor-orchestra/
-├── AGENTS.md                 # this repo's entry point
-├── context/                  # filled six files (dogfooding)
-├── templates/context/        # blank templates for init-context
-├── bundle/                   # → ~/.cursor/ + ~/.config/opencode/ on install
-├── project-bridge/
-├── scripts/
-│   ├── init-context.*        # project scaffolding
-│   ├── setup-cursor-byok.sh  # Cursor BYOK bypass guide
-│   ├── setup-opencode-proxy.sh  # OpenCode free model + multi-key setup
-│   └── setup-opencode-optimal.sh  # OpenCode token optimization config
-├── docs/
-│   ├── bypass-strategies.md  # limit bypass reference
-│   └── token-optimization.md # token efficiency guide
-├── install.sh / install.ps1
-└── README.md
+bash scripts/setup-opencode-optimal.sh --balanced  # recommended
+bash scripts/setup-opencode-optimal.sh --budget    # free models only
+bash scripts/setup-opencode-optimal.sh --premium   # best quality
 ```
 
 ## Bypass Limits
@@ -159,25 +219,21 @@ Best free models for orchestration: `north-mini-code-free`, `minimax-m2.5-free`.
 
 See `docs/bypass-strategies.md` for full details.
 
-## Token Optimization
+## Documentation
 
-Orchestra's 4-subagent cycle is the biggest token consumer. Optimize with phase-specific models and aggressive compaction:
-
-```bash
-bash scripts/setup-opencode-optimal.sh --balanced  # recommended
-bash scripts/setup-opencode-optimal.sh --budget    # free models only
-```
-
-**Quick wins:**
-- Planner/Verifier/Reviewer on budget model, Implementer on capable model = 60-75% savings
-- `compaction.prune: true` removes old tool outputs = 30-50% savings in long sessions
-- Agent step limits prevent runaway loops
-
-See `docs/token-optimization.md` for the full guide.
+| Doc | Purpose |
+|-----|---------|
+| `docs/audit-smart-swot.md` | SMART & SWOT analysis with gap recommendations |
+| `docs/orchestration-patterns.md` | Patterns used (Prompt Chaining + ReAct) and rationale |
+| `docs/bypass-strategies.md` | Cursor BYOK + OpenCode free model bypass reference |
+| `docs/token-optimization.md` | Token efficiency guide (compaction, model routing, budgets) |
+| `context/harness-scaffold-loop.md` | Three-layer architecture (Harness > Scaffold > Loop) |
 
 ## Credits
 
 - **Six-File Context Methodology** — JavaScript Mastery (templates in `templates/context/`)
+- **Operator Loop Stack** — Jack Njoroge (harness, contract, state, checker, checkpoint)
+- **Loop Engineering** — Kunal Ganglani, Addy Osmani, Peter Steinberger
 - Originally developed alongside [crypto-trader](https://github.com/peterlianpi/crypto-trader); now standalone
 
 ## License
