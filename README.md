@@ -221,6 +221,7 @@ bash scripts/setup-opencode-proxy.sh --multi-key  # rotation guide
 
 | Doc | Purpose |
 |-----|---------|
+| [setup-guide.md](docs/setup-guide.md) | Complete setup guide for new machines and projects |
 | [audit-smart-swot.md](docs/audit-smart-swot.md) | SMART & SWOT analysis with gap recommendations |
 | [orchestration-patterns.md](docs/orchestration-patterns.md) | Patterns used and rationale |
 | [bypass-strategies.md](docs/bypass-strategies.md) | Cursor BYOK + OpenCode free model reference |
