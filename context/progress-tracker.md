@@ -52,6 +52,11 @@ Update this file after every meaningful implementation change.
 - **Human checkpoints** — reviewer triggers for auth/payments/security/scope-creep/budget-exhaustion
 - **Token budgets per agent** — planner:10k, implementer:30k, verifier:15k, reviewer:8k (63k max/cycle)
 - **Code quality standards** — clean code checklist, single responsibility, early returns, descriptive names
+- **Setup skill** — `bundle/opencode/skills/setup/SKILL.md` for new machine/new project setup
+- **Setup guide** — `docs/setup-guide.md` with complete setup instructions
+- **Doc metadata** — YAML metadata (title, description, tags, related) on all docs
+- **Doc TL;DR summaries** — quick reference at top of each doc
+- **README improvements** — badges, requirements, uninstall, contributing, project status
 
 ## In Progress
 
