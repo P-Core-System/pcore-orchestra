@@ -1,6 +1,16 @@
+---
+title: Orchestration Patterns
+description: How cursor-orchestra chains agents, why we chose Prompt Chaining + ReAct, and how to adapt it for your own workflows.
+last_updated: 2026-07-13
+tags: [orchestration, patterns, react, prompt-chaining, agent-loop]
+related: [audit-smart-swot.md, token-optimization.md]
+---
+
 # Orchestration Patterns
 
 How cursor-orchestra chains agents, why we chose this pattern, and how to adapt it.
+
+> **TL;DR:** We use Prompt Chaining (plan→implement→verify→review) with ReAct (reason→act→observe→reflect) inside each agent. This gives us simplicity + adaptability without the complexity of full supervisor-worker patterns.
 
 ## The Pattern We Use: Prompt Chaining + ReAct
 
