@@ -21,11 +21,12 @@ Update `context/progress-tracker.md` after each meaningful implementation change
 | `bundle/` | Source payload installed to `~/.cursor/` and `~/.config/opencode/` |
 | `bundle/hooks/` | Node hook scripts (session, prompt, subagent, stop) — Cursor only |
 | `bundle/agents/` | Cursor orchestra subagent definitions |
-| `bundle/skills/orchestra-loop/` | Cursor ambient orchestration skill |
+| `bundle/skills/` | Cursor skills — orchestra-loop + 11 Cloudflare skills (agents-sdk, cloudflare, durable-objects, sandbox-sdk, wrangler, etc.) |
+| `bundle/skills-cursor/` | Cursor built-in skills (babysit, canvas, loop, review, shell, sdk, etc.) |
 | `bundle/rules/orchestra-loop.mdc` | Cursor always-on rule |
-| `bundle/opencode/` | OpenCode agents, skill, health check, state |
+| `bundle/opencode/` | OpenCode agents, skills, health check, state |
 | `bundle/opencode/agents/` | OpenCode orchestra subagent definitions |
-| `bundle/opencode/skills/orchestra-loop/` | OpenCode orchestration skill |
+| `bundle/opencode/skills/` | OpenCode skills — orchestra-loop + 11 Cloudflare skills (mirrors Cursor) |
 | `bundle/opencode/hooks/` | OpenCode health check script |
 | `bundle/opencode/state/` | Default shared state file |
 | `project-bridge/` | Per-repo `.cursor` bridge to global hooks |
@@ -67,7 +68,7 @@ Bootstrap templates: `bash scripts/init-context.sh <project-dir>`
 OpenCode uses a skill-driven approach instead of hooks:
 
 - **Agents** are defined as markdown files in `~/.config/opencode/agents/`
-- **Skill** at `~/.config/opencode/skills/orchestra-loop/SKILL.md` teaches the main agent to chain phases
+- **Skills** at `~/.config/opencode/skills/` — orchestra-loop + 11 Cloudflare skills
 - **State** is shared at `~/.config/opencode/state/orchestra.json`
 - **External discovery** via symlink at `~/.agents/skills/orchestra-loop`
 
