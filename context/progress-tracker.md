@@ -57,11 +57,14 @@ Update this file after every meaningful implementation change.
 - **Doc metadata** — YAML metadata (title, description, tags, related) on all docs
 - **Doc TL;DR summaries** — quick reference at top of each doc
 - **README improvements** — badges, requirements, uninstall, contributing, project status
+- **Machine sync verification** — full audit comparing all 50+ bundle files with live ~/.cursor/ and ~/.config/opencode/ install; every file confirmed identical
+- **Bundle expanded with Cloudflare skills** — added 11 Cloudflare skills (agents-sdk, cloudflare, cloudflare-email-service, cloudflare-one, cloudflare-one-migrations, durable-objects, sandbox-sdk, turnstile-spin, web-perf, workers-best-practices, wrangler) to `bundle/skills/` (Cursor) and `bundle/opencode/skills/` (OpenCode)
+- **Bundle expanded with Cursor built-in skills** — added 17 Cursor built-in skills (babysit, canvas, create-hook, create-rule, create-skill, create-subagent, loop, migrate-to-skills, review, review-bugbot, review-security, sdk, shell, split-to-prs, statusline, update-cli-config, update-cursor-settings) to `bundle/skills-cursor/`
+- **Install scripts updated** — `install.ps1` and `install.sh` now deploy all skills via directory enumeration (no hardcoded per-skill copy)
 
 ## In Progress
 
-- Updating OpenCode skill with git/review/workflow rules
-- Updating `bundle/rules/orchestra-loop.mdc` with git workflow and quality gates
+(none)
 
 ## Next Up
 

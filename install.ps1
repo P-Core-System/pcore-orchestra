@@ -46,7 +46,8 @@ function Install-Cursor {
   @(
     (Join-Path $CursorDir "hooks\state"),
     (Join-Path $CursorDir "agents"),
-    (Join-Path $CursorDir "skills\orchestra-loop"),
+    (Join-Path $CursorDir "skills"),
+    (Join-Path $CursorDir "skills-cursor"),
     (Join-Path $CursorDir "rules")
   ) | ForEach-Object { New-Item -ItemType Directory -Force -Path $_ | Out-Null }
 
@@ -56,9 +57,23 @@ function Install-Cursor {
     Copy-Item (Join-Path $Bundle "hooks\state\orchestra.json") $stateDest -Force
   }
   Copy-Item (Join-Path $Bundle "agents\orchestra-*.md") (Join-Path $CursorDir "agents\") -Force
-  Copy-Item (Join-Path $Bundle "skills\orchestra-loop\SKILL.md") (Join-Path $CursorDir "skills\orchestra-loop\") -Force
   Copy-Item (Join-Path $Bundle "rules\orchestra-loop.mdc") (Join-Path $CursorDir "rules\") -Force
   Copy-Item (Join-Path $Bundle "ORCHESTRA.md") (Join-Path $CursorDir "ORCHESTRA.md") -Force
+
+  # Copy all Cloudflare skills (orchestra-loop + cloudflare, agents-sdk, etc.)
+  Get-ChildItem -Path (Join-Path $Bundle "skills") -Directory | ForEach-Object {
+    $destDir = Join-Path $CursorDir "skills" $_.Name
+    robocopy $_.FullName $destDir /E /NDL /NJH /NJS /NP 2>&1 | Out-Null
+  }
+
+  # Copy all Cursor built-in skills
+  $scBundle = Join-Path $Bundle "skills-cursor"
+  if (Test-Path $scBundle) {
+    Get-ChildItem -Path $scBundle -Directory | ForEach-Object {
+      $destDir = Join-Path $CursorDir "skills-cursor" $_.Name
+      robocopy $_.FullName $destDir /E /NDL /NJH /NJS /NP 2>&1 | Out-Null
+    }
+  }
 
   New-Item -ItemType Directory -Force -Path $AgentsSkills | Out-Null
   $skillLink = Join-Path $AgentsSkills "orchestra-loop"
@@ -94,9 +109,10 @@ console.log("  Merged hooks.json ->", destPath);
   Set-Content -Path $mergeFile -Value $mergeJs -Encoding UTF8
   node $mergeFile $CursorDir (Join-Path $Bundle "hooks.json")
 
-  Write-Host "  Cursor agents:  $CursorDir\agents\orchestra-*.md"
-  Write-Host "  Cursor hooks:   $CursorDir\hooks\"
-  Write-Host "  Cursor skill:   $CursorDir\skills\orchestra-loop\"
+  Write-Host "  Cursor agents:   $CursorDir\agents\orchestra-*.md"
+  Write-Host "  Cursor hooks:    $CursorDir\hooks\"
+  Write-Host "  Cursor skills:   $CursorDir\skills\ (orchestra-loop + Cloudflare)"
+  Write-Host "  Cursor built-in: $CursorDir\skills-cursor\ (17 skills)"
 }
 
 ###############################################################################
@@ -105,15 +121,18 @@ console.log("  Merged hooks.json ->", destPath);
 function Install-OpenCode {
   Write-Host "==> Installing OpenCode Orchestra to $OpenCodeDir"
 
-  @(
-    (Join-Path $OpenCodeDir "agents"),
-    (Join-Path $OpenCodeDir "skills\orchestra-loop"),
-    (Join-Path $OpenCodeDir "state"),
-    (Join-Path $OpenCodeDir "hooks")
-  ) | ForEach-Object { New-Item -ItemType Directory -Force -Path $_ | Out-Null }
+  New-Item -ItemType Directory -Force -Path (Join-Path $OpenCodeDir "skills") | Out-Null
+  New-Item -ItemType Directory -Force -Path (Join-Path $OpenCodeDir "state") | Out-Null
+  New-Item -ItemType Directory -Force -Path (Join-Path $OpenCodeDir "hooks") | Out-Null
 
   Copy-Item (Join-Path $Bundle "opencode\agents\orchestra-*.md") (Join-Path $OpenCodeDir "agents\") -Force
-  Copy-Item (Join-Path $Bundle "opencode\skills\orchestra-loop\SKILL.md") (Join-Path $OpenCodeDir "skills\orchestra-loop\") -Force
+
+  # Copy all OpenCode skills (orchestra-loop + Cloudflare)
+  Get-ChildItem -Path (Join-Path $Bundle "opencode\skills") -Directory | ForEach-Object {
+    $destDir = Join-Path $OpenCodeDir "skills" $_.Name
+    robocopy $_.FullName $destDir /E /NDL /NJH /NJS /NP 2>&1 | Out-Null
+  }
+
   Copy-Item (Join-Path $Bundle "opencode\hooks\orchestra-health-opencode.js") (Join-Path $OpenCodeDir "hooks\") -Force
 
   $stateDest = Join-Path $OpenCodeDir "state\orchestra.json"
@@ -130,7 +149,7 @@ function Install-OpenCode {
   }
 
   Write-Host "  OpenCode agents:  $OpenCodeDir\agents\orchestra-*.md"
-  Write-Host "  OpenCode skill:   $OpenCodeDir\skills\orchestra-loop\"
+  Write-Host "  OpenCode skills:  $OpenCodeDir\skills\ (orchestra-loop + Cloudflare)"
   Write-Host "  OpenCode state:   $OpenCodeDir\state\orchestra.json"
 }
 

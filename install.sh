@@ -61,7 +61,7 @@ install_cursor() {
 
   command -v node >/dev/null 2>&1 || { echo "ERROR: 'node' required (install Node.js 18+)"; exit 1; }
 
-  mkdir -p "$CURSOR/hooks/state" "$CURSOR/agents" "$CURSOR/skills" "$CURSOR/rules"
+  mkdir -p "$CURSOR/hooks/state" "$CURSOR/agents" "$CURSOR/skills" "$CURSOR/skills-cursor" "$CURSOR/rules"
 
   # Hook scripts
   cp -f "$BUNDLE/hooks/"orchestra-*.js "$CURSOR/hooks/"
@@ -71,12 +71,26 @@ install_cursor() {
     cp -f "$BUNDLE/hooks/state/orchestra.json" "$CURSOR/hooks/state/orchestra.json"
   fi
 
-  # Agents, skill, rule, docs
+  # Agents, rule, docs
   cp -f "$BUNDLE/agents/"orchestra-*.md "$CURSOR/agents/"
-  mkdir -p "$CURSOR/skills/orchestra-loop"
-  cp -f "$BUNDLE/skills/orchestra-loop/SKILL.md" "$CURSOR/skills/orchestra-loop/"
   cp -f "$BUNDLE/rules/orchestra-loop.mdc" "$CURSOR/rules/"
   cp -f "$BUNDLE/ORCHESTRA.md" "$CURSOR/ORCHESTRA.md"
+
+  # Copy all Cloudflare skills (orchestra-loop + cloudflare, agents-sdk, etc.)
+  for skill_dir in "$BUNDLE/skills"/*/; do
+    skill_name=$(basename "$skill_dir")
+    mkdir -p "$CURSOR/skills/$skill_name"
+    cp -rf "$skill_dir"* "$CURSOR/skills/$skill_name/"
+  done
+
+  # Copy all Cursor built-in skills
+  if [ -d "$BUNDLE/skills-cursor" ]; then
+    for skill_dir in "$BUNDLE/skills-cursor"/*/; do
+      skill_name=$(basename "$skill_dir")
+      mkdir -p "$CURSOR/skills-cursor/$skill_name"
+      cp -rf "$skill_dir"* "$CURSOR/skills-cursor/$skill_name/"
+    done
+  fi
 
   # Merge hooks.json (dedup by command name)
   node - "$CURSOR" "$BUNDLE/hooks.json" <<'MERGE'
@@ -110,10 +124,10 @@ MERGE
       cp -r "$CURSOR/skills/orchestra-loop" "$AGENTS_SKILLS/orchestra-loop"
   fi
 
-  echo "  Cursor agents:  $CURSOR/agents/orchestra-*.md"
-  echo "  Cursor hooks:   $CURSOR/hooks/"
-  echo "  Cursor skill:   $CURSOR/skills/orchestra-loop/"
-  echo "  Cursor rule:    $CURSOR/rules/orchestra-loop.mdc"
+  echo "  Cursor agents:    $CURSOR/agents/orchestra-*.md"
+  echo "  Cursor hooks:     $CURSOR/hooks/"
+  echo "  Cursor skills:    $CURSOR/skills/ (orchestra-loop + Cloudflare)"
+  echo "  Cursor built-in:  $CURSOR/skills-cursor/ (17 skills)"
 }
 
 ###############################################################################
@@ -122,16 +136,19 @@ MERGE
 install_opencode() {
   echo "==> Installing OpenCode Orchestra to $OPENCODE"
 
-  mkdir -p "$OPENCODE/agents" "$OPENCODE/skills/orchestra-loop" "$OPENCODE/state"
+  mkdir -p "$OPENCODE/agents" "$OPENCODE/skills" "$OPENCODE/state" "$OPENCODE/hooks"
 
   # Copy OpenCode agents
   cp -f "$BUNDLE/opencode/agents/"orchestra-*.md "$OPENCODE/agents/"
 
-  # Copy OpenCode skill
-  cp -f "$BUNDLE/opencode/skills/orchestra-loop/SKILL.md" "$OPENCODE/skills/orchestra-loop/"
+  # Copy all OpenCode skills (orchestra-loop + Cloudflare)
+  for skill_dir in "$BUNDLE/opencode/skills"/*/; do
+    skill_name=$(basename "$skill_dir")
+    mkdir -p "$OPENCODE/skills/$skill_name"
+    cp -rf "$skill_dir"* "$OPENCODE/skills/$skill_name/"
+  done
 
   # Copy health check
-  mkdir -p "$OPENCODE/hooks"
   cp -f "$BUNDLE/opencode/hooks/orchestra-health-opencode.js" "$OPENCODE/hooks/"
 
   # Default state (don't overwrite)
@@ -146,9 +163,8 @@ install_opencode() {
     cp -r "$OPENCODE/skills/orchestra-loop" "$AGENTS_SKILLS/orchestra-loop"
 
   echo "  OpenCode agents:  $OPENCODE/agents/orchestra-*.md"
-  echo "  OpenCode skill:   $OPENCODE/skills/orchestra-loop/"
+  echo "  OpenCode skills:  $OPENCODE/skills/ (orchestra-loop + Cloudflare)"
   echo "  OpenCode state:   $OPENCODE/state/orchestra.json"
-  echo "  External link:    $AGENTS_SKILLS/orchestra-loop -> $OPENCODE/skills/orchestra-loop"
 }
 
 ###############################################################################
