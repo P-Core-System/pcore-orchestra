@@ -58,6 +58,10 @@ The complete software layer that makes the agent run.
 1. **Harness thickness:** Start thin, add structure only when failure patterns recur
 2. **Scaffold portability:** Agent prompts should work across different harnesses
 3. **Loop determinism:** Phase transitions should be predictable and auditable
+4. **SOLID code:** Split by domain (SRP), command registry (OCP), consistent contracts (LSP), specific imports (ISP), facade abstraction (DIP)
+5. **Clean functions:** Under 50 lines, max 3 nesting, early returns, descriptive names, no magic numbers
+6. **Flexible:** Config-driven phase chain and command map — extension without modification
+7. **Easy to change:** Low coupling between `lib/` modules, high cohesion within each
 
 ## References
 

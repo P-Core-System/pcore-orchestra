@@ -1,17 +1,15 @@
 #!/usr/bin/env node
 "use strict";
 
+const { readStdinJson, emit } = require("./lib/io.js");
+const { loadState } = require("./lib/state-manager.js");
 const {
-  loadState,
-  readStdinJson,
-  emit,
   detectContextInWorkspaces,
   buildContextInjection,
   AMBIENT_CONTEXT,
-  loadLongTermMemory,
-  buildMemoryContext,
-  detectCrashRecovery,
-} = require("./orchestra-lib.js");
+} = require("./lib/context-detector.js");
+const { loadLongTermMemory, buildMemoryContext } = require("./lib/memory-manager.js");
+const { detectCrashRecovery } = require("./lib/checkpoint-manager.js");
 
 async function main() {
   const input = await readStdinJson();
@@ -23,7 +21,6 @@ async function main() {
   if (ctxBlock) parts.push(ctxBlock);
 
   if (state.active) {
-    // Check for crash recovery
     const crash = detectCrashRecovery(state);
     if (crash) {
       parts.push(
@@ -41,14 +38,12 @@ async function main() {
       );
     }
 
-    // Add short-term memory summary
     if (state.memory?.phases_completed?.length > 0) {
       const completed = state.memory.phases_completed.map((p) => p.phase).join(" → ");
       parts.push(`Phases completed so far: ${completed}`);
     }
   }
 
-  // Inject long-term memory on session start
   const ltm = loadLongTermMemory();
   const memCtx = buildMemoryContext(ltm);
   if (memCtx) parts.push(memCtx);

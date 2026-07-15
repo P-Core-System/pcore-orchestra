@@ -32,6 +32,12 @@ change.
 - [Decisions made that affect the system design or
   data model — include why the decision was made]
 
+## System Design Checklist
+
+Refer to `architecture.md` > System Design & Infrastructure
+when adopting new infrastructure concepts. Each row documents
+a decision point with service choice and trade-offs.
+
 ## Session Notes
 
 - [Context needed to resume work in the next session]

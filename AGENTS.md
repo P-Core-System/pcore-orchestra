@@ -6,7 +6,7 @@ Read the following files in order before implementing or making architectural de
 
 0. `context/harness-scaffold-loop.md` — agent architecture hierarchy (harness, scaffold, loop)
 1. `context/project-overview.md` — product definition, goals, features, scope
-2. `context/architecture.md` — system structure, boundaries, storage, invariants
+2. `context/architecture.md` — system structure, boundaries, storage, system design & infrastructure, invariants
 3. `context/code-standards.md` — Node hook scripts, agent markdown, install conventions
 4. `context/ui-context.md` — N/A for this repo (CLI/hooks only); skip unless editing docs site
 5. `context/ai-workflow-rules.md` — scoping, doc sync, verification, six-file integration
