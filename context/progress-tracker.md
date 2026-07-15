@@ -61,6 +61,7 @@ Update this file after every meaningful implementation change.
 - **Bundle expanded with Cloudflare skills** — added 11 Cloudflare skills (agents-sdk, cloudflare, cloudflare-email-service, cloudflare-one, cloudflare-one-migrations, durable-objects, sandbox-sdk, turnstile-spin, web-perf, workers-best-practices, wrangler) to `bundle/skills/` (Cursor) and `bundle/opencode/skills/` (OpenCode)
 - **Bundle expanded with Cursor built-in skills** — added 17 Cursor built-in skills (babysit, canvas, create-hook, create-rule, create-skill, create-subagent, loop, migrate-to-skills, review, review-bugbot, review-security, sdk, shell, split-to-prs, statusline, update-cli-config, update-cursor-settings) to `bundle/skills-cursor/`
 - **Install scripts updated** — `install.ps1` and `install.sh` now deploy all skills via directory enumeration (no hardcoded per-skill copy)
+- **System design templates** — `templates/context/architecture.md` expanded with System Design & Infrastructure table (object storage, CDN, caching, serverless, load balancing, database scaling, queues, rate limiting, microservices, observability, search, streaming); `templates/context/ai-workflow-rules.md` expanded with System Design Triggers table mapping feature triggers to infrastructure concerns
 
 ## In Progress
 
@@ -96,3 +97,7 @@ Update this file after every meaningful implementation change.
 - **Stall detection**: identical failure feedback 2x → try different strategy → 3rd → escalate to human
 - **Human checkpoints**: auth/payments/security/scope-creep/budget-exhaustion require human review
 - **Token budgets**: planner:10k, implementer:30k, verifier:15k, reviewer:8k (63k max per cycle)
+- **SOLID architecture**: `orchestra-lib.js` split into 11 single-purpose `lib/` modules (SRP); command registry in `orchestra-enable.js` (OCP); specific imports per hook (ISP); facade for backward compat (DIP)
+- **Clean code refactor**: all magic numbers moved to `lib/constants.js`; functions extracted to under 50 lines; nesting reduced to max 3 levels; early returns standardized
+- **Config-driven extensibility**: `PHASE_CHAIN` object and `COMMANDS` map allow new phases/commands without structural changes
+- **System design in templates**: `architecture.md` template includes System Design & Infrastructure section with 12 concept rows + scaling constraints; `ai-workflow-rules.md` includes System Design Triggers table mapping 10 feature triggers to infrastructure concerns

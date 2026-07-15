@@ -63,8 +63,9 @@ install_cursor() {
 
   mkdir -p "$CURSOR/hooks/state" "$CURSOR/agents" "$CURSOR/skills" "$CURSOR/skills-cursor" "$CURSOR/rules"
 
-  # Hook scripts
+  # Hook scripts + lib modules
   cp -f "$BUNDLE/hooks/"orchestra-*.js "$CURSOR/hooks/"
+  cp -rf "$BUNDLE/hooks/lib" "$CURSOR/hooks/lib"
 
   # Default state (don't overwrite)
   if [[ ! -f "$CURSOR/hooks/state/orchestra.json" ]]; then

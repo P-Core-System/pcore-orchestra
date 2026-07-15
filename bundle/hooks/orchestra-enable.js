@@ -1,17 +1,15 @@
 #!/usr/bin/env node
 "use strict";
 
+const { HISTORY_DISPLAY_COUNT } = require("./lib/constants.js");
+const { loadState, saveState, startOrchestra } = require("./lib/state-manager.js");
+const { pauseOrchestra, resumeOrchestra, abortOrchestra } = require("./lib/checkpoint-manager.js");
 const {
-  loadState,
-  saveState,
-  startOrchestra,
-  pauseOrchestra,
-  resumeOrchestra,
-  abortOrchestra,
   loadLongTermMemory,
   saveLongTermMemory,
-  loadOrchestrationHistory,
-} = require("./orchestra-lib.js");
+  DEFAULT_LONG_TERM_MEMORY,
+} = require("./lib/memory-manager.js");
+const { loadOrchestrationHistory } = require("./lib/history-recorder.js");
 
 const [, , cmd, ...rest] = process.argv;
 const arg = rest.join(" ").trim();
@@ -34,156 +32,139 @@ function printMemory() {
   }
 }
 
-if (!cmd || cmd === "status") {
-  const state = loadState();
-  printStatus(state);
-  const ltm = loadLongTermMemory();
-  console.log(`\nMemory: ${ltm.completed_goals.length} past goals, ${ltm.recent_files.length} tracked files`);
-  process.exit(0);
-}
-
-if (cmd === "stop") {
-  const state = loadState();
-  state.active = false;
-  state.phase = "idle";
-  state.goal = "";
-  state.last_subagent = null;
-  state.resumable = { paused: false, paused_at: null, pause_reason: null, checkpoint: null, last_save: null };
-  saveState(state);
-  console.log("Orchestra loop stopped (ambient mode unchanged).");
-  printStatus(state);
-  process.exit(0);
-}
-
-if (cmd === "pause") {
-  const state = loadState();
-  if (!state.active) {
-    console.log("No active orchestration to pause.");
-    process.exit(0);
-  }
-  const reason = arg || "manual";
-  pauseOrchestra(state, reason);
-  state.active = false;
-  state.phase = "paused";
-  saveState(state);
-  console.log(`Orchestra paused (${reason}). Goal: ${state.goal}`);
-  console.log("Resume with: orchestra-enable.js resume");
-  printStatus(state);
-  process.exit(0);
-}
-
-if (cmd === "resume") {
-  const state = loadState();
-  if (state.resumable?.paused && state.resumable?.checkpoint) {
-    const cp = resumeOrchestra(state);
-    console.log(`Orchestra resumed from phase "${cp.phase}". Goal: ${cp.goal}`);
-    console.log("Continue with the matching orchestra-* subagent.");
+const COMMANDS = {
+  status() {
+    const state = loadState();
     printStatus(state);
-  } else if (state.active) {
-    console.log("Orchestra is already active.");
+    const ltm = loadLongTermMemory();
+    console.log(`\nMemory: ${ltm.completed_goals.length} past goals, ${ltm.recent_files.length} tracked files`);
+  },
+
+  stop() {
+    const state = loadState();
+    state.active = false;
+    state.phase = "idle";
+    state.goal = "";
+    state.last_subagent = null;
+    state.resumable = { paused: false, paused_at: null, pause_reason: null, checkpoint: null, last_save: null };
+    saveState(state);
+    console.log("Orchestra loop stopped (ambient mode unchanged).");
     printStatus(state);
-  } else {
-    console.log("No paused orchestration to resume.");
-    if (state.resumable?.checkpoint) {
-      console.log("Last checkpoint:", JSON.stringify(state.resumable.checkpoint, null, 2));
+  },
+
+  pause() {
+    const state = loadState();
+    if (!state.active) {
+      console.log("No active orchestration to pause.");
+      return;
     }
-  }
-  process.exit(0);
-}
+    const reason = arg || "manual";
+    pauseOrchestra(state, reason);
+    state.active = false;
+    state.phase = "paused";
+    saveState(state);
+    console.log(`Orchestra paused (${reason}). Goal: ${state.goal}`);
+    console.log("Resume with: orchestra-enable.js resume");
+    printStatus(state);
+  },
 
-if (cmd === "ambient-off") {
-  const state = loadState();
-  state.ambient = false;
-  state.active = false;
-  state.phase = "idle";
-  saveState(state);
-  console.log("Orchestra ambient mode OFF.");
-  printStatus(state);
-  process.exit(0);
-}
-
-if (cmd === "ambient-on") {
-  const state = loadState();
-  state.ambient = true;
-  saveState(state);
-  console.log("Orchestra ambient mode ON — auto-runs on implement/fix/build prompts.");
-  printStatus(state);
-  process.exit(0);
-}
-
-if (cmd === "start") {
-  if (!arg) {
-    console.error('Usage: orchestra-enable.js start "<goal>"');
-    process.exit(1);
-  }
-  const state = loadState();
-  startOrchestra(arg, state, "manual");
-  console.log("Orchestra loop started (manual).");
-  console.log(`Goal: ${arg}`);
-  console.log("Next: launch orchestra-planner subagent (Task tool).");
-  printStatus(state);
-  process.exit(0);
-}
-
-if (cmd === "memory") {
-  if (arg === "clear") {
-    const empty = {
-      version: 1,
-      completed_goals: [],
-      project_patterns: {},
-      recent_files: [],
-      error_patterns: [],
-      user_preferences: {},
-    };
-    saveLongTermMemory(empty);
-    console.log("Long-term memory cleared.");
-  } else {
-    printMemory();
-  }
-  process.exit(0);
-}
-
-if (cmd === "checkpoint") {
-  const state = loadState();
-  if (!state.active) {
-    console.log("No active orchestration to checkpoint.");
-    process.exit(0);
-  }
-  const { saveCheckpoint } = require("./orchestra-lib.js");
-  saveCheckpoint(state);
-  console.log("Checkpoint saved.");
-  printStatus(state);
-  process.exit(0);
-}
-
-if (cmd === "abort") {
-  const state = loadState();
-  if (!state.active) {
-    console.log("No active orchestration to abort.");
-    process.exit(0);
-  }
-  const reason = arg || "manual";
-  abortOrchestra(state, reason);
-  console.log(`Orchestra aborted (${reason}). Goal: ${state.goal}`);
-  console.log('Resume with: orchestra-enable.js resume');
-  process.exit(0);
-}
-
-if (cmd === "history") {
-  const history = loadOrchestrationHistory();
-  if (history.length === 0) {
-    console.log("No orchestration history.");
-  } else {
-    console.log(`=== Orchestration History (${history.length} runs) ===\n`);
-    for (const run of history.slice(-10)) {
-      const dur = Math.round(run.duration_ms / 1000);
-      console.log(`  ${run.completed_at} | ${run.outcome.padEnd(15)} | ${dur}s | ${run.iterations} iters | "${run.goal}"`);
+  resume() {
+    const state = loadState();
+    if (state.resumable?.paused && state.resumable?.checkpoint) {
+      const cp = resumeOrchestra(state);
+      console.log(`Orchestra resumed from phase "${cp.phase}". Goal: ${cp.goal}`);
+      console.log("Continue with the matching orchestra-* subagent.");
+      printStatus(state);
+    } else if (state.active) {
+      console.log("Orchestra is already active.");
+      printStatus(state);
+    } else {
+      console.log("No paused orchestration to resume.");
+      if (state.resumable?.checkpoint) {
+        console.log("Last checkpoint:", JSON.stringify(state.resumable.checkpoint, null, 2));
+      }
     }
-  }
-  process.exit(0);
-}
+  },
 
-console.error(
+  "ambient-off"() {
+    const state = loadState();
+    state.ambient = false;
+    state.active = false;
+    state.phase = "idle";
+    saveState(state);
+    console.log("Orchestra ambient mode OFF.");
+    printStatus(state);
+  },
+
+  "ambient-on"() {
+    const state = loadState();
+    state.ambient = true;
+    saveState(state);
+    console.log("Orchestra ambient mode ON — auto-runs on implement/fix/build prompts.");
+    printStatus(state);
+  },
+
+  start() {
+    if (!arg) {
+      console.error('Usage: orchestra-enable.js start "<goal>"');
+      process.exit(1);
+    }
+    const state = loadState();
+    startOrchestra(arg, state, "manual");
+    console.log("Orchestra loop started (manual).");
+    console.log(`Goal: ${arg}`);
+    console.log("Next: launch orchestra-planner subagent (Task tool).");
+    printStatus(state);
+  },
+
+  memory() {
+    if (arg === "clear") {
+      saveLongTermMemory({ ...DEFAULT_LONG_TERM_MEMORY });
+      console.log("Long-term memory cleared.");
+    } else {
+      printMemory();
+    }
+  },
+
+  checkpoint() {
+    const { saveCheckpoint } = require("./lib/checkpoint-manager.js");
+    const state = loadState();
+    if (!state.active) {
+      console.log("No active orchestration to checkpoint.");
+      return;
+    }
+    saveCheckpoint(state);
+    console.log("Checkpoint saved.");
+    printStatus(state);
+  },
+
+  abort() {
+    const state = loadState();
+    if (!state.active) {
+      console.log("No active orchestration to abort.");
+      return;
+    }
+    const reason = arg || "manual";
+    abortOrchestra(state, reason);
+    console.log(`Orchestra aborted (${reason}). Goal: ${state.goal}`);
+    console.log("Resume with: orchestra-enable.js resume");
+  },
+
+  history() {
+    const history = loadOrchestrationHistory();
+    if (history.length === 0) {
+      console.log("No orchestration history.");
+    } else {
+      console.log(`=== Orchestration History (${history.length} runs) ===\n`);
+      for (const run of history.slice(-HISTORY_DISPLAY_COUNT)) {
+        const dur = Math.round(run.duration_ms / 1000);
+        console.log(`  ${run.completed_at} | ${run.outcome.padEnd(15)} | ${dur}s | ${run.iterations} iters | "${run.goal}"`);
+      }
+    }
+  },
+};
+
+const USAGE =
   "Usage: orchestra-enable.js <command>\n\n" +
   "Commands:\n" +
   "  status         Show current state\n" +
@@ -197,6 +178,12 @@ console.error(
   "  ambient-off    Disable ambient mode\n" +
   "  memory         Show long-term memory\n" +
   "  memory clear   Clear long-term memory\n" +
-  "  history        Show orchestration history"
-);
-process.exit(1);
+  "  history        Show orchestration history";
+
+if (!cmd || !COMMANDS[cmd]) {
+  console.error(cmd ? `Unknown command: ${cmd}\n` : "", USAGE);
+  process.exit(cmd ? 1 : 0);
+}
+
+COMMANDS[cmd]();
+process.exit(0);

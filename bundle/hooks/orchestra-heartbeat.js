@@ -1,37 +1,22 @@
 #!/usr/bin/env node
 "use strict";
 
-const {
-  loadState,
-  saveState,
-  readStdinJson,
-  emit,
-  isStalled,
-  getStallDurationMs,
-  emitLifecycleEvent,
-  endPhaseTimer,
-  writeHeartbeat,
-} = require("./orchestra-lib.js");
+const { STALL_ATTEMPTS_ABORT_THRESHOLD } = require("./lib/constants.js");
+const { readStdinJson, emit } = require("./lib/io.js");
+const { loadState, saveState } = require("./lib/state-manager.js");
+const { isStalled, getStallDurationMs, writeHeartbeat } = require("./lib/heartbeat-monitor.js");
+const { emitLifecycleEvent, endPhaseTimer } = require("./lib/lifecycle-recorder.js");
 
-/**
- * Heartbeat monitor — runs on the `stop` event.
- * 1. Writes alive signal to state.
- * 2. Detects stalled orchestration (phase running too long).
- * 3. Emits stall recovery nudge if needed.
- */
 async function main() {
   const input = await readStdinJson();
-
   const state = loadState();
   if (!state.active) {
     emit({});
     return;
   }
 
-  // Write alive signal
   writeHeartbeat(state);
 
-  // Check for stall
   if (isStalled(state)) {
     const elapsed = getStallDurationMs(state);
     const threshold = state.heartbeat?.stall_threshold_ms || 300000;
@@ -41,15 +26,13 @@ async function main() {
       threshold_ms: threshold,
     });
 
-    // Mark current phase as stalled
     endPhaseTimer(state, "stalled");
 
-    // Recovery: after 2 stall detections, force-abort
     const recentStalls = (state.lifecycle?.events || []).filter(
       (e) => e.type === "stall_detected" && e.phase === state.phase
     ).length;
 
-    if (recentStalls >= 2) {
+    if (recentStalls >= STALL_ATTEMPTS_ABORT_THRESHOLD) {
       const stalledPhase = state.phase;
       emitLifecycleEvent(state, "stall_aborted", stalledPhase, {
         attempts: recentStalls,
@@ -58,12 +41,12 @@ async function main() {
       state.phase = "idle";
       saveState(state);
       emit({
-        followup_message: `Orchestra: phase "${stalledPhase}" stalled ${recentStalls} times. Orchestration aborted. Report to user.`,
+        followup_message:
+          `Orchestra: phase "${stalledPhase}" stalled ${recentStalls} times. Orchestration aborted. Report to user.`,
       });
       return;
     }
 
-    // First stall — nudge the agent to retry
     saveState(state);
     const nudges = {
       plan: "Orchestra heartbeat: planner may be stalled. Re-launch **orchestra-planner** or skip to implementer if plan exists.",

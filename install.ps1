@@ -52,6 +52,9 @@ function Install-Cursor {
   ) | ForEach-Object { New-Item -ItemType Directory -Force -Path $_ | Out-Null }
 
   Copy-Item (Join-Path $Bundle "hooks\orchestra-*.js") (Join-Path $CursorDir "hooks\") -Force
+  $libDest = Join-Path $CursorDir "hooks\lib"
+  if (Test-Path $libDest) { Remove-Item $libDest -Recurse -Force }
+  Copy-Item (Join-Path $Bundle "hooks\lib") $libDest -Recurse -Force
   $stateDest = Join-Path $CursorDir "hooks\state\orchestra.json"
   if (-not (Test-Path $stateDest)) {
     Copy-Item (Join-Path $Bundle "hooks\state\orchestra.json") $stateDest -Force

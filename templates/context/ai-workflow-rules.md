@@ -28,6 +28,26 @@ Split an implementation step if it combines:
 If a change cannot be verified end to end quickly,
 the scope is too broad — split it.
 
+## System Design Triggers
+
+When starting a new feature, check whether it triggers
+any of these system design concerns. If yes, define the
+approach in `architecture.md` > System Design before
+implementing:
+
+| Trigger | Consider |
+|---------|----------|
+| File uploads / media | Object storage + CDN + signed URLs |
+| Background / deferred work | Queue, worker, retry policy |
+| Expensive or repeated query | Caching layer (CDN, Redis, in-memory) |
+| Global user base | CDN, multi-region, load balancing |
+| Bursty traffic / abuse risk | Rate limiting, throttling, WAF |
+| Independent deploy cycles | Microservice boundary, contract testing |
+| Debugging production issues | Observability: logs, metrics, traces |
+| Search / discovery feature | Dedicated search index vs DB query |
+| Realtime UI updates | WebSocket, SSE, polling, Durable Objects |
+| Data growth beyond 1M rows | Connection pooling, read replicas, sharding |
+
 ## Handling Missing Requirements
 
 - Do not invent product behavior not defined in the

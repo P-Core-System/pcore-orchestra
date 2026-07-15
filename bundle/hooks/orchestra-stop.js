@@ -1,15 +1,11 @@
 #!/usr/bin/env node
 "use strict";
 
-const {
-  loadState,
-  saveState,
-  readStdinJson,
-  emit,
-  AMBIENT_CONTEXT,
-  isStalled,
-  writeHeartbeat,
-} = require("./orchestra-lib.js");
+const { STOP_NUDGE_LOOP_LIMIT } = require("./lib/constants.js");
+const { readStdinJson, emit } = require("./lib/io.js");
+const { loadState, saveState } = require("./lib/state-manager.js");
+const { AMBIENT_CONTEXT } = require("./lib/context-detector.js");
+const { isStalled, writeHeartbeat } = require("./lib/heartbeat-monitor.js");
 
 async function main() {
   const input = await readStdinJson();
@@ -27,11 +23,9 @@ async function main() {
     return;
   }
 
-  // Write heartbeat alive signal on every stop event
   writeHeartbeat(state);
   saveState(state);
 
-  // Don't nudge if stalled (heartbeat.js handles that)
   if (isStalled(state)) {
     emit({});
     return;
@@ -46,7 +40,7 @@ async function main() {
   };
 
   const nudge = nudges[state.phase];
-  if (!nudge || loopCount >= 3) {
+  if (!nudge || loopCount >= STOP_NUDGE_LOOP_LIMIT) {
     emit({});
     return;
   }

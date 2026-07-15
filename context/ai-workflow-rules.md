@@ -58,6 +58,10 @@ Update when implementation changes:
 - On FIX_REQUIRED loop, implementer commits fixes as a separate commit.
 - Parent agent does NOT modify files or commit between phases.
 
+## System design triggers
+
+This project is local-only infrastructure (no servers, no network endpoints). System design concerns (object storage, CDN, caching, queues, rate limiting, load balancing, microservices, observability) are N/A for the hook scripts themselves. If adding a new service or external dependency, document it in `architecture.md` > System Design & Infrastructure first.
+
 ## Before moving to the next unit
 
 1. `node bundle/hooks/orchestra-health.js` passes (or global install health after copy).
