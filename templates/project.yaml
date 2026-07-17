@@ -1,0 +1,135 @@
+# ──────────────────────────────────────────────
+# P-Core Universal Project Identity
+# ──────────────────────────────────────────────
+# Every managed project declares its identity here.
+# Used by P-Core Orchestra for lifecycle management,
+# version tracking, team coordination, and automation.
+
+project:
+  name: <project-slug>
+  slug: <project-slug>
+  display_name: <Human-Readable Project Name>
+  type: web              # web | mobile | api | ai | devops | library | saas | internal-tool | oss | cli | game | data
+  category: <category>   # e.g. ai-platform, e-commerce, fintech, edtech, health, dev-tools, media, infrastructure
+  owner: <name or team>
+
+  description: >
+    One-paragraph description of what this project does,
+    who it serves, and why it exists.
+
+version:
+  current: 0.1.0
+  channel: dev           # dev | alpha | beta | rc | stable
+  release_name: <theme>  # e.g. genesis, foundation, horizon
+  build_number: 001
+
+lifecycle:
+  stage: idea            # idea | analysis | requirements | design | planning |
+                         # development | testing | staging | production | maintenance | sunset
+  status: active         # active | paused | archived | sunset
+  started: <YYYY-MM-DD>
+  updated: <YYYY-MM-DD>
+
+team:
+  lead: <name>
+  members:
+    - name: <name>
+      role: <role>       # e.g. developer, designer, pm, devops, qa, sre, writer
+      contact: <email or handle>
+
+repository:
+  url: <git remote url>
+  branch: main
+  provider: github       # github | gitlab | bitbucket | self-hosted
+  visibility: private    # public | private | internal
+
+stack:
+  languages:
+    - <language>         # e.g. typescript, python, go, rust, php, kotlin
+  frameworks:
+    - <framework>        # e.g. react, nextjs, django, laravel, spring, vue
+  databases:
+    - <database>         # e.g. postgresql, mysql, sqlite, mongodb, redis
+  infrastructure:
+    - <infra>            # e.g. cloudflare, aws, gcp, azure, docker, k8s
+  package_manager: npm   # npm | pip | cargo | composer | go-mod | yarn | pnpm
+  runtime: node          # node | python | go | rust | php | bun | deno
+
+environments:
+  development:
+    url: <http://localhost:PORT>
+    branch: dev
+    auto_deploy: true
+  staging:
+    url: <https://staging.example.com>
+    branch: main
+    auto_deploy: true
+  production:
+    url: <https://example.com>
+    branch: main
+    auto_deploy: false
+
+integrations:
+  ci_cd: github-actions   # github-actions | gitlab-ci | jenkins | circleci | none
+  monitoring: <tool>      # datadog | grafana | sentry | cloudflare | none
+  analytics: <tool>       # posthog | ga | mixpanel | plausible | none
+  error_tracking: <tool>  # sentry | datadog | bugsnag | none
+  logs: <tool>            # cloudflare | datadog | elk | loki | none
+
+ai:
+  assistant: cursor       # cursor | opencode | claude-code | windsurf | none
+  context_dir: context/   # path to six-file context directory
+  entry_point: AGENTS.md  # path to orchestration entry point
+  rules: []
+
+infrastructure:
+  cloud: <provider>       # cloudflare | aws | gcp | azure | none
+  regions:
+    - <region>            # e.g. us-east-1, auto (cloudflare)
+  dns: <provider>         # cloudflare | route53 | cloud-dns | none
+  cdn: <provider>         # cloudflare | cloudfront | fastly | none
+
+security:
+  authentication: <provider>  # neon-auth | clerk | auth0 | supabase | better-auth | custom | none
+  authorization: rbac         # rbac | abac | none
+  audit_log: false
+  secrets_manager: <tool>     # 1password | vault | aws-secrets | none
+
+compliance:
+  standards: []
+  # - soc2
+  # - hipaa
+  # - gdpr
+  # - pci-dss
+  data_region: <region>  # e.g. us, eu, apac
+
+observability:
+  health_endpoint: /health
+  metrics: false
+  tracing: false
+  alerting:
+    pagerduty: false
+    slack: false
+    email: false
+
+backup:
+  strategy: automated     # automated | manual | none
+  retention_days: 30
+  schedule: daily         # daily | weekly | monthly | continuous
+
+disaster_recovery:
+  rpo_minutes: 60        # Recovery Point Objective in minutes
+  rto_minutes: 120       # Recovery Time Objective in minutes
+  plan: <path or none>
+
+# ──────────────────────────────────────────────
+# P-Core managed fields (updated by orchestra)
+# ──────────────────────────────────────────────
+_pcore:
+  version: 1
+  initialized: <YYYY-MM-DDTHH:MM:SSZ>
+  last_orchestration: null
+  orchestration_count: 0
+  quality_gate_passes: 0
+  quality_gate_failures: 0
+  agent_invocations: {}

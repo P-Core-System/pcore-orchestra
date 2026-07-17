@@ -60,6 +60,11 @@ function Install-Cursor {
     Copy-Item (Join-Path $Bundle "hooks\state\orchestra.json") $stateDest -Force
   }
   Copy-Item (Join-Path $Bundle "agents\orchestra-*.md") (Join-Path $CursorDir "agents\") -Force
+  # Copy all enterprise agent directories (01-idea through 10-review)
+  Get-ChildItem -Path (Join-Path $Bundle "agents") -Directory | ForEach-Object {
+    $destDir = Join-Path $CursorDir "agents" $_.Name
+    robocopy $_.FullName $destDir /E /NDL /NJH /NJS /NP 2>&1 | Out-Null
+  }
   Copy-Item (Join-Path $Bundle "rules\orchestra-loop.mdc") (Join-Path $CursorDir "rules\") -Force
   Copy-Item (Join-Path $Bundle "ORCHESTRA.md") (Join-Path $CursorDir "ORCHESTRA.md") -Force
 

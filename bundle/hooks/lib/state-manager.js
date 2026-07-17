@@ -5,22 +5,62 @@ const path = require("node:path");
 const {
   DEFAULT_STALL_THRESHOLD_MS,
   DEFAULT_HEARTBEAT_INTERVAL_MS,
+  INITIAL_VERSION,
+  INITIAL_BUILD,
 } = require("./constants.js");
 
 const STATE_PATH = path.join(__dirname, "..", "state", "orchestra.json");
 
 const DEFAULT_STATE = {
-  version: 2,
+  version: 3,
   ambient: true,
   active: false,
   goal: "",
-  phase: "idle",
+  currentPhase: "idle",
+  currentPhaseIndex: -1,
+  phaseCategory: null,
   started_at: null,
   last_subagent: null,
   iteration: 0,
   max_iterations: 8,
   last_prompt: null,
   auto_started: null,
+
+  // V3: Project management
+  project: {
+    name: "",
+    vision: "",
+    version: INITIAL_VERSION,
+    buildNumber: INITIAL_BUILD,
+    releaseChannel: "development",
+    repository: "",
+    defaultBranch: "main",
+  },
+
+  // V3: Version management
+  versioning: {
+    current: INITIAL_VERSION,
+    buildNumber: INITIAL_BUILD,
+    previous: null,
+    bumpType: null,
+    releaseName: null,
+    releaseSlug: null,
+    releaseTheme: null,
+    releaseDate: null,
+    gitSha: null,
+    breakingChanges: [],
+    migrationNotes: [],
+  },
+
+  // V3: Quality gates
+  qualityGates: {
+    passed: [],
+    failed: [],
+    skipped: [],
+    allRequiredPassed: false,
+  },
+
+  // Core lifecycle
   lifecycle: { events: [], phase_history: [] },
   heartbeat: {
     last_beat: null,
@@ -53,18 +93,35 @@ function cloneDefaults() {
   };
 }
 
+function deepMerge(target, source) {
+  const result = { ...target };
+  for (const key of Object.keys(source)) {
+    if (
+      source[key] && typeof source[key] === "object" && !Array.isArray(source[key])
+    ) {
+      result[key] = deepMerge(target[key] || {}, source[key]);
+    } else {
+      result[key] = source[key];
+    }
+  }
+  return result;
+}
+
 function loadState() {
   try {
     if (!fs.existsSync(STATE_PATH)) return { ...DEFAULT_STATE, ...cloneDefaults() };
     const raw = JSON.parse(fs.readFileSync(STATE_PATH, "utf8"));
-    const merged = { ...DEFAULT_STATE, ...raw };
-    merged.lifecycle = { ...DEFAULT_STATE.lifecycle, ...merged.lifecycle };
-    merged.lifecycle.events = merged.lifecycle.events || [];
-    merged.lifecycle.phase_history = merged.lifecycle.phase_history || [];
-    merged.heartbeat = { ...DEFAULT_STATE.heartbeat, ...merged.heartbeat };
-    merged.memory = { ...DEFAULT_STATE.memory, ...merged.memory };
-    merged.resumable = { ...DEFAULT_STATE.resumable, ...merged.resumable };
-    merged.version = 2;
+    const merged = deepMerge(DEFAULT_STATE, raw);
+    merged.version = 3;
+    if (!merged.lifecycle) merged.lifecycle = { events: [], phase_history: [] };
+    if (!merged.lifecycle.events) merged.lifecycle.events = [];
+    if (!merged.lifecycle.phase_history) merged.lifecycle.phase_history = [];
+    if (!merged.heartbeat) merged.heartbeat = { ...DEFAULT_STATE.heartbeat };
+    if (!merged.memory) merged.memory = { ...DEFAULT_STATE.memory };
+    if (!merged.resumable) merged.resumable = { ...DEFAULT_STATE.resumable };
+    if (!merged.project) merged.project = { ...DEFAULT_STATE.project };
+    if (!merged.versioning) merged.versioning = { ...DEFAULT_STATE.versioning };
+    if (!merged.qualityGates) merged.qualityGates = { ...DEFAULT_STATE.qualityGates };
     return merged;
   } catch {
     return { ...DEFAULT_STATE, ...cloneDefaults() };
@@ -81,7 +138,9 @@ function startOrchestra(goal, state, source) {
 
   state.active = true;
   state.goal = goal;
-  state.phase = "plan";
+  state.currentPhase = "idea";
+  state.currentPhaseIndex = 0;
+  state.phaseCategory = "discovery";
   state.started_at = new Date().toISOString();
   state.last_subagent = null;
   state.iteration = 0;
@@ -96,8 +155,14 @@ function startOrchestra(goal, state, source) {
   state.resumable = {
     paused: false, paused_at: null, pause_reason: null, checkpoint: null, last_save: null,
   };
-  emitLifecycleEvent(state, "orchestra_start", "plan", { goal, source });
+  state.qualityGates = { passed: [], failed: [], skipped: [], allRequiredPassed: false };
+  emitLifecycleEvent(state, "orchestra_start", "idea", { goal, source });
   saveState(state);
+}
+
+function resetProjectState(state) {
+  state.project = { ...DEFAULT_STATE.project };
+  state.versioning = { ...DEFAULT_STATE.versioning };
 }
 
 module.exports = {
@@ -106,4 +171,5 @@ module.exports = {
   loadState,
   saveState,
   startOrchestra,
+  resetProjectState,
 };

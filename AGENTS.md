@@ -1,4 +1,4 @@
-# P-Core Agents — agent notes
+# P-Core Orchestra — orchestra notes
 
 ## Application building context
 

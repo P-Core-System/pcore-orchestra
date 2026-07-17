@@ -20,6 +20,16 @@ const SCRIPTS = [
   "orchestra-heartbeat.js",
   "orchestra-lifecycle.js",
   "orchestra-memory.js",
+  "orchestra-quality-gate.js",
+];
+
+const LIBS = [
+  "constants.js", "io.js", "state-manager.js", "prompt-classifier.js",
+  "phase-engine.js", "lifecycle-recorder.js", "heartbeat-monitor.js",
+  "memory-manager.js", "history-recorder.js", "checkpoint-manager.js",
+  "context-detector.js", "version-manager.js", "project-manager.js",
+  "daily-planner.js", "quality-gate.js", "observability.js",
+  "self-improvement.js", "devops.js", "security-scanner.js",
 ];
 
 const AGENT_NAMES = [
@@ -27,6 +37,29 @@ const AGENT_NAMES = [
   "orchestra-implementer.md",
   "orchestra-verifier.md",
   "orchestra-reviewer.md",
+  "01-idea/business-analyst.md",
+  "02-requirements/product-manager.md",
+  "03-architecture/architect.md",
+  "03-architecture/tech-lead.md",
+  "04-planning/project-manager.md",
+  "05-implementation/backend-engineer.md",
+  "05-implementation/frontend-engineer.md",
+  "05-implementation/full-stack-engineer.md",
+  "05-implementation/database-engineer.md",
+  "06-testing/qa-engineer.md",
+  "06-testing/automation-engineer.md",
+  "06-testing/performance-engineer.md",
+  "06-testing/accessibility-reviewer.md",
+  "07-security/security-engineer.md",
+  "08-deployment/documentation-writer.md",
+  "08-deployment/release-manager.md",
+  "08-deployment/devops-engineer.md",
+  "08-deployment/platform-engineer.md",
+  "08-deployment/cloud-engineer.md",
+  "08-deployment/infrastructure-engineer.md",
+  "09-observability/sre.md",
+  "09-observability/observer.md",
+  "10-review/code-reviewer.md",
 ];
 
 const CLASSIFICATION_SAMPLES = [
@@ -41,11 +74,22 @@ const CLASSIFICATION_SAMPLES = [
 let ok = true;
 
 function checkScripts() {
-  console.log("=== Orchestra health check ===\n");
+  console.log("=== Enterprise health check ===\n");
   for (const s of SCRIPTS) {
     const p = path.join(HOOKS_DIR, s);
     const exists = fs.existsSync(p);
     console.log(exists ? "OK " : "MISSING ", s);
+    if (!exists) ok = false;
+  }
+}
+
+function checkLibs() {
+  const libDir = path.join(HOOKS_DIR, "lib");
+  console.log("\n=== Lib modules ===");
+  for (const l of LIBS) {
+    const p = path.join(libDir, l);
+    const exists = fs.existsSync(p);
+    console.log(exists ? "OK " : "MISSING ", l);
     if (!exists) ok = false;
   }
 }
@@ -63,9 +107,14 @@ function checkHooksJson() {
       const hasLifecycle = subagentHooks.some((h) => h.command?.includes("orchestra-lifecycle"));
       const hasMemory = subagentHooks.some((h) => h.command?.includes("orchestra-memory"));
       const hasHeartbeat = stopHooks.some((h) => h.command?.includes("orchestra-heartbeat"));
+      const hasQualityGate = subagentHooks.some((h) => h.command?.includes("orchestra-quality-gate"));
       console.log("    lifecycle hook:", hasLifecycle ? "OK" : "MISSING");
       console.log("    memory hook:", hasMemory ? "OK" : "MISSING");
       console.log("    heartbeat hook:", hasHeartbeat ? "OK" : "MISSING");
+      console.log("    quality gate hook:", hasQualityGate ? "OK" : "MISSING");
+      const agentPatterns = cfg.hooks?.subagentStop?.[0]?.matcher || "";
+      const agentCount = agentPatterns.split("|").length;
+      console.log("    subagent patterns:", agentCount);
       if (!hasLifecycle || !hasMemory || !hasHeartbeat) ok = false;
     } catch (e) {
       console.log("BAD hooks.json parse:", e.message);
@@ -80,10 +129,13 @@ function checkHooksJson() {
 function checkState() {
   const state = loadState();
   console.log("\n=== State ===");
-  console.log("    version:", state.version || "1 (legacy)");
+  console.log("    version:", state.version);
   console.log("    active:", state.active);
-  console.log("    phase:", state.phase);
+  console.log("    phase:", state.currentPhase);
   console.log("    ambient:", state.ambient);
+  console.log("    project:", state.project ? "present" : "MISSING");
+  console.log("    versioning:", state.versioning ? "present" : "MISSING");
+  console.log("    qualityGates:", state.qualityGates ? "present" : "MISSING");
   console.log("    heartbeat:", state.heartbeat ? "present" : "MISSING");
   console.log("    lifecycle:", state.lifecycle ? "present" : "MISSING");
   console.log("    memory:", state.memory ? "present" : "MISSING");
@@ -121,18 +173,41 @@ function checkAgents() {
   const agentsDir = path.join(ROOT, "agents");
   if (fs.existsSync(agentsDir)) {
     console.log("\n=== Agents ===");
+    let agentOk = 0;
+    let agentMiss = 0;
     for (const name of AGENT_NAMES) {
-      console.log(fs.existsSync(path.join(agentsDir, name)) ? "OK " : "MISSING ", name);
+      const exists = fs.existsSync(path.join(agentsDir, name));
+      console.log(exists ? "OK " : "MISSING ", name);
+      if (exists) agentOk++; else { agentMiss++; ok = false; }
     }
+    console.log(`    Agents: ${agentOk} present, ${agentMiss} missing`);
+  }
+}
+
+function checkProjectFiles() {
+  console.log("\n=== Enterprise State Files ===");
+  const stateDir = path.join(HOOKS_DIR, "state");
+  const files = [
+    "orchestra-project.json",
+    "orchestra-version.json",
+    "orchestra-daily.json",
+    "orchestra-metrics.json",
+  ];
+  for (const f of files) {
+    const p = path.join(stateDir, f);
+    const exists = fs.existsSync(p);
+    console.log(exists ? "OK  " : "INIT ", f);
   }
 }
 
 checkScripts();
+checkLibs();
 checkHooksJson();
 checkState();
 checkMemory();
 checkClassification();
 checkAgents();
+checkProjectFiles();
 
-console.log(ok ? "\nAll checks passed." : "\nSome checks failed — restart Cursor and verify Hooks tab.");
+console.log(ok ? "\nAll checks passed." : "\nSome checks failed — review output above.");
 process.exit(ok ? 0 : 1);

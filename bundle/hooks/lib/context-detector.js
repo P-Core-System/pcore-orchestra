@@ -89,7 +89,7 @@ function buildContextInjection(ctx) {
   });
   lines.push(
     "Update `context/progress-tracker.md` after meaningful changes.",
-    "Bootstrap missing context: `bash scripts/init-context.sh` from pcore-agents repo."
+    "Bootstrap missing context: `bash scripts/init-context.sh` from pcore-orchestra repo."
   );
   return lines.join("\n");
 }
