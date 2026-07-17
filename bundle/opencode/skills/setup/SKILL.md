@@ -1,14 +1,14 @@
 ---
 name: setup
 description: >-
-  Setup pcore-agents on a new machine or configure it for a new project.
+  Setup pcore-orchestra on a new machine or configure it for a new project.
   Use when: setting up orchestra, installing on new machine, adding to project,
   configuring context files, or troubleshooting setup issues.
 ---
 
-# P-Core Agents Setup Skill
+# P-Core Orchestra Setup Skill
 
-Setup pcore-agents globally on any machine and configure it for any project.
+Setup pcore-orchestra globally on any machine and configure it for any project.
 
 ## When invoked
 
@@ -25,20 +25,20 @@ Setup pcore-agents globally on any machine and configure it for any project.
 
 ```bash
 # Clone and install globally
-git clone https://github.com/peterlianpi/pcore-agents.git /tmp/pcore-agents
-cd /tmp/pcore-agents
+git clone https://github.com/peterlianpi/pcore-orchestra.git /tmp/pcore-orchestra
+cd /tmp/pcore-orchestra
 bash install.sh
 
 # Clean up
-rm -rf /tmp/pcore-agents
+rm -rf /tmp/pcore-orchestra
 ```
 
 ### Full setup with OpenCode
 
 ```bash
 # Clone
-git clone https://github.com/peterlianpi/pcore-agents.git /tmp/pcore-agents
-cd /tmp/pcore-agents
+git clone https://github.com/peterlianpi/pcore-orchestra.git /tmp/pcore-orchestra
+cd /tmp/pcore-orchestra
 
 # Install for both Cursor and OpenCode
 bash install.sh --all
@@ -55,14 +55,14 @@ node ~/.config/opencode/hooks/orchestra-health-opencode.js
 
 ```powershell
 # Clone
-git clone https://github.com/peterlianpi/pcore-agents.git C:\temp\pcore-agents
-cd C:\temp\pcore-agents
+git clone https://github.com/peterlianpi/pcore-orchestra.git C:\temp\pcore-orchestra
+cd C:\temp\pcore-orchestra
 
 # Install
 powershell -ExecutionPolicy Bypass -File install.ps1
 
 # Clean up
-Remove-Item -Recurse C:\temp\pcore-agents
+Remove-Item -Recurse C:\temp\pcore-orchestra
 ```
 
 ---
@@ -104,8 +104,8 @@ cp /path/to/existing-project/AGENTS.md /path/to/new-project/AGENTS.md
 
 ```bash
 # Templates are in the repo
-cp -r /tmp/pcore-agents/templates/context/ /path/to/new-project/context/
-cp /tmp/pcore-agents/templates/AGENTS.md /path/to/new-project/AGENTS.md
+cp -r /tmp/pcore-orchestra/templates/context/ /path/to/new-project/context/
+cp /tmp/pcore-orchestra/templates/AGENTS.md /path/to/new-project/AGENTS.md
 ```
 
 ---
@@ -234,7 +234,7 @@ git clone <repo>
 
 ```bash
 # Reinstall
-cd /path/to/pcore-agents
+cd /path/to/pcore-orchestra
 bash install.sh
 
 # Check hooks.json

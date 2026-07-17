@@ -15,7 +15,6 @@
 
 | Path | Owns |
 |------|------|
-| `bundle/hooks/orchestra-lib.js` | Facade — re-exports all lib/* modules for backward compatibility |
 | `bundle/hooks/orchestra-*.js` | Individual hook handlers |
 | `bundle/hooks/lib/constants.js` | Named constants (no magic numbers) |
 | `bundle/hooks/lib/io.js` | stdin/stdout helpers (`readStdinJson`, `emit`) |
@@ -28,7 +27,26 @@
 | `bundle/hooks/lib/history-recorder.js` | Orchestration run history |
 | `bundle/hooks/lib/checkpoint-manager.js` | Resumable tasks and crash recovery |
 | `bundle/hooks/lib/context-detector.js` | Six-file workspace context detection |
-| `bundle/agents/` | Subagent prompts (planner readonly; others writable) |
+| `bundle/hooks/lib/version-manager.js` | Semver, changelog, release automation |
+| `bundle/hooks/lib/project-manager.js` | Epics, milestones, stories, tasks, velocity |
+| `bundle/hooks/lib/daily-planner.js` | Daily engineering journal and reports |
+| `bundle/hooks/lib/quality-gate.js` | 14 quality gates enforcement |
+| `bundle/hooks/lib/observability.js` | Metrics, logging, SLO tracking |
+| `bundle/hooks/lib/self-improvement.js` | Retrospectives, tech debt, ADR |
+| `bundle/hooks/lib/devops.js` | Git, CI/CD, Docker, IaC templates |
+| `bundle/hooks/lib/security-scanner.js` | Security checks, gates, scanning |
+| `bundle/hooks/lib/changelog.js` | Changelog generation engine |
+| `bundle/agents/` | Subagent prompts (divided by phase category) |
+| `bundle/agents/01-idea/` | Idea → Analysis agents |
+| `bundle/agents/02-requirements/` | Requirements agents |
+| `bundle/agents/03-architecture/` | Architecture agents |
+| `bundle/agents/04-planning/` | Sprint/Task planning agents |
+| `bundle/agents/05-implementation/` | Implementation agents |
+| `bundle/agents/06-testing/` | Testing agents |
+| `bundle/agents/07-security/` | Security agents |
+| `bundle/agents/08-deployment/` | DevOps/Deployment agents |
+| `bundle/agents/09-observability/` | Observability agents |
+| `bundle/agents/10-review/` | Review agents |
 | `bundle/rules/orchestra-loop.mdc` | Always-on agent policy |
 | `bundle/skills/orchestra-loop/` | Skill documentation |
 | `project-bridge/` | Repo-local delegation only — no duplicate logic |
@@ -39,8 +57,11 @@
 
 | Data | Location | Notes |
 |------|----------|-------|
-| Orchestra state | `~/.cursor/hooks/state/orchestra.json` | V2: lifecycle, heartbeat, memory, resumable |
+| Orchestra state | `~/.cursor/hooks/state/orchestra.json` | V3: full SDLC state, project management, versioning |
 | Long-term memory | `~/.cursor/hooks/state/orchestra-memory.json` | Persistent across sessions, capped at 100 goals |
+| Project management | `~/.cursor/hooks/state/orchestra-project.json` | Epics, milestones, stories, tasks, velocity, backlog |
+| Daily planner | `~/.cursor/hooks/state/orchestra-daily.json` | Daily journal, progress reports, metrics |
+| Version/release | `~/.cursor/hooks/state/orchestra-version.json` | Semver, changelog, release notes |
 | Installed bundle | `~/.cursor/hooks`, `agents`, `skills`, `rules` | Copied from `bundle/` on install |
 | Target project context | `<project>/context/*.md` | Created by `init-context` or manually |
 | Target entry point | `<project>/AGENTS.md` | Points agents to six files |
@@ -51,50 +72,127 @@ No network auth in orchestra itself. Hooks run locally with the user's Cursor se
 
 ## System Design & Infrastructure
 
-This project uses no external infrastructure — all hook scripts run locally on the developer machine. The following table documents why each concept is N/A or reserved for future use.
+This project uses no external infrastructure — all hook scripts run locally on the developer machine.
 
 | Concept | Status | Notes |
 |---------|--------|-------|
 | **Compute** | Local Node.js only | Scripts run on `node` via Cursor hooks — no server |
-| **Object Storage** | N/A | No file uploads or media |
-| **CDN** | N/A | No static assets served |
-| **Caching** | N/A | State is read from local JSON on each hook call |
-| **Queue / Async** | N/A | Hooks are synchronous per event |
-| **Rate Limiting** | N/A | Runs locally — no network endpoint to protect |
-| **Database** | N/A | Persistence is local JSON files only |
-| **Load Balancing** | N/A | Single-machine tool |
-| **Microservices** | N/A | Monolithic hook scripts |
-| **Observability** | Minimal | stdout/console + JSON state file. No external telemetry |
-| **Search** | N/A | No search feature |
-| **Streaming / Realtime** | N/A | Event-driven hooks, no streaming |
+| **Database** | N/A (local JSON) | V3 uses structured JSON files with ring-buffer caps |
+| **CI/CD** | Template generation | Auto-generates GitHub Actions, GitLab CI, Jenkins pipelines |
+| **IaC** | Template generation | Auto-generates Docker, K8s, Terraform, Cloudflare configs |
+| **Observability** | Local metrics | JSON-based metrics, health checks, daily reports |
 
-## Phase model
+## Phase Model — Enterprise SDLC (V3)
 
 ```
-idle → plan (planner) → implement → verify → review → done
-  ↑        ↑                                      |
-  |        └──────── FIX_REQUIRED ─────────────────┘
-  │
-  └── resume (from checkpoint)
+idea → analysis → requirements → functional-req → nonfunctional-req →
+user-stories → acceptance-criteria → use-cases → domain-model →
+risk-analysis → architecture-review → tech-selection → folder-structure →
+coding-standards → sprint-planning → milestone-planning → task-breakdown →
+implementation → unit-testing → integration-testing → regression-testing →
+performance-testing → security-review → accessibility-review →
+documentation → release-candidate → production-release →
+monitoring → analytics → maintenance → retrospective → continuous-improvement
 ```
 
-`subagentStop` hook reads subagent name, advances phase, emits follow-up user message for parent agent to launch next subagent via Task tool.
+### Phase Categories
+
+| Category | Phases | Agents |
+|----------|--------|--------|
+| **Discovery** (01-idea → 04-nonfunctional-req) | idea, analysis, requirements, functional-req, nonfunctional-req | business-analyst, product-manager |
+| **Design** (05-user-stories → 12-coding-standards) | user-stories, acceptance-criteria, use-cases, domain-model, risk-analysis, architecture-review, tech-selection, folder-structure, coding-standards | architect, tech-lead |
+| **Planning** (13-sprint-planning → 15-task-breakdown) | sprint-planning, milestone-planning, task-breakdown | project-manager |
+| **Execution** (16-implementation → 17-unit-testing) | implementation, unit-testing | backend-engineer, frontend-engineer, full-stack-engineer, database-engineer |
+| **Quality** (18-integration-testing → 21-security-review) | integration-testing, regression-testing, performance-testing, security-review, accessibility-review | qa-engineer, automation-engineer, security-engineer |
+| **Release** (22-documentation → 24-production-release) | documentation, release-candidate, production-release | documentation-writer, release-manager, devops-engineer |
+| **Operations** (25-monitoring → 31-continuous-improvement) | monitoring, analytics, maintenance, retrospective, continuous-improvement | sre, observer, project-manager |
 
 ## Agent Architecture: Harness > Scaffold > Loop
 
-Cursor Orchestra implements a three-layer agent architecture (see `context/harness-scaffold-loop.md` for full details):
+Cursor Orchestra implements a three-layer agent architecture:
 
-- **Loop:** Phase chain (plan → implement → verify → review)
-- **Scaffold:** Agent prompts, context injection, ambient policy  
-- **Harness:** Hook scripts, state management, error handling
+- **Loop:** Phase chain (30+ SDLC phases)
+- **Scaffold:** Agent prompts (25+ specialist agents), context injection, ambient policy
+- **Harness:** Hook scripts, state management, quality gates, error handling
 
 The harness calls the scaffold, which defines the loop behavior.
+
+## Enterprise Quality Gates
+
+Every orchestration must pass all applicable gates before completion:
+
+1. ✓ Build passes
+2. ✓ Tests pass
+3. ✓ Coverage acceptable
+4. ✓ Lint passes
+5. ✓ Security passes
+6. ✓ Reviewer approves
+7. ✓ Documentation updated
+8. ✓ Version updated
+9. ✓ Changelog updated
+10. ✓ Roadmap updated
+11. ✓ Project memory updated
+12. ✓ Daily journal updated
+13. ✓ Release notes updated
+14. ✓ Technical debt recorded
+
+## Version Management
+
+Automatic semantic versioning:
+
+| Change Type | Bump | Example |
+|------------|------|---------|
+| Breaking API/behavior change | MAJOR | 1.2.3 → 2.0.0 |
+| New feature (backward compatible) | MINOR | 1.2.3 → 1.3.0 |
+| Bug fix / patch | PATCH | 1.2.3 → 1.3.4 |
+
+Build number auto-increments. Format: `MAJOR.MINOR.PATCH+BUILD` (e.g., `1.4.2+106`).
+
+Release names follow theme-based naming (e.g., 1.0.0 "Genesis", 2.0.0 "Evolution").
+
+## Agent Team Structure
+
+| # | Agent | Category | Readonly | Responsibility |
+|---|-------|----------|----------|----------------|
+| 1 | business-analyst | Discovery | Yes | Idea collection, business analysis, requirements |
+| 2 | product-manager | Discovery | Yes | Functional/non-functional reqs, user stories |
+| 3 | architect | Design | Yes | Domain model, risk analysis, architecture review |
+| 4 | tech-lead | Design | Yes | Tech selection, folder structure, coding standards |
+| 5 | project-manager | Planning | Yes | Sprint/milestone planning, task breakdown |
+| 6 | backend-engineer | Execution | No | Backend implementation |
+| 7 | frontend-engineer | Execution | No | Frontend implementation |
+| 8 | full-stack-engineer | Execution | No | Full-stack implementation |
+| 9 | database-engineer | Execution | No | Database schema, migrations, optimization |
+| 10 | qa-engineer | Quality | Yes | Integration, regression, smoke tests |
+| 11 | automation-engineer | Quality | Yes | E2E, performance, chaos tests |
+| 12 | security-engineer | Quality | Yes | Security review, threat modeling |
+| 13 | accessibility-reviewer | Quality | Yes | Accessibility audit |
+| 14 | documentation-writer | Release | Yes | All documentation |
+| 15 | release-manager | Release | Yes | Release candidate, production release |
+| 16 | devops-engineer | Release | Yes | CI/CD, IaC, deployment |
+| 17 | sre | Operations | Yes | Monitoring, SLOs, incident response |
+| 18 | observer | Operations | Yes | Analytics, performance dashboard |
+| 19 | code-reviewer | Review | Yes | Code review, quality gates |
+| 20 | performance-engineer | Quality | Yes | Performance testing, profiling |
+| 21 | platform-engineer | Infrastructure | Yes | Cloud infrastructure, Kubernetes |
+| 22 | cloud-engineer | Infrastructure | Yes | Cloud provider config |
+| 23 | infrastructure-engineer | Infrastructure | Yes | IaC, networking, security groups |
+| 24 | planner | Core | Yes | Research codebase, produce implementation plan |
+| 25 | implementer | Core | No | Execute plan, write code |
+| 26 | verifier | Core | Yes | Run checks, validate quality |
+| 27 | reviewer | Core | Yes | Final approval/rejection |
 
 ## Invariants
 
 1. Hook scripts must exit quickly and emit valid JSON on stdout; never throw uncaught errors (use `.catch(() => emit({}))`).
-2. `orchestra-planner` is **readonly** — no file edits in plan phase.
+2. All planning/analysis agents are **readonly** — no file edits.
 3. Installed global hooks merge into existing `hooks.json`; never overwrite unrelated hook entries.
 4. `init-context` must not overwrite existing `context/` or `AGENTS.md` files without explicit `--force`.
 5. Six-file read order is fixed: overview → architecture → code-standards → ui-context → ai-workflow-rules → progress-tracker.
 6. Context injection references paths relative to workspace root, not absolute machine paths.
+7. Every orchestration must pass all applicable quality gates before marking complete.
+8. Version must be bumped according to semver rules on every orchestration that changes code.
+9. Changelog must be updated on every orchestration.
+10. Technical debt must be recorded if any shortcuts were taken.
+11. All agents must output structured data for downstream consumption.
+12. Phase chain is extensible — new phases can be added by creating agent + hook entry.

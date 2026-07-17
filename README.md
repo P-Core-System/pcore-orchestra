@@ -1,4 +1,4 @@
-# P-Core Agents
+# P-Core Orchestra
 
 > Ambient multi-agent orchestration for **Cursor IDE** and **OpenCode CLI**
 > plan → implement → verify → review — automatically on build/fix/refactor prompts
@@ -8,7 +8,7 @@
 [![Cursor IDE](https://img.shields.io/badge/Cursor-IDE-000000.svg)](https://cursor.com)
 [![OpenCode](https://img.shields.io/badge/OpenCode-CLI-FF6B35.svg)](https://opencode.ai)
 
-**Repository:** [github.com/peterlianpi/pcore-agents](https://github.com/peterlianpi/pcore-agents)
+**Repository:** [github.com/peterlianpi/pcore-orchestra](https://github.com/peterlianpi/pcore-orchestra)
 
 **Status:** Production-ready | **Version:** 1.0 | **Last updated:** July 2026
 
@@ -18,8 +18,8 @@
 
 ```bash
 # 1. Clone and install
-git clone https://github.com/peterlianpi/pcore-agents.git
-cd pcore-agents
+git clone https://github.com/peterlianpi/pcore-orchestra.git
+cd pcore-orchestra
 bash install.sh
 
 # 2. Restart Cursor
@@ -279,9 +279,9 @@ rm -rf ~/.agents/skills/orchestra-loop
 
 ## Part of P-Core
 
-P-Core Agents is part of the **P-Core** project ecosystem:
+P-Core Orchestra is part of the **P-Core** project ecosystem:
 
-- **pcore-agents** (this repo) — ambient multi-agent orchestration
+- **pcore-orchestra** (this repo) — ambient multi-agent orchestration
 - **pcore-trader** — crypto trading bot with AI agents
 - **pcore-cli** — unified CLI for P-Core tools (planned)
 

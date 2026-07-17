@@ -11,6 +11,14 @@ const memoryManager = require("./lib/memory-manager.js");
 const historyRecorder = require("./lib/history-recorder.js");
 const checkpointManager = require("./lib/checkpoint-manager.js");
 const contextDetector = require("./lib/context-detector.js");
+const versionManager = require("./lib/version-manager.js");
+const projectManager = require("./lib/project-manager.js");
+const dailyPlanner = require("./lib/daily-planner.js");
+const qualityGate = require("./lib/quality-gate.js");
+const observability = require("./lib/observability.js");
+const selfImprovement = require("./lib/self-improvement.js");
+const devops = require("./lib/devops.js");
+const securityScanner = require("./lib/security-scanner.js");
 
 module.exports = {
   ...constants,
@@ -24,4 +32,12 @@ module.exports = {
   ...historyRecorder,
   ...checkpointManager,
   ...contextDetector,
+  ...versionManager,
+  ...projectManager,
+  ...dailyPlanner,
+  ...qualityGate,
+  ...observability,
+  ...selfImprovement,
+  ...devops,
+  ...securityScanner,
 };

@@ -14,7 +14,7 @@ Cursor Orchestra is a portable, ambient multi-agent workflow for Cursor IDE. It 
 
 ## Core User Flow
 
-1. Developer clones `pcore-agents` and runs `install.sh` (or `install.ps1`).
+1. Developer clones `pcore-orchestra` and runs `install.sh` (or `install.ps1`).
 2. Developer restarts Cursor; hooks register in Settings → Hooks.
 3. Developer opens any project; optionally runs `init-context.sh` to add six context files.
 4. Developer asks Agent to "fix the login bug" — orchestra auto-starts planner subagent.
