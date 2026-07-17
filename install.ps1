@@ -61,25 +61,28 @@ function Install-Cursor {
   }
   Copy-Item (Join-Path $Bundle "agents\orchestra-*.md") (Join-Path $CursorDir "agents\") -Force
   # Copy all enterprise agent directories (01-idea through 10-review)
-  Get-ChildItem -Path (Join-Path $Bundle "agents") -Directory | ForEach-Object {
-    $destDir = Join-Path $CursorDir "agents" $_.Name
-    robocopy $_.FullName $destDir /E /NDL /NJH /NJS /NP 2>&1 | Out-Null
+  $agentDirs = Get-ChildItem -Path (Join-Path $Bundle "agents") -Directory
+  foreach ($agentDir in $agentDirs) {
+    $destDir = Join-Path (Join-Path $CursorDir "agents") $agentDir.Name
+    $null = robocopy $agentDir.FullName $destDir /E /NDL /NJH /NJS /NP
   }
   Copy-Item (Join-Path $Bundle "rules\orchestra-loop.mdc") (Join-Path $CursorDir "rules\") -Force
   Copy-Item (Join-Path $Bundle "ORCHESTRA.md") (Join-Path $CursorDir "ORCHESTRA.md") -Force
 
   # Copy all Cloudflare skills (orchestra-loop + cloudflare, agents-sdk, etc.)
-  Get-ChildItem -Path (Join-Path $Bundle "skills") -Directory | ForEach-Object {
-    $destDir = Join-Path $CursorDir "skills" $_.Name
-    robocopy $_.FullName $destDir /E /NDL /NJH /NJS /NP 2>&1 | Out-Null
+  $skillDirs = Get-ChildItem -Path (Join-Path $Bundle "skills") -Directory
+  foreach ($skillDir in $skillDirs) {
+    $destDir = Join-Path (Join-Path $CursorDir "skills") $skillDir.Name
+    $null = robocopy $skillDir.FullName $destDir /E /NDL /NJH /NJS /NP
   }
 
   # Copy all Cursor built-in skills
   $scBundle = Join-Path $Bundle "skills-cursor"
   if (Test-Path $scBundle) {
-    Get-ChildItem -Path $scBundle -Directory | ForEach-Object {
-      $destDir = Join-Path $CursorDir "skills-cursor" $_.Name
-      robocopy $_.FullName $destDir /E /NDL /NJH /NJS /NP 2>&1 | Out-Null
+    $scDirs = Get-ChildItem -Path $scBundle -Directory
+    foreach ($scDir in $scDirs) {
+      $destDir = Join-Path (Join-Path $CursorDir "skills-cursor") $scDir.Name
+      $null = robocopy $scDir.FullName $destDir /E /NDL /NJH /NJS /NP
     }
   }
 
@@ -136,9 +139,10 @@ function Install-OpenCode {
   Copy-Item (Join-Path $Bundle "opencode\agents\orchestra-*.md") (Join-Path $OpenCodeDir "agents\") -Force
 
   # Copy all OpenCode skills (orchestra-loop + Cloudflare)
-  Get-ChildItem -Path (Join-Path $Bundle "opencode\skills") -Directory | ForEach-Object {
-    $destDir = Join-Path $OpenCodeDir "skills" $_.Name
-    robocopy $_.FullName $destDir /E /NDL /NJH /NJS /NP 2>&1 | Out-Null
+  $ocSkillDirs = Get-ChildItem -Path (Join-Path $Bundle "opencode\skills") -Directory
+  foreach ($ocSkillDir in $ocSkillDirs) {
+    $destDir = Join-Path (Join-Path $OpenCodeDir "skills") $ocSkillDir.Name
+    $null = robocopy $ocSkillDir.FullName $destDir /E /NDL /NJH /NJS /NP
   }
 
   Copy-Item (Join-Path $Bundle "opencode\hooks\orchestra-health-opencode.js") (Join-Path $OpenCodeDir "hooks\") -Force
