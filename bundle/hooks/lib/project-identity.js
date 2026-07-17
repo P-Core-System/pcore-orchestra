@@ -130,7 +130,7 @@ const REPO_PROVIDERS = [
 ];
 
 const ARCHITECTURE_TEMPLATES = {
-  "web":            "04-frontend-react.md",
+    "web":            "21-next-hono-prisma-query.md",
   "mobile":         "01-monorepo.md",
   "api":            "11-microservices.md",
   "ai":             "17-serverless.md",
@@ -166,6 +166,9 @@ const ARCHITECTURE_CATALOG = [
   { file: "19-n-tier.md",              title: "Layered (N-Tier) Architecture",                types: ["web", "api", "saas", "internal-tool"] },
   { file: "20-event-sourcing.md",      title: "Event Sourcing Architecture",                  types: ["api", "saas", "data"] },
   { file: "21-next-hono-prisma-query.md", title: "Next.js + Hono + Prisma + React Query + shadcn/ui", types: ["web", "saas"] },
+  { file: "22-ui-ux.md",                 title: "UI/UX Design System Architecture",                  types: ["web", "mobile", "saas"] },
+  { file: "23-standard-code.md",         title: "Standard Code Architecture",                       types: ["web", "mobile", "api", "ai", "devops", "library", "saas", "internal-tool", "oss", "cli", "game", "data"] },
+  { file: "24-ui-component.md",          title: "UI Component Architecture",                        types: ["web", "mobile", "saas"] },
 ];
 
 function suggestArchitectureTemplate(projectType) {
