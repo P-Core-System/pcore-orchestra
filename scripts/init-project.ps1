@@ -396,9 +396,9 @@ if ($Interactive) {
 
   # Architecture
   if ($Arch -or $Type) {
-    $ArchTarget = if ($Arch) { $Arch } else { "04-frontend-react.md" }
+    $ArchTarget = if ($Arch) { $Arch } else { "21-next-hono-prisma-query.md" }
     if (-not $Arch -and $Type) {
-      $map = @{ "web"="04-frontend-react.md"; "mobile"="01-monorepo.md"; "api"="11-microservices.md"; "ai"="17-serverless.md"; "saas"="12-event-driven.md" }
+      $map = @{ "web"="21-next-hono-prisma-query.md"; "mobile"="01-monorepo.md"; "api"="11-microservices.md"; "ai"="17-serverless.md"; "saas"="12-event-driven.md" }
       if ($map.ContainsKey($Type)) { $ArchTarget = $map[$Type] }
     }
     $ArchDest = Join-Path $Target "docs\architecture"
