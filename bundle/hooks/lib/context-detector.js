@@ -2,6 +2,8 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const { findProjectIdentity, buildIdentitySummary } = require("./project-identity.js");
+const { PROJECT_YAML_NAME } = require("./constants.js");
 
 const AMBIENT_CONTEXT = [
   "Global orchestra (ambient mode ON): for implementation/fix/build/refactor tasks,",
@@ -61,12 +63,50 @@ function detectSixFileContext(workspaceRoot) {
   };
 }
 
+function detectProjectYaml(root) {
+  if (!root) return null;
+  const found = findProjectIdentity(root);
+  if (!found) return null;
+  return { root, path: found.path, format: found.format };
+}
+
+function detectProjectYamlInWorkspaces(input) {
+  for (const root of extractWorkspaceRoots(input)) {
+    const py = detectProjectYaml(root);
+    if (py) return py;
+  }
+  return null;
+}
+
+function buildProjectYamlInjection(projectIdentity) {
+  if (!projectIdentity) return "";
+  return [
+    "Project Identity detected:",
+    buildIdentitySummary(projectIdentity),
+  ].join("\n");
+}
+
 function detectContextInWorkspaces(input) {
   for (const root of extractWorkspaceRoots(input)) {
     const ctx = detectSixFileContext(root);
     if (ctx) return ctx;
   }
   return null;
+}
+
+function detectFullWorkspaceContext(input) {
+  const workspaces = extractWorkspaceRoots(input);
+  const result = {};
+
+  for (const root of workspaces) {
+    const sixFile = detectSixFileContext(root);
+    const projectId = detectProjectYaml(root);
+    if (sixFile || projectId) {
+      result[root] = { sixFile, projectId };
+    }
+  }
+
+  return Object.keys(result).length > 0 ? result : null;
 }
 
 function buildContextInjection(ctx) {
@@ -101,4 +141,8 @@ module.exports = {
   detectSixFileContext,
   detectContextInWorkspaces,
   buildContextInjection,
+  detectProjectYaml,
+  detectProjectYamlInWorkspaces,
+  buildProjectYamlInjection,
+  detectFullWorkspaceContext,
 };

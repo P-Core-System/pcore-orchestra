@@ -29,7 +29,7 @@ function Copy-IfMissing($Src, $Dest) {
 
 @(
   "project-overview.md", "architecture.md", "code-standards.md",
-  "ai-workflow-rules.md", "ui-context.md", "progress-tracker.md"
+  "ai-workflow-rules.md", "ui-context.md", "progress-tracker.md", "project-setup.md"
 ) | ForEach-Object {
   Copy-IfMissing (Join-Path $Templates "context\$_") (Join-Path $Ctx $_)
 }

@@ -6,6 +6,7 @@ const {
   MAX_EPICS, MAX_MILESTONES, MAX_STORIES, MAX_TASKS,
   MAX_BACKLOG_ITEMS, MAX_TECH_DEBT_ITEMS, MAX_ADRS, MAX_RETROSPECTIVES,
 } = require("./constants.js");
+const { loadProjectIdentity, saveProjectIdentity, buildIdentitySummary } = require("./project-identity.js");
 
 const PROJECT_PATH = path.join(__dirname, "..", "state", "orchestra-project.json");
 
@@ -26,6 +27,14 @@ const DEFAULT_PROJECT_STATE = {
     averageVelocity: 0,
     sprintCount: 0,
   },
+  identity: {
+    name: "",
+    slug: "",
+    displayName: "",
+    type: "",
+    owner: "",
+    syncedAt: null,
+  },
 };
 
 function ringCap(arr, max) {
@@ -33,14 +42,37 @@ function ringCap(arr, max) {
   return arr;
 }
 
-function loadProjectState() {
+function loadProjectState(identityRootDir) {
   try {
-    if (!fs.existsSync(PROJECT_PATH)) return { ...DEFAULT_PROJECT_STATE, epics: [], milestones: [], stories: [], tasks: [], backlog: [], techDebt: [], adrs: [], retrospectives: [] };
+    if (!fs.existsSync(PROJECT_PATH)) {
+      const fresh = { ...DEFAULT_PROJECT_STATE, epics: [], milestones: [], stories: [], tasks: [], backlog: [], techDebt: [], adrs: [], retrospectives: [] };
+      if (identityRootDir) syncIdentity(fresh, identityRootDir);
+      return fresh;
+    }
     const raw = JSON.parse(fs.readFileSync(PROJECT_PATH, "utf8"));
-    return { ...DEFAULT_PROJECT_STATE, ...raw };
+    const merged = { ...DEFAULT_PROJECT_STATE, ...raw };
+    if (!merged.identity) merged.identity = { ...DEFAULT_PROJECT_STATE.identity };
+    if (identityRootDir) syncIdentity(merged, identityRootDir);
+    return merged;
   } catch {
-    return { ...DEFAULT_PROJECT_STATE };
+    const fresh = { ...DEFAULT_PROJECT_STATE };
+    if (identityRootDir) syncIdentity(fresh, identityRootDir);
+    return fresh;
   }
+}
+
+function syncIdentity(ps, identityRootDir) {
+  if (!identityRootDir) return;
+  const identity = loadProjectIdentity(identityRootDir);
+  if (!identity) return;
+
+  ps.identity.name = identity.project.name || ps.identity.name;
+  ps.identity.slug = identity.project.slug || ps.identity.slug;
+  ps.identity.displayName = identity.project.display_name || ps.identity.displayName;
+  ps.identity.type = identity.project.type || ps.identity.type;
+  ps.identity.owner = identity.project.owner || ps.identity.owner;
+  ps.identity.syncedAt = new Date().toISOString();
+  ps.vision = identity.project.description || ps.vision;
 }
 
 function saveProjectState(ps) {
@@ -293,6 +325,7 @@ module.exports = {
   loadProjectState,
   saveProjectState,
   generateId,
+  syncIdentity,
   addEpic, addMilestone, addStory, addTask,
   addBacklogItem, addTechDebt, addAdr, addRetrospective,
   updateTaskStatus, updateStoryStatus, updateMilestoneStatus, updateEpicStatus,

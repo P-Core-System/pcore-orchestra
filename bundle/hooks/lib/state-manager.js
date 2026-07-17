@@ -27,14 +27,24 @@ const DEFAULT_STATE = {
   auto_started: null,
 
   // V3: Project management
+  // V3.1: Extended with project identity fields
   project: {
     name: "",
+    slug: "",
+    displayName: "",
     vision: "",
+    type: "software",
+    category: "",
+    owner: "",
     version: INITIAL_VERSION,
     buildNumber: INITIAL_BUILD,
     releaseChannel: "development",
     repository: "",
     defaultBranch: "main",
+    lifecycleStage: "idea",
+    lifecycleStatus: "active",
+    identityFile: null,
+    identityFormat: null,
   },
 
   // V3: Version management
@@ -120,6 +130,10 @@ function loadState() {
     if (!merged.memory) merged.memory = { ...DEFAULT_STATE.memory };
     if (!merged.resumable) merged.resumable = { ...DEFAULT_STATE.resumable };
     if (!merged.project) merged.project = { ...DEFAULT_STATE.project };
+    if (!merged.project.slug) merged.project.slug = merged.project.name || "";
+    if (!merged.project.type) merged.project.type = "software";
+    if (!merged.project.lifecycleStage) merged.project.lifecycleStage = "development";
+    if (!merged.project.lifecycleStatus) merged.project.lifecycleStatus = "active";
     if (!merged.versioning) merged.versioning = { ...DEFAULT_STATE.versioning };
     if (!merged.qualityGates) merged.qualityGates = { ...DEFAULT_STATE.qualityGates };
     return merged;
@@ -160,6 +174,47 @@ function startOrchestra(goal, state, source) {
   saveState(state);
 }
 
+function syncProjectIdentity(state, identity) {
+  if (!identity) return;
+
+  state.project.name = identity.project.name || state.project.name;
+  state.project.slug = identity.project.slug || identity.project.name || state.project.slug;
+  state.project.displayName = identity.project.display_name || state.project.displayName;
+  state.project.type = identity.project.type || state.project.type;
+  state.project.category = identity.project.category || state.project.category;
+  state.project.owner = identity.project.owner || state.project.owner;
+  state.project.version = identity.version.current || state.project.version;
+  state.project.buildNumber = identity.version.build_number || state.project.buildNumber;
+  state.project.releaseChannel = identity.version.channel || state.project.releaseChannel;
+  state.project.lifecycleStage = identity.lifecycle.stage || state.project.lifecycleStage;
+  state.project.lifecycleStatus = identity.lifecycle.status || state.project.lifecycleStatus;
+
+  state.versioning.current = identity.version.current || state.versioning.current;
+  state.versioning.buildNumber = identity.version.build_number || state.versioning.buildNumber;
+
+  saveState(state);
+}
+
+function syncIdentityToFile(state, identity, rootDir) {
+  if (!identity || !rootDir) return;
+  const { PROJECT_YAML_NAME, PROJECT_JSON_NAME } = require("./constants.js");
+  const fs = require("node:fs");
+  const path = require("node:path");
+
+  const yamlPath = path.join(rootDir, PROJECT_YAML_NAME);
+  const jsonPath = path.join(rootDir, PROJECT_JSON_NAME);
+
+  if (fs.existsSync(yamlPath)) {
+    state.project.identityFile = yamlPath;
+    state.project.identityFormat = "yaml";
+  } else if (fs.existsSync(jsonPath)) {
+    state.project.identityFile = jsonPath;
+    state.project.identityFormat = "json";
+  }
+
+  saveState(state);
+}
+
 function resetProjectState(state) {
   state.project = { ...DEFAULT_STATE.project };
   state.versioning = { ...DEFAULT_STATE.versioning };
@@ -171,5 +226,7 @@ module.exports = {
   loadState,
   saveState,
   startOrchestra,
+  syncProjectIdentity,
+  syncIdentityToFile,
   resetProjectState,
 };

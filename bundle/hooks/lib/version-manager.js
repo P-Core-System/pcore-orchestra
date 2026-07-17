@@ -3,6 +3,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { INITIAL_VERSION, INITIAL_BUILD, MAX_RELEASES, MAX_CHANGELOG_ENTRIES } = require("./constants.js");
+const { loadProjectIdentity, saveProjectIdentity, recordVersionBump } = require("./project-identity.js");
 
 const VERSION_PATH = path.join(__dirname, "..", "state", "orchestra-version.json");
 
@@ -81,7 +82,7 @@ function determineBumpType(changeTypes) {
   return "patch";
 }
 
-function bumpProjectVersion(state, changeTypes) {
+function bumpProjectVersion(state, changeTypes, identityRootDir) {
   const vs = loadVersionState();
   const previous = vs.current;
   const bumpType = determineBumpType(changeTypes || []);
@@ -109,7 +110,22 @@ function bumpProjectVersion(state, changeTypes) {
   state.versioning.releaseDate = vs.releaseDate;
 
   saveVersionState(vs);
+
+  // Sync version bump back to project.yaml if identity root provided
+  if (identityRootDir) {
+    const identity = loadProjectIdentity(identityRootDir);
+    if (identity) {
+      const description = changeTypes ? changeTypes.join(", ") : "";
+      recordVersionBump(identity, { previous, current: newVersion, bumpType, buildNumber, changeTypes, description });
+      saveProjectIdentity(identityRootDir, identity);
+    }
+  }
+
   return { previous, current: newVersion, buildNumber, bumpType };
+}
+
+function setProjectIdentityRoot(rootDir) {
+  IDENTITY_ROOT = rootDir;
 }
 
 function addChangelogEntry(state, entry) {
@@ -132,8 +148,17 @@ function addChangelogEntry(state, entry) {
   return changelogEntry;
 }
 
-function recordRelease(state) {
+function recordRelease(state, identityRootDir) {
   const vs = loadVersionState();
+
+  // Sync identity version history
+  if (identityRootDir) {
+    const identity = loadProjectIdentity(identityRootDir);
+    if (identity) {
+      saveProjectIdentity(identityRootDir, identity);
+    }
+  }
+
   const release = {
     version: state.versioning.current,
     buildNumber: state.versioning.buildNumber,
@@ -218,6 +243,8 @@ function generateReleaseNotes(state) {
   return notes;
 }
 
+let IDENTITY_ROOT = null;
+
 module.exports = {
   VERSION_PATH,
   DEFAULT_VERSION_STATE,
@@ -232,4 +259,5 @@ module.exports = {
   generateChangelogMd,
   generateReleaseNotes,
   RELEASE_THEMES,
+  setProjectIdentityRoot,
 };

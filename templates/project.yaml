@@ -45,15 +45,15 @@ repository:
 
 stack:
   languages:
-    - <language>         # e.g. typescript, python, go, rust, php, kotlin
+    - <language>         # e.g. typescript, javascript, python, go, rust, php, kotlin, swift, csharp, zig
   frameworks:
-    - <framework>        # e.g. react, nextjs, django, laravel, spring, vue
+    - <framework>        # e.g. react, nextjs, hono, express, fastify, nestjs, django, laravel, spring, vue, svelte, astro, nuxt, tauri
   databases:
     - <database>         # e.g. postgresql, mysql, sqlite, mongodb, redis
   infrastructure:
     - <infra>            # e.g. cloudflare, aws, gcp, azure, docker, k8s
-  package_manager: npm   # npm | pip | cargo | composer | go-mod | yarn | pnpm
-  runtime: node          # node | python | go | rust | php | bun | deno
+  package_manager: pnpm  # pnpm | npm | yarn | bun | pip | cargo | composer | go-mod
+  runtime: node          # node | bun | deno | python | go | rust | php
 
 environments:
   development:
@@ -126,10 +126,16 @@ disaster_recovery:
 # P-Core managed fields (updated by orchestra)
 # ──────────────────────────────────────────────
 _pcore:
-  version: 1
+  version: 2
   initialized: <YYYY-MM-DDTHH:MM:SSZ>
   last_orchestration: null
   orchestration_count: 0
   quality_gate_passes: 0
   quality_gate_failures: 0
   agent_invocations: {}
+
+  # Version history — every bump recorded here
+  version_history: []
+
+  # Lifecycle transitions — every stage change recorded here
+  lifecycle_transitions: []

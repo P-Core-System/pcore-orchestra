@@ -35,6 +35,7 @@
 | `bundle/hooks/lib/self-improvement.js` | Retrospectives, tech debt, ADR |
 | `bundle/hooks/lib/devops.js` | Git, CI/CD, Docker, IaC templates |
 | `bundle/hooks/lib/security-scanner.js` | Security checks, gates, scanning |
+| `bundle/hooks/lib/project-identity.js` | Project YAML/JSON read, validate, merge, summary |
 | `bundle/hooks/lib/changelog.js` | Changelog generation engine |
 | `bundle/agents/` | Subagent prompts (divided by phase category) |
 | `bundle/agents/01-idea/` | Idea → Analysis agents |
@@ -65,6 +66,7 @@
 | Installed bundle | `~/.cursor/hooks`, `agents`, `skills`, `rules` | Copied from `bundle/` on install |
 | Target project context | `<project>/context/*.md` | Created by `init-context` or manually |
 | Target entry point | `<project>/AGENTS.md` | Points agents to six files |
+| Project identity | `<project>/project.yaml` | Universal project identity, version, lifecycle, team, stack, environments |
 
 ## Auth and access
 
@@ -149,6 +151,64 @@ Automatic semantic versioning:
 Build number auto-increments. Format: `MAJOR.MINOR.PATCH+BUILD` (e.g., `1.4.2+106`).
 
 Release names follow theme-based naming (e.g., 1.0.0 "Genesis", 2.0.0 "Evolution").
+
+## Universal Project Identity System (V3.1)
+
+Every managed project declares its identity in `project.yaml` (or `project.json` as fallback) at the project root.
+
+### Schema Categories
+
+| Section | Fields | Managed By |
+|---------|--------|------------|
+| `project` | name, slug, display_name, type, category, owner, description | Developer |
+| `version` | current, channel, release_name, build_number | Orchestra (auto-bump) |
+| `lifecycle` | stage, status, started, updated | Orchestra (stage transitions) |
+| `team` | lead, members (name, role, contact) | Developer |
+| `repository` | url, branch, provider, visibility | Developer |
+| `stack` | languages, frameworks, databases, infrastructure, package_manager, runtime | Developer |
+| `environments` | development, staging, production (url, branch, auto_deploy) | Developer |
+| `integrations` | ci_cd, monitoring, analytics, error_tracking, logs | Developer |
+| `ai` | assistant, context_dir, entry_point, rules | Orchestra |
+| `infrastructure` | cloud, regions, dns, cdn | Developer |
+| `security` | authentication, authorization, audit_log, secrets_manager | Developer |
+| `compliance` | standards, data_region | Developer |
+| `observability` | health_endpoint, metrics, tracing, alerting | Developer |
+| `backup` | strategy, retention_days, schedule | Developer |
+| `disaster_recovery` | rpo_minutes, rto_minutes, plan | Developer |
+| `_pcore` | version, initialized, last_orchestration, orchestration_count | Orchestra (auto) |
+
+### Library Module
+
+`bundle/hooks/lib/project-identity.js` provides:
+
+- `loadProjectIdentity(rootDir)` — reads `project.yaml` (YAML) or `project.json` (JSON), merges with defaults
+- `validateProjectIdentity(identity)` — validates required fields, warns on non-standard values
+- `identityToState(identity)` — maps identity fields to orchestra state format
+- `buildIdentitySummary(identity)` — human-readable summary for context injection
+- `findProjectIdentity(rootDir)` — finds identity file in project root
+
+### Context Detection Integration
+
+The context detector now checks for `project.yaml` alongside six-file context:
+
+- `detectProjectYamlInWorkspaces(input)` — finds project.yaml in workspace roots
+- `buildProjectYamlInjection(projectIdentity)` — builds context injection string
+- `detectFullWorkspaceContext(input)` — detects both six-file and project identity
+
+### Project Type Taxonomy
+
+The system supports 12 project types: web, mobile, api, ai, devops, library, saas, internal-tool, oss, cli, game, data.
+
+### Bootstrap
+
+```bash
+# Bash
+bash scripts/init-project.sh /path/to/project
+bash scripts/init-project.sh /path/to/project --type api --name "Auth Service"
+
+# PowerShell
+powershell -File scripts/init-project.ps1 -Target . -Type web -Name "My App"
+```
 
 ## Agent Team Structure
 

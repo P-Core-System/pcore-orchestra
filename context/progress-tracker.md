@@ -12,7 +12,7 @@ Update this file after every meaningful implementation change.
 
 ## Completed
 
-- Standalone repo (pcore-orchestra)
+- Standalone repo (pcore-orchestra) — renamed from pcore-agents on GitHub, all references updated
 - Six-File Context templates + `init-context` scripts
 - Hook/agent enhancements for context injection
 - Global `~/.cursor/` install refreshed on dev machine
@@ -43,22 +43,22 @@ Update this file after every meaningful implementation change.
 - **Agent personalities**: 27 agents now have human names, team assignments, Slack handles, mottos, coffee orders, spirit animals, personality quirks, strengths/weaknesses, deploy guidance, and teammate feedback quotes
 - **Project management**: epics, milestones, stories, tasks, backlog, velocity tracking, burndown, ADRs, tech debt
 - **14 quality gates**: build, tests, coverage, lint, security, reviewer-approval, docs-updated, version-updated, changelog-updated, roadmap-updated, memory-updated, daily-journal-updated, release-notes-updated, tech-debt-recorded
-
-## In Progress
-
-- Enterprise transformation documentation — architecture.md updated, health check updated, hooks.json updated
+- **Architecture template library** expanded to 20 templates (10 original + 10 new): Microservices, Event-Driven, Clean, Hexagonal, CQRS, Micro Frontends, Serverless, GraphQL, N-Tier, Event Sourcing. Each with TypeScript support, `project.yaml` integration blocks, ASCII diagrams, and best practices. Type-to-architecture defaults updated.
+- **`templates/context/project-setup.md`** — reusable onboarding guide with version/lifecycle management, daily workflow, and context maintenance. Copied by `init-context.sh/ps1` alongside six context files. Added to `templates/AGENTS.md` read order at position 1.
+- **`scripts/init-project.sh/ps1`** — rewritten with full interactive guided setup (11-step interview). Prompts for project info, goals, features, stack, architecture, team, security, deployment, observability, and timeline. Auto-fills context files, seeds `project.yaml`, version (0.1.0/dev), daily plan, and progress tracker. Falls back to silent flag-based mode when given `--type`/`--name`/`--arch`.
 
 ## Next Up
 
-1. Run `node bundle/hooks/orchestra-health.js` to verify all systems
-2. Install via `bash install.sh` to propagate enterprise agents to `~/.cursor/`
-3. Create OpenCode mirror agents for all 27 enterprise agents
-4. Add `context/specs/` template (methodology Part 3 — unit spec files)
-5. Consider adding RAG capabilities or guidance for codebase indexing
+1. Install via `bash install.sh` to propagate enterprise agents to `~/.cursor/`
+2. Create OpenCode mirror agents for all 27 enterprise agents
+3. Add `context/specs/` template (methodology Part 3 — unit spec files)
+4. Consider adding RAG capabilities or guidance for codebase indexing
+5. Integrate `project.yaml` lifecycle transitions into phase engine
 
 ## Open Questions
 
 - Whether to add `context/specs/` template for unit spec files (methodology Part 3)
+- Should `project.yaml` become `project.json` to avoid YAML parsing complexity?
 
 ## Architecture Decisions
 
@@ -72,3 +72,5 @@ Update this file after every meaningful implementation change.
 - Security scanner uses regex pattern matching — designed for CI integration, not real-time scanning
 - Daily planner integrates with project manager for metrics and velocity tracking
 - Self-improvement module cross-references quality gates, tech debt, daily blockers, and SLOs for suggestions
+- **V3.1 — Universal Project Identity System**: `project.yaml` at project root declares project identity, version, lifecycle, team, stack, environments, integrations, infrastructure, security, compliance, observability, backup, DR, and P-Core managed fields. A lightweight inline YAML parser in `project-identity.js` reads it without external dependencies. Falls back to `project.json` if YAML parsing fails. Integrated into context detection and health check.
+- **Architecture Template Library**: 21 architecture reference templates (`templates/architectures/01-*.md` through `21-*.md`) covering: monorepo, API security, API gateway, React frontend, full-stack, SOA, REST API, relational database (x2), zero trust, microservices, event-driven, clean, hexagonal, CQRS, micro frontends, serverless, GraphQL, N-tier, event sourcing, Next.js+Hono+Prisma+React Query+shadcn/ui. Each includes `project.yaml` type mapping, stack hints, ASCII diagrams, and best practices. `init-project.sh --arch` and `init-project.ps1 -Arch` auto-scaffold the matching template to `docs/architecture/`. Type-to-architecture mapping and `suggestArchitectureTemplate()` in `project-identity.js` for programmatic access. TypeScript added as primary language across all 20 templates.
