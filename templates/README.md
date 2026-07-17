@@ -12,6 +12,9 @@ Do not edit these for project-specific content — fill copies in the target rep
 | `context/ui-context.md` | Design tokens, components |
 | `context/ai-workflow-rules.md` | Agent behavior rules |
 | `context/progress-tracker.md` | Phase, completed, next steps |
+| `project-setup.md` | Onboarding guide — version/lifecycle management, daily workflow, context maintenance |
 | `AGENTS.md` | Entry point — read order for coding agents |
 
 See the methodology README in your download for AI prompts to generate each file's content.
+
+For `project.yaml`, architecture templates, and project identity scaffolding, use `scripts/init-project.sh`.

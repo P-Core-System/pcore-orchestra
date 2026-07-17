@@ -38,7 +38,7 @@ copy_if_missing() {
   echo "    wrote: $dest"
 }
 
-for f in project-overview.md architecture.md code-standards.md ai-workflow-rules.md ui-context.md progress-tracker.md; do
+for f in project-overview.md architecture.md code-standards.md ai-workflow-rules.md ui-context.md progress-tracker.md project-setup.md; do
   copy_if_missing "$TEMPLATES/context/$f" "$CTX/$f"
 done
 

@@ -36,6 +36,11 @@ const MAX_METRICS_POINTS = 1000;
 const MAX_SLOS = 20;
 const MAX_INCIDENTS = 200;
 
+// --- Project identity ---
+const PROJECT_YAML_NAME = "project.yaml";
+const PROJECT_JSON_NAME = "project.json";
+const PROJECT_IDENTITY_VERSION = 1;
+
 // --- Semver ---
 const SEMVER_MAJOR = "major";
 const SEMVER_MINOR = "minor";
@@ -122,6 +127,9 @@ module.exports = {
   MAX_METRICS_POINTS,
   MAX_SLOS,
   MAX_INCIDENTS,
+  PROJECT_YAML_NAME,
+  PROJECT_JSON_NAME,
+  PROJECT_IDENTITY_VERSION,
   SEMVER_MAJOR,
   SEMVER_MINOR,
   SEMVER_PATCH,

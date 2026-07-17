@@ -6,6 +6,7 @@ const path = require("node:path");
 const MEMORY_PATH = path.join(__dirname, "state", "orchestra-memory.json");
 const { loadState } = require("./lib/state-manager.js");
 const { classifyPrompt } = require("./lib/prompt-classifier.js");
+const { loadProjectIdentity, validateProjectIdentity, findProjectIdentity } = require("./lib/project-identity.js");
 
 const HOOKS_DIR = __dirname;
 const ROOT = path.join(HOOKS_DIR, "..");
@@ -30,6 +31,7 @@ const LIBS = [
   "context-detector.js", "version-manager.js", "project-manager.js",
   "daily-planner.js", "quality-gate.js", "observability.js",
   "self-improvement.js", "devops.js", "security-scanner.js",
+  "project-identity.js",
 ];
 
 const AGENT_NAMES = [
@@ -200,6 +202,36 @@ function checkProjectFiles() {
   }
 }
 
+function checkProjectIdentityTemplate() {
+  console.log("\n=== Project Identity System ===");
+  const templateDir = path.join(ROOT, "..", "templates");
+  const templateYaml = path.join(templateDir, "project.yaml");
+  const templateExists = fs.existsSync(templateYaml);
+  console.log(templateExists ? "OK  " : "MISS ", "templates/project.yaml");
+  if (!templateExists) { ok = false; return; }
+
+  try {
+    const identity = loadProjectIdentity(templateDir);
+    if (identity) {
+      const validation = validateProjectIdentity(identity);
+      console.log("    project.identity: loaded OK");
+      if (validation.errors.length > 0) {
+        console.log("    validation errors:", validation.errors.join("; "));
+      }
+      if (validation.warnings.length > 0) {
+        console.log("    validation warnings:", validation.warnings.join("; "));
+      }
+      console.log(`    project.identity.lib: project-identity.js`);
+    } else {
+      console.log("    project.identity: FAILED to load");
+      ok = false;
+    }
+  } catch (e) {
+    console.log("    project.identity: ERROR", e.message);
+    ok = false;
+  }
+}
+
 checkScripts();
 checkLibs();
 checkHooksJson();
@@ -208,6 +240,7 @@ checkMemory();
 checkClassification();
 checkAgents();
 checkProjectFiles();
+checkProjectIdentityTemplate();
 
 console.log(ok ? "\nAll checks passed." : "\nSome checks failed — review output above.");
 process.exit(ok ? 0 : 1);

@@ -45,6 +45,35 @@ Orchestra auto-runs: **planner → implementer → verifier → reviewer**.
 
 ---
 
+## Interactive Project Init
+
+Create a new project with full P-Core Orchestra context — including version tracking, daily plans, tasks, and team setup — via a guided interview:
+
+```bash
+# Interactive guided setup (recommended for new projects)
+bash scripts/init-project.sh
+bash scripts/init-project.sh /path/to/project
+
+# Silent mode (flags only)
+bash scripts/init-project.sh /path/to/project --type web --name "Auth Service" --arch 04-frontend-react
+
+# PowerShell
+powershell -File scripts/init-project.ps1
+powershell -File scripts/init-project.ps1 -Target . -Type web -Name "My App"
+```
+
+The interactive mode walks through **11 steps**: project basics, description & goals, features & scope, team, technology stack, architecture, environments, security, deployment, observability, and timeline. It auto-fills all context files, seeds `project.yaml`, creates a daily plan, and initializes version tracking (0.1.0/dev).
+
+## Universal Project Identity System
+
+Every project declares its identity in `project.yaml` at the project root. This file captures the full software engineering context — from lifecycle stage and version to team, stack, infrastructure, security, and compliance.
+
+**What `project.yaml` covers:** project metadata, semantic versioning, lifecycle stage (idea→production→sunset), team roles, repository config, technology stack, environments (dev/staging/prod), integrations (CI/CD, monitoring, analytics), AI assistant config, infrastructure, security/auth, compliance, observability, backup/DR, and P-Core managed fields.
+
+Orchestra auto-detects `project.yaml` in any workspace and injects its identity into agent context.
+
+---
+
 ## What You Get
 
 | Feature | Description |
@@ -138,11 +167,12 @@ your-project/
 ## Setup Your Project
 
 ```bash
-# Bootstrap context files
-bash scripts/init-context.sh /path/to/your-app
+# Full interactive guided setup (recommended)
+bash scripts/init-project.sh /path/to/your-app
 
-# With project bridge (for cloud agents)
-bash scripts/init-context.sh /path/to/your-app --bridge
+# Quick context files only
+bash scripts/init-context.sh /path/to/your-app
+bash scripts/init-context.sh /path/to/your-app --bridge   # with project bridge
 ```
 
 ---
@@ -222,11 +252,10 @@ bash scripts/setup-opencode-proxy.sh --multi-key  # rotation guide
 
 | Doc | Purpose |
 |-----|---------|
-| [setup-guide.md](docs/setup-guide.md) | Complete setup guide for new machines and projects |
-| [audit-smart-swot.md](docs/audit-smart-swot.md) | SMART & SWOT analysis with gap recommendations |
-| [orchestration-patterns.md](docs/orchestration-patterns.md) | Patterns used and rationale |
-| [bypass-strategies.md](docs/bypass-strategies.md) | Cursor BYOK + OpenCode free model reference |
-| [token-optimization.md](docs/token-optimization.md) | Token efficiency guide |
+| [01-OVERVIEW-AND-ARCHITECTURE.md](docs/01-OVERVIEW-AND-ARCHITECTURE.md) | System architecture, operator loop stack, agent design |
+| [02-FEATURES-HOOKS-COMPONENTS-AGENTS.md](docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md) | Features, hooks, components, and agent definitions |
+| [03-DATABASE-SECURITY-TESTING-LIMITATIONS.md](docs/03-DATABASE-SECURITY-TESTING-LIMITATIONS.md) | Database, security, testing, and known limitations |
+| [04-AI-CONTEXT-ONBOARDING-STATISTICS.md](docs/04-AI-CONTEXT-ONBOARDING-STATISTICS.md) | AI context onboarding, statistics, and usage guide |
 
 ---
 
@@ -271,6 +300,8 @@ rm -rf ~/.agents/skills/orchestra-loop
 | Human checkpoints | ✅ Complete |
 | Token budgets | ✅ Complete |
 | Documentation | ✅ Complete |
+| Enterprise SDLC (V3) | ✅ Complete |
+| Universal Project Identity (V3.1) | ✅ Complete |
 | Durable skills | 🔜 Planned |
 | Branch isolation | 🔜 Planned |
 | MVP mode | 🔜 Planned |
