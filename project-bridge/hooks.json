@@ -16,18 +16,23 @@
     "subagentStop": [
       {
         "command": "node .cursor/hooks/bridge.js orchestra-subagent-stop.js",
-        "matcher": "orchestra-planner|orchestra-implementer|orchestra-verifier|orchestra-reviewer",
+        "matcher": "business-analyst|product-manager|architect|tech-lead|project-manager|backend-engineer|frontend-engineer|full-stack-engineer|database-engineer|qa-engineer|automation-engineer|security-engineer|accessibility-reviewer|documentation-writer|release-manager|devops-engineer|sre|observer|code-reviewer|performance-engineer|platform-engineer|cloud-engineer|infrastructure-engineer|orchestra-planner|orchestra-implementer|orchestra-verifier|orchestra-reviewer",
         "loop_limit": 12
       },
       {
         "command": "node .cursor/hooks/bridge.js orchestra-lifecycle.js",
-        "matcher": "orchestra-planner|orchestra-implementer|orchestra-verifier|orchestra-reviewer",
+        "matcher": "business-analyst|product-manager|architect|tech-lead|project-manager|backend-engineer|frontend-engineer|full-stack-engineer|database-engineer|qa-engineer|automation-engineer|security-engineer|accessibility-reviewer|documentation-writer|release-manager|devops-engineer|sre|observer|code-reviewer|performance-engineer|platform-engineer|cloud-engineer|infrastructure-engineer|orchestra-planner|orchestra-implementer|orchestra-verifier|orchestra-reviewer",
         "loop_limit": 12
       },
       {
         "command": "node .cursor/hooks/bridge.js orchestra-memory.js",
         "matcher": "orchestra-planner|orchestra-implementer|orchestra-verifier|orchestra-reviewer",
         "loop_limit": 12
+      },
+      {
+        "command": "node .cursor/hooks/bridge.js orchestra-quality-gate.js",
+        "matcher": "orchestra-reviewer|code-reviewer|release-manager",
+        "loop_limit": 5
       }
     ],
     "stop": [

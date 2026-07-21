@@ -1,5 +1,8 @@
 "use strict";
 
+const fs = require("node:fs");
+const path = require("node:path");
+
 const SECRET_PATTERNS = [
   { pattern: /(?:api[_-]?key|api[_-]?secret|access[_-]?token|secret[_-]?key)["']?\s*[:=]\s*["']([^"']{8,})["']/i, severity: "critical", label: "Hardcoded API key/secret" },
   { pattern: /(?:password|passwd|pwd)["']?\s*[:=]\s*["']([^"']{6,})["']/i, severity: "critical", label: "Hardcoded password" },
@@ -118,7 +121,6 @@ function scanDirectory(dirPath, fileExtensions) {
     } catch {}
   }
 
-  const fs = require("fs");
   function walk(dir) {
     try {
       const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -130,7 +132,9 @@ function scanDirectory(dirPath, fileExtensions) {
           scanFile(full);
         }
       }
-    } catch {}
+    } catch {
+      /* skip unreadable dirs */
+    }
   }
 
   walk(dirPath);

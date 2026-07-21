@@ -7,10 +7,11 @@ Cursor Orchestra is a portable, ambient multi-agent workflow for Cursor IDE. It 
 ## Goals
 
 1. Auto-run plan → implement → verify → review on implementation prompts (ambient mode ON by default).
-2. Install globally to `~/.cursor/` from one repo, usable on any machine (Windows, macOS, Linux).
-3. Bootstrap six-file `context/` + `AGENTS.md` in any project via `scripts/init-context.sh`.
-4. Inject project context into hooks when `context/` exists in the open workspace.
-5. Stay opt-out friendly: `no orchestra`, `disable orchestra`, `/orchestra stop`.
+2. Adaptive routing: default **core** 4-phase loop; **enterprise** SDLC for `/enterprise` or high-complexity signals; short/informal goals still start **core** with planner context inference (no clarify block).
+3. Install globally to `~/.cursor/` from one repo, usable on any machine (Windows, macOS, Linux).
+4. Bootstrap six-file `context/` + `AGENTS.md` in any project via `scripts/init-context.sh`.
+5. Inject project context into hooks when `context/` exists in the open workspace.
+6. Stay opt-out friendly: `no orchestra`, `disable orchestra`, `/orchestra stop`.
 
 ## Core User Flow
 

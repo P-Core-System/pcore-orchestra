@@ -7,7 +7,10 @@ const {
   DEFAULT_HEARTBEAT_INTERVAL_MS,
   INITIAL_VERSION,
   INITIAL_BUILD,
+  LOOP_MODE_CORE,
+  LOOP_MODE_ENTERPRISE,
 } = require("./constants.js");
+const { normalizeLoopMode, getPhaseCategory, getPhaseIdsForMode } = require("./phase-engine.js");
 
 const STATE_PATH = path.join(__dirname, "..", "state", "orchestra.json");
 
@@ -16,6 +19,7 @@ const DEFAULT_STATE = {
   ambient: true,
   active: false,
   goal: "",
+  loopMode: LOOP_MODE_CORE,
   currentPhase: "idle",
   currentPhaseIndex: -1,
   phaseCategory: null,
@@ -25,9 +29,8 @@ const DEFAULT_STATE = {
   max_iterations: 8,
   last_prompt: null,
   auto_started: null,
+  intake: null,
 
-  // V3: Project management
-  // V3.1: Extended with project identity fields
   project: {
     name: "",
     slug: "",
@@ -47,7 +50,6 @@ const DEFAULT_STATE = {
     identityFormat: null,
   },
 
-  // V3: Version management
   versioning: {
     current: INITIAL_VERSION,
     buildNumber: INITIAL_BUILD,
@@ -62,7 +64,6 @@ const DEFAULT_STATE = {
     migrationNotes: [],
   },
 
-  // V3: Quality gates
   qualityGates: {
     passed: [],
     failed: [],
@@ -70,7 +71,6 @@ const DEFAULT_STATE = {
     allRequiredPassed: false,
   },
 
-  // Core lifecycle
   lifecycle: { events: [], phase_history: [] },
   heartbeat: {
     last_beat: null,
@@ -117,6 +117,27 @@ function deepMerge(target, source) {
   return result;
 }
 
+/** Migrate legacy `phase` → `currentPhase` and keep alias in sync for old readers. */
+function normalizePhaseFields(state) {
+  if (!state.currentPhase && state.phase) {
+    state.currentPhase = state.phase;
+  }
+  if (!state.currentPhase) state.currentPhase = "idle";
+
+  // Legacy V2 aliases used plan/implement/verify/review — already valid core ids
+  const legacyMap = {
+    planning: "plan",
+    implementation: state.loopMode === LOOP_MODE_ENTERPRISE ? "implementation" : "implement",
+  };
+  if (legacyMap[state.currentPhase]) {
+    state.currentPhase = legacyMap[state.currentPhase];
+  }
+
+  state.loopMode = normalizeLoopMode(state.loopMode || LOOP_MODE_CORE);
+  state.phase = state.currentPhase; // dual-write for any leftover readers
+  return state;
+}
+
 function loadState() {
   try {
     if (!fs.existsSync(STATE_PATH)) return { ...DEFAULT_STATE, ...cloneDefaults() };
@@ -136,30 +157,50 @@ function loadState() {
     if (!merged.project.lifecycleStatus) merged.project.lifecycleStatus = "active";
     if (!merged.versioning) merged.versioning = { ...DEFAULT_STATE.versioning };
     if (!merged.qualityGates) merged.qualityGates = { ...DEFAULT_STATE.qualityGates };
-    return merged;
+    return normalizePhaseFields(merged);
   } catch {
     return { ...DEFAULT_STATE, ...cloneDefaults() };
   }
 }
 
 function saveState(state) {
+  normalizePhaseFields(state);
   fs.mkdirSync(path.dirname(STATE_PATH), { recursive: true });
   fs.writeFileSync(STATE_PATH, JSON.stringify(state, null, 2));
 }
 
-function startOrchestra(goal, state, source) {
+/**
+ * @param {string} goal
+ * @param {object} state
+ * @param {string} source
+ * @param {{ route?: string, intake?: object }} [options]
+ */
+function startOrchestra(goal, state, source, options) {
   const { emitLifecycleEvent } = require("./lifecycle-recorder.js");
+  const route = normalizeLoopMode(options?.route || LOOP_MODE_CORE);
+  const startPhase = route === LOOP_MODE_ENTERPRISE ? "idea" : "plan";
+  const ids = getPhaseIdsForMode(route);
 
   state.active = true;
   state.goal = goal;
-  state.currentPhase = "idea";
-  state.currentPhaseIndex = 0;
-  state.phaseCategory = "discovery";
+  state.loopMode = route;
+  state.currentPhase = startPhase;
+  state.currentPhaseIndex = ids.indexOf(startPhase);
+  state.phaseCategory = getPhaseCategory(startPhase);
+  state.phase = startPhase;
   state.started_at = new Date().toISOString();
   state.last_subagent = null;
   state.iteration = 0;
   state.last_prompt = goal;
   state.auto_started = source || "ambient";
+  state.intake = options?.intake || {
+    goal,
+    route,
+    plannerFirst: true,
+    firstAgent: "orchestra-planner",
+  };
+  state.max_iterations =
+    route === LOOP_MODE_ENTERPRISE ? Math.max(state.max_iterations || 8, 16) : 8;
   state.lifecycle = { events: [], phase_history: [] };
   state.heartbeat.last_beat = new Date().toISOString();
   state.heartbeat.phase_started_at = new Date().toISOString();
@@ -170,7 +211,11 @@ function startOrchestra(goal, state, source) {
     paused: false, paused_at: null, pause_reason: null, checkpoint: null, last_save: null,
   };
   state.qualityGates = { passed: [], failed: [], skipped: [], allRequiredPassed: false };
-  emitLifecycleEvent(state, "orchestra_start", "idea", { goal, source });
+  emitLifecycleEvent(state, "orchestra_start", startPhase, {
+    goal,
+    source,
+    loopMode: route,
+  });
   saveState(state);
 }
 
@@ -198,8 +243,6 @@ function syncProjectIdentity(state, identity) {
 function syncIdentityToFile(state, identity, rootDir) {
   if (!identity || !rootDir) return;
   const { PROJECT_YAML_NAME, PROJECT_JSON_NAME } = require("./constants.js");
-  const fs = require("node:fs");
-  const path = require("node:path");
 
   const yamlPath = path.join(rootDir, PROJECT_YAML_NAME);
   const jsonPath = path.join(rootDir, PROJECT_JSON_NAME);
@@ -226,6 +269,7 @@ module.exports = {
   loadState,
   saveState,
   startOrchestra,
+  normalizePhaseFields,
   syncProjectIdentity,
   syncIdentityToFile,
   resetProjectState,

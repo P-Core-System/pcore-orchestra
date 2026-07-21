@@ -73,6 +73,7 @@ function Install-Cursor {
   $skillDirs = Get-ChildItem -Path (Join-Path $Bundle "skills") -Directory
   foreach ($skillDir in $skillDirs) {
     $destDir = Join-Path (Join-Path $CursorDir "skills") $skillDir.Name
+    if (Test-Path $destDir) { Remove-Item $destDir -Recurse -Force }
     $null = robocopy $skillDir.FullName $destDir /E /NDL /NJH /NJS /NP
   }
 
@@ -82,14 +83,22 @@ function Install-Cursor {
     $scDirs = Get-ChildItem -Path $scBundle -Directory
     foreach ($scDir in $scDirs) {
       $destDir = Join-Path (Join-Path $CursorDir "skills-cursor") $scDir.Name
+      if (Test-Path $destDir) { Remove-Item $destDir -Recurse -Force }
       $null = robocopy $scDir.FullName $destDir /E /NDL /NJH /NJS /NP
     }
   }
 
   New-Item -ItemType Directory -Force -Path $AgentsSkills | Out-Null
-  $skillLink = Join-Path $AgentsSkills "orchestra-loop"
-  if (-not (Test-Path $skillLink)) {
-    Copy-Item (Join-Path $CursorDir "skills\orchestra-loop") $skillLink -Recurse -Force
+  foreach ($linkSkill in @("orchestra-loop", "prompt-intake", "verification-before-completion")) {
+    $srcSkill = Join-Path (Join-Path $CursorDir "skills") $linkSkill
+    $skillLink = Join-Path $AgentsSkills $linkSkill
+    if (Test-Path $srcSkill) {
+      if (Test-Path $skillLink) { Remove-Item $skillLink -Force -Recurse -ErrorAction SilentlyContinue }
+      New-Item -ItemType SymbolicLink -Path $skillLink -Target $srcSkill -Force -ErrorAction SilentlyContinue | Out-Null
+      if (-not (Test-Path $skillLink)) {
+        Copy-Item $srcSkill $skillLink -Recurse -Force
+      }
+    }
   }
 
   # Merge hooks.json
@@ -136,7 +145,13 @@ function Install-OpenCode {
   New-Item -ItemType Directory -Force -Path (Join-Path $OpenCodeDir "state") | Out-Null
   New-Item -ItemType Directory -Force -Path (Join-Path $OpenCodeDir "hooks") | Out-Null
 
+  New-Item -ItemType Directory -Force -Path (Join-Path $OpenCodeDir "agents") | Out-Null
   Copy-Item (Join-Path $Bundle "opencode\agents\orchestra-*.md") (Join-Path $OpenCodeDir "agents\") -Force
+  $ocAgentDirs = Get-ChildItem -Path (Join-Path $Bundle "opencode\agents") -Directory -ErrorAction SilentlyContinue
+  foreach ($agentDir in $ocAgentDirs) {
+    $destDir = Join-Path (Join-Path $OpenCodeDir "agents") $agentDir.Name
+    $null = robocopy $agentDir.FullName $destDir /E /NDL /NJH /NJS /NP
+  }
 
   # Copy all OpenCode skills (orchestra-loop + Cloudflare)
   $ocSkillDirs = Get-ChildItem -Path (Join-Path $Bundle "opencode\skills") -Directory

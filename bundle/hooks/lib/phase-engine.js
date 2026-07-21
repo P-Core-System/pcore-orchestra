@@ -1,33 +1,77 @@
 "use strict";
 
-const { SDLC_PHASES, PHASE_IDS } = require("./constants.js");
+const {
+  CORE_PHASES,
+  CORE_PHASE_IDS,
+  SDLC_PHASES,
+  PHASE_IDS,
+  LOOP_MODE_CORE,
+  LOOP_MODE_ENTERPRISE,
+} = require("./constants.js");
 
-const PHASE_MAP = {};
-for (const p of SDLC_PHASES) {
-  PHASE_MAP[p.id] = p;
+function buildPhaseChain(phases) {
+  const chain = {};
+  for (let i = 0; i < phases.length; i++) {
+    const current = phases[i];
+    const next = phases[i + 1] || null;
+    const prev = phases[i - 1] || null;
+    chain[current.id] = {
+      agent: current.agent,
+      category: current.category,
+      readonly: current.readonly,
+      index: i,
+      nextPhase: next ? next.id : "done",
+      prevPhase: prev ? prev.id : null,
+      followup: next
+        ? `${current.id} complete. Proceed to ${next.id} (${next.agent}).`
+        : null,
+    };
+  }
+  return chain;
 }
 
-const PHASE_CHAIN = {};
-for (let i = 0; i < SDLC_PHASES.length; i++) {
-  const current = SDLC_PHASES[i];
-  const next = SDLC_PHASES[i + 1] || null;
-  const prev = SDLC_PHASES[i - 1] || null;
-  PHASE_CHAIN[current.id] = {
-    agent: current.agent,
-    category: current.category,
-    readonly: current.readonly,
-    index: i,
-    nextPhase: next ? next.id : "done",
-    prevPhase: prev ? prev.id : null,
-    followup: next
-      ? `Enterprise SDLC — ${current.id} complete. Proceed to ${next.id} (${next.agent}).`
-      : null,
-  };
+function buildPhaseMap(phases) {
+  const map = {};
+  for (const p of phases) map[p.id] = p;
+  return map;
 }
+
+const CORE_PHASE_CHAIN = buildPhaseChain(CORE_PHASES);
+const ENTERPRISE_PHASE_CHAIN = buildPhaseChain(SDLC_PHASES);
+const CORE_PHASE_MAP = buildPhaseMap(CORE_PHASES);
+const ENTERPRISE_PHASE_MAP = buildPhaseMap(SDLC_PHASES);
+
+/** Union map for lookups (core + enterprise). Core wins on id collision (none today). */
+const PHASE_MAP = { ...ENTERPRISE_PHASE_MAP, ...CORE_PHASE_MAP };
+
+/** @deprecated Prefer getPhaseChain(state) — defaults to enterprise for back-compat readers */
+const PHASE_CHAIN = ENTERPRISE_PHASE_CHAIN;
 
 const PHASE_AGENT_MAP = {};
-for (const p of SDLC_PHASES) {
+for (const p of [...SDLC_PHASES, ...CORE_PHASES]) {
   PHASE_AGENT_MAP[p.id] = p.agent;
+}
+
+function normalizeLoopMode(mode) {
+  return mode === LOOP_MODE_ENTERPRISE ? LOOP_MODE_ENTERPRISE : LOOP_MODE_CORE;
+}
+
+function getPhasesForMode(mode) {
+  return normalizeLoopMode(mode) === LOOP_MODE_ENTERPRISE ? SDLC_PHASES : CORE_PHASES;
+}
+
+function getPhaseIdsForMode(mode) {
+  return normalizeLoopMode(mode) === LOOP_MODE_ENTERPRISE ? PHASE_IDS : CORE_PHASE_IDS;
+}
+
+function getPhaseChain(stateOrMode) {
+  const mode =
+    typeof stateOrMode === "string"
+      ? stateOrMode
+      : stateOrMode?.loopMode;
+  return normalizeLoopMode(mode) === LOOP_MODE_ENTERPRISE
+    ? ENTERPRISE_PHASE_CHAIN
+    : CORE_PHASE_CHAIN;
 }
 
 function getPhaseInfo(phaseId) {
@@ -38,13 +82,15 @@ function getAgentForPhase(phaseId) {
   return PHASE_AGENT_MAP[phaseId] || "orchestra-planner";
 }
 
-function getNextPhase(phaseId) {
-  const info = PHASE_CHAIN[phaseId];
+function getNextPhase(phaseId, mode) {
+  const chain = getPhaseChain(mode || LOOP_MODE_CORE);
+  const info = chain[phaseId];
   return info ? info.nextPhase : "done";
 }
 
-function getPrevPhase(phaseId) {
-  const info = PHASE_CHAIN[phaseId];
+function getPrevPhase(phaseId, mode) {
+  const chain = getPhaseChain(mode || LOOP_MODE_CORE);
+  const info = chain[phaseId];
   return info ? info.prevPhase : null;
 }
 
@@ -66,7 +112,7 @@ function isPlanningPhase(phaseId) {
 }
 
 function isExecutionPhase(phaseId) {
-  return getPhaseCategory(phaseId) === "execution";
+  return getPhaseCategory(phaseId) === "execution" || phaseId === "implement";
 }
 
 function isQualityPhase(phaseId) {
@@ -86,17 +132,25 @@ function isReadonlyPhase(phaseId) {
   return info ? info.readonly : true;
 }
 
+function getImplementPhaseId(mode) {
+  return normalizeLoopMode(mode) === LOOP_MODE_ENTERPRISE
+    ? "implementation"
+    : "implement";
+}
+
 function advancePhase(state) {
+  const mode = normalizeLoopMode(state.loopMode);
+  const ids = getPhaseIdsForMode(mode);
   const current = state.currentPhase;
-  const next = getNextPhase(current);
+  const next = getNextPhase(current, mode);
   if (next === "done") {
     state.currentPhase = "done";
-    state.currentPhaseIndex = PHASE_IDS.length;
+    state.currentPhaseIndex = ids.length;
     state.phaseCategory = null;
     return false;
   }
   state.currentPhase = next;
-  state.currentPhaseIndex = PHASE_IDS.indexOf(next);
+  state.currentPhaseIndex = ids.indexOf(next);
   state.phaseCategory = getPhaseCategory(next);
   return true;
 }
@@ -114,16 +168,27 @@ function reviewerNeedsFix(input) {
 }
 
 module.exports = {
+  CORE_PHASES,
+  CORE_PHASE_IDS,
   SDLC_PHASES,
   PHASE_IDS,
   PHASE_MAP,
   PHASE_CHAIN,
+  CORE_PHASE_CHAIN,
+  ENTERPRISE_PHASE_CHAIN,
   PHASE_AGENT_MAP,
+  LOOP_MODE_CORE,
+  LOOP_MODE_ENTERPRISE,
+  normalizeLoopMode,
+  getPhasesForMode,
+  getPhaseIdsForMode,
+  getPhaseChain,
   getPhaseInfo,
   getAgentForPhase,
   getNextPhase,
   getPrevPhase,
   getPhaseCategory,
+  getImplementPhaseId,
   isDiscoveryPhase,
   isDesignPhase,
   isPlanningPhase,

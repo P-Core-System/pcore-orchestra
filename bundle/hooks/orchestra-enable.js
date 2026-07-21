@@ -43,7 +43,7 @@ const COMMANDS = {
   stop() {
     const state = loadState();
     state.active = false;
-    state.phase = "idle";
+    state.currentPhase = "idle";
     state.goal = "";
     state.last_subagent = null;
     state.resumable = { paused: false, paused_at: null, pause_reason: null, checkpoint: null, last_save: null };
@@ -61,7 +61,7 @@ const COMMANDS = {
     const reason = arg || "manual";
     pauseOrchestra(state, reason);
     state.active = false;
-    state.phase = "paused";
+    state.currentPhase = "paused";
     saveState(state);
     console.log(`Orchestra paused (${reason}). Goal: ${state.goal}`);
     console.log("Resume with: orchestra-enable.js resume");
@@ -90,7 +90,7 @@ const COMMANDS = {
     const state = loadState();
     state.ambient = false;
     state.active = false;
-    state.phase = "idle";
+    state.currentPhase = "idle";
     saveState(state);
     console.log("Orchestra ambient mode OFF.");
     printStatus(state);

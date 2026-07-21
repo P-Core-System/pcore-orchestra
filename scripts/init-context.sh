@@ -42,6 +42,10 @@ for f in project-overview.md architecture.md code-standards.md ai-workflow-rules
   copy_if_missing "$TEMPLATES/context/$f" "$CTX/$f"
 done
 
+mkdir -p "$CTX/specs"
+copy_if_missing "$TEMPLATES/context/specs/README.md" "$CTX/specs/README.md"
+copy_if_missing "$TEMPLATES/context/specs/_unit-spec.template.md" "$CTX/specs/_unit-spec.template.md"
+
 copy_if_missing "$TEMPLATES/AGENTS.md" "$TARGET/AGENTS.md"
 
 if [[ "$BRIDGE" == true ]]; then

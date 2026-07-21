@@ -9,11 +9,12 @@ Orchestration runs **automatically** in Cursor Agent — the user does **not** n
 
 ## Default behavior (ambient ON)
 
-For prompts that **implement, fix, build, refactor, deploy, install, configure, migrate, integrate, debug, or continue** work:
+For prompts that **implement, fix, build, refactor, deploy, install, configure, migrate, integrate, debug, continue, or improve** work:
 
-1. Hooks auto-activate orchestra state (`beforeSubmitPrompt`).
-2. Run **orchestra-planner** → **orchestra-implementer** → **orchestra-verifier** → **orchestra-reviewer** via Task subagents.
-3. Hooks chain phases on `subagentStop` without user typing anything.
+1. Hooks classify the prompt (`beforeSubmitPrompt`) and pick **core** (default) or **enterprise** route.
+2. **Core:** planner → implementer → verifier → reviewer. **Enterprise:** `/enterprise` or complexity signals → SDLC specialists; still plan before code.
+3. Vague goals trigger clarify-first intake (no implement yet).
+4. Hooks chain phases on `subagentStop` without user typing anything.
 
 ## Skip orchestra (no subagent chain)
 
@@ -25,7 +26,8 @@ For prompts that **implement, fix, build, refactor, deploy, install, configure, 
 
 | User says | Action |
 |-----------|--------|
-| `/orchestra <goal>` | Force start (same as ambient) |
+| `/orchestra <goal>` | Force start (core loop) |
+| `/enterprise <goal>` | Force enterprise SDLC |
 | `/orchestra stop` | `orchestra-enable.js stop` |
 | `disable orchestra` / `orchestra off` | Ambient off |
 | `enable orchestra` / `orchestra on` | Ambient on |

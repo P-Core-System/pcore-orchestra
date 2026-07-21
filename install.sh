@@ -63,8 +63,9 @@ install_cursor() {
 
   mkdir -p "$CURSOR/hooks/state" "$CURSOR/agents" "$CURSOR/skills" "$CURSOR/skills-cursor" "$CURSOR/rules"
 
-  # Hook scripts + lib modules
+  # Hook scripts + lib modules (replace lib entirely — cp -rf into existing dir nests lib/lib/)
   cp -f "$BUNDLE/hooks/"orchestra-*.js "$CURSOR/hooks/"
+  rm -rf "$CURSOR/hooks/lib"
   cp -rf "$BUNDLE/hooks/lib" "$CURSOR/hooks/lib"
 
   # Default state (don't overwrite)
@@ -74,12 +75,20 @@ install_cursor() {
 
   # Agents, rule, docs
   cp -f "$BUNDLE/agents/"orchestra-*.md "$CURSOR/agents/"
+  # Copy enterprise agent category directories (01-idea … 10-review)
+  for agent_dir in "$BUNDLE/agents"/*/; do
+    [ -d "$agent_dir" ] || continue
+    dir_name=$(basename "$agent_dir")
+    mkdir -p "$CURSOR/agents/$dir_name"
+    cp -rf "$agent_dir"* "$CURSOR/agents/$dir_name/"
+  done
   cp -f "$BUNDLE/rules/orchestra-loop.mdc" "$CURSOR/rules/"
   cp -f "$BUNDLE/ORCHESTRA.md" "$CURSOR/ORCHESTRA.md"
 
   # Copy all Cloudflare skills (orchestra-loop + cloudflare, agents-sdk, etc.)
   for skill_dir in "$BUNDLE/skills"/*/; do
     skill_name=$(basename "$skill_dir")
+    rm -rf "$CURSOR/skills/$skill_name"
     mkdir -p "$CURSOR/skills/$skill_name"
     cp -rf "$skill_dir"* "$CURSOR/skills/$skill_name/"
   done
@@ -88,6 +97,7 @@ install_cursor() {
   if [ -d "$BUNDLE/skills-cursor" ]; then
     for skill_dir in "$BUNDLE/skills-cursor"/*/; do
       skill_name=$(basename "$skill_dir")
+      rm -rf "$CURSOR/skills-cursor/$skill_name"
       mkdir -p "$CURSOR/skills-cursor/$skill_name"
       cp -rf "$skill_dir"* "$CURSOR/skills-cursor/$skill_name/"
     done
@@ -118,17 +128,21 @@ fs.writeFileSync(destPath, JSON.stringify(dest, null, 2) + "\n");
 console.log("  Merged hooks.json ->", destPath);
 MERGE
 
-  # Link skill for external discovery
+  # Link skills for external discovery (Agent Skills compat path)
   mkdir -p "$AGENTS_SKILLS"
-  if [[ ! -e "$AGENTS_SKILLS/orchestra-loop" ]]; then
-    ln -sf "$CURSOR/skills/orchestra-loop" "$AGENTS_SKILLS/orchestra-loop" 2>/dev/null || \
-      cp -r "$CURSOR/skills/orchestra-loop" "$AGENTS_SKILLS/orchestra-loop"
-  fi
+  for link_skill in orchestra-loop prompt-intake verification-before-completion; do
+    if [[ -d "$CURSOR/skills/$link_skill" ]]; then
+      rm -rf "$AGENTS_SKILLS/$link_skill"
+      ln -sf "$CURSOR/skills/$link_skill" "$AGENTS_SKILLS/$link_skill" 2>/dev/null || \
+        cp -r "$CURSOR/skills/$link_skill" "$AGENTS_SKILLS/$link_skill"
+    fi
+  done
 
   echo "  Cursor agents:    $CURSOR/agents/orchestra-*.md"
   echo "  Cursor hooks:     $CURSOR/hooks/"
-  echo "  Cursor skills:    $CURSOR/skills/ (orchestra-loop + Cloudflare)"
+  echo "  Cursor skills:    $CURSOR/skills/ (orchestra-loop + intake/verify + Cloudflare)"
   echo "  Cursor built-in:  $CURSOR/skills-cursor/ (17 skills)"
+  echo "  Agents skills:    $AGENTS_SKILLS/{orchestra-loop,prompt-intake,verification-before-completion}"
 }
 
 ###############################################################################
@@ -139,12 +153,19 @@ install_opencode() {
 
   mkdir -p "$OPENCODE/agents" "$OPENCODE/skills" "$OPENCODE/state" "$OPENCODE/hooks"
 
-  # Copy OpenCode agents
-  cp -f "$BUNDLE/opencode/agents/"orchestra-*.md "$OPENCODE/agents/"
+  # Copy OpenCode agents (core + enterprise category dirs)
+  cp -f "$BUNDLE/opencode/agents/"orchestra-*.md "$OPENCODE/agents/" 2>/dev/null || true
+  for agent_dir in "$BUNDLE/opencode/agents"/*/; do
+    [ -d "$agent_dir" ] || continue
+    dir_name=$(basename "$agent_dir")
+    mkdir -p "$OPENCODE/agents/$dir_name"
+    cp -rf "$agent_dir"* "$OPENCODE/agents/$dir_name/"
+  done
 
   # Copy all OpenCode skills (orchestra-loop + Cloudflare)
   for skill_dir in "$BUNDLE/opencode/skills"/*/; do
     skill_name=$(basename "$skill_dir")
+    rm -rf "$OPENCODE/skills/$skill_name"
     mkdir -p "$OPENCODE/skills/$skill_name"
     cp -rf "$skill_dir"* "$OPENCODE/skills/$skill_name/"
   done
@@ -159,12 +180,16 @@ install_opencode() {
 
   # Link to external skills directory
   mkdir -p "$AGENTS_SKILLS"
-  rm -f "$AGENTS_SKILLS/orchestra-loop"
-  ln -sf "$OPENCODE/skills/orchestra-loop" "$AGENTS_SKILLS/orchestra-loop" 2>/dev/null || \
-    cp -r "$OPENCODE/skills/orchestra-loop" "$AGENTS_SKILLS/orchestra-loop"
+  for link_skill in orchestra-loop prompt-intake verification-before-completion; do
+    if [[ -d "$OPENCODE/skills/$link_skill" ]]; then
+      rm -rf "$AGENTS_SKILLS/$link_skill"
+      ln -sf "$OPENCODE/skills/$link_skill" "$AGENTS_SKILLS/$link_skill" 2>/dev/null || \
+        cp -r "$OPENCODE/skills/$link_skill" "$AGENTS_SKILLS/$link_skill"
+    fi
+  done
 
-  echo "  OpenCode agents:  $OPENCODE/agents/orchestra-*.md"
-  echo "  OpenCode skills:  $OPENCODE/skills/ (orchestra-loop + Cloudflare)"
+  echo "  OpenCode agents:  $OPENCODE/agents/ (core + enterprise)"
+  echo "  OpenCode skills:  $OPENCODE/skills/ (orchestra-loop + intake/verify + Cloudflare)"
   echo "  OpenCode state:   $OPENCODE/state/orchestra.json"
 }
 

@@ -31,7 +31,7 @@ const LIBS = [
   "context-detector.js", "version-manager.js", "project-manager.js",
   "daily-planner.js", "quality-gate.js", "observability.js",
   "self-improvement.js", "devops.js", "security-scanner.js",
-  "project-identity.js",
+  "project-identity.js", "evidence-runner.js",
 ];
 
 const AGENT_NAMES = [
@@ -232,6 +232,52 @@ function checkProjectIdentityTemplate() {
   }
 }
 
+function checkAdaptiveInstall() {
+  console.log("\n=== Adaptive loop install ===");
+  const libDir = path.join(HOOKS_DIR, "lib");
+  const nested = path.join(libDir, "lib");
+  if (fs.existsSync(nested)) {
+    console.log("FAIL nested hooks/lib/lib (stale install) — re-run install.sh");
+    ok = false;
+  } else {
+    console.log("OK  no nested hooks/lib/lib");
+  }
+  const sm = path.join(libDir, "state-manager.js");
+  try {
+    const text = fs.readFileSync(sm, "utf8");
+    const hasMode = text.includes("LOOP_MODE_CORE");
+    const startsPlan = /startPhase\s*=\s*route\s*===\s*LOOP_MODE_ENTERPRISE\s*\?\s*"idea"\s*:\s*"plan"/.test(text);
+    console.log(hasMode ? "OK  " : "FAIL", "LOOP_MODE_CORE in state-manager");
+    console.log(startsPlan ? "OK  " : "FAIL", "core starts at plan");
+    if (!hasMode || !startsPlan) ok = false;
+  } catch (e) {
+    console.log("FAIL read state-manager:", e.message);
+    ok = false;
+  }
+
+  const state = { ambient: true };
+  const vague = classifyPrompt("next improve", state);
+  const informalOk =
+    vague.activate &&
+    vague.route === "core" &&
+    !vague.clarifyNeeded &&
+    vague.inferFromContext;
+  console.log(
+    informalOk ? "OK  " : "FAIL",
+    'classify "next improve" informal_inferred=',
+    informalOk
+  );
+  if (!informalOk) ok = false;
+
+  const core = classifyPrompt("fix login bug in auth.js", state);
+  console.log(
+    core.route === "core" && core.activate ? "OK  " : "FAIL",
+    'classify fix →',
+    core.route
+  );
+  if (!(core.route === "core" && core.activate)) ok = false;
+}
+
 checkScripts();
 checkLibs();
 checkHooksJson();
@@ -241,6 +287,7 @@ checkClassification();
 checkAgents();
 checkProjectFiles();
 checkProjectIdentityTemplate();
+checkAdaptiveInstall();
 
 console.log(ok ? "\nAll checks passed." : "\nSome checks failed — review output above.");
 process.exit(ok ? 0 : 1);

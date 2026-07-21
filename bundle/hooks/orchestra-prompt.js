@@ -11,11 +11,12 @@ const {
 } = require("./lib/context-detector.js");
 const { resumeOrchestra, detectCrashRecovery } = require("./lib/checkpoint-manager.js");
 const { loadLongTermMemory, buildMemoryContext } = require("./lib/memory-manager.js");
+const { getAgentForPhase, LOOP_MODE_ENTERPRISE } = require("./lib/phase-engine.js");
 
 function handleDisable(state) {
   state.ambient = false;
   state.active = false;
-  state.phase = "idle";
+  state.currentPhase = "idle";
   saveState(state);
   emit({
     additional_context:
@@ -28,11 +29,15 @@ function handleEnable(state) {
   saveState(state);
 }
 
+function agentForCheckpointPhase(phase) {
+  return getAgentForPhase(phase) || "orchestra-planner";
+}
+
 function handleResume(state, input) {
   const crash = detectCrashRecovery(state);
   if (state.active && crash) {
     state.active = false;
-    state.phase = "idle";
+    state.currentPhase = "idle";
     state.resumable.paused = true;
     state.resumable.paused_at = new Date().toISOString();
     state.resumable.pause_reason = "crash_recovery";
@@ -43,6 +48,7 @@ function handleResume(state, input) {
         iteration: crash.iteration,
         last_subagent: state.last_subagent,
         started_at: state.started_at,
+        loopMode: state.loopMode,
         timestamp: new Date().toISOString(),
       };
     }
@@ -51,13 +57,7 @@ function handleResume(state, input) {
   if (state.resumable?.paused && state.resumable?.checkpoint) {
     const cp = resumeOrchestra(state);
     if (cp) {
-      const phaseAgent = {
-        plan: "orchestra-planner",
-        implement: "orchestra-implementer",
-        verify: "orchestra-verifier",
-        review: "orchestra-reviewer",
-      };
-      const agent = phaseAgent[cp.phase] || "orchestra-planner";
+      const agent = agentForCheckpointPhase(cp.phase);
       emit({
         additional_context: [
           AMBIENT_CONTEXT,
@@ -65,6 +65,7 @@ function handleResume(state, input) {
             ? `Orchestra recovered from crash (was stuck at ${crash.last_activity}).`
             : `Orchestra RESUMED from checkpoint (paused at ${cp.timestamp}).`,
           `Goal: ${cp.goal}`,
+          `Mode: ${state.loopMode || "core"}`,
           `Phase: ${cp.phase} (iteration ${cp.iteration}).`,
           `Launch **${agent}** subagent to continue.`,
         ].join("\n\n"),
@@ -79,18 +80,13 @@ function handleBareResume(state) {
   if (state.resumable?.paused && state.resumable?.checkpoint) {
     const cp = resumeOrchestra(state);
     if (cp) {
-      const phaseAgent = {
-        plan: "orchestra-planner",
-        implement: "orchestra-implementer",
-        verify: "orchestra-verifier",
-        review: "orchestra-reviewer",
-      };
-      const agent = phaseAgent[cp.phase] || "orchestra-planner";
+      const agent = agentForCheckpointPhase(cp.phase);
       emit({
         additional_context: [
           AMBIENT_CONTEXT,
           `Orchestra RESUMED from checkpoint (paused at ${cp.timestamp}).`,
           `Goal: ${cp.goal}`,
+          `Mode: ${state.loopMode || "core"}`,
           `Phase: ${cp.phase} (iteration ${cp.iteration}).`,
           `Launch **${agent}** subagent to continue.`,
         ].join("\n\n"),
@@ -131,7 +127,19 @@ async function main() {
     return;
   }
 
-  const { activate, reason, goal } = classifyPrompt(prompt, state);
+  const classified = classifyPrompt(prompt, state);
+  const {
+    activate,
+    reason,
+    goal,
+    route,
+    routeReason,
+    clarifyNeeded,
+    clarifyPrompt,
+    intake,
+    inferFromContext,
+    informal,
+  } = classified;
   const ctxBlock = buildContextInjection(detectContextInWorkspaces(input));
 
   if (!activate) {
@@ -146,27 +154,68 @@ async function main() {
   }
 
   if (state.active && state.goal && goal && state.goal.slice(0, 80) === goal.slice(0, 80)) {
+    const agent = getAgentForPhase(state.currentPhase);
     const parts = [
       AMBIENT_CONTEXT,
-      `Orchestra already active for this goal. Phase: ${state.phase}.`,
-      "Launch the next orchestra-* subagent for the current phase.",
+      `Orchestra already active for this goal. Mode: ${state.loopMode}. Phase: ${state.currentPhase}.`,
+      `Launch **${agent}** subagent for the current phase.`,
     ];
     if (ctxBlock) parts.push(ctxBlock);
     emit({ additional_context: parts.join("\n\n") });
     return;
   }
 
-  startOrchestra(goal || prompt, state, reason);
+  // Legacy clarify path (kept for safety) — prefer informal_inferred start below
+  if (clarifyNeeded && !inferFromContext) {
+    const parts = [
+      AMBIENT_CONTEXT,
+      "Orchestra prompt intake (planner-first) — clarify before implementing.",
+      `Draft goal: ${goal || prompt}`,
+      clarifyPrompt ||
+        "Ask the user for concrete target, success criteria, and constraints. Then re-run with a clearer implement prompt.",
+    ];
+    if (ctxBlock) parts.push(ctxBlock);
+    emit({ additional_context: parts.join("\n\n") });
+    return;
+  }
+
+  startOrchestra(goal || prompt, state, reason, { route, intake });
 
   const ltm = loadLongTermMemory();
   const memCtx = buildMemoryContext(ltm);
+  const modeLabel =
+    route === LOOP_MODE_ENTERPRISE ? "enterprise SDLC" : "core loop (plan→implement→verify→review)";
 
+  const firstAgent = getAgentForPhase(state.currentPhase);
   const parts = [
     AMBIENT_CONTEXT,
-    `Orchestra auto-started (${reason}) — no /orchestra needed.`,
+    `Orchestra auto-started (${reason}, route=${route || "core"} / ${routeReason || "default"}) — no /orchestra needed.`,
+    `Mode: ${modeLabel}`,
     `Goal: ${goal || prompt}`,
-    "Phase: plan — launch **orchestra-planner** subagent first (Task tool).",
+    `Phase: ${state.currentPhase} — launch **${firstAgent}** subagent first (Task tool). Do not implement until planning completes.`,
   ];
+
+  if (informal || inferFromContext) {
+    parts.push(
+      [
+        "Informal/short prompt intake — do **not** block the user.",
+        "Planner must expand the goal before PLAN_READY:",
+        "1. Read `context/progress-tracker.md` Next Up / Current Goal",
+        "2. Read `git status` / recent diff if useful",
+        "3. Infer the smallest correct fix/build from repo context",
+        "4. State assumed goal + success criteria explicitly in the plan",
+        "5. Prefer core scope; ask the user only if 2+ equally likely goals conflict",
+      ].join("\n")
+    );
+  }
+
+  if (route === LOOP_MODE_ENTERPRISE) {
+    parts.push(
+      "Enterprise mode: discovery/design agents are readonly. Before code changes, ensure a plan exists (orchestra-planner or tech-lead/task-breakdown)."
+    );
+  } else {
+    parts.push("Core mode: **orchestra-planner** → implementer → verifier → reviewer. No code edits in plan phase.");
+  }
   if (memCtx) parts.push(memCtx);
   if (ctxBlock) {
     parts.push(ctxBlock);
