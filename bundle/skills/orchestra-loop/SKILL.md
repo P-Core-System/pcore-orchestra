@@ -13,13 +13,28 @@ Runs on **this machine** via `~/.cursor/`. **You do not need `/orchestra`** — 
 
 ## Ambient mode (default ON)
 
-When the user asks to **add, fix, build, refactor, deploy, install, configure, migrate, integrate, debug, continue, or finish** something:
+When the user asks to **add, fix, build, refactor, deploy, install, configure, migrate, integrate, debug, continue, improve, or finish** something:
 
-1. `beforeSubmitPrompt` hook auto-activates orchestra state.
-2. Parent agent launches **orchestra-planner** (Task).
-3. Hooks chain implement → verify → review via `subagentStop`.
+1. `beforeSubmitPrompt` classifies the prompt and selects a **route**:
+   - **core** (default) — plan → implement → verify → review
+   - **enterprise** — full SDLC when `/enterprise` or high complexity signals (architecture, migration, multi-service, security audit, etc.)
+   - **informal** — short/casual goals still start **core** with `inferFromContext` (planner expands from progress-tracker/git)
+2. Parent launches the first agent (**orchestra-planner** for core; discovery agent for enterprise idea).
+3. Hooks chain subsequent phases via `subagentStop`.
 
 **Skipped for:** explain-only questions, "what is/how does", "no orchestra", "just explain", trivial hi/thanks.
+
+## Adaptive routing
+
+| Route | Trigger | Start phase | Loop |
+|-------|---------|-------------|------|
+| core | Normal implement/fix/build | `plan` | 4 core agents |
+| enterprise | `/enterprise` or complexity signals (beats informal shortness) | `idea` | 32-phase SDLC specialists |
+| informal | Short/casual ("fix it", "pls", "next improve") | plan | Infer from progress-tracker/git; planner expands |
+
+Planner (or discovery planning) always runs before implementation.
+
+After updating hooks, always re-run `bash install.sh` (it replaces `hooks/lib`). Restart Cursor.
 
 ## Phases
 
@@ -59,7 +74,8 @@ Each subagent has a self-review checklist and error-free rules:
 | Command | Action |
 |---------|--------|
 | *(normal coding prompt)* | Auto-orchestrate if implement/fix/build |
-| `/orchestra <goal>` | Force start |
+| `/orchestra <goal>` | Force start (core route) |
+| `/enterprise <goal>` | Force enterprise SDLC route |
 | `/orchestra stop` | Stop active loop |
 | `disable orchestra` | Turn ambient off |
 | `enable orchestra` | Turn ambient on |

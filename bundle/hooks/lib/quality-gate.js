@@ -76,7 +76,13 @@ function skipGate(state, gateId, reason) {
 function checkAllGatesPassed(state) {
   const gates = state.qualityGates;
   if (!gates) return false;
-  const required = QUALITY_GATES;
+  let required = QUALITY_GATES;
+  try {
+    const { requiredGatesForMode } = require("./evidence-runner.js");
+    required = requiredGatesForMode(state.loopMode || "core");
+  } catch {
+    /* evidence-runner optional for older installs */
+  }
   const attempted = new Set([
     ...gates.passed.map(g => g.id),
     ...gates.failed.map(g => g.id),
@@ -85,7 +91,10 @@ function checkAllGatesPassed(state) {
   for (const gate of required) {
     if (!attempted.has(gate)) return false;
   }
-  return gates.failed.length === 0;
+  // Only count failures on required gates
+  const requiredSet = new Set(required);
+  const failedRequired = gates.failed.filter((g) => requiredSet.has(g.id));
+  return failedRequired.length === 0;
 }
 
 function generateGatesReport(state) {

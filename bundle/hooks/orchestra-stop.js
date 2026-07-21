@@ -6,6 +6,7 @@ const { readStdinJson, emit } = require("./lib/io.js");
 const { loadState, saveState } = require("./lib/state-manager.js");
 const { AMBIENT_CONTEXT } = require("./lib/context-detector.js");
 const { isStalled, writeHeartbeat } = require("./lib/heartbeat-monitor.js");
+const { getAgentForPhase } = require("./lib/phase-engine.js");
 
 async function main() {
   const input = await readStdinJson();
@@ -26,27 +27,32 @@ async function main() {
   writeHeartbeat(state);
   saveState(state);
 
+  // Let heartbeat own stall messaging
   if (isStalled(state)) {
     emit({});
     return;
   }
 
-  const nudges = {
-    plan: "Orchestra active — launch **orchestra-planner** subagent (Task) if planning is not done.",
-    implement:
-      "Orchestra active — continue with **orchestra-implementer** subagent.",
-    verify: "Orchestra active — continue with **orchestra-verifier** subagent.",
-    review: "Orchestra active — continue with **orchestra-reviewer** subagent.",
-  };
-
-  const nudge = nudges[state.phase];
-  if (!nudge || loopCount >= STOP_NUDGE_LOOP_LIMIT) {
+  if (loopCount >= STOP_NUDGE_LOOP_LIMIT) {
     emit({});
     return;
   }
 
+  const phase = state.currentPhase || "idle";
+  if (phase === "idle" || phase === "done" || phase === "paused") {
+    emit({});
+    return;
+  }
+
+  const agent = getAgentForPhase(phase);
+  const mode = state.loopMode || "core";
   emit({
-    followup_message: `${nudge}\n\nGoal: ${state.goal}\n\n(${AMBIENT_CONTEXT.split(".")[0]}.)`,
+    followup_message: [
+      `Orchestra active (${mode}) — phase **${phase}**. Launch **${agent}** subagent to continue.`,
+      `Goal: ${state.goal}`,
+      `To abort: say "stop orchestra" or run: node ~/.cursor/hooks/orchestra-enable.js stop`,
+      `(${AMBIENT_CONTEXT.split(".")[0]}.)`,
+    ].join("\n\n"),
   });
 }
 

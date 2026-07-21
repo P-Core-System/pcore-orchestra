@@ -22,6 +22,8 @@ or making any architectural decision:
    scoping rules, and delivery approach
 8. `context/progress-tracker.md` — current phase,
    completed work, open questions, and next steps
+9. `context/specs/` — optional unit specs (one file per
+   feature); see `specs/README.md`
 
 Update `context/progress-tracker.md` after each
 meaningful implementation change.

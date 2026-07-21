@@ -13,7 +13,10 @@ async function main() {
     return;
   }
 
-  if (state.phase === "implement" && state.iteration === 1) {
+  if (
+    (state.currentPhase === "implement" || state.currentPhase === "implementation") &&
+    state.iteration === 1
+  ) {
     const ltm = loadLongTermMemory();
     const memCtx = buildMemoryContext(ltm);
     if (memCtx) {

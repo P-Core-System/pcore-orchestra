@@ -8,11 +8,12 @@ const { DEFAULT_STATE, saveState } = require("./state-manager.js");
 
 function createCheckpoint(state) {
   return {
-    phase: state.phase,
+    phase: state.currentPhase,
     goal: state.goal,
     iteration: state.iteration,
     last_subagent: state.last_subagent,
     started_at: state.started_at,
+    loopMode: state.loopMode || "core",
     lifecycle_snapshot: state.lifecycle?.events?.slice(-20) || [],
     memory_snapshot: state.memory || {},
     timestamp: new Date().toISOString(),
@@ -39,7 +40,8 @@ function resumeOrchestra(state) {
   if (!state.resumable?.paused || !state.resumable?.checkpoint) return null;
   const cp = state.resumable.checkpoint;
   state.active = true;
-  state.phase = cp.phase;
+  state.currentPhase = cp.phase;
+  state.loopMode = cp.loopMode || state.loopMode || "core";
   state.goal = cp.goal;
   state.iteration = cp.iteration;
   state.last_subagent = cp.last_subagent;
@@ -66,7 +68,7 @@ function detectCrashRecovery(state) {
     const sinceBeat = Date.now() - new Date(lastBeat).getTime();
     if (sinceBeat > CRASH_RECOVERY_THRESHOLD_MS) {
       return {
-        phase: state.phase,
+        phase: state.currentPhase,
         goal: state.goal,
         iteration: state.iteration,
         last_activity: lastBeat,
@@ -75,7 +77,7 @@ function detectCrashRecovery(state) {
   }
   if (isStaleState(state)) {
     return {
-      phase: state.phase,
+      phase: state.currentPhase,
       goal: state.goal,
       iteration: state.iteration,
       last_activity: state.started_at,
@@ -89,7 +91,7 @@ function abortOrchestra(state, reason) {
   const { recordOrchestrationRun } = require("./history-recorder.js");
   recordOrchestrationRun(state, "aborted");
   state.active = false;
-  state.phase = "idle";
+  state.currentPhase = "idle";
   state.resumable.paused = true;
   state.resumable.paused_at = new Date().toISOString();
   state.resumable.pause_reason = reason || "aborted";

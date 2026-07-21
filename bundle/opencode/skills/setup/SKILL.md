@@ -275,6 +275,38 @@ ls -la ~/.agents/skills/orchestra-loop
 bash install.sh --opencode
 ```
 
+### OpenCode loop bounds (`steps` / `doom_loop`)
+
+Documented OpenCode controls (set in `opencode.json` or agent frontmatter):
+
+```json
+{
+  "permission": {
+    "doom_loop": "ask"
+  }
+}
+```
+
+- **`steps`**: hard cap on agentic iterations per agent (then forced summary)
+- **`doom_loop`**: same tool+args repeated 3× → ask (default) or deny
+- Restrict Task allowlist to `orchestra-*` / enterprise specialists you trust
+- Prefer Plan primary for analysis-first; Build only after PLAN_READY
+
+Cursor equivalent: `loop_limit` on `stop` / `subagentStop` in `hooks.json` (already set by install).
+
+### Hooks lib not updating (Cursor)
+
+If ambient starts at enterprise `idea` despite V3.2+ core routing, global `~/.cursor/hooks/lib` is stale.
+`install.sh` now **replaces** `hooks/lib` (avoids nested `lib/lib`). Re-run:
+
+```bash
+bash install.sh --cursor
+node -e "console.log(require('fs').readFileSync(require('os').homedir()+'/.cursor/hooks/lib/state-manager.js','utf8').includes('LOOP_MODE_CORE'))"
+# expect: true
+```
+
+Then restart Cursor.
+
 ---
 
 ## Quick Reference

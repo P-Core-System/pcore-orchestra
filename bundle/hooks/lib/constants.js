@@ -6,6 +6,7 @@ const MEMORY_MAX_COMPLETED = 100;
 const MEMORY_MAX_RECENT_FILES = 50;
 const MEMORY_MAX_ERROR_PATTERNS = 50;
 const HISTORY_MAX_RUNS = 50;
+const HISTORY_DISPLAY_COUNT = 10;
 const PROMPT_MIN_LENGTH = 8;
 const GOAL_MAX_LENGTH = 2000;
 const CLASSIFICATION_MULTISTEP_MIN_LENGTH = 120;
@@ -19,6 +20,10 @@ const TOP_FILES_DISPLAY_COUNT = 5;
 const TOP_ERRORS_DISPLAY_COUNT = 3;
 const STALL_ATTEMPTS_ABORT_THRESHOLD = 2;
 const STOP_NUDGE_LOOP_LIMIT = 3;
+
+// --- Loop modes ---
+const LOOP_MODE_CORE = "core";
+const LOOP_MODE_ENTERPRISE = "enterprise";
 
 // --- V3 Enterprise caps ---
 const MAX_EPICS = 50;
@@ -48,7 +53,17 @@ const SEMVER_PATCH = "patch";
 const INITIAL_VERSION = "1.0.0";
 const INITIAL_BUILD = 1;
 
-// --- Phase chain V3 ---
+// --- Core ambient loop (default) ---
+const CORE_PHASES = [
+  { id: "plan", category: "core", agent: "orchestra-planner", readonly: true },
+  { id: "implement", category: "core", agent: "orchestra-implementer", readonly: false },
+  { id: "verify", category: "core", agent: "orchestra-verifier", readonly: true },
+  { id: "review", category: "core", agent: "orchestra-reviewer", readonly: true },
+];
+
+const CORE_PHASE_IDS = CORE_PHASES.map((p) => p.id);
+
+// --- Phase chain V3 (enterprise SDLC; opt-in) ---
 const SDLC_PHASES = [
   { id: "idea", category: "discovery", agent: "business-analyst", readonly: true },
   { id: "analysis", category: "discovery", agent: "business-analyst", readonly: true },
@@ -67,7 +82,7 @@ const SDLC_PHASES = [
   { id: "sprint-planning", category: "planning", agent: "project-manager", readonly: true },
   { id: "milestone-planning", category: "planning", agent: "project-manager", readonly: true },
   { id: "task-breakdown", category: "planning", agent: "project-manager", readonly: true },
-  { id: "implementation", category: "execution", agent: "implementer", readonly: false },
+  { id: "implementation", category: "execution", agent: "orchestra-implementer", readonly: false },
   { id: "unit-testing", category: "execution", agent: "qa-engineer", readonly: true },
   { id: "integration-testing", category: "quality", agent: "qa-engineer", readonly: true },
   { id: "regression-testing", category: "quality", agent: "automation-engineer", readonly: true },
@@ -84,7 +99,7 @@ const SDLC_PHASES = [
   { id: "continuous-improvement", category: "operations", agent: "project-manager", readonly: true },
 ];
 
-const PHASE_IDS = SDLC_PHASES.map(p => p.id);
+const PHASE_IDS = SDLC_PHASES.map((p) => p.id);
 
 // --- Quality gate IDs ---
 const QUALITY_GATES = [
@@ -100,6 +115,7 @@ module.exports = {
   MEMORY_MAX_RECENT_FILES,
   MEMORY_MAX_ERROR_PATTERNS,
   HISTORY_MAX_RUNS,
+  HISTORY_DISPLAY_COUNT,
   PROMPT_MIN_LENGTH,
   GOAL_MAX_LENGTH,
   CLASSIFICATION_MULTISTEP_MIN_LENGTH,
@@ -113,6 +129,8 @@ module.exports = {
   TOP_ERRORS_DISPLAY_COUNT,
   STALL_ATTEMPTS_ABORT_THRESHOLD,
   STOP_NUDGE_LOOP_LIMIT,
+  LOOP_MODE_CORE,
+  LOOP_MODE_ENTERPRISE,
   MAX_EPICS,
   MAX_MILESTONES,
   MAX_STORIES,
@@ -135,6 +153,8 @@ module.exports = {
   SEMVER_PATCH,
   INITIAL_VERSION,
   INITIAL_BUILD,
+  CORE_PHASES,
+  CORE_PHASE_IDS,
   SDLC_PHASES,
   PHASE_IDS,
   QUALITY_GATES,

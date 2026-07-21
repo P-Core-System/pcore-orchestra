@@ -3,7 +3,14 @@
 
 const { readStdinJson, emit } = require("./lib/io.js");
 const { loadState, saveState } = require("./lib/state-manager.js");
-const { initializeGates, passGate, failGate, skipGate, checkAllGatesPassed, generateGatesReport } = require("./lib/quality-gate.js");
+const {
+  initializeGates,
+  passGate,
+  failGate,
+  skipGate,
+  generateGatesReport,
+} = require("./lib/quality-gate.js");
+const { applyEvidenceToGates } = require("./lib/evidence-runner.js");
 
 async function main() {
   const input = await readStdinJson();
@@ -18,44 +25,49 @@ async function main() {
     initializeGates(state);
   }
 
-  const gates = state.qualityGates;
   const status = input.status || "";
   const subagentType = input.subagent_type || input.subagentType || "";
+  const summaryBlob = [input.summary, input.result, input.output, input.final_text]
+    .filter(Boolean)
+    .join("\n");
 
-  if (status === "completed") {
-    passGate(state, "build", "Build completed successfully");
-  }
+  // Only run evidence on final review agents (avoid slowing every phase)
+  const isFinalReview =
+    subagentType === "orchestra-reviewer" ||
+    subagentType === "code-reviewer" ||
+    subagentType === "release-manager";
 
   if (status !== "completed") {
-    failGate(state, "build", `Subagent ${subagentType} completed with status: ${status}`);
+    failGate(state, "reviewer-approval", `Subagent ${subagentType} status: ${status}`);
+    saveState(state);
+    emit({});
+    return;
   }
 
-  // Mark gates based on subagent type
-  if (subagentType === "qa-engineer" || subagentType === "automation-engineer") {
-    if (status === "completed") {
-      passGate(state, "tests", "Tests completed");
-      passGate(state, "coverage", "Coverage acceptable");
-    } else {
-      failGate(state, "tests", "Tests failed");
+  if (isFinalReview) {
+    const { report } = applyEvidenceToGates(state, passGate, failGate, skipGate);
+
+    if (/\bFIX_REQUIRED\b/i.test(summaryBlob) || /\bVERIFY_FAIL\b/i.test(summaryBlob)) {
+      failGate(state, "reviewer-approval", "Reviewer/verifier requested fixes");
+    } else if (/\bORCHESTRA_COMPLETE\b/i.test(summaryBlob) || /\bVERIFY_PASS\b/i.test(summaryBlob) || subagentType.includes("reviewer")) {
+      passGate(state, "reviewer-approval", "Reviewer completed without FIX_REQUIRED");
     }
-  }
 
-  if (subagentType === "security-engineer") {
-    if (status === "completed") {
-      passGate(state, "security", "Security review completed");
+    passGate(state, "memory-updated", "Lifecycle hooks flushed memory");
+    if (/\bprogress-tracker\.md\b/i.test(summaryBlob) || state.memory?.files_changed?.some((f) => /progress-tracker/.test(f))) {
+      passGate(state, "docs-updated", "progress-tracker or docs referenced in run");
     } else {
-      failGate(state, "security", "Security review failed");
+      skipGate(state, "docs-updated", "no progress-tracker evidence in summary — verify manually");
     }
+
+    saveState(state);
+    emit({
+      additional_context: [report, "", generateGatesReport(state)].join("\n"),
+    });
+    return;
   }
 
-  if (subagentType === "code-reviewer" || subagentType === "orchestra-reviewer") {
-    if (status === "completed") {
-      passGate(state, "reviewer-approval", "Reviewer approved");
-    } else {
-      failGate(state, "reviewer-approval", "Reviewer rejected");
-    }
-  }
-
+  // Non-final agents: do not fake build/test passes
   saveState(state);
   emit({});
 }

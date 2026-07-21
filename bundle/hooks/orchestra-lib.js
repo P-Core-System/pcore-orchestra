@@ -19,6 +19,7 @@ const observability = require("./lib/observability.js");
 const selfImprovement = require("./lib/self-improvement.js");
 const devops = require("./lib/devops.js");
 const securityScanner = require("./lib/security-scanner.js");
+const evidenceRunner = require("./lib/evidence-runner.js");
 
 module.exports = {
   ...constants,
@@ -40,4 +41,5 @@ module.exports = {
   ...selfImprovement,
   ...devops,
   ...securityScanner,
+  ...evidenceRunner,
 };

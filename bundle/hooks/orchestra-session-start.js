@@ -34,7 +34,7 @@ async function main() {
     } else {
       parts.push(
         `Orchestra ACTIVE — goal: ${state.goal}`,
-        `Phase: ${state.phase}. Continue chain with the matching orchestra-* subagent.`
+        `Mode: ${state.loopMode || "core"}. Phase: ${state.currentPhase}. Continue with the matching subagent.`
       );
     }
 

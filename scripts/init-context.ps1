@@ -34,6 +34,11 @@ function Copy-IfMissing($Src, $Dest) {
   Copy-IfMissing (Join-Path $Templates "context\$_") (Join-Path $Ctx $_)
 }
 
+$SpecsDir = Join-Path $Ctx "specs"
+New-Item -ItemType Directory -Force -Path $SpecsDir | Out-Null
+Copy-IfMissing (Join-Path $Templates "context\specs\README.md") (Join-Path $SpecsDir "README.md")
+Copy-IfMissing (Join-Path $Templates "context\specs\_unit-spec.template.md") (Join-Path $SpecsDir "_unit-spec.template.md")
+
 Copy-IfMissing (Join-Path $Templates "AGENTS.md") (Join-Path $Target "AGENTS.md")
 
 if ($Bridge) {

@@ -4,20 +4,22 @@
 const { readStdinJson, emit } = require("./lib/io.js");
 const { loadState, saveState } = require("./lib/state-manager.js");
 const { emitLifecycleEvent } = require("./lib/lifecycle-recorder.js");
-const { PHASE_CHAIN } = require("./lib/phase-engine.js");
+const { getPhaseChain } = require("./lib/phase-engine.js");
 
 function resolveCompletedPhase(state, subagentType) {
-  const entry = Object.entries(PHASE_CHAIN).find(
-    ([, v]) => v.nextPhase === state.phase
+  const chain = getPhaseChain(state);
+  const entry = Object.entries(chain).find(
+    ([, v]) => v.nextPhase === state.currentPhase
   );
-  if (entry && entry[1].nextPhase === state.phase) return state.phase;
+  if (entry && entry[1].nextPhase === state.currentPhase) return state.currentPhase;
   const phaseMap = {
     "orchestra-planner": "plan",
-    "orchestra-implementer": "implement",
+    "orchestra-implementer": state.loopMode === "enterprise" ? "implementation" : "implement",
     "orchestra-verifier": "verify",
     "orchestra-reviewer": "review",
+    "business-analyst": "idea",
   };
-  return phaseMap[state.last_subagent] || state.phase;
+  return phaseMap[subagentType || state.last_subagent] || state.currentPhase;
 }
 
 async function main() {
@@ -40,7 +42,7 @@ async function main() {
   });
 
   if (status !== "completed") {
-    emitLifecycleEvent(state, "subagent_error", state.phase, {
+    emitLifecycleEvent(state, "subagent_error", state.currentPhase, {
       subagent: subagentType,
       status,
       error: input.error || input.error_message || null,

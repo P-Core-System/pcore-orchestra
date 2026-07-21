@@ -28,15 +28,7 @@
 | `bundle/hooks/lib/checkpoint-manager.js` | Resumable tasks and crash recovery |
 | `bundle/hooks/lib/context-detector.js` | Six-file workspace context detection |
 | `bundle/hooks/lib/version-manager.js` | Semver, changelog, release automation |
-| `bundle/hooks/lib/project-manager.js` | Epics, milestones, stories, tasks, velocity |
-| `bundle/hooks/lib/daily-planner.js` | Daily engineering journal and reports |
-| `bundle/hooks/lib/quality-gate.js` | 14 quality gates enforcement |
-| `bundle/hooks/lib/observability.js` | Metrics, logging, SLO tracking |
-| `bundle/hooks/lib/self-improvement.js` | Retrospectives, tech debt, ADR |
-| `bundle/hooks/lib/devops.js` | Git, CI/CD, Docker, IaC templates |
-| `bundle/hooks/lib/security-scanner.js` | Security checks, gates, scanning |
-| `bundle/hooks/lib/project-identity.js` | Project YAML/JSON read, validate, merge, summary |
-| `bundle/hooks/lib/changelog.js` | Changelog generation engine |
+| `bundle/hooks/lib/evidence-runner.js` | Command-evidence checks for quality gates |
 | `bundle/agents/` | Subagent prompts (divided by phase category) |
 | `bundle/agents/01-idea/` | Idea → Analysis agents |
 | `bundle/agents/02-requirements/` | Requirements agents |
@@ -50,6 +42,10 @@
 | `bundle/agents/10-review/` | Review agents |
 | `bundle/rules/orchestra-loop.mdc` | Always-on agent policy |
 | `bundle/skills/orchestra-loop/` | Skill documentation |
+| `bundle/skills/prompt-intake/` | Vague-goal intake before planning |
+| `bundle/skills/verification-before-completion/` | Evidence-required verification |
+| `bundle/opencode/agents/` | OpenCode mirrors (core + enterprise) |
+| `templates/context/specs/` | Unit spec blanks (methodology Part 3) |
 | `project-bridge/` | Repo-local delegation only — no duplicate logic |
 | `templates/context/` | Blank templates — never installed to `~/.cursor/` |
 | `context/` | This repo's own six-file context (dogfooding) |
@@ -84,7 +80,19 @@ This project uses no external infrastructure — all hook scripts run locally on
 | **IaC** | Template generation | Auto-generates Docker, K8s, Terraform, Cloudflare configs |
 | **Observability** | Local metrics | JSON-based metrics, health checks, daily reports |
 
-## Phase Model — Enterprise SDLC (V3)
+## Phase Model — Adaptive Loops (V3.2)
+
+### Core loop (default ambient)
+
+```
+plan → implement → verify → review
+```
+
+Agents: `orchestra-planner` → `orchestra-implementer` → `orchestra-verifier` → `orchestra-reviewer`.
+
+### Enterprise SDLC (opt-in)
+
+Activated by `/enterprise` or complexity signals (architecture, migration, multi-service, security audit, etc.).
 
 ```
 idea → analysis → requirements → functional-req → nonfunctional-req →
@@ -97,6 +105,7 @@ documentation → release-candidate → production-release →
 monitoring → analytics → maintenance → retrospective → continuous-improvement
 ```
 
+State fields: `loopMode` (`core` | `enterprise`), canonical `currentPhase` (legacy `phase` dual-written on save).
 ### Phase Categories
 
 | Category | Phases | Agents |
@@ -113,8 +122,8 @@ monitoring → analytics → maintenance → retrospective → continuous-improv
 
 Cursor Orchestra implements a three-layer agent architecture:
 
-- **Loop:** Phase chain (30+ SDLC phases)
-- **Scaffold:** Agent prompts (25+ specialist agents), context injection, ambient policy
+- **Loop:** Adaptive phase chain (core 4-phase default; enterprise 32-phase opt-in)
+- **Scaffold:** Agent prompts (core orchestra-* + enterprise specialists), context injection, ambient policy
 - **Harness:** Hook scripts, state management, quality gates, error handling
 
 The harness calls the scaffold, which defines the loop behavior.
