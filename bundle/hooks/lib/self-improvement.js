@@ -3,6 +3,7 @@
 const { generateId } = require("./project-manager.js");
 const { loadDailyState, saveDailyState } = require("./daily-planner.js");
 const { loadMetricsState } = require("./observability.js");
+const { loadTokenState } = require("./token-tracker.js");
 
 function generateRetrospective(ps, { sprint, wentWell, toImprove, improvements }) {
   const retro = {
@@ -108,6 +109,26 @@ function generateImprovementSuggestions(ps, state) {
       priority: "high",
       suggestion: `${violatedSLOs.length} SLO${violatedSLOs.length > 1 ? "s" : ""} violated: ${violatedSLOs.map(s => s.name).join(", ")}.`,
     });
+  }
+
+  const tokenState = loadTokenState();
+  const lastRun = tokenState.runs[tokenState.runs.length - 1];
+  if (lastRun?.over_cycle_budget) {
+    suggestions.push({
+      area: "tokens",
+      priority: "high",
+      suggestion: `Last orchestra run exceeded cycle token budget (~${lastRun.total_estimated.toLocaleString()} / 63,000). Run orchestra-enable.js tokens for phase breakdown.`,
+    });
+  }
+  const recentTips = (tokenState.tips || []).slice(-3);
+  for (const tip of recentTips) {
+    if (tip.priority === "high" || tip.priority === "medium") {
+      suggestions.push({
+        area: "tokens",
+        priority: tip.priority,
+        suggestion: tip.message,
+      });
+    }
   }
 
   return suggestions;

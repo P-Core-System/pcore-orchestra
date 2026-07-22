@@ -56,6 +56,10 @@
 |------|----------|-------|
 | Orchestra state | `~/.cursor/hooks/state/orchestra.json` | V3: full SDLC state, project management, versioning |
 | Long-term memory | `~/.cursor/hooks/state/orchestra-memory.json` | Persistent across sessions, capped at 100 goals |
+| Token usage | `~/.cursor/hooks/state/orchestra-tokens.json` | Per-run estimates, aggregates, improvement tips |
+| Plan artifact | `<project>/.cursor/orchestra-plan.md` | Approved plan for implement→verify→review (gitignored) |
+| Cycle reports | `~/.cursor/hooks/state/cycles/{run_id}.json` | Production audit per completed run |
+| Memory index | `~/.cursor/hooks/state/memory-index.json` | Inverted index for fast goal recall |
 | Project management | `~/.cursor/hooks/state/orchestra-project.json` | Epics, milestones, stories, tasks, velocity, backlog |
 | Daily planner | `~/.cursor/hooks/state/orchestra-daily.json` | Daily journal, progress reports, metrics |
 | Version/release | `~/.cursor/hooks/state/orchestra-version.json` | Semver, changelog, release notes |

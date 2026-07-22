@@ -272,7 +272,9 @@ pcore-orchestra/
 │
 └── docs/                      # PROJECT DOCUMENTATION
     ├── setup-guide.md                   # Complete setup (556 lines)
-    ├── token-optimization.md            # Token efficiency (543 lines)
+    ├── token-optimization.md            # Token efficiency + tracker
+    ├── agent-harness-recommendations.md # Harness/loop/prompts research (Cursor + OpenCode)
+    ├── opencode.json.example            # Balanced OpenCode orchestra profile
     ├── orchestration-patterns.md        # Patterns documentation (333 lines)
     ├── bypass-strategies.md             # BYOK + free models (342 lines)
     ├── audit-smart-swot.md              # SMART/SWOT analysis (265 lines)

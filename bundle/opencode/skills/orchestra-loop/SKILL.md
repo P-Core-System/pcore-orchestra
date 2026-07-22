@@ -40,12 +40,22 @@ After updating hooks, always re-run `bash install.sh` (it replaces `hooks/lib`).
 
 | # | Subagent | Role | Git workflow |
 |---|----------|------|-------------|
-| 1 | `orchestra-planner` | Plan only (`readonly`) | No commit — plan is output text |
-| 2 | `orchestra-implementer` | Minimal implementation | **Commits all changes** with `<type>(<scope>): <desc>` |
-| 3 | `orchestra-verifier` | Tests / lint / smoke | No commit — checks only, verifies clean tree |
-| 4 | `orchestra-reviewer` | Final gate (`readonly`) | No commit — reviews diff, suggests final message |
+| 1 | `orchestra-planner` | Plan only (`readonly`) | No commit — plan → `.cursor/orchestra-plan.md` |
+| 2 | `orchestra-implementer` | Minimal implementation | **Must commit before** `IMPLEMENT_DONE` / before verify |
+| 3 | `orchestra-verifier` | Tests / lint / smoke | No commit — **VERIFY_FAIL if dirty tree** |
+| 4 | `orchestra-reviewer` | Final gate (`readonly`) | Suggest docs commit; parent commits docs if dirty |
 
-`FIX_REQUIRED` / `VERIFY_FAIL` → hooks loop back to **orchestra-implementer** (which commits fixes).
+`FIX_REQUIRED` / `VERIFY_FAIL` → hooks loop back to **orchestra-implementer** (which **commits** fixes before re-verify).
+
+## Phase commit gate (hard rule)
+
+**Commit each part before the next part starts.**
+
+1. Parent runs `git status --porcelain` before launching the next subagent
+2. Dirty tree (except `.cursor/orchestra-plan.md`) → commit/discard first — do not advance
+3. Implementer: empty porcelain required before `IMPLEMENT_DONE`
+4. Verifier: dirty code → `VERIFY_FAIL`
+5. After `ORCHESTRA_COMPLETE`: parent commits remaining docs (`progress-tracker`) if dirty
 
 ## Git commit convention
 
@@ -53,10 +63,10 @@ All commits follow: `<type>(<scope>): <description>`
 
 Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
 
-- **Planner** includes commit strategy in the plan
-- **Implementer** commits after ALL changes (not mid-implementation)
+- **Planner** includes commit strategy in the plan (phase-gated commits)
+- **Implementer** commits after ALL changes (not mid-implementation) — required before next phase
 - **Verifier** checks `git status --porcelain` for clean tree
-- **Reviewer** reviews commit messages and suggests final commit if ORCHESTRA_COMPLETE
+- **Reviewer** reviews commit messages; parent may make a docs commit after ORCHESTRA_COMPLETE
 
 ## Self-review & error-free rules
 
@@ -85,6 +95,7 @@ Each subagent has a self-review checklist and error-free rules:
 
 ```powershell
 node $env:USERPROFILE\.cursor\hooks\orchestra-enable.js status
+node $env:USERPROFILE\.cursor\hooks\orchestra-enable.js tokens
 node $env:USERPROFILE\.cursor\hooks\orchestra-enable.js ambient-off
 node $env:USERPROFILE\.cursor\hooks\orchestra-enable.js ambient-on
 node $env:USERPROFILE\.cursor\hooks\orchestra-enable.js stop
@@ -145,3 +156,20 @@ Bootstrap in any project:
 ```bash
 bash /path/to/pcore-orchestra/scripts/init-context.sh /path/to/your-app --bridge
 ```
+
+## Token efficiency
+
+Orchestra cycles cost **3–10×** a single chat turn. Default policy:
+
+| Phase | Web | Tool focus | Budget |
+|-------|-----|------------|--------|
+| Planner | Avoid | grep/glob → targeted read | ~10k |
+| Implementer | Plan only | scoped reads, parallel batch | ~30k |
+| Verifier | Never | shell checks, one-line failures | ~15k |
+| Reviewer | Never | diff only | ~8k |
+
+**Parent rules:** pass concise goal + plan summary to subagents; no file reads between phases; no web search unless user goal requires external docs.
+
+Full guide: `docs/token-optimization.md`. OpenCode: copy `docs/opencode.json.example` or run `bash scripts/setup-opencode-optimal.sh --balanced`.
+
+Harness / agents / prompts: `docs/agent-harness-recommendations.md`.

@@ -30,6 +30,11 @@ function recordOrchestrationRun(state, outcome) {
     phases_completed: state.memory?.phases_completed?.map((p) => p.phase) || [],
     files_changed: state.memory?.files_changed || [],
     errors: state.memory?.errors?.length || 0,
+    tokens_estimated: state.tokens?.total_estimated ?? state.tokens?.last_finalized?.total_estimated ?? null,
+    tokens_reported: state.tokens?.total_reported ?? null,
+    over_cycle_budget: state.tokens?.last_finalized
+      ? state.tokens.last_finalized.total_estimated > 63000
+      : null,
   });
 
   if (history.length > HISTORY_MAX_RUNS) {

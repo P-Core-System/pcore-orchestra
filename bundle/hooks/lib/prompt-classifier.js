@@ -23,6 +23,8 @@ const OPT_IN_EXPLICIT_RE =
 const COMPLEXITY_RE =
   /\b(architect(ure|ural)?|redesign|migrate(tion)?|multi[- ]?(service|repo|tenant)|security audit|threat model|zero[- ]?trust|platform|infrastructure|k8s|kubernetes|terraform|compliance|gdpr|hipaa|epic|roadmap|from scratch|greenfield)\b/i;
 
+const { isGreenfieldPrompt, buildGreenfieldIntakeMeta } = require("./greenfield-intake.js");
+
 /** Formal + informal implement verbs / shorthand */
 const IMPLEMENT_RE =
   /\b(add|implement|build|create|fix|refactor|update|deploy|install|setup|configure|migrate|integrate|wire|hook up|write tests|add tests|ship|continue|finish|complete|resolve|debug|patch|scaffold|generate|make it work|get it working|make \w[\w.-]* work|push to|commit|improve|pls|plz|please|can you|could you|wanna|gotta|do it|ship it|make this|help me|sort (this|it)|clean (this|it) up|next)\b/i;
@@ -81,6 +83,19 @@ function selectRoute(text, { explicit, implement, multiStep }) {
       clarifyNeeded: false,
       inferFromContext: false,
       informal: false,
+      greenfield: false,
+    };
+  }
+
+  // New product / "build an X app" → enterprise discovery + greenfield intake
+  if (isGreenfieldPrompt(text)) {
+    return {
+      route: LOOP_MODE_ENTERPRISE,
+      routeReason: "greenfield_product",
+      clarifyNeeded: false,
+      inferFromContext: false,
+      informal: false,
+      greenfield: true,
     };
   }
 
@@ -92,6 +107,7 @@ function selectRoute(text, { explicit, implement, multiStep }) {
       clarifyNeeded: false,
       inferFromContext: false,
       informal: false,
+      greenfield: false,
     };
   }
 
@@ -103,6 +119,7 @@ function selectRoute(text, { explicit, implement, multiStep }) {
       clarifyNeeded: false,
       inferFromContext: true,
       informal: true,
+      greenfield: false,
     };
   }
 
@@ -112,20 +129,26 @@ function selectRoute(text, { explicit, implement, multiStep }) {
     clarifyNeeded: false,
     inferFromContext: false,
     informal: false,
+    greenfield: false,
   };
 }
 
 function buildIntake(goal, routeInfo) {
-  return {
+  const intake = {
     goal,
     route: routeInfo.route,
     routeReason: routeInfo.routeReason,
     clarifyNeeded: !!routeInfo.clarifyNeeded,
     inferFromContext: !!routeInfo.inferFromContext,
     informal: !!routeInfo.informal,
+    greenfield: !!routeInfo.greenfield,
     plannerFirst: true,
-    firstAgent: "orchestra-planner",
+    firstAgent: routeInfo.greenfield ? "business-analyst" : "orchestra-planner",
   };
+  if (routeInfo.greenfield) {
+    Object.assign(intake, buildGreenfieldIntakeMeta(goal));
+  }
+  return intake;
 }
 
 function classifyPrompt(prompt, state) {
@@ -180,19 +203,22 @@ function classifyPrompt(prompt, state) {
         ? "explicit"
         : enterpriseCmd
           ? "enterprise"
-          : routeInfo.routeReason === "complexity_signals"
-            ? "complexity"
-            : routeInfo.informal
-              ? "informal"
-              : implement
-                ? "implement"
-                : "multistep",
+          : routeInfo.routeReason === "greenfield_product"
+            ? "greenfield"
+            : routeInfo.routeReason === "complexity_signals"
+              ? "complexity"
+              : routeInfo.informal
+                ? "informal"
+                : implement
+                  ? "implement"
+                  : "multistep",
       goal,
       route: routeInfo.route,
       routeReason: routeInfo.routeReason,
       clarifyNeeded: false,
       inferFromContext: routeInfo.inferFromContext,
       informal: routeInfo.informal,
+      greenfield: !!routeInfo.greenfield,
       clarifyPrompt: null,
       intake,
     };
@@ -217,4 +243,5 @@ module.exports = {
   TRIVIAL_RE,
   VAGUE_GOAL_RE,
   INFORMAL_HINT_RE,
+  isGreenfieldPrompt,
 };

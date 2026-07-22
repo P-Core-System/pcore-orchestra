@@ -16,9 +16,16 @@ const { emitLifecycleEvent, endPhaseTimer, startPhaseTimer } = require("./lib/li
 const { flushShortToLong } = require("./lib/memory-manager.js");
 const { recordOrchestrationRun } = require("./lib/history-recorder.js");
 const { bumpProjectVersion, addChangelogEntry } = require("./lib/version-manager.js");
-const { passGate, failGate } = require("./lib/quality-gate.js");
+const { passGate, failGate, skipGate } = require("./lib/quality-gate.js");
 const { addTechDebt, generateProjectSummary, loadProjectState, saveProjectState } = require("./lib/project-manager.js");
 const { loadDailyState, saveDailyState, getOrCreateTodayEntry, generateDailySummary } = require("./lib/daily-planner.js");
+const { recordPhaseTokens, finalizeRunTokens } = require("./lib/token-tracker.js");
+const { buildPhaseHandoff } = require("./lib/handoff-enforcer.js");
+const { runEvidenceChecks, applyEvidenceToGates } = require("./lib/evidence-runner.js");
+const { saveCheckpoint } = require("./lib/checkpoint-manager.js");
+const { savePlanArtifact, buildPlanHandoffLine } = require("./lib/plan-artifact.js");
+const { writeCycleReport } = require("./lib/cycle-report.js");
+const { checkPhaseCommitGate } = require("./lib/phase-commit-gate.js");
 
 function getAgentDisplayName(agentId) {
   const display = {
@@ -87,13 +94,43 @@ function handleFixRequired(state) {
   const modeLabel = state.loopMode === LOOP_MODE_ENTERPRISE ? "Enterprise" : "Core";
   emit({
     followup_message:
-      `${modeLabel} loop — FIX_REQUIRED. Launch **${agentId}** to address reviewer blockers, then continue verify → review.\n\nGoal: ${state.goal}`,
+      `${modeLabel} loop — FIX_REQUIRED. Launch **${agentId}** to address reviewer blockers, then **commit**, then continue verify → review.\n\nGoal: ${state.goal}\n\nPhase commit gate: fixes must be committed before re-verify.`,
+  });
+  return true;
+}
+
+function handlePlanOnlyPause(state) {
+  const implPhase = getImplementPhaseId(state.loopMode);
+  saveCheckpoint(state);
+  state.planAwaitingConfirm = true;
+  state.resumable.paused = true;
+  state.resumable.paused_at = new Date().toISOString();
+  state.resumable.pause_reason = "plan_only";
+  state.resumable.checkpoint = {
+    phase: implPhase,
+    goal: state.goal,
+    iteration: state.iteration,
+    last_subagent: state.last_subagent,
+    started_at: state.started_at,
+    loopMode: state.loopMode,
+    timestamp: new Date().toISOString(),
+  };
+  state.active = false;
+  state.currentPhase = "paused";
+  saveState(state);
+  emit({
+    followup_message: [
+      "Orchestra plan-only pause — planner finished.",
+      "Review the plan above. Do NOT implement yet.",
+      "Say **continue orchestra** or **approve plan** to start orchestra-implementer.",
+      `Goal: ${state.goal}`,
+    ].join("\n"),
   });
   return true;
 }
 
 function handlePhaseComplete(state, chain) {
-  const phases = getPhasesForMode(state.loopMode);
+  const phases = getPhasesForMode(state.loopMode, state);
   const nextPhase = chain.nextPhase;
   state.currentPhase = nextPhase;
 
@@ -148,21 +185,29 @@ function handlePhaseComplete(state, chain) {
     passGate(state, "reviewer-approval", "Review completed");
 
     flushShortToLong(state, "completed");
+    finalizeRunTokens(state, "completed");
     recordOrchestrationRun(state, "completed");
+    try {
+      writeCycleReport(state, "completed");
+    } catch {}
     state.active = false;
     state.currentPhase = "idle";
     saveState(state);
 
     const summary = generateProjectSummary(loadProjectState());
     const modeLabel = state.loopMode === LOOP_MODE_ENTERPRISE ? "Enterprise SDLC" : "Core loop";
+    const tokenLine = state.tokens?.last_finalized
+      ? `Tokens: ~${state.tokens.last_finalized.total_estimated.toLocaleString()} estimated (${state.tokens.last_finalized.tips_count} improvement tip(s) — orchestra-enable.js tokens)`
+      : null;
     emit({
       followup_message: [
         `${modeLabel} complete for goal: ${state.goal || "(no goal)"}`,
         `Version: ${state.versioning.current} (build ${state.versioning.buildNumber})`,
         `Project: ${summary.totalTasks} tasks, ${summary.completedTasks} completed, ${summary.unresolvedDebt} unresolved tech debt items`,
         `Quality gates: ${state.qualityGates.allRequiredPassed ? "ALL PASSED" : `${state.qualityGates.passed.length} passed, ${state.qualityGates.failed.length} failed, ${state.qualityGates.skipped.length} skipped`}`,
+        tokenLine,
         "Summarize deliverables and next steps for the user.",
-      ].join("\n"),
+      ].filter(Boolean).join("\n"),
     });
     return true;
   }
@@ -172,7 +217,11 @@ function handlePhaseComplete(state, chain) {
       iteration: state.iteration,
     });
     flushShortToLong(state, "max_iterations");
+    finalizeRunTokens(state, "max_iterations");
     recordOrchestrationRun(state, "max_iterations");
+    try {
+      writeCycleReport(state, "max_iterations");
+    } catch {}
     state.active = false;
     state.currentPhase = "idle";
     saveState(state);
@@ -205,6 +254,27 @@ function handlePhaseComplete(state, chain) {
   startPhaseTimer(state, nextPhase, nextAgentId);
   saveState(state);
 
+  let evidenceBlock = "";
+  if (nextPhase === "verify") {
+    try {
+      const { report } = runEvidenceChecks(state);
+      evidenceBlock = report;
+      if (!state.memory) state.memory = { ...DEFAULT_STATE.memory };
+      state.memory.evidence_preflight = report;
+      saveState(state);
+    } catch {}
+  }
+
+  let commitGateBlock = "";
+  try {
+    const gate = checkPhaseCommitGate(state);
+    commitGateBlock = gate.message;
+    if (!gate.clean && (nextPhase === "verify" || nextPhase === "review")) {
+      commitGateBlock +=
+        "\nParent: commit or discard blocking files BEFORE launching the next subagent.";
+    }
+  } catch {}
+
   const nextInfo = getPhaseInfo(nextPhase);
   const nextAgentDisplay = getAgentDisplayName(nextAgentId);
   const phaseLabel = nextInfo
@@ -219,7 +289,10 @@ function handlePhaseComplete(state, chain) {
       `Launch **${nextAgentId}** (${nextAgentDisplay}) subagent to continue.`,
       `Goal: ${state.goal}`,
       `Phase ${phases.findIndex((p) => p.id === nextPhase) + 1} of ${phases.length}`,
-    ].join("\n"),
+      buildPhaseHandoff(state, nextAgentId),
+      commitGateBlock || null,
+      evidenceBlock || null,
+    ].filter(Boolean).join("\n\n"),
   });
   return true;
 }
@@ -250,6 +323,7 @@ async function main() {
   state.iteration = (state.iteration || 0) + 1;
 
   endPhaseTimer(state, "completed");
+  recordPhaseTokens(state, input, subagentType);
   emitLifecycleEvent(state, "phase_complete", state.currentPhase, {
     subagent: subagentType,
     iteration: state.iteration,
@@ -263,6 +337,43 @@ async function main() {
       decisions: [],
       context_summary: "",
     };
+  }
+
+  const outputSnippet = (input.summary || input.result || input.output || input.text || "")
+    .toString()
+    .slice(0, 200);
+  state.memory.phases_completed.push({
+    phase: state.currentPhase,
+    agent: subagentType,
+    summary: outputSnippet,
+    timestamp: new Date().toISOString(),
+  });
+
+  if (
+    subagentType === "orchestra-planner" &&
+    state.currentPhase === "plan"
+  ) {
+    try {
+      savePlanArtifact(state, input);
+    } catch {}
+  }
+
+  if (
+    subagentType === "orchestra-planner" &&
+    state.orchestraConfig?.plan_only &&
+    state.currentPhase === "plan"
+  ) {
+    handlePlanOnlyPause(state);
+    return;
+  }
+
+  if (subagentType === "orchestra-verifier" && state.currentPhase === "verify") {
+    try {
+      const { report } = applyEvidenceToGates(state, passGate, failGate, skipGate);
+      if (!state.memory) state.memory = { ...DEFAULT_STATE.memory };
+      state.memory.evidence_gates = report;
+      saveState(state);
+    } catch {}
   }
 
   if (

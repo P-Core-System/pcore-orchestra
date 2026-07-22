@@ -122,6 +122,20 @@ disaster_recovery:
   rto_minutes: 120       # Recovery Time Objective in minutes
   plan: <path or none>
 
+# Orchestra loop profile (optional — overrides defaults when present)
+orchestra:
+  route: core              # core | enterprise
+  max_iterations: 8
+  plan_only: false         # pause after planner; user confirms before implement
+  token_budgets:
+    planner: 10000
+    implementer: 30000
+    verifier: 15000
+    reviewer: 8000
+    cycle: 63000
+  # Enterprise only — restrict SDLC phases (omit for full chain)
+  phases: []
+
 # ──────────────────────────────────────────────
 # P-Core managed fields (updated by orchestra)
 # ──────────────────────────────────────────────

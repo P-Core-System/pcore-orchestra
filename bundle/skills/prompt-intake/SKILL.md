@@ -42,6 +42,7 @@ Use this skill **before** launching implementer. Short/informal text still start
 
 - Prefer **core** for normal implement/fix/build — even when wording is casual
 - Prefer **enterprise** only for `/enterprise` or clear complexity signals
+- Prefer **greenfield skill** when user wants a new app/product (`build a note app`) — see `greenfield-product`
 - Infer from repo context first; ask the user only on real ambiguity
-- Then launch **orchestra-planner** — never implementer first
+- Then launch **orchestra-planner** — never implementer first (greenfield: business-analyst / intake first)
 - State assumed goal + success criteria explicitly in PLAN_READY

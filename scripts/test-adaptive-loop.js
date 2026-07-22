@@ -1,6 +1,7 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const path = require("node:path");
 const {
   classifyPrompt,
   selectRoute,
@@ -11,8 +12,11 @@ const {
   getPhaseChain,
   getImplementPhaseId,
   advancePhase,
+  getPhasesForState,
+  validatePhaseFilter,
   LOOP_MODE_CORE,
   LOOP_MODE_ENTERPRISE,
+  SDLC_PHASES,
 } = require("../bundle/hooks/lib/phase-engine.js");
 const {
   normalizePhaseFields,
@@ -153,6 +157,218 @@ test("questions do not activate", () => {
   const r = classifyPrompt("what is the orchestra loop?", { ambient: true });
   assert.equal(r.activate, false);
   assert.equal(r.reason, "question_only");
+});
+
+const {
+  normalizeOrchestraConfig,
+  extractOrchestraFromIdentity,
+  mergeRoute,
+} = require("../bundle/hooks/lib/orchestra-config.js");
+const { validateHandoffCompact, MAX_HANDOFF_CHARS } = require("../bundle/hooks/lib/handoff-enforcer.js");
+const {
+  syncWorkspaceIdentity,
+  buildIdentitySyncNotice,
+} = require("../bundle/hooks/lib/workspace-identity.js");
+
+test("orchestra config defaults from project.yaml shape", () => {
+  const cfg = normalizeOrchestraConfig({
+    route: "core",
+    max_iterations: 12,
+    plan_only: true,
+    token_budgets: { planner: 8000, cycle: 50000 },
+  });
+  assert.equal(cfg.route, "core");
+  assert.equal(cfg.max_iterations, 12);
+  assert.equal(cfg.plan_only, true);
+  assert.equal(cfg.token_budgets.planner, 8000);
+  assert.equal(cfg.token_budgets.implementer, 30000);
+  assert.equal(cfg.token_budgets.cycle, 50000);
+});
+
+test("extractOrchestraFromIdentity reads orchestra block", () => {
+  const cfg = extractOrchestraFromIdentity({
+    project: { name: "x" },
+    orchestra: { route: "enterprise", max_iterations: 20 },
+  });
+  assert.equal(cfg.route, "enterprise");
+  assert.equal(cfg.max_iterations, 20);
+});
+
+test("mergeRoute keeps explicit enterprise over project core", () => {
+  assert.equal(mergeRoute("enterprise", { route: "core" }), "enterprise");
+  assert.equal(mergeRoute("core", { route: "enterprise" }), "enterprise");
+});
+
+test("startOrchestra applies orchestraConfig max_iterations", () => {
+  const state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  state.lifecycle = { events: [], phase_history: [] };
+  state.heartbeat = { ...DEFAULT_STATE.heartbeat };
+  state.memory = { ...DEFAULT_STATE.memory };
+  state.resumable = { ...DEFAULT_STATE.resumable };
+  startOrchestra("test goal", state, "test", {
+    orchestraConfig: normalizeOrchestraConfig({ max_iterations: 5, plan_only: false }),
+  });
+  assert.equal(state.max_iterations, 5);
+  assert.equal(state.orchestraConfig.max_iterations, 5);
+});
+
+test("handoff enforcer rejects verbose prompts", () => {
+  const short = validateHandoffCompact("goal\nplan bullet");
+  assert.equal(short.ok, true);
+  const long = validateHandoffCompact("x".repeat(MAX_HANDOFF_CHARS + 1));
+  assert.equal(long.ok, false);
+});
+
+test("enterprise phase picker filters SDLC chain", () => {
+  const state = {
+    loopMode: LOOP_MODE_ENTERPRISE,
+    orchestraConfig: { phases: ["task-breakdown", "implementation", "unit-testing"] },
+  };
+  const phases = getPhasesForState(state);
+  assert.equal(phases.length, 3);
+  assert.equal(phases[0].id, "task-breakdown");
+  assert.equal(phases[2].id, "unit-testing");
+  const chain = getPhaseChain(state);
+  assert.equal(chain["task-breakdown"].nextPhase, "implementation");
+  assert.equal(chain["unit-testing"].nextPhase, "done");
+});
+
+test("validatePhaseFilter flags unknown ids", () => {
+  const v = validatePhaseFilter(["plan", "not-a-phase", "implementation"], SDLC_PHASES);
+  assert.equal(v.unknown.includes("not-a-phase"), true);
+  assert.equal(v.unknown.includes("plan"), true);
+  assert.equal(v.effective.includes("implementation"), true);
+});
+
+test("filtered enterprise starts at first enabled phase", () => {
+  const state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  state.lifecycle = { events: [], phase_history: [] };
+  state.heartbeat = { ...DEFAULT_STATE.heartbeat };
+  state.memory = { ...DEFAULT_STATE.memory };
+  state.resumable = { ...DEFAULT_STATE.resumable };
+  startOrchestra("enterprise slice", state, "test", {
+    route: LOOP_MODE_ENTERPRISE,
+    orchestraConfig: normalizeOrchestraConfig({
+      phases: ["task-breakdown", "implementation"],
+    }),
+  });
+  assert.equal(state.currentPhase, "task-breakdown");
+  assert.equal(state.loopMode, LOOP_MODE_ENTERPRISE);
+});
+
+test("syncWorkspaceIdentity refreshes stale slug when idle", () => {
+  const repoRoot = path.join(__dirname, "..");
+  const state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  state.active = false;
+  state.project = { ...DEFAULT_STATE.project, slug: "crypto-trader", name: "crypto-trader" };
+  const result = syncWorkspaceIdentity(state, { workspace_roots: [repoRoot] });
+  assert.ok(result);
+  assert.equal(result.synced, true);
+  assert.equal(state.project.slug, "pcore-orchestra");
+  assert.equal(result.reason, "stale_slug_refreshed");
+  const notice = buildIdentitySyncNotice(result);
+  assert.match(notice, /pcore-orchestra/);
+});
+
+test("syncWorkspaceIdentity skips full sync when orchestra active", () => {
+  const repoRoot = path.join(__dirname, "..");
+  const state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  state.active = true;
+  state.project = { ...DEFAULT_STATE.project, slug: "crypto-trader", name: "crypto-trader" };
+  const result = syncWorkspaceIdentity(state, { workspace_roots: [repoRoot] });
+  assert.ok(result);
+  assert.equal(result.synced, false);
+  assert.equal(state.project.slug, "crypto-trader");
+  assert.ok(state.project.identityFile);
+});
+
+const {
+  retrieveRelevantGoals,
+  tokenize,
+} = require("../bundle/hooks/lib/semantic-memory.js");
+
+test("semantic memory retrieves relevant goals by keyword", () => {
+  const goals = [
+    { goal: "fix orchestra hooks token tracker", outcome: "completed", duration_ms: 1000, lessons: ["use head_limit"] },
+    { goal: "deploy crypto panel to VPS", outcome: "completed", duration_ms: 2000, lessons: [] },
+    { goal: "add semantic recall to memory", outcome: "completed", duration_ms: 500, lessons: ["BM25-lite"] },
+  ];
+  const hits = retrieveRelevantGoals(goals, "token tracker orchestra");
+  assert.ok(hits.length >= 1);
+  assert.match(hits[0].goal, /token tracker/i);
+});
+
+test("tokenize strips stop words", () => {
+  const tokens = tokenize("fix the orchestra loop for hooks");
+  assert.ok(tokens.includes("orchestra"));
+  assert.ok(tokens.includes("hooks"));
+  assert.equal(tokens.includes("the"), false);
+});
+
+const fs = require("node:fs");
+const os = require("node:os");
+const {
+  savePlanArtifact,
+  buildPlanHandoffLine,
+  hasPlanReady,
+} = require("../bundle/hooks/lib/plan-artifact.js");
+const { writeCycleReport, listCycleReports } = require("../bundle/hooks/lib/cycle-report.js");
+
+test("savePlanArtifact writes workspace plan file", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "orch-plan-"));
+  const state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  state.goal = "test plan artifact";
+  state.tokens = { run_id: "run-testplan" };
+  state.project.identityFile = path.join(tmp, "project.yaml");
+  fs.writeFileSync(state.project.identityFile, "project:\n  name: t\n");
+
+  const artifact = savePlanArtifact(state, {
+    output: "## Goal\nTest\n\nPLAN_READY",
+  });
+  assert.ok(artifact);
+  assert.equal(hasPlanReady(fs.readFileSync(artifact.path, "utf8")), true);
+  assert.ok(fs.existsSync(artifact.path));
+  const handoff = buildPlanHandoffLine(state, "orchestra-implementer");
+  assert.match(handoff, /orchestra-plan\.md/);
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
+
+test("writeCycleReport creates cycle json", () => {
+  const state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  state.goal = "cycle test";
+  state.tokens = { run_id: "run-cycletest", started_at: new Date().toISOString() };
+  state.memory = { phases_completed: [{ phase: "plan", agent: "orchestra-planner" }] };
+  const report = writeCycleReport(state, "completed");
+  assert.equal(report.outcome, "completed");
+  assert.equal(report.goal, "cycle test");
+  const listed = listCycleReports(5);
+  assert.ok(listed.some((r) => r.run_id === "run-cycletest"));
+});
+
+const { checkPhaseCommitGate } = require("../bundle/hooks/lib/phase-commit-gate.js");
+
+test("phase commit gate passes on clean tree", () => {
+  const gate = checkPhaseCommitGate({}, { cwd: path.join(__dirname, "..") });
+  assert.equal(typeof gate.clean, "boolean");
+  assert.ok(gate.message);
+});
+
+test("greenfield build a note app routes enterprise with intake", () => {
+  const r = classifyPrompt("let's build a note app", { ambient: true });
+  assert.equal(r.activate, true);
+  assert.equal(r.route, LOOP_MODE_ENTERPRISE);
+  assert.equal(r.routeReason, "greenfield_product");
+  assert.equal(r.greenfield, true);
+  assert.equal(r.intake.firstAgent, "business-analyst");
+  assert.equal(r.intake.appType, "notes");
+});
+
+test("greenfield stack briefing includes recommended", () => {
+  const { buildGreenfieldIntakeBriefing } = require("../bundle/hooks/lib/greenfield-intake.js");
+  const brief = buildGreenfieldIntakeBriefing("build a todo app");
+  assert.match(brief, /Recommended stack/i);
+  assert.match(brief, /todo/i);
+  assert.match(brief, /Intake questions/i);
 });
 
 if (!process.exitCode) {

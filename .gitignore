@@ -1,3 +1,14 @@
 .DS_Store
 Thumbs.db
 *.log
+.cursor/orchestra-plan.md
+
+# Runtime orchestra artifacts (generated during cycles / tests)
+bundle/hooks/state/cycles/
+bundle/hooks/state/plans/
+bundle/hooks/state/orchestra-tokens.json
+bundle/hooks/state/orchestra-history.json
+bundle/hooks/state/orchestra-metrics.json
+bundle/hooks/state/memory-index.json
+bundle/opencode/hooks/state/cycles/
+bundle/opencode/hooks/state/plans/

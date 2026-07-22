@@ -1,0 +1,48 @@
+# P-Core Orchestra — project identity (dogfood)
+project:
+  name: pcore-orchestra
+  slug: pcore-orchestra
+  display_name: P-Core Orchestra
+  type: devops
+  category: dev-tools
+  owner: peter
+  description: Global orchestra harness for Cursor and OpenCode
+
+version:
+  current: 3.7.0
+  channel: dev
+  build_number: 1
+
+lifecycle:
+  stage: development
+  status: active
+  started: 2026-01-01
+  updated: 2026-07-22
+
+stack:
+  languages:
+    - javascript
+  frameworks: []
+  package_manager: npm
+  runtime: node
+
+ai:
+  assistant: cursor
+  context_dir: context/
+  entry_point: AGENTS.md
+
+orchestra:
+  route: core
+  max_iterations: 8
+  plan_only: false
+  token_budgets:
+    planner: 10000
+    implementer: 30000
+    verifier: 15000
+    reviewer: 8000
+    cycle: 63000
+
+_pcore:
+  version: 2
+  initialized: 2026-07-22T00:00:00Z
+  orchestration_count: 0

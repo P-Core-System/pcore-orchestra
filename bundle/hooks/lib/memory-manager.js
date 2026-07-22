@@ -9,7 +9,14 @@ const {
   RECENT_GOALS_DISPLAY_COUNT,
   TOP_FILES_DISPLAY_COUNT,
   TOP_ERRORS_DISPLAY_COUNT,
+  SEMANTIC_RECALL_TOP_K,
 } = require("./constants.js");
+const {
+  retrieveRelevantGoals,
+  retrieveRelevantErrors,
+  formatRelevantGoals,
+} = require("./semantic-memory.js");
+const { indexCompletedGoal } = require("./memory-index.js");
 
 const MEMORY_PATH = path.join(__dirname, "..", "state", "orchestra-memory.json");
 
@@ -60,7 +67,15 @@ function flushShortToLong(state, outcome) {
     timestamp: new Date().toISOString(),
     lessons: (stm.decisions || []).map((d) => d.decision).filter(Boolean),
     phase_count: (stm.phases_completed || []).length,
+    tokens_estimated: state.tokens?.total_estimated ?? state.tokens?.last_finalized?.total_estimated ?? null,
+    token_tips: state.tokens?.last_finalized?.tips_count ?? null,
+    run_id: state.tokens?.run_id || null,
+    plan_artifact: state.planArtifact?.path || null,
   });
+
+  try {
+    indexCompletedGoal(ltm.completed_goals[ltm.completed_goals.length - 1], new Date().toISOString());
+  } catch {}
 
   for (const f of (stm.files_changed || [])) {
     const existing = ltm.recent_files.find((r) => r.path === f);
@@ -91,10 +106,27 @@ function flushShortToLong(state, outcome) {
   saveLongTermMemory(ltm);
 }
 
-function buildMemoryContext(ltm) {
+function buildMemoryContext(ltm, options) {
   if (!ltm || !ltm.completed_goals || ltm.completed_goals.length === 0) return "";
 
+  const query = options?.query || options?.goal || "";
   const lines = ["Long-term memory (past orchestration results):"];
+
+  if (query.trim()) {
+    const relevant = retrieveRelevantGoals(ltm.completed_goals, query, SEMANTIC_RECALL_TOP_K);
+    const relevantBlock = formatRelevantGoals(relevant);
+    if (relevantBlock) lines.push(relevantBlock);
+
+    const relevantErrors = retrieveRelevantErrors(ltm.error_patterns, query, 2);
+    if (relevantErrors.length > 0) {
+      lines.push("Relevant error patterns:");
+      for (const e of relevantErrors) {
+        lines.push(
+          `  - ${e.error_type} (${e.count}x${e.solution ? ", fix: " + e.solution : ""})`
+        );
+      }
+    }
+  }
 
   const recent = ltm.completed_goals.slice(-RECENT_GOALS_DISPLAY_COUNT);
   if (recent.length > 0) {

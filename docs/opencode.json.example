@@ -1,0 +1,69 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "opencode/deepseek-v4-flash",
+  "small_model": "opencode/gpt-5-nano",
+  "compaction": {
+    "auto": true,
+    "prune": true,
+    "reserved": 8000
+  },
+  "watcher": {
+    "ignore": ["node_modules/**", "dist/**", ".git/**", "build/**", "coverage/**"]
+  },
+  "snapshot": false,
+  "permission": {
+    "skill": {
+      "orchestra-loop": "allow",
+      "verification-before-completion": "allow",
+      "prompt-intake": "allow",
+      "internal-*": "deny"
+    }
+  },
+  "agent": {
+    "orchestra-planner": {
+      "model": "opencode/deepseek-v4-flash",
+      "steps": 8,
+      "permission": {
+        "edit": "deny",
+        "bash": "ask",
+        "websearch": "deny",
+        "webfetch": "deny"
+      }
+    },
+    "orchestra-implementer": {
+      "model": "opencode/kimi-k2.5",
+      "steps": 25
+    },
+    "orchestra-verifier": {
+      "model": "opencode/deepseek-v4-flash",
+      "steps": 10,
+      "permission": {
+        "edit": "deny",
+        "bash": "allow",
+        "websearch": "deny"
+      }
+    },
+    "orchestra-reviewer": {
+      "model": "opencode/deepseek-v4-flash",
+      "steps": 5,
+      "permission": {
+        "edit": "deny",
+        "bash": "ask",
+        "websearch": "deny",
+        "webfetch": "deny"
+      }
+    }
+  },
+  "provider": {
+    "opencode": {
+      "models": {
+        "deepseek-v4-flash": {
+          "variants": {
+            "fast": { "reasoningEffort": "low", "textVerbosity": "low" },
+            "thorough": { "reasoningEffort": "high" }
+          }
+        }
+      }
+    }
+  }
+}

@@ -141,11 +141,15 @@ console.log("  Merged hooks.json ->", destPath);
 function Install-OpenCode {
   Write-Host "==> Installing OpenCode Orchestra to $OpenCodeDir"
 
-  New-Item -ItemType Directory -Force -Path (Join-Path $OpenCodeDir "skills") | Out-Null
-  New-Item -ItemType Directory -Force -Path (Join-Path $OpenCodeDir "state") | Out-Null
-  New-Item -ItemType Directory -Force -Path (Join-Path $OpenCodeDir "hooks") | Out-Null
+  @(
+    (Join-Path $OpenCodeDir "hooks\state"),
+    (Join-Path $OpenCodeDir "hooks\lib"),
+    (Join-Path $OpenCodeDir "agents"),
+    (Join-Path $OpenCodeDir "skills"),
+    (Join-Path $OpenCodeDir "state")
+  ) | ForEach-Object { New-Item -ItemType Directory -Force -Path $_ | Out-Null }
 
-  New-Item -ItemType Directory -Force -Path (Join-Path $OpenCodeDir "agents") | Out-Null
+  # Agents (orchestra core + enterprise)
   Copy-Item (Join-Path $Bundle "opencode\agents\orchestra-*.md") (Join-Path $OpenCodeDir "agents\") -Force
   $ocAgentDirs = Get-ChildItem -Path (Join-Path $Bundle "opencode\agents") -Directory -ErrorAction SilentlyContinue
   foreach ($agentDir in $ocAgentDirs) {
@@ -153,20 +157,29 @@ function Install-OpenCode {
     $null = robocopy $agentDir.FullName $destDir /E /NDL /NJH /NJS /NP
   }
 
-  # Copy all OpenCode skills (orchestra-loop + Cloudflare)
+  # Skills (orchestra-loop + Cloudflare)
   $ocSkillDirs = Get-ChildItem -Path (Join-Path $Bundle "opencode\skills") -Directory
   foreach ($ocSkillDir in $ocSkillDirs) {
     $destDir = Join-Path (Join-Path $OpenCodeDir "skills") $ocSkillDir.Name
     $null = robocopy $ocSkillDir.FullName $destDir /E /NDL /NJH /NJS /NP
   }
 
-  Copy-Item (Join-Path $Bundle "opencode\hooks\orchestra-health-opencode.js") (Join-Path $OpenCodeDir "hooks\") -Force
+  # Hooks (all orchestra-*.js)
+  Copy-Item (Join-Path $Bundle "opencode\hooks\orchestra-*.js") (Join-Path $OpenCodeDir "hooks\") -Force
 
+  # Lib modules (shared with Cursor)
+  $libDest = Join-Path $OpenCodeDir "hooks\lib"
+  if (Test-Path $libDest) { Remove-Item $libDest -Recurse -Force }
+  Copy-Item (Join-Path $Bundle "opencode\hooks\lib") $libDest -Recurse -Force
+
+  # State files
+  Copy-Item (Join-Path $Bundle "opencode\hooks\state\orchestra-memory.json") (Join-Path $OpenCodeDir "hooks\state\") -Force
   $stateDest = Join-Path $OpenCodeDir "state\orchestra.json"
   if (-not (Test-Path $stateDest)) {
     Copy-Item (Join-Path $Bundle "opencode\state\orchestra.json") $stateDest -Force
   }
 
+  # External skill symlink
   New-Item -ItemType Directory -Force -Path $AgentsSkills | Out-Null
   $skillLink = Join-Path $AgentsSkills "orchestra-loop"
   if (Test-Path $skillLink) { Remove-Item $skillLink -Force -Recurse -ErrorAction SilentlyContinue }
@@ -176,6 +189,8 @@ function Install-OpenCode {
   }
 
   Write-Host "  OpenCode agents:  $OpenCodeDir\agents\orchestra-*.md"
+  Write-Host "  OpenCode hooks:   $OpenCodeDir\hooks\"
+  Write-Host "  OpenCode lib:     $OpenCodeDir\hooks\lib\ (21 modules)"
   Write-Host "  OpenCode skills:  $OpenCodeDir\skills\ (orchestra-loop + Cloudflare)"
   Write-Host "  OpenCode state:   $OpenCodeDir\state\orchestra.json"
 }
