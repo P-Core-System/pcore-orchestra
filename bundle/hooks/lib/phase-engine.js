@@ -56,19 +56,50 @@ function normalizeLoopMode(mode) {
   return mode === LOOP_MODE_ENTERPRISE ? LOOP_MODE_ENTERPRISE : LOOP_MODE_CORE;
 }
 
-function getPhasesForMode(mode) {
+function filterPhasesByConfig(allPhases, enabledIds) {
+  if (!enabledIds || enabledIds.length === 0) return allPhases;
+  const set = new Set(enabledIds);
+  const filtered = allPhases.filter((p) => set.has(p.id));
+  return filtered.length > 0 ? filtered : allPhases;
+}
+
+function validatePhaseFilter(enabledIds, allPhases) {
+  if (!enabledIds?.length) return { valid: true, unknown: [], effective: allPhases.map((p) => p.id) };
+  const known = new Set(allPhases.map((p) => p.id));
+  const unknown = enabledIds.filter((id) => !known.has(id));
+  const effective = filterPhasesByConfig(allPhases, enabledIds).map((p) => p.id);
+  return { valid: unknown.length === 0, unknown, effective };
+}
+
+/** Phases for current run — respects enterprise `orchestraConfig.phases` filter. */
+function getPhasesForState(state) {
+  const mode = normalizeLoopMode(state?.loopMode);
+  if (mode !== LOOP_MODE_ENTERPRISE) return CORE_PHASES;
+  return filterPhasesByConfig(SDLC_PHASES, state?.orchestraConfig?.phases);
+}
+
+function getPhasesForMode(mode, state) {
+  if (state && typeof state === "object") return getPhasesForState(state);
   return normalizeLoopMode(mode) === LOOP_MODE_ENTERPRISE ? SDLC_PHASES : CORE_PHASES;
 }
 
-function getPhaseIdsForMode(mode) {
+function getPhaseIdsForState(state) {
+  return getPhasesForState(state).map((p) => p.id);
+}
+
+function getPhaseIdsForMode(mode, state) {
+  if (state && typeof state === "object") return getPhaseIdsForState(state);
   return normalizeLoopMode(mode) === LOOP_MODE_ENTERPRISE ? PHASE_IDS : CORE_PHASE_IDS;
 }
 
 function getPhaseChain(stateOrMode) {
-  const mode =
-    typeof stateOrMode === "string"
-      ? stateOrMode
-      : stateOrMode?.loopMode;
+  if (typeof stateOrMode === "object" && stateOrMode !== null) {
+    const mode = normalizeLoopMode(stateOrMode.loopMode);
+    return mode === LOOP_MODE_ENTERPRISE
+      ? buildPhaseChain(getPhasesForState(stateOrMode))
+      : CORE_PHASE_CHAIN;
+  }
+  const mode = stateOrMode;
   return normalizeLoopMode(mode) === LOOP_MODE_ENTERPRISE
     ? ENTERPRISE_PHASE_CHAIN
     : CORE_PHASE_CHAIN;
@@ -82,14 +113,20 @@ function getAgentForPhase(phaseId) {
   return PHASE_AGENT_MAP[phaseId] || "orchestra-planner";
 }
 
-function getNextPhase(phaseId, mode) {
-  const chain = getPhaseChain(mode || LOOP_MODE_CORE);
+function getNextPhase(phaseId, stateOrMode) {
+  const chain =
+    typeof stateOrMode === "object" && stateOrMode !== null
+      ? getPhaseChain(stateOrMode)
+      : getPhaseChain(stateOrMode || LOOP_MODE_CORE);
   const info = chain[phaseId];
   return info ? info.nextPhase : "done";
 }
 
-function getPrevPhase(phaseId, mode) {
-  const chain = getPhaseChain(mode || LOOP_MODE_CORE);
+function getPrevPhase(phaseId, stateOrMode) {
+  const chain =
+    typeof stateOrMode === "object" && stateOrMode !== null
+      ? getPhaseChain(stateOrMode)
+      : getPhaseChain(stateOrMode || LOOP_MODE_CORE);
   const info = chain[phaseId];
   return info ? info.prevPhase : null;
 }
@@ -139,10 +176,9 @@ function getImplementPhaseId(mode) {
 }
 
 function advancePhase(state) {
-  const mode = normalizeLoopMode(state.loopMode);
-  const ids = getPhaseIdsForMode(mode);
+  const ids = getPhaseIdsForState(state);
   const current = state.currentPhase;
-  const next = getNextPhase(current, mode);
+  const next = getNextPhase(current, state);
   if (next === "done") {
     state.currentPhase = "done";
     state.currentPhaseIndex = ids.length;
@@ -180,7 +216,11 @@ module.exports = {
   LOOP_MODE_CORE,
   LOOP_MODE_ENTERPRISE,
   normalizeLoopMode,
+  filterPhasesByConfig,
+  validatePhaseFilter,
+  getPhasesForState,
   getPhasesForMode,
+  getPhaseIdsForState,
   getPhaseIdsForMode,
   getPhaseChain,
   getPhaseInfo,

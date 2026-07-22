@@ -31,7 +31,10 @@ const LIBS = [
   "context-detector.js", "version-manager.js", "project-manager.js",
   "daily-planner.js", "quality-gate.js", "observability.js",
   "self-improvement.js", "devops.js", "security-scanner.js",
-  "project-identity.js", "evidence-runner.js",
+  "project-identity.js", "evidence-runner.js", "token-tracker.js",
+  "orchestra-config.js", "handoff-enforcer.js", "metrics-report.js", "workspace-identity.js",
+  "semantic-memory.js", "plan-artifact.js", "cycle-report.js", "memory-index.js",
+  "phase-commit-gate.js", "greenfield-intake.js",
 ];
 
 const AGENT_NAMES = [
@@ -246,7 +249,9 @@ function checkAdaptiveInstall() {
   try {
     const text = fs.readFileSync(sm, "utf8");
     const hasMode = text.includes("LOOP_MODE_CORE");
-    const startsPlan = /startPhase\s*=\s*route\s*===\s*LOOP_MODE_ENTERPRISE\s*\?\s*"idea"\s*:\s*"plan"/.test(text);
+    const startsPlan =
+      /startPhase\s*=\s*route\s*===\s*LOOP_MODE_ENTERPRISE\s*\?\s*"idea"\s*:\s*"plan"/.test(text) ||
+      /startPhase\s*=\s*route\s*===\s*LOOP_MODE_ENTERPRISE\s*\?\s*enterprisePhases\[0\]\.id\s*:\s*"plan"/.test(text);
     console.log(hasMode ? "OK  " : "FAIL", "LOOP_MODE_CORE in state-manager");
     console.log(startsPlan ? "OK  " : "FAIL", "core starts at plan");
     if (!hasMode || !startsPlan) ok = false;

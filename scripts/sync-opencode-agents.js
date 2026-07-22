@@ -115,16 +115,30 @@ function walk(dir, files = []) {
 }
 
 function main() {
+  const forceCore = process.argv.includes("--force-core");
   const sources = walk(SRC);
   let written = 0;
   let skipped = 0;
 
+  // Copy identity references (Cursor + OpenCode share references/)
+  const refSrc = path.join(SRC, "references");
+  const refDest = path.join(DEST, "references");
+  if (fs.existsSync(refSrc)) {
+    for (const name of fs.readdirSync(refSrc)) {
+      if (!name.endsWith(".md")) continue;
+      fs.mkdirSync(refDest, { recursive: true });
+      fs.copyFileSync(path.join(refSrc, name), path.join(refDest, name));
+      console.log("copied", path.relative(ROOT, path.join(refDest, name)));
+    }
+  }
+
   for (const src of sources) {
     const rel = path.relative(SRC, src);
+    if (rel.startsWith("references" + path.sep)) continue;
     const dest = path.join(DEST, rel);
     const isCore = CORE_NAMES.has(path.basename(src));
 
-    if (isCore && fs.existsSync(dest)) {
+    if (isCore && fs.existsSync(dest) && !forceCore) {
       skipped++;
       continue;
     }
@@ -138,6 +152,7 @@ function main() {
   }
 
   console.log(`\nDone. wrote=${written} skipped_core_existing=${skipped}`);
+  if (skipped > 0) console.log("Tip: re-run with --force-core to overwrite core agents.");
 }
 
 main();

@@ -12,7 +12,7 @@ Orchestration runs **automatically** in Cursor Agent — the user does **not** n
 For prompts that **implement, fix, build, refactor, deploy, install, configure, migrate, integrate, debug, continue, or improve** work:
 
 1. Hooks classify the prompt (`beforeSubmitPrompt`) and pick **core** (default) or **enterprise** route.
-2. **Core:** planner → implementer → verifier → reviewer. **Enterprise:** `/enterprise` or complexity signals → SDLC specialists; still plan before code.
+2. **Core:** planner → implementer → verifier → reviewer. **Enterprise:** `/enterprise` or complexity → SDLC specialists. **Greenfield:** `build a … app` → stack recommendations + intake → scaffold → small-task cycles until production.
 3. Vague goals trigger clarify-first intake (no implement yet).
 4. Hooks chain phases on `subagentStop` without user typing anything.
 
@@ -28,6 +28,7 @@ For prompts that **implement, fix, build, refactor, deploy, install, configure, 
 |-----------|--------|
 | `/orchestra <goal>` | Force start (core loop) |
 | `/enterprise <goal>` | Force enterprise SDLC |
+| `build a … app` / `new project` | **Greenfield intake** — recommend stack, gather reqs, scaffold, small-task loops |
 | `/orchestra stop` | `orchestra-enable.js stop` |
 | `disable orchestra` / `orchestra off` | Ambient off |
 | `enable orchestra` / `orchestra on` | Ambient on |
@@ -39,18 +40,35 @@ For prompts that **implement, fix, build, refactor, deploy, install, configure, 
 - One global goal at a time (`~/.cursor/hooks/state/orchestra.json`).
 - Read skill `orchestra-loop` when unsure.
 - **Do not modify files between phases** — let subagents handle their own work.
-- **Do not commit between phases** — implementer commits, others are read-only.
+- **Phase commit gate (required):** before launching the next subagent, run `git status --porcelain`. If dirty (except `.cursor/orchestra-plan.md`), **commit or discard first** — never start the next phase with uncommitted work.
+- **Handoff template:** pass goal (1 line) + plan path (`.cursor/orchestra-plan.md`) + prior failures only — never full chat history.
+- **Plan artifact:** planner hook saves plan to `.cursor/orchestra-plan.md`; implementer reads file, not chat.
 
-## Git commit workflow per phase
+## Research & tuning
 
-| Phase | Commits? | Who commits | Convention |
-|-------|----------|-------------|------------|
-| Plan | No | — | Plan is output text only |
-| Implement | **Yes** | Implementer | `<type>(<scope>): <desc>` |
-| Verify | No | — | Checks only, verifies clean tree |
-| Review | No | — | Reviews diff, suggests final message |
+- Harness / loop / prompts: `docs/agent-harness-recommendations.md`
+- Token usage: `docs/token-optimization.md` + `orchestra-enable.js tokens`
+- OpenCode example config: `docs/opencode.json.example`
+- Production loop: `docs/production-loop.md`
 
-After `ORCHESTRA_COMPLETE`, the reviewer suggests the final commit message if all changes are in one commit. The parent agent can use it or create their own.
+## Git commit workflow per phase (commit before next)
+
+**Hard rule:** each loop part that changes the repo must finish with a git commit **before** the next part starts.
+
+| Phase | Who commits | When | Convention |
+|-------|-------------|------|------------|
+| Plan | — (readonly) | No repo edits | Plan text → `.cursor/orchestra-plan.md` (gitignored) |
+| Implement | **Implementer** | After all plan files done, **before** `IMPLEMENT_DONE` | `<type>(<scope>): <desc>` |
+| Verify | — (readonly) | Must see clean tree; `VERIFY_FAIL` if dirty code | Checks only |
+| Review | Parent (docs only) | After `ORCHESTRA_COMPLETE` if `progress-tracker` / docs dirty | `docs(...): ...` |
+| FIX_REQUIRED loop | **Implementer** | Commit fixes **before** re-verify | same convention |
+
+Parent checklist before each phase advance:
+1. `git status --porcelain` is empty (or only allowed plan file)
+2. Last phase ended with its marker (`PLAN_READY` / `IMPLEMENT_DONE` / `VERIFY_PASS` / `ORCHESTRA_COMPLETE`)
+3. Then launch the next `orchestra-*` Task subagent
+
+After `ORCHESTRA_COMPLETE`, commit any remaining doc sync (`context/progress-tracker.md`) in a separate docs commit if dirty.
 
 ## Six-File Context (when `context/` exists in workspace)
 

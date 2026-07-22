@@ -14,6 +14,15 @@ const AMBIENT_CONTEXT = [
   "Stop: /orchestra stop or node ~/.cursor/hooks/orchestra-enable.js stop",
 ].join(" ");
 
+/** Stable prefix for prompt-cache — same every session when orchestra is installed. */
+const PARENT_HANDOFF_CONTEXT = [
+  "Orchestra parent handoff:",
+  "Pass to subagents: goal (1 line) + plan summary (3–5 bullets) + prior failures only.",
+  "Do NOT pass full chat history. Do NOT edit files or commit between phases.",
+  "Task names: orchestra-planner | orchestra-implementer | orchestra-verifier | orchestra-reviewer.",
+  "Docs: docs/agent-harness-recommendations.md | tokens: orchestra-enable.js tokens",
+].join("\n");
+
 const SIX_FILE_CONTEXT = [
   { file: "project-overview.md", label: "product definition, goals, features, scope" },
   { file: "architecture.md", label: "system structure, boundaries, invariants" },
@@ -80,10 +89,15 @@ function detectProjectYamlInWorkspaces(input) {
 
 function buildProjectYamlInjection(projectIdentity) {
   if (!projectIdentity) return "";
-  return [
+  const { buildOrchestraConfigSummary, extractOrchestraFromIdentity } = require("./orchestra-config.js");
+  const lines = [
     "Project Identity detected:",
     buildIdentitySummary(projectIdentity),
-  ].join("\n");
+  ];
+  const oc = extractOrchestraFromIdentity(projectIdentity);
+  const cfgSummary = buildOrchestraConfigSummary(oc);
+  if (cfgSummary) lines.push("", cfgSummary);
+  return lines.join("\n");
 }
 
 function detectContextInWorkspaces(input) {
@@ -136,6 +150,7 @@ function buildContextInjection(ctx) {
 
 module.exports = {
   AMBIENT_CONTEXT,
+  PARENT_HANDOFF_CONTEXT,
   SIX_FILE_CONTEXT,
   extractWorkspaceRoots,
   detectSixFileContext,

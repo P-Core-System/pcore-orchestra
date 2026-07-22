@@ -210,8 +210,9 @@ Once installed globally, orchestra works for any project:
 Each project can customize:
 - Which agents are enabled (in `hooks.json`)
 - Model routing (in `opencode.json` per project)
-- Token budgets (in agent frontmatter)
+- Token budgets (in agent frontmatter) — see `docs/token-optimization.md`
 - Convergence criteria (in verifier config)
+- OpenCode cost profile: `bash scripts/setup-opencode-optimal.sh --balanced`
 
 ### Share with team
 

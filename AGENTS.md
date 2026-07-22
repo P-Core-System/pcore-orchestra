@@ -52,6 +52,7 @@ bash scripts/init-context.sh /path/to/your-project --bridge
 # Health / control (Cursor)
 node ~/.cursor/hooks/orchestra-health.js
 node ~/.cursor/hooks/orchestra-enable.js status
+node ~/.cursor/hooks/orchestra-enable.js tokens
 
 # Health (OpenCode)
 node ~/.config/opencode/hooks/orchestra-health-opencode.js

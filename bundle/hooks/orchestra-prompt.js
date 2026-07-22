@@ -7,8 +7,18 @@ const { extractPrompt, classifyPrompt } = require("./lib/prompt-classifier.js");
 const {
   detectContextInWorkspaces,
   buildContextInjection,
+  detectProjectYamlInWorkspaces,
   AMBIENT_CONTEXT,
 } = require("./lib/context-detector.js");
+const { loadProjectIdentity } = require("./lib/project-identity.js");
+const {
+  extractOrchestraFromIdentity,
+  mergeRoute,
+  buildOrchestraConfigSummary,
+} = require("./lib/orchestra-config.js");
+const { buildPhaseHandoff, handoffWarningBlock } = require("./lib/handoff-enforcer.js");
+const { syncWorkspaceIdentity } = require("./lib/workspace-identity.js");
+const { buildGreenfieldIntakeBriefing } = require("./lib/greenfield-intake.js");
 const { resumeOrchestra, detectCrashRecovery } = require("./lib/checkpoint-manager.js");
 const { loadLongTermMemory, buildMemoryContext } = require("./lib/memory-manager.js");
 const { getAgentForPhase, LOOP_MODE_ENTERPRISE } = require("./lib/phase-engine.js");
@@ -111,7 +121,7 @@ async function main() {
     handleEnable(state);
   }
 
-  if (/\b(resume orchestra|continue orchestra)\b/i.test(prompt)) {
+  if (/\b(resume orchestra|continue orchestra|approve plan)\b/i.test(prompt)) {
     if (handleResume(state, input)) return;
     emit({
       additional_context: "No paused orchestration found to resume. Starting fresh if needed.",
@@ -139,8 +149,20 @@ async function main() {
     intake,
     inferFromContext,
     informal,
+    greenfield,
   } = classified;
+  const isGreenfield = !!(greenfield || intake?.greenfield);
   const ctxBlock = buildContextInjection(detectContextInWorkspaces(input));
+
+  const pyMeta = detectProjectYamlInWorkspaces(input);
+  let orchestraConfig = null;
+  const identitySync = syncWorkspaceIdentity(state, input);
+  if (identitySync) {
+    orchestraConfig = extractOrchestraFromIdentity(identitySync.identity);
+  } else if (pyMeta) {
+    const identity = loadProjectIdentity(pyMeta.root);
+    orchestraConfig = extractOrchestraFromIdentity(identity);
+  }
 
   if (!activate) {
     if (state.ambient !== false) {
@@ -159,7 +181,10 @@ async function main() {
       AMBIENT_CONTEXT,
       `Orchestra already active for this goal. Mode: ${state.loopMode}. Phase: ${state.currentPhase}.`,
       `Launch **${agent}** subagent for the current phase.`,
+      buildPhaseHandoff(state, agent),
     ];
+    const warn = handoffWarningBlock(prompt);
+    if (warn) parts.push(warn);
     if (ctxBlock) parts.push(ctxBlock);
     emit({ additional_context: parts.join("\n\n") });
     return;
@@ -179,20 +204,25 @@ async function main() {
     return;
   }
 
-  startOrchestra(goal || prompt, state, reason, { route, intake });
+  startOrchestra(goal || prompt, state, reason, {
+    route: mergeRoute(route, orchestraConfig),
+    intake,
+    orchestraConfig,
+  });
 
   const ltm = loadLongTermMemory();
-  const memCtx = buildMemoryContext(ltm);
+  const memCtx = buildMemoryContext(ltm, { query: goal || prompt });
   const modeLabel =
     route === LOOP_MODE_ENTERPRISE ? "enterprise SDLC" : "core loop (plan→implement→verify→review)";
 
   const firstAgent = getAgentForPhase(state.currentPhase);
   const parts = [
     AMBIENT_CONTEXT,
-    `Orchestra auto-started (${reason}, route=${route || "core"} / ${routeReason || "default"}) — no /orchestra needed.`,
+    `Orchestra auto-started (${reason}, route=${state.loopMode || "core"} / ${routeReason || "default"}) — no /orchestra needed.`,
     `Mode: ${modeLabel}`,
     `Goal: ${goal || prompt}`,
     `Phase: ${state.currentPhase} — launch **${firstAgent}** subagent first (Task tool). Do not implement until planning completes.`,
+    buildPhaseHandoff(state, firstAgent),
   ];
 
   if (informal || inferFromContext) {
@@ -209,12 +239,35 @@ async function main() {
     );
   }
 
+  if (isGreenfield) {
+    parts.push(buildGreenfieldIntakeBriefing(goal || prompt));
+    parts.push(
+      [
+        "Greenfield mode active:",
+        "- First present recommended stack + gather intake (or accept defaults).",
+        "- Scaffold with init-project if repo lacks context/project.yaml.",
+        `- First agent: **${firstAgent}** (discovery). Do not implement until stack + MVP locked.`,
+        "- Then slice into small tasks; each slice = one core orchestra cycle with phase commit gates.",
+        "- Loop slices until production checklist passes.",
+      ].join("\n")
+    );
+  }
+
   if (route === LOOP_MODE_ENTERPRISE) {
     parts.push(
       "Enterprise mode: discovery/design agents are readonly. Before code changes, ensure a plan exists (orchestra-planner or tech-lead/task-breakdown)."
     );
   } else {
     parts.push("Core mode: **orchestra-planner** → implementer → verifier → reviewer. No code edits in plan phase.");
+  }
+  if (orchestraConfig?.plan_only) {
+    parts.push(
+      "Plan-only mode: orchestra pauses after planner. User must say 'continue orchestra' or 'approve plan' before implement."
+    );
+  }
+  if (orchestraConfig) {
+    const cfgSummary = buildOrchestraConfigSummary(orchestraConfig);
+    if (cfgSummary) parts.push(cfgSummary);
   }
   if (memCtx) parts.push(memCtx);
   if (ctxBlock) {

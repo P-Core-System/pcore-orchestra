@@ -10,7 +10,7 @@ const {
   LOOP_MODE_CORE,
   LOOP_MODE_ENTERPRISE,
 } = require("./constants.js");
-const { normalizeLoopMode, getPhaseCategory, getPhaseIdsForMode } = require("./phase-engine.js");
+const { normalizeLoopMode, getPhaseCategory, getPhaseIdsForState, getPhasesForState } = require("./phase-engine.js");
 
 const STATE_PATH = path.join(__dirname, "..", "state", "orchestra.json");
 
@@ -177,9 +177,11 @@ function saveState(state) {
  */
 function startOrchestra(goal, state, source, options) {
   const { emitLifecycleEvent } = require("./lifecycle-recorder.js");
-  const route = normalizeLoopMode(options?.route || LOOP_MODE_CORE);
-  const startPhase = route === LOOP_MODE_ENTERPRISE ? "idea" : "plan";
-  const ids = getPhaseIdsForMode(route);
+  const orchestraConfig = options?.orchestraConfig || null;
+  let route = normalizeLoopMode(options?.route || orchestraConfig?.route || LOOP_MODE_CORE);
+  const enterprisePhases = getPhasesForState({ loopMode: route, orchestraConfig });
+  const startPhase = route === LOOP_MODE_ENTERPRISE ? enterprisePhases[0].id : "plan";
+  const ids = getPhaseIdsForState({ loopMode: route, orchestraConfig });
 
   state.active = true;
   state.goal = goal;
@@ -199,8 +201,12 @@ function startOrchestra(goal, state, source, options) {
     plannerFirst: true,
     firstAgent: "orchestra-planner",
   };
-  state.max_iterations =
-    route === LOOP_MODE_ENTERPRISE ? Math.max(state.max_iterations || 8, 16) : 8;
+  state.orchestraConfig = orchestraConfig;
+  state.planAwaitingConfirm = false;
+  state.planArtifact = null;
+
+  const defaultMax = route === LOOP_MODE_ENTERPRISE ? 16 : 8;
+  state.max_iterations = orchestraConfig?.max_iterations || defaultMax;
   state.lifecycle = { events: [], phase_history: [] };
   state.heartbeat.last_beat = new Date().toISOString();
   state.heartbeat.phase_started_at = new Date().toISOString();
@@ -211,6 +217,8 @@ function startOrchestra(goal, state, source, options) {
     paused: false, paused_at: null, pause_reason: null, checkpoint: null, last_save: null,
   };
   state.qualityGates = { passed: [], failed: [], skipped: [], allRequiredPassed: false };
+  const { initRunTokens } = require("./token-tracker.js");
+  initRunTokens(state);
   emitLifecycleEvent(state, "orchestra_start", startPhase, {
     goal,
     source,

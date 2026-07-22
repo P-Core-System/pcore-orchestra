@@ -2,12 +2,11 @@
   "version": 3,
   "ambient": true,
   "active": false,
-  "goal": "",
+  "goal": "test plan artifact",
   "loopMode": "core",
   "currentPhase": "idle",
   "currentPhaseIndex": -1,
   "phaseCategory": null,
-  "phase": "idle",
   "started_at": null,
   "last_subagent": null,
   "iteration": 0,
@@ -30,7 +29,7 @@
     "defaultBranch": "main",
     "lifecycleStage": "idea",
     "lifecycleStatus": "active",
-    "identityFile": null,
+    "identityFile": "C:\\Users\\peter\\AppData\\Local\\Temp\\orch-plan-Um0yE4\\project.yaml",
     "identityFormat": null
   },
   "versioning": {
@@ -75,5 +74,16 @@
     "pause_reason": null,
     "checkpoint": null,
     "last_save": null
-  }
+  },
+  "tokens": {
+    "run_id": "run-testplan"
+  },
+  "planArtifact": {
+    "path": "C:\\Users\\peter\\AppData\\Local\\Temp\\orch-plan-Um0yE4\\.cursor\\orchestra-plan.md",
+    "globalPath": "D:\\Learning Web Development\\pcore-orchestra\\bundle\\hooks\\state\\plans\\run-testplan.md",
+    "run_id": "run-testplan",
+    "saved_at": "2026-07-22T10:45:44.663Z",
+    "plan_ready": true
+  },
+  "phase": "idle"
 }
