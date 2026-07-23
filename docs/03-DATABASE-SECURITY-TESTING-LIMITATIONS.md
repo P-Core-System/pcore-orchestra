@@ -218,10 +218,10 @@ Authorization is enforced at the agent level:
 
 | Agent | Cursor | OpenCode |
 |-------|--------|----------|
-| Planner | `readonly: true` | `permission: { edit: deny, bash: ask }` |
+| Planner | `readonly: true` | `permission: { edit: deny, bash: allow }` |
 | Implementer | Full access | Full access |
 | Verifier | `readonly: true` | No restriction |
-| Reviewer | `readonly: true` | `permission: { edit: deny, bash: ask }` |
+| Reviewer | `readonly: true` | `permission: { edit: deny, bash: allow }` |
 
 ## CSP, CSRF, XSS, SQL Injection
 
