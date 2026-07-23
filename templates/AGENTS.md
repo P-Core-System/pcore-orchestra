@@ -15,7 +15,7 @@ or making any architectural decision:
    boundaries, storage model, system design &
    infrastructure, and invariants
 5. `context/ui-context.md` — theme, colors, typography,
-   and component conventions
+   component conventions, and UI skill usage
 6. `context/code-standards.md` — implementation rules
    and conventions
 7. `context/ai-workflow-rules.md` — development workflow,
@@ -24,6 +24,13 @@ or making any architectural decision:
    completed work, open questions, and next steps
 9. `context/specs/` — optional unit specs (one file per
    feature); see `specs/README.md`
+
+### UI skills (when building product UI)
+
+Prefer installed skills `ui-ux-pro-max`, `brand`, `design-system`,
+and `ui-styling` for design guidance. Persist tokens and conventions
+into `context/ui-context.md` (see Skills section there). Complements
+`web-design-guidelines` / `shadcn` Agent Skills.
 
 Update `context/progress-tracker.md` after each
 meaningful implementation change.

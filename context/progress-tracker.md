@@ -4,13 +4,18 @@ Update this file after every meaningful implementation change.
 
 ## Current Phase
 
-- V3.7.0 — greenfield product intake (stack recommend → gather → slice loops)
+- V3.7.1 — vendored UI/UX Pro Max core skills + install/docs wiring
 
 ## Current Goal
 
 - Focus pcore-orchestra only; crypto-trader decommissioned on server-a (migrating to new host)
 
 ## Completed
+
+- **V3.7.1**
+  - Vendored `ui-ux-pro-max`, `brand`, `design-system`, `ui-styling` (real assets, MIT) into Cursor + OpenCode skill trees
+  - Install links UI skills into `~/.agents/skills`; `THIRD_PARTY.md` attribution
+  - `templates/context/ui-context.md` Skills section + AGENTS/architecture/README notes (Python 3 optional for search.py only)
 
 - V3.2 adaptive loop; V3.3 OpenCode mirrors / evidence gates / intake+verify skills / specs templates
 - V3.3.1 install `lib/` replace fix; slim enterprise agents

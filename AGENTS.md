@@ -21,12 +21,12 @@ Update `context/progress-tracker.md` after each meaningful implementation change
 | `bundle/` | Source payload installed to `~/.cursor/` and `~/.config/opencode/` |
 | `bundle/hooks/` | Node hook scripts (session, prompt, subagent, stop) — Cursor only |
 | `bundle/agents/` | Cursor orchestra subagent definitions |
-| `bundle/skills/` | Cursor skills — orchestra-loop + 11 Cloudflare skills (agents-sdk, cloudflare, durable-objects, sandbox-sdk, wrangler, etc.) |
+| `bundle/skills/` | Cursor skills — orchestra-loop + intake/verify + UI (ui-ux-pro-max, brand, design-system, ui-styling) + Cloudflare skills |
 | `bundle/skills-cursor/` | Cursor built-in skills (babysit, canvas, loop, review, shell, sdk, etc.) |
 | `bundle/rules/orchestra-loop.mdc` | Cursor always-on rule |
 | `bundle/opencode/` | OpenCode agents, skills, health check, state |
 | `bundle/opencode/agents/` | OpenCode orchestra subagent definitions |
-| `bundle/opencode/skills/` | OpenCode skills — orchestra-loop + 11 Cloudflare skills (mirrors Cursor) |
+| `bundle/opencode/skills/` | OpenCode skills — mirrors Cursor (orchestra + UI + Cloudflare) |
 | `bundle/opencode/hooks/` | OpenCode health check script |
 | `bundle/opencode/state/` | Default shared state file |
 | `project-bridge/` | Per-repo `.cursor` bridge to global hooks |
@@ -69,8 +69,8 @@ Bootstrap templates: `bash scripts/init-context.sh <project-dir>`
 OpenCode uses a skill-driven approach instead of hooks:
 
 - **Agents** are defined as markdown files in `~/.config/opencode/agents/`
-- **Skills** at `~/.config/opencode/skills/` — orchestra-loop + 11 Cloudflare skills
+- **Skills** at `~/.config/opencode/skills/` — orchestra-loop + UI skills + Cloudflare
 - **State** is shared at `~/.config/opencode/state/orchestra.json`
-- **External discovery** via symlink at `~/.agents/skills/orchestra-loop`
+- **External discovery** via symlinks under `~/.agents/skills/` (orchestra-loop, prompt-intake, verification-before-completion, ui-ux-pro-max, brand, design-system, ui-styling)
 
 The OpenCode agents mirror the Cursor agents but use OpenCode's frontmatter format (`mode: subagent` instead of `readonly: true`).

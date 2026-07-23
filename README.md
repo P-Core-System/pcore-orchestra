@@ -42,6 +42,9 @@ Orchestra auto-runs: **planner → implementer → verifier → reviewer**.
 | Cursor IDE | Latest | Agent mode (for Cursor) |
 | OpenCode CLI | Latest | Optional (for OpenCode) |
 | Git | 2.x | Version control |
+| Python 3 | Optional | Only for `ui-ux-pro-max` / design-system `search.py` scripts — not required for orchestra hooks |
+
+Install also vendors UI skills (`ui-ux-pro-max`, `brand`, `design-system`, `ui-styling`) into `~/.cursor/skills` and links them under `~/.agents/skills`. See `THIRD_PARTY.md`.
 
 ---
 
