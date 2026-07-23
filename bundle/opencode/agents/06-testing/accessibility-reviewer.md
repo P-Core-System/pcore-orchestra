@@ -6,7 +6,7 @@ description: >-
 mode: subagent
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Identity

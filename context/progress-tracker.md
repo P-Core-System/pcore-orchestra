@@ -21,6 +21,12 @@ Update this file after every meaningful implementation change.
   - Local: created `~/.cursor/permissions.json` (terminal/MCP allow + Auto-review steer; block force-push/secrets/prod)
   - Removed redundant `cashflow/.cursor/cli.json`; cleared stale crypto-trader repo from orchestra idle state
   - Docs: OpenCode planner/reviewer `bash: allow` (edit still deny) in example + feature docs
+- **Ops (2026-07-23) — Cursor/OpenCode autonomy deep pass**
+  - Research: Auto-review + `permissions.json`/`sandbox.json`; OpenCode `--auto` + granular `permission` + agent overrides
+  - OpenCode agents: `bash: ask` → `bash: allow` (bundle + installed); setup-opencode-optimal aligned
+  - Live `~/.config/opencode/opencode.json` merged autonomy profile; Neon token → `{env:NEON_API_KEY}`
+  - `~/.cursor/sandbox.json` (shared cache + hooks/skills paths); permissions MCP/allowlist expanded
+  - Doc: `docs/autonomous-workflow.md`
 
 - V3.2 adaptive loop; V3.3 OpenCode mirrors / evidence gates / intake+verify skills / specs templates
 - V3.3.1 install `lib/` replace fix; slim enterprise agents

@@ -8,7 +8,7 @@ description: >-
 mode: subagent
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 You are the **orchestra verifier** subagent. Read-only — run checks, do not fix code.

@@ -205,16 +205,17 @@ sequenceDiagram
 | Subagents | `.cursor/agents/*.md` | `.config/opencode/agents/*.md` | `sync-opencode-agents.js` |
 | Always-on rules | `.mdc` rules | N/A | `orchestra-loop.mdc` |
 | Skills | `.cursor/skills/` | `.config/opencode/skills/` + `skill` tool | Mirrored bundle |
-| Permissions | Implicit | `opencode.json` `permission` | Use `setup-opencode-optimal.sh` |
+| Permissions | `permissions.json` + Auto-review / CLI unrestricted | `opencode.json` `permission` + `--auto` | See `docs/autonomous-workflow.md`; `setup-opencode-optimal.sh` |
 | Token prune | Manual | `compaction.prune` | Recommend balanced profile |
 | Step limits | Hook iterations | `agent.*.steps` | Align steps with max_iterations |
 
 ### OpenCode-specific recommendations
 
-1. **Generate `opencode.json` example in repo** — balanced profile, per-agent steps, web deny on read-only phases.
-2. **Skill permissions** — `permission.skill`: allow `orchestra-loop`, `verification-before-completion`; deny unused Cloudflare skills on planner.
+1. **Generate `opencode.json` example in repo** — balanced profile, per-agent steps, web deny on read-only phases; `bash: allow` on readonly agents (see `docs/autonomous-workflow.md`).
+2. **Skill permissions** — `permission.skill`: allow `orchestra-loop`, `verification-before-completion`, UI skills; deny unused Cloudflare skills on planner.
 3. **Progressive disclosure** — keep SKILL.md bodies <500 lines; move Cloudflare refs to `references/` (already pattern in bundle).
 4. **External discovery** — keep `~/.agents/skills/orchestra-loop` symlink (install scripts do this).
+5. **Session autonomy** — run `opencode --auto` (or TUI auto-approve) so remaining `ask` rules do not stall loops; denies still apply.
 
 ```json
 {
