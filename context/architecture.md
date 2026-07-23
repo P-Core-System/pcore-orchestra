@@ -44,6 +44,7 @@
 | `bundle/skills/orchestra-loop/` | Skill documentation |
 | `bundle/skills/prompt-intake/` | Vague-goal intake before planning |
 | `bundle/skills/verification-before-completion/` | Evidence-required verification |
+| `bundle/skills/{ui-ux-pro-max,brand,design-system,ui-styling}/` | Vendored UI skills (real assets; MIT — see `THIRD_PARTY.md`) |
 | `bundle/opencode/agents/` | OpenCode mirrors (core + enterprise) |
 | `templates/context/specs/` | Unit spec blanks (methodology Part 3) |
 | `project-bridge/` | Repo-local delegation only — no duplicate logic |
@@ -269,3 +270,5 @@ powershell -File scripts/init-project.ps1 -Target . -Type web -Name "My App"
 10. Technical debt must be recorded if any shortcuts were taken.
 11. All agents must output structured data for downstream consumption.
 12. Phase chain is extensible — new phases can be added by creating agent + hook entry.
+13. Orchestra hooks remain **Node.js only** — no Python hook runtime. Optional Python 3 is a skill dependency for `ui-ux-pro-max` `search.py` (and related design scripts), not for install/health.
+14. Vendored UI skills ship **real directories** (`data/`, `scripts/`) — never symlink stubs into the bundle.

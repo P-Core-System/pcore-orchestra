@@ -57,3 +57,20 @@ rather than writing from scratch.]
 
 [e.g. Lucide React. Stroke-based icons only. Sizes:
 h-4 w-4 for inline, h-5 w-5 for buttons.]
+
+## Skills (UI / UX)
+
+Use these installed skills when designing or implementing UI. They complement
+`web-design-guidelines` and `shadcn` (Agent Skills) — do not replace them.
+
+| Skill | When to use |
+| ----- | ----------- |
+| `ui-ux-pro-max` | Product/page UI reasoning, stack-aware patterns, UX guidelines; optional `search.py` (Python 3) for CSV design data |
+| `brand` | Logo, voice, color/type identity, brand guideline sync |
+| `design-system` | Tokens, component specs, Tailwind integration; hierarchical pages via `design-system/MASTER.md` when needed |
+| `ui-styling` | Tailwind/shadcn theming, responsive utilities, canvas fonts |
+
+**Persist → this file:** When a skill (or `--persist` / design-system output) produces tokens,
+colors, typography, or component conventions, write the durable choices into
+`context/ui-context.md` (project source of truth). Keep long hierarchical design
+docs in `design-system/` only when the project needs multi-page token trees.
