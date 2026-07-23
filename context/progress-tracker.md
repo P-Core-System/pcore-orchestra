@@ -4,7 +4,7 @@ Update this file after every meaningful implementation change.
 
 ## Current Phase
 
-- V3.7.1 — vendored UI/UX Pro Max core skills + install/docs wiring
+- V3.7.2 — install merges Cursor/OpenCode autonomy (CLI, permissions, sandbox, opencode.json)
 
 ## Current Goal
 
@@ -27,6 +27,10 @@ Update this file after every meaningful implementation change.
   - Live `~/.config/opencode/opencode.json` merged autonomy profile; Neon token → `{env:NEON_API_KEY}`
   - `~/.cursor/sandbox.json` (shared cache + hooks/skills paths); permissions MCP/allowlist expanded
   - Doc: `docs/autonomous-workflow.md`
+- **V3.7.2**
+  - `bundle/config/{cursor,opencode}/` autonomy templates; `scripts/merge-autonomy-config.js`
+  - `install.sh` / `install.ps1` merge CLI + permissions + sandbox (Cursor) and opencode.json autonomy (MCP preserved)
+  - Docs/AGENTS/architecture/README updated; autonomy applied on every install
 
 - V3.2 adaptive loop; V3.3 OpenCode mirrors / evidence gates / intake+verify skills / specs templates
 - V3.3.1 install `lib/` replace fix; slim enterprise agents

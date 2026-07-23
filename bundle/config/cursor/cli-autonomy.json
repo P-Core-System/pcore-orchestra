@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Shell(**)",
+      "Read(**)",
+      "Write(**)",
+      "Delete(**)",
+      "WebFetch(**)",
+      "WebSearch(**)",
+      "Mcp(*:*)",
+      "Task(**)",
+      "GenerateImage(**)"
+    ],
+    "deny": []
+  },
+  "approvalMode": "unrestricted",
+  "autoAcceptWebSearch": true,
+  "webFetchDomainAllowlist": ["*"],
+  "sandbox": {
+    "mode": "disabled",
+    "networkAccess": "user_config_with_defaults"
+  }
+}

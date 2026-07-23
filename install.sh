@@ -139,10 +139,14 @@ MERGE
     fi
   done
 
+  # Autonomy: CLI + permissions.json + sandbox.json (preserves auth/model)
+  node "$ROOT/scripts/merge-autonomy-config.js" --cursor --cursor-home "$CURSOR"
+
   echo "  Cursor agents:    $CURSOR/agents/orchestra-*.md"
   echo "  Cursor hooks:     $CURSOR/hooks/"
   echo "  Cursor skills:    $CURSOR/skills/ (orchestra-loop + intake/verify + UI + Cloudflare)"
   echo "  Cursor built-in:  $CURSOR/skills-cursor/ (17 skills)"
+  echo "  Cursor autonomy:  $CURSOR/cli-config.json + permissions.json + sandbox.json"
   echo "  Agents skills:    $AGENTS_SKILLS/{orchestra-loop,prompt-intake,verification-before-completion,ui-ux-pro-max,brand,design-system,ui-styling}"
 }
 
@@ -190,9 +194,13 @@ install_opencode() {
     fi
   done
 
+  # Autonomy: merge permission/agent into opencode.json (preserves mcp secrets)
+  node "$ROOT/scripts/merge-autonomy-config.js" --opencode --opencode-home "$OPENCODE"
+
   echo "  OpenCode agents:  $OPENCODE/agents/ (core + enterprise)"
   echo "  OpenCode skills:  $OPENCODE/skills/ (orchestra-loop + intake/verify + UI + Cloudflare)"
   echo "  OpenCode state:   $OPENCODE/state/orchestra.json"
+  echo "  OpenCode autonomy:$OPENCODE/opencode.json (permission + agents; mcp preserved)"
 }
 
 ###############################################################################
@@ -257,13 +265,17 @@ echo ""
 if [[ "$INSTALL_CURSOR" -eq 1 ]]; then
   echo "  Cursor global:   $CURSOR"
   echo "  Cursor hooks:    Settings → Hooks (restart Cursor IDE)"
+  echo "  Cursor autonomy: permissions.json + sandbox.json + cli-config (merged)"
+  echo "  Cursor Approvals: Settings → Agents → Approvals → Auto-review"
   echo "  Cursor test:     node $CURSOR/hooks/orchestra-health.js"
   echo "  Cursor status:   node $CURSOR/hooks/orchestra-enable.js status"
 fi
 if [[ "$INSTALL_OPENCODE" -eq 1 ]]; then
   echo "  OpenCode global: $OPENCODE"
+  echo "  OpenCode tip:    opencode --auto  (session auto-approve; denies still bind)"
   echo "  OpenCode test:   node $OPENCODE/hooks/orchestra-health-opencode.js"
 fi
 echo ""
+echo "  Docs: docs/autonomous-workflow.md"
 echo "  Restart Cursor IDE or opencode for changes to take effect."
 echo "============================================"

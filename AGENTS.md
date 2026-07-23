@@ -29,6 +29,9 @@ Update `context/progress-tracker.md` after each meaningful implementation change
 | `bundle/opencode/skills/` | OpenCode skills — mirrors Cursor (orchestra + UI + Cloudflare) |
 | `bundle/opencode/hooks/` | OpenCode health check script |
 | `bundle/opencode/state/` | Default shared state file |
+| `bundle/config/cursor/` | CLI autonomy patch, `permissions.json`, `sandbox.json` (merged on install) |
+| `bundle/config/opencode/` | OpenCode autonomy profile (permission + agents; MCP preserved) |
+| `scripts/merge-autonomy-config.js` | Merges autonomy into `~/.cursor` + `~/.config/opencode` during install |
 | `project-bridge/` | Per-repo `.cursor` bridge to global hooks |
 | `templates/context/` | Blank six-file context templates (JavaScript Mastery methodology) |
 | `templates/AGENTS.md` | Entry-point template for target projects |
@@ -39,11 +42,15 @@ Update `context/progress-tracker.md` after each meaningful implementation change
 
 ```bash
 # Install orchestra globally (both Cursor + OpenCode)
+# Merges Cursor CLI/permissions/sandbox + OpenCode autonomy (MCP preserved)
 bash install.sh
 bash install.sh --all        # both (default)
 bash install.sh --cursor     # Cursor only
 bash install.sh --opencode   # OpenCode only
 bash install.sh --project    # + project bridge in cwd
+
+# Autonomy merge only (no full bundle copy)
+node scripts/merge-autonomy-config.js --all
 
 # Bootstrap six-file context in a project (orchestra-aware)
 bash scripts/init-context.sh /path/to/your-project
