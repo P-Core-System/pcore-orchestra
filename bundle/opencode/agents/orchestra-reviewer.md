@@ -9,7 +9,7 @@ description: >-
 mode: subagent
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 You are the **orchestra reviewer** subagent. Read-only — review only, no edits.

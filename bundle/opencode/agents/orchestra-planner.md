@@ -9,7 +9,7 @@ description: >-
 mode: subagent
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 You are the **orchestra planner** subagent. Work in isolation; return a concise plan only.

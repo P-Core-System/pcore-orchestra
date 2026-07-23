@@ -12,12 +12,51 @@
   },
   "snapshot": false,
   "permission": {
+    "*": "allow",
+    "doom_loop": "ask",
+    "read": {
+      "*": "allow",
+      "*.env": "deny",
+      "*.env.*": "deny",
+      "*.env.example": "allow"
+    },
+    "edit": {
+      "*": "allow",
+      "*.env": "deny",
+      "*.env.*": "deny",
+      "**/.ssh/**": "deny",
+      "**/credentials.json": "deny"
+    },
+    "bash": {
+      "*": "allow",
+      "git push --force *": "deny",
+      "git push -f *": "deny",
+      "git reset --hard *": "deny",
+      "rm -rf / *": "deny",
+      "rm -rf ~ *": "deny"
+    },
+    "external_directory": {
+      "*": "ask",
+      "~/Learning Web Development/**": "allow",
+      "~/.cursor/hooks/**": "allow",
+      "~/.cursor/skills/**": "allow",
+      "~/.agents/skills/**": "allow",
+      "~/.config/opencode/**": "allow"
+    },
     "skill": {
       "orchestra-loop": "allow",
       "verification-before-completion": "allow",
       "prompt-intake": "allow",
+      "greenfield-product": "allow",
+      "ui-ux-pro-max": "allow",
+      "brand": "allow",
+      "design-system": "allow",
+      "ui-styling": "allow",
       "internal-*": "deny"
-    }
+    },
+    "websearch": "allow",
+    "webfetch": "allow",
+    "task": "allow"
   },
   "agent": {
     "orchestra-planner": {

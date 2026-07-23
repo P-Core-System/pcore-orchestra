@@ -212,7 +212,7 @@ generate_config() {
     "orchestra-planner": {
       "model": "opencode/deepseek-v4-flash-free",
       "steps": 6,
-      "permission": { "edit": "deny", "bash": "ask", "websearch": "deny" }
+      "permission": { "edit": "deny", "bash": "allow", "websearch": "deny" }
     },
     "orchestra-implementer": {
       "model": "opencode/deepseek-v4-flash-free",
@@ -226,7 +226,7 @@ generate_config() {
     "orchestra-reviewer": {
       "model": "opencode/deepseek-v4-flash-free",
       "steps": 4,
-      "permission": { "edit": "deny", "bash": "ask", "websearch": "deny", "webfetch": "deny" }
+      "permission": { "edit": "deny", "bash": "allow", "websearch": "deny", "webfetch": "deny" }
     }
   },
   "provider": {
@@ -266,7 +266,7 @@ generate_config() {
     "orchestra-planner": {
       "model": "opencode/deepseek-v4-flash",
       "steps": 8,
-      "permission": { "edit": "deny", "bash": "ask", "websearch": "deny" }
+      "permission": { "edit": "deny", "bash": "allow", "websearch": "deny" }
     },
     "orchestra-implementer": {
       "model": "opencode/kimi-k2.5",
@@ -280,7 +280,7 @@ generate_config() {
     "orchestra-reviewer": {
       "model": "opencode/deepseek-v4-flash",
       "steps": 5,
-      "permission": { "edit": "deny", "bash": "ask", "websearch": "deny", "webfetch": "deny" }
+      "permission": { "edit": "deny", "bash": "allow", "websearch": "deny", "webfetch": "deny" }
     }
   },
   "provider": {
@@ -322,7 +322,7 @@ generate_config() {
     "orchestra-planner": {
       "model": "opencode/deepseek-v4-flash",
       "steps": 8,
-      "permission": { "edit": "deny", "bash": "ask", "websearch": "deny" }
+      "permission": { "edit": "deny", "bash": "allow", "websearch": "deny" }
     },
     "orchestra-implementer": {
       "model": "opencode/claude-sonnet-5",
@@ -336,7 +336,7 @@ generate_config() {
     "orchestra-reviewer": {
       "model": "opencode/claude-sonnet-5",
       "steps": 5,
-      "permission": { "edit": "deny", "bash": "ask", "websearch": "deny", "webfetch": "deny" }
+      "permission": { "edit": "deny", "bash": "allow", "websearch": "deny", "webfetch": "deny" }
     }
   },
   "provider": {
