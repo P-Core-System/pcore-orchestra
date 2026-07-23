@@ -49,9 +49,8 @@
       "~/.config/opencode/**": "allow",
       "~/Learning Web Development/**": "allow",
       "~/Projects/**": "allow",
-      "~/projects/**": "allow",
       "~/Developer/**": "allow",
-      "~/dev/**": "allow"
+      "~/code/**": "allow"
     },
     "skill": {
       "orchestra-loop": "allow",
