@@ -89,7 +89,10 @@ function Install-Cursor {
   }
 
   New-Item -ItemType Directory -Force -Path $AgentsSkills | Out-Null
-  foreach ($linkSkill in @("orchestra-loop", "prompt-intake", "verification-before-completion")) {
+  foreach ($linkSkill in @(
+    "orchestra-loop", "prompt-intake", "verification-before-completion",
+    "ui-ux-pro-max", "brand", "design-system", "ui-styling"
+  )) {
     $srcSkill = Join-Path (Join-Path $CursorDir "skills") $linkSkill
     $skillLink = Join-Path $AgentsSkills $linkSkill
     if (Test-Path $srcSkill) {
@@ -131,8 +134,9 @@ console.log("  Merged hooks.json ->", destPath);
 
   Write-Host "  Cursor agents:   $CursorDir\agents\orchestra-*.md"
   Write-Host "  Cursor hooks:    $CursorDir\hooks\"
-  Write-Host "  Cursor skills:   $CursorDir\skills\ (orchestra-loop + Cloudflare)"
+  Write-Host "  Cursor skills:   $CursorDir\skills\ (orchestra-loop + UI + Cloudflare)"
   Write-Host "  Cursor built-in: $CursorDir\skills-cursor\ (17 skills)"
+  Write-Host "  Agents skills:   $AgentsSkills\{orchestra-loop,prompt-intake,verification-before-completion,ui-ux-pro-max,brand,design-system,ui-styling}"
 }
 
 ###############################################################################
@@ -179,19 +183,27 @@ function Install-OpenCode {
     Copy-Item (Join-Path $Bundle "opencode\state\orchestra.json") $stateDest -Force
   }
 
-  # External skill symlink
+  # External skill symlinks (Agent Skills compat path)
   New-Item -ItemType Directory -Force -Path $AgentsSkills | Out-Null
-  $skillLink = Join-Path $AgentsSkills "orchestra-loop"
-  if (Test-Path $skillLink) { Remove-Item $skillLink -Force -Recurse -ErrorAction SilentlyContinue }
-  New-Item -ItemType SymbolicLink -Path $skillLink -Target (Join-Path $OpenCodeDir "skills\orchestra-loop") -Force -ErrorAction SilentlyContinue
-  if (-not (Test-Path $skillLink)) {
-    Copy-Item (Join-Path $OpenCodeDir "skills\orchestra-loop") $skillLink -Recurse -Force
+  foreach ($linkSkill in @(
+    "orchestra-loop", "prompt-intake", "verification-before-completion",
+    "ui-ux-pro-max", "brand", "design-system", "ui-styling"
+  )) {
+    $srcSkill = Join-Path (Join-Path $OpenCodeDir "skills") $linkSkill
+    $skillLink = Join-Path $AgentsSkills $linkSkill
+    if (Test-Path $srcSkill) {
+      if (Test-Path $skillLink) { Remove-Item $skillLink -Force -Recurse -ErrorAction SilentlyContinue }
+      New-Item -ItemType SymbolicLink -Path $skillLink -Target $srcSkill -Force -ErrorAction SilentlyContinue | Out-Null
+      if (-not (Test-Path $skillLink)) {
+        Copy-Item $srcSkill $skillLink -Recurse -Force
+      }
+    }
   }
 
   Write-Host "  OpenCode agents:  $OpenCodeDir\agents\orchestra-*.md"
   Write-Host "  OpenCode hooks:   $OpenCodeDir\hooks\"
   Write-Host "  OpenCode lib:     $OpenCodeDir\hooks\lib\ (21 modules)"
-  Write-Host "  OpenCode skills:  $OpenCodeDir\skills\ (orchestra-loop + Cloudflare)"
+  Write-Host "  OpenCode skills:  $OpenCodeDir\skills\ (orchestra-loop + UI + Cloudflare)"
   Write-Host "  OpenCode state:   $OpenCodeDir\state\orchestra.json"
 }
 
