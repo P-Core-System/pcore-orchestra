@@ -8,7 +8,13 @@
     "reserved": 8000
   },
   "watcher": {
-    "ignore": ["node_modules/**", "dist/**", ".git/**", "build/**", "coverage/**"]
+    "ignore": [
+      "node_modules/**",
+      "dist/**",
+      ".git/**",
+      "build/**",
+      "coverage/**"
+    ]
   },
   "snapshot": false,
   "permission": {
@@ -37,11 +43,15 @@
     },
     "external_directory": {
       "*": "ask",
-      "~/Learning Web Development/**": "allow",
       "~/.cursor/hooks/**": "allow",
       "~/.cursor/skills/**": "allow",
       "~/.agents/skills/**": "allow",
-      "~/.config/opencode/**": "allow"
+      "~/.config/opencode/**": "allow",
+      "~/Learning Web Development/**": "allow",
+      "~/Projects/**": "allow",
+      "~/projects/**": "allow",
+      "~/Developer/**": "allow",
+      "~/dev/**": "allow"
     },
     "skill": {
       "orchestra-loop": "allow",
@@ -98,8 +108,13 @@
       "models": {
         "deepseek-v4-flash": {
           "variants": {
-            "fast": { "reasoningEffort": "low", "textVerbosity": "low" },
-            "thorough": { "reasoningEffort": "high" }
+            "fast": {
+              "reasoningEffort": "low",
+              "textVerbosity": "low"
+            },
+            "thorough": {
+              "reasoningEffort": "high"
+            }
           }
         }
       }

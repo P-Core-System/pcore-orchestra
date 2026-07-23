@@ -1,54 +1,55 @@
 # Autonomous Cursor + OpenCode workflow
 
-How this machine is tuned for longer agent runs with fewer approval prompts, while keeping provider-level safety and explicit denies for destructive actions.
+How pcore-orchestra tunes longer agent runs with fewer approval prompts, while keeping provider-level safety and explicit denies for destructive actions.
+
+## Install (source of truth)
+
+```bash
+bash install.sh          # or: powershell -File install.ps1
+node scripts/merge-autonomy-config.js --all   # autonomy only
+```
+
+Install merges:
+
+| Target | From bundle | Behavior |
+|--------|-------------|----------|
+| `~/.cursor/cli-config.json` | `bundle/config/cursor/cli-autonomy.json` | Merges allowlist + approval/web flags; **keeps** auth/model caches |
+| `~/.cursor/permissions.json` | `bundle/config/cursor/permissions.json` | Unions allowlists + autoRun instructions |
+| `~/.cursor/sandbox.json` | `bundle/config/cursor/sandbox.json` | Expands `$HOME`; unions paths/network |
+| `~/.config/opencode/opencode.json` | `bundle/config/opencode/autonomy.json` | Merges permission/agent/compaction; **keeps** `mcp` secrets |
 
 ## Cursor (IDE + CLI)
 
 | Knob | Location | Purpose |
 |------|----------|---------|
-| Run Mode | **Settings → Agents → Approvals & Execution** | Prefer **Auto-review** (allowlist → sandbox → classifier). Use **Run Everything** only if you accept zero prompts. |
-| CLI approval | `~/.cursor/cli-config.json` → `approvalMode: unrestricted` | CLI tools auto-run; broad `permissions.allow` is the fallback. |
-| Web | same file → `autoAcceptWebSearch`, `webFetchDomainAllowlist` | Fewer search/fetch prompts. |
-| Allowlists + classifier steer | `~/.cursor/permissions.json` | Terminal/MCP allowlists + `autoRun.allow_instructions` / `block_instructions`. |
-| Sandbox network/paths | `~/.cursor/sandbox.json` | Shared build cache; hooks/skills paths; network default allow with metadata deny. |
-
-**Do not** commit secrets into project `.cursor/permissions.json` unless the team agrees. Prefer user-global files.
+| Run Mode | **Settings → Agents → Approvals & Execution** | Prefer **Auto-review**. |
+| CLI approval | `~/.cursor/cli-config.json` → `approvalMode: unrestricted` | CLI tools auto-run. |
+| Web | `autoAcceptWebSearch`, `webFetchDomainAllowlist` | Fewer search/fetch prompts. |
+| Allowlists + classifier | `~/.cursor/permissions.json` | Terminal/MCP + `autoRun` steer. |
+| Sandbox | `~/.cursor/sandbox.json` | Shared build cache; hooks/skills paths. |
 
 ### Manual step (required once)
 
-Cursor Run Mode is UI-only. Set **Auto-review** after updating these files, then reload the window.
+Set **Auto-review** in Cursor Settings after install, then reload.
 
 ## OpenCode
 
 | Knob | Location | Purpose |
 |------|----------|---------|
-| Global permissions | `~/.config/opencode/opencode.json` → `permission` | Default `allow` with denies for `.env`, force-push, hard reset; `doom_loop: ask`. |
-| Orchestra agents | same file → `agent.*` + markdown frontmatter | Readonly phases: `edit: deny`, `bash: allow` (inspection without prompts). |
-| Auto-approve session | `opencode --auto` or TUI “Enable auto-approve permissions” | Approves remaining `ask` rules for the session; **deny still enforced**. |
-| Skills | `permission.skill` | Allow orchestra + UI skills; deny `internal-*`. |
-| Optimal models | `bash scripts/setup-opencode-optimal.sh --balanced` | Cost/quality profiles (keeps `bash: allow` on readonly agents). |
+| Global permissions | `opencode.json` → `permission` | Allow with `.env` / force-push denies; `doom_loop: ask`. |
+| Orchestra agents | `agent.*` + markdown | Readonly: `edit: deny`, `bash: allow`. |
+| Session auto | `opencode --auto` | Approves remaining `ask`; **deny still binds**. |
 
-Example committed config: `docs/opencode.json.example`.
+Example: `docs/opencode.json.example` (from `bundle/config/opencode/autonomy.json`).
 
-### Secrets
+## Safety kept intact
 
-Prefer `{env:VAR}` in MCP headers and a User environment variable (or `~/.config/opencode/.env` for local tooling). Rotate any token that was previously stored in plaintext in `opencode.json`.
-
-## What we intentionally do **not** weaken
-
-- Provider / team-admin safety policies
-- `.env` read/write denies (OpenCode defaults + explicit rules)
-- Force-push / hard-reset / mass-delete denies
-- Classifier `block_instructions` for prod DB, SSH keys, remote kubectl
+Provider policies; `.env` denies; force-push / hard-reset / mass-delete denies; prod DB / SSH / remote kubectl block instructions.
 
 ## Quick verify
 
 ```bash
-# Cursor CLI
-node -e "console.log(require(require('os').homedir()+'/.cursor/cli-config.json').approvalMode)"
-Test-Path ~/.cursor/permissions.json; Test-Path ~/.cursor/sandbox.json
-
-# OpenCode
+node scripts/merge-autonomy-config.js --all
+node ~/.cursor/hooks/orchestra-health.js
 node ~/.config/opencode/hooks/orchestra-health-opencode.js
-# Start with: opencode --auto
 ```

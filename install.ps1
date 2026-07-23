@@ -132,10 +132,14 @@ console.log("  Merged hooks.json ->", destPath);
   Set-Content -Path $mergeFile -Value $mergeJs -Encoding UTF8
   node $mergeFile $CursorDir (Join-Path $Bundle "hooks.json")
 
+  # Autonomy: CLI + permissions.json + sandbox.json (preserves auth/model)
+  node (Join-Path $Root "scripts\merge-autonomy-config.js") --cursor --cursor-home $CursorDir
+
   Write-Host "  Cursor agents:   $CursorDir\agents\orchestra-*.md"
   Write-Host "  Cursor hooks:    $CursorDir\hooks\"
   Write-Host "  Cursor skills:   $CursorDir\skills\ (orchestra-loop + UI + Cloudflare)"
   Write-Host "  Cursor built-in: $CursorDir\skills-cursor\ (17 skills)"
+  Write-Host "  Cursor autonomy: $CursorDir\cli-config.json + permissions.json + sandbox.json"
   Write-Host "  Agents skills:   $AgentsSkills\{orchestra-loop,prompt-intake,verification-before-completion,ui-ux-pro-max,brand,design-system,ui-styling}"
 }
 
@@ -200,11 +204,15 @@ function Install-OpenCode {
     }
   }
 
+  # Autonomy: merge permission/agent into opencode.json (preserves mcp secrets)
+  node (Join-Path $Root "scripts\merge-autonomy-config.js") --opencode --opencode-home $OpenCodeDir
+
   Write-Host "  OpenCode agents:  $OpenCodeDir\agents\orchestra-*.md"
   Write-Host "  OpenCode hooks:   $OpenCodeDir\hooks\"
   Write-Host "  OpenCode lib:     $OpenCodeDir\hooks\lib\ (21 modules)"
   Write-Host "  OpenCode skills:  $OpenCodeDir\skills\ (orchestra-loop + UI + Cloudflare)"
   Write-Host "  OpenCode state:   $OpenCodeDir\state\orchestra.json"
+  Write-Host "  OpenCode autonomy:$OpenCodeDir\opencode.json (permission + agents; mcp preserved)"
 }
 
 ###############################################################################
@@ -241,6 +249,10 @@ if ($Cursor) {
 }
 if ($OpenCode) {
   Write-Host "  OpenCode: $OpenCodeDir"
-  Write-Host "            Restart OpenCode for agents/skill to load"
+  Write-Host "            Restart OpenCode; prefer: opencode --auto"
+}
+if ($Cursor) {
+  Write-Host "  Autonomy: Settings → Agents → Approvals → Auto-review"
+  Write-Host "            Docs: docs/autonomous-workflow.md"
 }
 Write-Host "============================================"

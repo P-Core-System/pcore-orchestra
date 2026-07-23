@@ -1,0 +1,99 @@
+{
+  "model": "opencode/deepseek-v4-flash",
+  "small_model": "opencode/gpt-5-nano",
+  "compaction": {
+    "auto": true,
+    "prune": true,
+    "reserved": 8000
+  },
+  "watcher": {
+    "ignore": ["node_modules/**", "dist/**", ".git/**", "build/**", "coverage/**"]
+  },
+  "snapshot": false,
+  "permission": {
+    "*": "allow",
+    "doom_loop": "ask",
+    "read": {
+      "*": "allow",
+      "*.env": "deny",
+      "*.env.*": "deny",
+      "*.env.example": "allow"
+    },
+    "edit": {
+      "*": "allow",
+      "*.env": "deny",
+      "*.env.*": "deny",
+      "**/.ssh/**": "deny",
+      "**/credentials.json": "deny"
+    },
+    "bash": {
+      "*": "allow",
+      "git push --force *": "deny",
+      "git push -f *": "deny",
+      "git reset --hard *": "deny",
+      "rm -rf / *": "deny",
+      "rm -rf ~ *": "deny"
+    },
+    "external_directory": {
+      "*": "ask",
+      "~/.cursor/hooks/**": "allow",
+      "~/.cursor/skills/**": "allow",
+      "~/.agents/skills/**": "allow",
+      "~/.config/opencode/**": "allow",
+      "~/Learning Web Development/**": "allow",
+      "~/Projects/**": "allow",
+      "~/projects/**": "allow",
+      "~/Developer/**": "allow",
+      "~/dev/**": "allow"
+    },
+    "skill": {
+      "orchestra-loop": "allow",
+      "verification-before-completion": "allow",
+      "prompt-intake": "allow",
+      "greenfield-product": "allow",
+      "ui-ux-pro-max": "allow",
+      "brand": "allow",
+      "design-system": "allow",
+      "ui-styling": "allow",
+      "internal-*": "deny"
+    },
+    "websearch": "allow",
+    "webfetch": "allow",
+    "task": "allow"
+  },
+  "agent": {
+    "orchestra-planner": {
+      "model": "opencode/deepseek-v4-flash",
+      "steps": 8,
+      "permission": {
+        "edit": "deny",
+        "bash": "allow",
+        "websearch": "deny",
+        "webfetch": "deny"
+      }
+    },
+    "orchestra-implementer": {
+      "model": "opencode/kimi-k2.5",
+      "steps": 25
+    },
+    "orchestra-verifier": {
+      "model": "opencode/deepseek-v4-flash",
+      "steps": 10,
+      "permission": {
+        "edit": "deny",
+        "bash": "allow",
+        "websearch": "deny"
+      }
+    },
+    "orchestra-reviewer": {
+      "model": "opencode/deepseek-v4-flash",
+      "steps": 5,
+      "permission": {
+        "edit": "deny",
+        "bash": "allow",
+        "websearch": "deny",
+        "webfetch": "deny"
+      }
+    }
+  }
+}

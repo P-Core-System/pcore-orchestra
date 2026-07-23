@@ -9,7 +9,7 @@
 | Agent definitions | Markdown frontmatter | `~/.cursor/agents/orchestra-*.md` |
 | Persistent state | JSON file | `~/.cursor/hooks/state/orchestra.json` |
 | Project context | Markdown six files | `context/*.md` in target repos |
-| Install | Bash + PowerShell | `install.sh`, `install.ps1`, `scripts/init-context.*` |
+| Install | Bash + PowerShell | `install.sh`, `install.ps1`, `scripts/init-context.*`, `scripts/merge-autonomy-config.js` |
 
 ## System boundaries
 
@@ -45,6 +45,9 @@
 | `bundle/skills/prompt-intake/` | Vague-goal intake before planning |
 | `bundle/skills/verification-before-completion/` | Evidence-required verification |
 | `bundle/skills/{ui-ux-pro-max,brand,design-system,ui-styling}/` | Vendored UI skills (real assets; MIT — see `THIRD_PARTY.md`) |
+| `bundle/config/cursor/` | CLI autonomy patch + `permissions.json` + `sandbox.json` |
+| `bundle/config/opencode/autonomy.json` | OpenCode permission/agent profile (install merges; preserves `mcp`) |
+| `scripts/merge-autonomy-config.js` | Install-time merge for Cursor + OpenCode autonomy |
 | `bundle/opencode/agents/` | OpenCode mirrors (core + enterprise) |
 | `templates/context/specs/` | Unit spec blanks (methodology Part 3) |
 | `project-bridge/` | Repo-local delegation only — no duplicate logic |

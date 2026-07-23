@@ -17,12 +17,14 @@
 ## Quick Start (2 minutes)
 
 ```bash
-# 1. Clone and install
+# 1. Clone and install (hooks + skills + CLI/permissions/OpenCode autonomy)
 git clone https://github.com/peterlianpi/pcore-orchestra.git
 cd pcore-orchestra
 bash install.sh
+# Windows: powershell -ExecutionPolicy Bypass -File install.ps1
 
-# 2. Restart Cursor
+# 2. Restart Cursor → Settings → Agents → Approvals → Auto-review
+#    OpenCode: opencode --auto
 
 # 3. Use it (no special commands)
 fix the login bug
