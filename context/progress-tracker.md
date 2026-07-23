@@ -16,6 +16,11 @@ Update this file after every meaningful implementation change.
   - Vendored `ui-ux-pro-max`, `brand`, `design-system`, `ui-styling` (real assets, MIT) into Cursor + OpenCode skill trees
   - Install links UI skills into `~/.agents/skills`; `THIRD_PARTY.md` attribution
   - `templates/context/ui-context.md` Skills section + AGENTS/architecture/README notes (Python 3 optional for search.py only)
+- **Ops (2026-07-23) — autonomous workflow config**
+  - Local: expanded `~/.cursor/cli-config.json` allowlist; `autoAcceptWebSearch`; `webFetchDomainAllowlist: *`
+  - Local: created `~/.cursor/permissions.json` (terminal/MCP allow + Auto-review steer; block force-push/secrets/prod)
+  - Removed redundant `cashflow/.cursor/cli.json`; cleared stale crypto-trader repo from orchestra idle state
+  - Docs: OpenCode planner/reviewer `bash: allow` (edit still deny) in example + feature docs
 
 - V3.2 adaptive loop; V3.3 OpenCode mirrors / evidence gates / intake+verify skills / specs templates
 - V3.3.1 install `lib/` replace fix; slim enterprise agents

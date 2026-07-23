@@ -25,7 +25,7 @@
       "steps": 8,
       "permission": {
         "edit": "deny",
-        "bash": "ask",
+        "bash": "allow",
         "websearch": "deny",
         "webfetch": "deny"
       }
@@ -48,7 +48,7 @@
       "steps": 5,
       "permission": {
         "edit": "deny",
-        "bash": "ask",
+        "bash": "allow",
         "websearch": "deny",
         "webfetch": "deny"
       }
