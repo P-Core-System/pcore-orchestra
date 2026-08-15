@@ -1,0 +1,28 @@
+name: Stale issue/PR cleanup
+
+on:
+  schedule:
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          days-before-issue-stale: 45
+          days-before-issue-close: 15
+          days-before-pr-stale: 21
+          days-before-pr-close: 10
+          stale-issue-label: stale
+          stale-pr-label: stale-pr
+          exempt-issue-labels: dependencies,security,pinned,backlog
+          exempt-pr-labels: dependencies,security,pinned
+          remove-stale-when-updated: true
+          operations-per-run: 50
