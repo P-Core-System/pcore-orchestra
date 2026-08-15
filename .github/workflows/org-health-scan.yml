@@ -28,7 +28,7 @@ jobs:
             let repos;
             if (usePat) {
               try {
-                const { data } = await github.repos.listForOrg({ org: owner, per_page: 100 });
+                const { data } = await github.rest.repos.listForOrg({ org: owner, per_page: 100 });
                 repos = data.map((r) => r.name).sort();
               } catch (err) {
                 console.log(`listForOrg failed (${err.message}); falling back to this repo`);
@@ -41,19 +41,19 @@ jobs:
             async function scanRepo(repo) {
               let issues = 'n/a', prs = 'n/a', workflow = 'n/a', conclusion = 'n/a';
               try {
-                const items = await github.paginate(github.issues.listForRepo, { owner, repo, state: 'open', per_page: 100 });
+                const items = await github.paginate(github.rest.issues.listForRepo, { owner, repo, state: 'open', per_page: 100 });
                 issues = String(items.filter((i) => !i.pull_request).length);
               } catch (err) {
                 console.log(`issues.listForRepo failed for ${repo}: ${err.message}`);
               }
               try {
-                const prItems = await github.paginate(github.pulls.list, { owner, repo, state: 'open', per_page: 100 });
+                const prItems = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 });
                 prs = String(prItems.length);
               } catch (err) {
                 console.log(`pulls.list failed for ${repo}: ${err.message}`);
               }
               try {
-                const { data } = await github.actions.listWorkflowRunsForRepo({ owner, repo, per_page: 1 });
+                const { data } = await github.rest.actions.listWorkflowRunsForRepo({ owner, repo, per_page: 1 });
                 const run = data.workflow_runs && data.workflow_runs[0];
                 workflow = run ? run.name : 'none';
                 conclusion = run ? (run.conclusion || run.status) : 'n/a';
@@ -89,13 +89,13 @@ jobs:
             const today = new Date().toISOString().slice(0, 10);
             const title = `Org health scan — ${today}`;
 
-            const { data: openIssues } = await github.issues.listForRepo({ owner, repo: thisRepo, state: 'open', per_page: 100 });
+            const { data: openIssues } = await github.rest.issues.listForRepo({ owner, repo: thisRepo, state: 'open', per_page: 100 });
             const existing = openIssues.find((i) => i.title.startsWith('Org health scan —'));
             if (existing) {
-              await github.issues.update({ owner, repo: thisRepo, issue_number: existing.number, title, body });
+              await github.rest.issues.update({ owner, repo: thisRepo, issue_number: existing.number, title, body });
               console.log(`Updated ${thisRepo}#${existing.number}`);
             } else {
-              const created = await github.issues.create({ owner, repo: thisRepo, title, body });
+              const created = await github.rest.issues.create({ owner, repo: thisRepo, title, body });
               console.log(`Created ${thisRepo}#${created.data.number}`);
             }
         env:
