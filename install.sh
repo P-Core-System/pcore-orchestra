@@ -175,12 +175,14 @@ install_opencode() {
     cp -rf "$skill_dir"* "$OPENCODE/skills/$skill_name/"
   done
 
-  # Copy health check
-  cp -f "$BUNDLE/opencode/hooks/orchestra-health-opencode.js" "$OPENCODE/hooks/"
-
-  # Default state (don't overwrite)
-  if [[ ! -f "$OPENCODE/state/orchestra.json" ]]; then
-    cp -f "$BUNDLE/opencode/state/orchestra.json" "$OPENCODE/state/orchestra.json"
+  # Copy all OpenCode hooks + lib (not just health check)
+  cp -f "$BUNDLE/opencode/hooks/"orchestra-*.js "$OPENCODE/hooks/"
+  rm -rf "$OPENCODE/hooks/lib"
+  cp -rf "$BUNDLE/opencode/hooks/lib" "$OPENCODE/hooks/lib"
+  # Default state (don't overwrite) — runtime reads hooks/state/orchestra.json
+  mkdir -p "$OPENCODE/hooks/state"
+  if [[ ! -f "$OPENCODE/hooks/state/orchestra.json" ]]; then
+    cp -f "$BUNDLE/opencode/state/orchestra.json" "$OPENCODE/hooks/state/orchestra.json"
   fi
 
   # Link to external skills directory
