@@ -1,0 +1,77 @@
+name: Maintenance check
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+jobs:
+  maintenance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Maintenance check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            let protection = 'absent';
+            try {
+              const { data } = await github.repos.getBranchProtection({ owner, repo, branch: 'main' });
+              protection = data.required_status_checks ? 'present (required status checks configured)' : 'present';
+            } catch (err) {
+              if (err.status === 404) {
+                protection = 'absent';
+              } else {
+                protection = `error (${err.message})`;
+              }
+            }
+
+            let ciExists = 'no';
+            try {
+              const { data } = await github.actions.listWorkflows({ owner, repo });
+              ciExists = data.workflows.some((w) => w.path.endsWith('/ci.yml')) ? 'yes' : 'no';
+            } catch (err) {
+              ciExists = `error (${err.message})`;
+            }
+
+            let description = 'not set', topics = 'none';
+            try {
+              const { data } = await github.repos.get({ owner, repo });
+              description = data.description || 'not set';
+              topics = (data.topics && data.topics.length) ? data.topics.join(', ') : 'none';
+            } catch (err) {
+              description = `error (${err.message})`;
+            }
+
+            const body = [
+              `**Repository:** \`${owner}/${repo}\``,
+              '',
+              `- **Branch protection on \`main\`:** ${protection}`,
+              `- **CI workflow exists:** ${ciExists}`,
+              `- **Description:** ${description}`,
+              `- **Topics:** ${topics}`,
+              '',
+              '## Notes',
+              `- Run: \`${context.runId}\` at ${new Date().toISOString()}`,
+              '- Read-only check (only writes this issue).',
+            ].join('\n');
+
+            const today = new Date().toISOString().slice(0, 10);
+            const title = `Maintenance check — ${today}`;
+
+            const { data: openIssues } = await github.issues.listForRepo({ owner, repo, state: 'open', per_page: 100 });
+            const existing = openIssues.find((i) => i.title.startsWith('Maintenance check —'));
+            if (existing) {
+              await github.issues.update({ owner, repo, issue_number: existing.number, title, body });
+              console.log(`Updated ${repo}#${existing.number}`);
+            } else {
+              const created = await github.issues.create({ owner, repo, title, body });
+              console.log(`Created ${repo}#${created.data.number}`);
+            }

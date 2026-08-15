@@ -1,0 +1,102 @@
+name: Org health scan
+
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: org-health-scan
+  cancel-in-progress: false
+
+permissions:
+  issues: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Org health scan
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PCORE_GH_TOKEN || github.token }}
+          script: |
+            const owner = context.repo.owner;
+            const thisRepo = context.repo.repo;
+            const usePat = process.env.PCORE_PAT_SET === 'true';
+
+            let repos;
+            if (usePat) {
+              try {
+                const { data } = await github.repos.listForOrg({ org: owner, per_page: 100 });
+                repos = data.map((r) => r.name).sort();
+              } catch (err) {
+                console.log(`listForOrg failed (${err.message}); falling back to this repo`);
+                repos = [thisRepo];
+              }
+            } else {
+              repos = [thisRepo];
+            }
+
+            async function scanRepo(repo) {
+              let issues = 'n/a', prs = 'n/a', workflow = 'n/a', conclusion = 'n/a';
+              try {
+                const items = await github.paginate(github.issues.listForRepo, { owner, repo, state: 'open', per_page: 100 });
+                issues = String(items.filter((i) => !i.pull_request).length);
+              } catch (err) {
+                console.log(`issues.listForRepo failed for ${repo}: ${err.message}`);
+              }
+              try {
+                const prItems = await github.paginate(github.pulls.list, { owner, repo, state: 'open', per_page: 100 });
+                prs = String(prItems.length);
+              } catch (err) {
+                console.log(`pulls.list failed for ${repo}: ${err.message}`);
+              }
+              try {
+                const { data } = await github.actions.listWorkflowRunsForRepo({ owner, repo, per_page: 1 });
+                const run = data.workflow_runs && data.workflow_runs[0];
+                workflow = run ? run.name : 'none';
+                conclusion = run ? (run.conclusion || run.status) : 'n/a';
+              } catch (err) {
+                console.log(`listWorkflowRunsForRepo failed for ${repo}: ${err.message}`);
+              }
+              return { repo, issues, prs, workflow, conclusion };
+            }
+
+            const rows = [];
+            for (const repo of repos) {
+              rows.push(await scanRepo(repo));
+            }
+
+            const banner = usePat
+              ? `[scope: all ${rows.length} org repos via PCORE_GH_TOKEN]`
+              : `[scope: pcore-orchestra only — set PCORE_GH_TOKEN org secret for full org scan]`;
+
+            const lines = rows.map((r) => `| ${r.repo} | ${r.issues} | ${r.prs} | ${r.workflow} | ${r.conclusion} |`);
+            const body = [
+              banner,
+              '',
+              '| Repo | Open issues | Open PRs | Last workflow | Conclusion |',
+              '| --- | --- | --- | --- | --- |',
+              ...lines,
+              '',
+              '## Notes',
+              `- Run: \`${context.runId}\` at ${new Date().toISOString()}`,
+              `- Scan scope: ${usePat ? `all org repos (${rows.length}): ${rows.map((r) => r.repo).join(', ')}` : `this repo only (${thisRepo})`}`,
+              `- ${usePat ? 'Using `PCORE_GH_TOKEN` (org PAT).' : 'Default GITHUB_TOKEN is scoped to this repo only, so sibling repos cannot be read. Add a `PCORE_GH_TOKEN` org secret (PAT with `repo` scope) to enable the full org scan.'}`,
+            ].join('\n');
+
+            const today = new Date().toISOString().slice(0, 10);
+            const title = `Org health scan — ${today}`;
+
+            const { data: openIssues } = await github.issues.listForRepo({ owner, repo: thisRepo, state: 'open', per_page: 100 });
+            const existing = openIssues.find((i) => i.title.startsWith('Org health scan —'));
+            if (existing) {
+              await github.issues.update({ owner, repo: thisRepo, issue_number: existing.number, title, body });
+              console.log(`Updated ${thisRepo}#${existing.number}`);
+            } else {
+              const created = await github.issues.create({ owner, repo: thisRepo, title, body });
+              console.log(`Created ${thisRepo}#${created.data.number}`);
+            }
+        env:
+          PCORE_PAT_SET: ${{ secrets.PCORE_GH_TOKEN != '' }}
