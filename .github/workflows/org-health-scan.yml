@@ -11,6 +11,8 @@ concurrency:
 
 permissions:
   issues: write
+  pulls: read
+  actions: read
 
 jobs:
   scan:
