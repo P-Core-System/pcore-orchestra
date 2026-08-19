@@ -2,7 +2,7 @@
 
 > **Project:** P-Core Orchestra (pcore-orchestra)
 > **License:** MIT | **Author:** Peter Pau Sian Lian
-> **Repository:** github.com/peterlianpi/pcore-orchestra
+> **Repository:** github.com/P-Core-System/pcore-orchestra
 > **Status:** Production-ready v1.0
 
 ---

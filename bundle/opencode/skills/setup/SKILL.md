@@ -25,7 +25,7 @@ Setup pcore-orchestra globally on any machine and configure it for any project.
 
 ```bash
 # Clone and install globally
-git clone https://github.com/peterlianpi/pcore-orchestra.git /tmp/pcore-orchestra
+git clone https://github.com/P-Core-System/pcore-orchestra.git /tmp/pcore-orchestra
 cd /tmp/pcore-orchestra
 bash install.sh
 
@@ -37,7 +37,7 @@ rm -rf /tmp/pcore-orchestra
 
 ```bash
 # Clone
-git clone https://github.com/peterlianpi/pcore-orchestra.git /tmp/pcore-orchestra
+git clone https://github.com/P-Core-System/pcore-orchestra.git /tmp/pcore-orchestra
 cd /tmp/pcore-orchestra
 
 # Install for both Cursor and OpenCode
@@ -55,7 +55,7 @@ node ~/.config/opencode/hooks/orchestra-health-opencode.js
 
 ```powershell
 # Clone
-git clone https://github.com/peterlianpi/pcore-orchestra.git C:\temp\pcore-orchestra
+git clone https://github.com/P-Core-System/pcore-orchestra.git C:\temp\pcore-orchestra
 cd C:\temp\pcore-orchestra
 
 # Install
