@@ -17,7 +17,13 @@ lifecycle:
   stage: development
   status: active
   started: 2026-01-01
-  updated: 2026-07-22
+  updated: 2026-08-19
+
+repository:
+  url: https://github.com/P-Core-System/pcore-orchestra
+  branch: main
+  provider: github
+  visibility: private
 
 stack:
   languages:

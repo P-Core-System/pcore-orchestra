@@ -408,7 +408,7 @@ Limits: 32000 tokens, 1000 context files, 0 output files, 50 file matches, 3 sea
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/peterlianpi/pcore-orchestra.git
+git clone https://github.com/P-Core-System/pcore-orchestra.git
 cd pcore-orchestra
 
 # 2. Install globally (both Cursor + OpenCode)

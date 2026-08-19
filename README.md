@@ -8,7 +8,7 @@
 [![Cursor IDE](https://img.shields.io/badge/Cursor-IDE-000000.svg)](https://cursor.com)
 [![OpenCode](https://img.shields.io/badge/OpenCode-CLI-FF6B35.svg)](https://opencode.ai)
 
-**Repository:** [github.com/peterlianpi/pcore-orchestra](https://github.com/peterlianpi/pcore-orchestra)
+**Repository:** [github.com/P-Core-System/pcore-orchestra](https://github.com/P-Core-System/pcore-orchestra)
 
 **Status:** Production-ready | **Version:** 1.0 | **Last updated:** July 2026
 
@@ -18,7 +18,7 @@
 
 ```bash
 # 1. Clone and install (hooks + skills + CLI/permissions/OpenCode autonomy)
-git clone https://github.com/peterlianpi/pcore-orchestra.git
+git clone https://github.com/P-Core-System/pcore-orchestra.git
 cd pcore-orchestra
 bash install.sh
 # Windows: powershell -ExecutionPolicy Bypass -File install.ps1
