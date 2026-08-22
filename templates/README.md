@@ -18,3 +18,12 @@ Do not edit these for project-specific content — fill copies in the target rep
 See the methodology README in your download for AI prompts to generate each file's content.
 
 For `project.yaml`, architecture templates, and project identity scaffolding, use `scripts/init-project.sh`.
+
+## Architecture templates (2026 additions)
+
+| Template | Topic |
+|----------|-------|
+| `architectures/25-design-tokens.md` | Design tokens — W3C DTCG 3-tier (primitives → semantic → component) |
+| `architectures/26-folder-structure.md` | Feature-based modules, single-package & monorepo with per-package AGENTS.md |
+| `architectures/27-system-design.md` | C4-lite system design doc (Context, Container, data flows, NFRs, ADRs) |
+| `AGENTS.authoring.md` | How to write `AGENTS.md` for OpenCode / Cursor / Claude / Copilot / Codex |

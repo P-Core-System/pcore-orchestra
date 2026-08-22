@@ -263,6 +263,17 @@ bash scripts/setup-opencode-proxy.sh --multi-key  # rotation guide
 | [03-DATABASE-SECURITY-TESTING-LIMITATIONS.md](docs/03-DATABASE-SECURITY-TESTING-LIMITATIONS.md) | Database, security, testing, and known limitations |
 | [04-AI-CONTEXT-ONBOARDING-STATISTICS.md](docs/04-AI-CONTEXT-ONBOARDING-STATISTICS.md) | AI context onboarding, statistics, and usage guide |
 
+### New guidance templates (2026)
+
+| Template | Topic |
+|----------|-------|
+| [`templates/architectures/25-design-tokens.md`](templates/architectures/25-design-tokens.md) | Design tokens — W3C DTCG 3-tier architecture |
+| [`templates/architectures/26-folder-structure.md`](templates/architectures/26-folder-structure.md) | Feature-based / monorepo folder structure |
+| [`templates/architectures/27-system-design.md`](templates/architectures/27-system-design.md) | C4-lite system design document |
+| [`templates/AGENTS.authoring.md`](templates/AGENTS.authoring.md) | Authoring `AGENTS.md` across OpenCode / Cursor / Claude / Copilot / Codex |
+
+Agent-tool wiring: OpenCode global `AGENTS.md` + `opencode.json` instructions globs; repo-root `CLAUDE.md`; `.github/copilot-instructions.md`. See `templates/AGENTS.authoring.md`.
+
 ---
 
 ## Uninstall

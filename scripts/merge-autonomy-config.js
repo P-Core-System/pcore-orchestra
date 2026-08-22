@@ -179,6 +179,7 @@ function mergeOpenCodeAutonomy(opencodeHome) {
   if (patch.snapshot !== undefined) dest.snapshot = patch.snapshot;
   dest.permission = { ...(dest.permission || {}), ...(patch.permission || {}) };
   dest.agent = { ...(dest.agent || {}), ...(patch.agent || {}) };
+  if (patch.instructions) dest.instructions = { ...(dest.instructions || {}), ...patch.instructions };
   if (patch.provider) {
     dest.provider = dest.provider || {};
     for (const [k, v] of Object.entries(patch.provider)) {

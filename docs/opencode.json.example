@@ -17,6 +17,10 @@
     ]
   },
   "snapshot": false,
+  "instructions": {
+    "context": "**/context/**",
+    "templates": "**/templates/**"
+  },
   "permission": {
     "*": "allow",
     "doom_loop": "ask",
