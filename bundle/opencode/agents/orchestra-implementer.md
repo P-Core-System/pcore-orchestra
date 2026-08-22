@@ -6,7 +6,7 @@ description: >-
 mode: subagent
 hidden: true
 model: opencode/x-preview-f-free
-reasoningEffort: off
+reasoningEffort: low
 permission:
   edit: allow
   bash: allow
