@@ -1,0 +1,15 @@
+# Cursor ignore for pcore-orchestra — stops indexer/watcher from scanning
+# duplicated skill bundles and template node_modules.
+
+**/templates/**/node_modules/
+bundle/skills-cursor/
+
+dist/
+build/
+coverage/
+.cache/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+
+*.log

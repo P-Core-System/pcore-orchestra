@@ -1,5 +1,17 @@
 # P-Core Orchestra — orchestra notes
 
+## Repo type: single-repo
+
+This is a **single repository** (not a monorepo). All source lives under `bundle/`, `scripts/`, `docs/`, `templates/`. Scope all reads and globs to this repo root only — do not scan sibling directories under `pcore/`.
+
+## Performance scoping rules
+
+- **Never glob `**/` from a parent directory** — it triggers scans of thousands of files across sibling projects.
+- Use project-relative paths: `AGENTS.md`, `context/*.md`, `bundle/**/*.js` — not `**/AGENTS.md`.
+- This repo has `.ignore`, `.cursorignore`, and `.gitignore` that exclude `node_modules/`, `templates/**/node_modules/`, and skill bundle copies. Respect them.
+- When searching, use `rg` (respects `.ignore`) — not bare `find` or `grep -r`.
+- Read only the files you need for the current task; do not dump-read directories.
+
 ## Application building context
 
 Read the following files in order before implementing or making architectural decisions:

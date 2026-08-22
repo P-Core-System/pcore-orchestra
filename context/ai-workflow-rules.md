@@ -1,5 +1,21 @@
 # AI Workflow Rules
 
+## Repo type detection
+
+Before any task, determine the repo type:
+
+- **Single-repo** — one project, one `package.json` / `composer.json` / `pyproject.toml` at root. Scope all reads to this repo root.
+- **Monorepo** — multiple subprojects in subdirectories, each with its own `AGENTS.md` or `package.json`. **Never glob `**/` from the monorepo root** — it triggers scans of thousands of files. Work in one subproject at a time; read that subproject's `AGENTS.md` and `context/` individually.
+
+If the workspace root has subdirectories with their own `AGENTS.md` files, treat it as a monorepo. Use `.ignore` / `.cursorignore` / `.gitignore` at the root to exclude heavy subtrees.
+
+## Performance scoping
+
+- Use `rg` (respects `.ignore`) for search — not bare `find` or `grep -r`.
+- Read only the files needed for the current task — do not dump-read directories.
+- Cap tool output: `tool_output.max_lines=300, max_bytes=12288`.
+- For monorepos: open the subproject directory, not the root, when possible.
+
 ## Approach
 
 Build this project incrementally using spec-driven workflow aligned with the **Six-File Context Methodology**. Context files define what orchestra is, how hooks fit together, and current progress. Orchestra subagents read target project `context/` when present before acting.
@@ -9,6 +25,20 @@ Build this project incrementally using spec-driven workflow aligned with the **S
 - Work on one concern per change: hooks, agents, install, or init-context — not all at once unless tightly coupled.
 - Prefer small verifiable increments (health check passes after each hook change).
 - Do not combine unrelated project bridges with agent prompt rewrites in one commit.
+
+## Repo-type scoping (single-repo vs monorepo)
+
+**Single repo** (this repo, pcore-orchestra):
+- Scope all reads and globs to this repo root.
+- Use project-relative paths: `AGENTS.md`, `context/*.md`, `bundle/**/*.js` — not `**/AGENTS.md`.
+- `.ignore` / `.cursorignore` / `.gitignore` at root exclude `node_modules/`, caches, and skill bundle copies. Respect them.
+
+**Monorepo** (e.g., `pcore/` root containing 10 subprojects):
+- Work in ONE subproject at a time. Read that subproject's `AGENTS.md` and `context/` individually.
+- Never glob `**/` from the monorepo root — it scans 4,700+ files across subprojects.
+- The monorepo root has `.ignore` / `.cursorignore` / `.gitignore` that exclude heavy subtrees (`p-core-monorepo/`, `pcore-real-estate/`, `vendor/`, `node_modules/`). Respect them.
+- Use `rg` (respects `.ignore`) for search — not bare `find` or `grep -r`.
+- Generate scoping files for any new repo: `bash scripts/setup-repo-scoping.sh /path/to/repo`.
 
 ## When to split work
 

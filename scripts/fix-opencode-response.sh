@@ -12,17 +12,20 @@
 #   bash scripts/fix-opencode-response.sh
 #   bash scripts/fix-opencode-response.sh --disable-remote-mcp
 #   bash scripts/fix-opencode-response.sh --skip-probe
+#   bash scripts/fix-opencode-response.sh --kill-stale
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OPENCODE="${OPENCODE_CONFIG_DIR:-$HOME/.config/opencode}"
 DISABLE_MCP=0
 SKIP_PROBE=0
+KILL_STALE=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --disable-remote-mcp) DISABLE_MCP=1; shift ;;
     --skip-probe) SKIP_PROBE=1; shift ;;
+    --kill-stale) KILL_STALE=1; shift ;;
     -h|--help)
       sed -n '2,14p' "$0"
       exit 0 ;;
@@ -31,6 +34,18 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo "==> OpenCode response fix (pcore-orchestra)"
+
+# 0a. Kill stale background opencode run (from interrupted probes — causes hangs/RAM)
+if [[ "$KILL_STALE" -eq 1 ]] || pgrep -f 'opencode run' >/dev/null 2>&1; then
+  if pgrep -f 'opencode run' >/dev/null 2>&1; then
+    echo "==> Stale opencode run detected — stopping background processes"
+    pkill -f 'timeout.*opencode run' 2>/dev/null || true
+    pkill -f 'opencode run' 2>/dev/null || true
+    sleep 2
+    pkill -9 -f 'opencode run' 2>/dev/null || true
+    echo "     Done. Run: bash scripts/diagnose-opencode.sh"
+  fi
+fi
 
 # 0. Ensure CLI matches npm latest (desktop sidecar must match)
 bash "$ROOT/scripts/ensure-opencode-latest.sh" || echo "WARN OpenCode upgrade skipped"

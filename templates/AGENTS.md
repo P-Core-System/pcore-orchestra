@@ -25,6 +25,27 @@ or making any architectural decision:
 9. `context/specs/` — optional unit specs (one file per
    feature); see `specs/README.md`
 
+### Repo type (fill in one)
+
+- [ ] **Single repo** — all source in this directory. Scope all
+      reads and globs to this root. Use project-relative paths
+      (`AGENTS.md`, `context/*.md`), not `**/AGENTS.md`.
+- [ ] **Monorepo** — this root contains multiple subprojects.
+      Work in ONE subproject at a time. Do NOT glob `**/` from
+      this root — it scans thousands of files across subprojects.
+      Read the subproject's own `AGENTS.md` and `context/` instead.
+
+### Performance scoping (both types)
+
+- `.ignore` / `.cursorignore` / `.gitignore` at this root exclude
+  `node_modules/`, `vendor/`, `venv/`, caches, and build artifacts.
+  Respect them — do not use `--no-ignore` from this root.
+- Use `rg` (respects `.ignore`) for search, not bare `find` or `grep -r`.
+- Read only the files you need for the current task — do not
+  dump-read entire directories.
+- Generate or refresh scoping files:
+  `bash pcore-orchestra/scripts/setup-repo-scoping.sh .`
+
 ### UI skills (when building product UI)
 
 Prefer installed skills `ui-ux-pro-max`, `brand`, `design-system`,
