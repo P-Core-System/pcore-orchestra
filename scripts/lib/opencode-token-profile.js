@@ -17,7 +17,7 @@ const BROAD_INSTRUCTION_GLOBS = new Set([
   "**/context/progress-tracker.md",
 ]);
 
-/** Six-file + entry only — subagents read the rest on demand. Root-relative (no **/ prefix) to avoid monorepo scans. */
+/** Six-file + entry only — subagents read the rest on demand. Root-relative (no leading ** prefix) to avoid monorepo scans. */
 const NARROW_INSTRUCTIONS = [
   "AGENTS.md",
   "CLAUDE.md",
