@@ -313,3 +313,12 @@ pnpm add @axe-core/playwright --save-dev
 - **Visual regression gate** — PRs must pass visual diff check. Human review required for any pixel change.
 - **Theme before component** — Always test new components in all themes (light, dark, high-contrast).
 - **RTL support** — Every component must work in both LTR and RTL layouts. Use `padding-inline-start` over `padding-left`.
+
+## 2026 Token Tiering
+
+The token naming and layering guidance above is superseded by the authoritative
+three-tier model in [`25-design-tokens.md`](25-design-tokens.md): primitives →
+semantic → component-only-on-divergence, following the W3C DTCG Format Module
+2025.10. Use `25-design-tokens.md` as the source of truth for new token systems;
+the `{category}-{property}-{variant}-{state}` sketch here remains valid as a
+semantic-tier example but should be authored per DTCG.

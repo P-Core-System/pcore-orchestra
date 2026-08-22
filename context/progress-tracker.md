@@ -5,6 +5,7 @@ Update this file after every meaningful implementation change.
 ## Current Phase
 
 - V3.7.3 — ox-alpha + muse-spark models, free-model preflight & fallbacks, conductor-first routing
+- 2026-08-22 — New guidance templates: `25-design-tokens.md` (DTCG 3-tier), `26-folder-structure.md` (feature/monorepo), `27-system-design.md` (C4-lite), `AGENTS.authoring.md` (five-tool authoring). Wired into five agent tools: OpenCode global `AGENTS.md` + `opencode.json` instructions globs, repo `CLAUDE.md`, `.github/copilot-instructions.md`, and registered 25/26/27 in `project-identity.js` ARCHITECTURE_CATALOG.
 
 ## Current Goal
 

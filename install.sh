@@ -82,7 +82,7 @@ install_cursor() {
     mkdir -p "$CURSOR/agents/$dir_name"
     cp -rf "$agent_dir"* "$CURSOR/agents/$dir_name/"
   done
-  cp -f "$BUNDLE/rules/orchestra-loop.mdc" "$CURSOR/rules/"
+  cp -f "$BUNDLE/rules/"*.mdc "$CURSOR/rules/"
   cp -f "$BUNDLE/ORCHESTRA.md" "$CURSOR/ORCHESTRA.md"
 
   # Copy all Cloudflare skills (orchestra-loop + cloudflare, agents-sdk, etc.)
@@ -183,6 +183,11 @@ install_opencode() {
   mkdir -p "$OPENCODE/hooks/state"
   if [[ ! -f "$OPENCODE/hooks/state/orchestra.json" ]]; then
     cp -f "$BUNDLE/opencode/state/orchestra.json" "$OPENCODE/hooks/state/orchestra.json"
+  fi
+
+  # Global AGENTS.md (don't overwrite — user may have customized)
+  if [[ ! -f "$OPENCODE/AGENTS.md" ]]; then
+    cp -f "$BUNDLE/config/opencode/AGENTS.md" "$OPENCODE/AGENTS.md"
   fi
 
   # Link to external skills directory
