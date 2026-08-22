@@ -16,6 +16,14 @@ these specs — do not infer or invent behavior from scratch.]
 - Do not combine unrelated system boundaries in a
   single implementation step
 
+## Performance Scoping (Monorepo)
+
+- Use `rg` (respects `.ignore`) for search — not bare `find` or `grep -r`.
+- Read only the files needed for the current task — do not dump-read directories.
+- Cap tool output: `tool_output.max_lines=300, max_bytes=12288` (set via orchestra token profile).
+- For monorepos: open the subproject directory, not the root, when possible.
+- **Monorepo `opencode.json` `instructions` scoping**: `NARROW_INSTRUCTIONS` uses `**/AGENTS.md` etc. which match every subproject. In large monorepos, this can still inflate tokens. Best practice: scope `instructions` per subproject (e.g., `subproject1/AGENTS.md`, `subproject2/AGENTS.md`) in each subproject's `opencode.json` rather than relying on root-level globs. The `BROAD_INSTRUCTION_GLOBS` denylist (`**/**`, `**/templates/**`, `**/context/**`) is enforced by `filterBroadInstructions()` to strip known token-inflating patterns. Watcher ignores and tool output caps already bound memory/CPU.
+
 ## When to Split Work
 
 Split an implementation step if it combines:
