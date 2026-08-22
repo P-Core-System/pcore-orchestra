@@ -363,6 +363,25 @@ Files: [list]
 Prior failures: [if FIX_REQUIRED loop]
 ```
 
+### 7.5 Model routing
+
+Cursor subscriptions have two usage pools:
+
+- **Cursor Models** (included, generous): `composer-2.5`, `grok-4.6`, `grok-4.5`
+- **Other Models** (limited, $20+ on Pro): Claude, GPT, Gemini, and any model you add yourself
+
+For daily orchestra work, pin the default to **Composer 2.5 standard** (not Fast). It is the cheapest strong agent in the included pool and handles planning, implementation, verification, and review. Escalate to **Grok 4.6 standard** only for hard/long-horizon tasks where Composer 2.5 is stuck.
+
+Avoid:
+- Fast variants — same intelligence, 3–6× token price
+- Claude/GPT/Gemini as defaults — they consume the smaller Other Models pool
+- Max Mode unless a specific task needs extended context
+
+Set it:
+- In the IDE model picker: choose **Composer 2.5** (not Composer 2.5 Fast)
+- In agent frontmatter: `model: composer-2.5`
+- Via helper: `bash scripts/setup-cursor-model.sh`
+
 ---
 
 ## 8. Monitoring and budgets

@@ -33,13 +33,29 @@ Full matrix: `docs/orchestra-cross-platform.md` · agent ref: `references/orches
 
 ## Models & preflight
 
+### Cursor
+
+Cursor subscriptions include a **Cursor Models** pool with generous usage: `composer-2.5`, `grok-4.6`, `grok-4.5`. Third-party models (Claude, GPT, Gemini) live in the smaller **Other Models** pool and should not be daily defaults.
+
+| Task | Primary | Escalation |
+|------|---------|------------|
+| Daily agent / plan / implement / review / verify | `composer-2.5` (standard, not Fast) | `grok-4.6` standard, `effort: high` |
+| Hard / long-horizon / architecture | `grok-4.6` standard, `effort: high` | — |
+| Avoid as default | Fast variants, Claude/GPT/Gemini | They burn Other Models 3–6× faster |
+
+**Set the default:** use the Cursor model picker, run `bash scripts/setup-cursor-model.sh`, or add `model: composer-2.5` to agent frontmatter.
+
+Enterprise specialists in `bundle/agents/01-idea/` through `10-review/` also carry the platform split: `model:` for Cursor and `opencode_model:` for OpenCode. Hard roles (architecture, security, performance) default to `grok-4.6` on Cursor; all others default to `composer-2.5`.
+
+### OpenCode
+
+Run `bash scripts/update-free-models.sh --refresh` then `bash scripts/update-free-models.sh --probe` to validate configured models respond (not just listed).
+
 | Role | Primary model | Fallback chain |
 |------|--------------|----------------|
-| planner / implementer / reviewer / backend | nemotron-3-ultra-free | x-preview-f-free → big-pickle → kimi-k2.5-free |
-| verifier / small_model | nemotron-3.5-lightning-free | hy3-free → mimo-v2.5-free |
-| frontend | nemotron-3-ultra-free | x-preview-f-free → big-pickle (muse-spark region-blocked in some locales) |
-
-**Before use:** run `bash scripts/update-free-models.sh --refresh` then `bash scripts/update-free-models.sh --probe` to validate configured models respond (not just listed).
+| planner / implementer / reviewer / backend | `nemotron-3-ultra-free` | x-preview-f-free → big-pickle → kimi-k2.5-free |
+| verifier / small_model | `nemotron-3.5-lightning-free` | hy3-free → mimo-v2.5-free |
+| frontend | `nemotron-3-ultra-free` | x-preview-f-free → big-pickle (muse-spark region-blocked in some locales) |
 
 **Auto pools:** `--refresh` regenerates `~/.config/opencode/state/model-pools.json` (frontend/heavy/light) from the live Zen catalog; use `--pools` to print them. Static chains below are the offline fallback only.
 

@@ -5,7 +5,7 @@ description: >-
   conductor via task tool. Returns ORCHESTRA_COMPLETE or FIX_REQUIRED.
 mode: subagent
 hidden: true
-model: opencode/nemotron-3-ultra-free
+model: opencode/nemotron-3.5-lightning-free
 permission:
   edit: deny
   bash: allow
