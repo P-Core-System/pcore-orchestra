@@ -36,6 +36,37 @@ scripts/init-context.sh             # project scaffolding
 - `context/progress-tracker.md`: update after every meaningful change to this repo.
 - Credit Six-File Context Methodology (JavaScript Mastery) in README; templates are derived from user-provided download.
 
+## Doc update protocol (mandatory for every change)
+
+Every implementation change MUST update the relevant context files before committing. No exceptions.
+
+| Change type | Update these files |
+|---|---|
+| New hook script or lib module | `context/architecture.md` (system boundaries table) + `context/progress-tracker.md` |
+| New agent markdown | `context/architecture.md` (agents section) + `context/progress-tracker.md` |
+| New install script or install.sh change | `context/architecture.md` (install row) + `README.md` (commands) + `context/progress-tracker.md` |
+| New context template | `templates/context/` + `context/progress-tracker.md` |
+| New scoping/ignore feature | `context/architecture.md` + `context/ai-workflow-rules.md` (scoping rules) + `context/progress-tracker.md` |
+| Bug fix | `context/progress-tracker.md` (add to Current Phase with date + description) |
+| Architecture or invariant change | `context/architecture.md` first, then `context/progress-tracker.md` |
+| Scope or feature change | `context/project-overview.md` first, then `context/progress-tracker.md` |
+
+### Progress-tracker entry format
+
+```markdown
+- YYYY-MM-DD — Short description of change. Key files: `path/to/file1`, `path/to/file2`.
+  Impact: what changed for users/agents.
+```
+
+### Pre-commit checklist
+
+- [ ] `context/progress-tracker.md` has a new entry with today's date
+- [ ] If architecture changed: `context/architecture.md` updated
+- [ ] If scope changed: `context/project-overview.md` updated
+- [ ] If workflow rules changed: `context/ai-workflow-rules.md` updated
+- [ ] If code standards changed: `context/code-standards.md` updated
+- [ ] README.md reflects new commands or paths
+
 ## Five Design Principles
 
 ### SOLID

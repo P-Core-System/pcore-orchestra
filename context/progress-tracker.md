@@ -2,6 +2,27 @@
 
 Update this file after every meaningful implementation change.
 
+## How to update (mandatory)
+
+Add a new entry at the top of "Current Phase" with:
+- **Date** (YYYY-MM-DD)
+- **Description** of what changed
+- **Key files** touched (`path/to/file`)
+- **Impact**: what changed for users/agents
+
+```markdown
+- YYYY-MM-DD — Description. Files: `path/file1`, `path/file2`. Impact: what changed.
+```
+
+Also update these files if the change affects them:
+- `context/architecture.md` — new hooks, modules, boundaries, invariants
+- `context/project-overview.md` — new features, scope changes
+- `context/code-standards.md` — new conventions, doc update protocol
+- `context/ai-workflow-rules.md` — new scoping rules, workflow changes
+- `README.md` — new commands, paths, install steps
+
+**Rule:** A commit without a progress-tracker entry is incomplete.
+
 ## Current Phase
 
 - 2026-08-22 — Cross-tool monorepo scoping: fixed OpenCode `instructions` globs (project-relative, no `**/`), expanded `watcher.ignore` (15 patterns), added `tool_output` caps (300 lines/12KB), reclaimed 6.2 GB disk (legacy snapshots + log). Created tool-agnostic scoping at `pcore/` monorepo root (`AGENTS.md`, `.ignore`, `.cursorignore`, `.gitignore`, `context/project-overview.md`) and at all 10 subprojects. New `scripts/setup-repo-scoping.sh` auto-detects single-repo vs monorepo and generates `.ignore` + `.cursorignore`. Updated `templates/AGENTS.md` with repo-type detection, `init-context.sh` to generate scoping files, `context/ai-workflow-rules.md` with repo-type scoping rules. New `scripts/opencode-maintenance.sh` for DB/log/snapshot housekeeping.

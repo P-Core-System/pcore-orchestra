@@ -44,6 +44,13 @@ Cursor Orchestra is a portable, ambient multi-agent workflow for Cursor IDE. It 
 - `project-bridge/` — repo-local `.cursor/hooks.json` delegating to global hooks.
 - `scripts/init-context.sh` / `init-context.ps1` — scaffold context in target repos.
 
+### Cross-tool repo scoping
+
+- `scripts/setup-repo-scoping.sh` — auto-detects single-repo vs monorepo, generates `.ignore` + `.cursorignore`.
+- `install.sh` auto-installs scoping to `~/.local/bin/` + global gitignore on any device.
+- Prevents AI tools (OpenCode, Cursor, ripgrep, fd, ag) from scanning `node_modules/`, `vendor/`, `venv/`, caches.
+- `scripts/opencode-maintenance.sh` — DB/log/snapshot housekeeping (dry-run/apply/vacuum).
+
 ## Scope
 
 ### In Scope
