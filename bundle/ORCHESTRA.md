@@ -11,7 +11,7 @@ You: "fix the signal bot import error"
         ↓
 beforeSubmitPrompt hook → auto-starts orchestra
         ↓
-Agent → orchestra-planner → implementer → verifier → reviewer
+Agent → orchestra (conductor) → planner → implementer → verifier → reviewer
         ↓
 hooks chain each phase (subagentStop)
 ```
@@ -23,10 +23,12 @@ You: "fix the signal bot import error"
         ↓
 orchestra-loop skill → classifies as implement prompt
         ↓
-Main agent → orchestra-planner → implementer → verifier → reviewer
+Main agent → orchestra (conductor) → planner → implementer → verifier → reviewer
         ↓
 Task tool chains each phase
 ```
+
+> **Note:** The 4 phases are internal — the entry point is `orchestra` (the conductor), which spawns them via Task tool.
 
 ## What triggers auto-orchestration
 

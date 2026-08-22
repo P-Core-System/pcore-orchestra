@@ -11,6 +11,24 @@ description: >-
 
 Runs on **this machine** via `~/.cursor/`. **You do not need `/orchestra`** — hooks auto-start on implementation-style prompts.
 
+## Conductor-first entry
+
+> **Do NOT invoke `orchestra-planner`, `orchestra-implementer`, `orchestra-verifier`, or `orchestra-reviewer` directly as an entry point.** The parent/user invokes `orchestra` (the conductor) via the Task tool; the conductor internally spawns the `orchestra-*` phases. Hook matchers still require the exact `orchestra-*` names for chaining — do not rename them.
+
+## Models & preflight
+
+| Role | Primary model | Fallback chain |
+|------|--------------|----------------|
+| planner / implementer / reviewer / backend | x-preview-f-free | big-pickle → kimi-k2.5-free → nemotron-3-ultra-free |
+| verifier / small_model | nemotron-3.5-lightning-free | hy3-free → mimo-v2.5-free |
+| frontend | muse-spark-1.2-contributor-free | x-preview-f-free → big-pickle |
+
+**Before use:** run `bash ~/Documents/Project/pcore/pcore-orchestra/scripts/update-free-models.sh --check` to validate all configured models are still free and live.
+
+**Auto pools:** `--refresh` regenerates `~/.config/opencode/state/model-pools.json` (frontend/heavy/light) from the live Zen catalog; use `--pools` to print them. Static chains below are the offline fallback only.
+
+**On model error:** run `--refresh` to re-fetch the model list, then retry the next model in that role's fallback chain.
+
 ## Ambient mode (default ON)
 
 When the user asks to **add, fix, build, refactor, deploy, install, configure, migrate, integrate, debug, continue, improve, or finish** something:

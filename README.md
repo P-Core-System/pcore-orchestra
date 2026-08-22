@@ -83,7 +83,8 @@ Orchestra auto-detects `project.yaml` in any workspace and injects its identity 
 
 | Feature | Description |
 |---------|-------------|
-| **4 Subagents** | `orchestra-planner`, `implementer`, `verifier`, `reviewer` |
+| **Conductor** | `orchestra` — entry point; spawns all phases internally |
+| **4 Subagents** | `orchestra-planner`, `implementer`, `verifier`, `reviewer` (internal, do not invoke directly) |
 | **Convergence Criteria** | Tests pass → diff empty → lint clean → judge passes |
 | **Stall Detection** | Identical failures 2x → strategy change → 3rd → escalate |
 | **Human Checkpoints** | Auth/payments/security/scope-creep require human review |
@@ -186,10 +187,10 @@ bash scripts/init-context.sh /path/to/your-app --bridge   # with project bridge
 
 | Agent | Max Tokens | Model |
 |-------|------------|-------|
-| Planner | 10,000 | Budget (deepseek-v4-flash) |
-| Implementer | 30,000 | Capable (kimi-k2.5, claude-sonnet-5) |
-| Verifier | 15,000 | Budget |
-| Reviewer | 8,000 | Budget |
+| Planner | 10,000 | x-preview-f-free |
+| Implementer | 30,000 | x-preview-f-free |
+| Verifier | 15,000 | nemotron-3.5-lightning-free |
+| Reviewer | 8,000 | x-preview-f-free |
 
 **Total per cycle:** ~63k tokens max
 

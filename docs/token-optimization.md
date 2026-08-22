@@ -310,9 +310,11 @@ bash scripts/setup-opencode-optimal.sh --check      # audit current config
 
 | Profile | Planner/Verifier/Reviewer | Implementer | Est. cost/cycle |
 |---------|---------------------------|-------------|-----------------|
-| budget | deepseek-v4-flash-free | same | ~$0.00–0.03 |
+| budget | x-preview-f-free / verifier nemotron-3.5-lightning-free | same | ~$0.00–0.03 |
 | balanced | deepseek-v4-flash | kimi-k2.5 | ~$0.03–0.11 |
 | premium | deepseek-v4-flash | claude-sonnet | ~$0.10–0.30 |
+
+Run `bash scripts/update-free-models.sh --check` to validate all configured models are still free.
 
 ---
 
