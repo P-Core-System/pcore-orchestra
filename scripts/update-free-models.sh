@@ -107,7 +107,7 @@ for mid in cache.get('models', []):
 
     in_frontend = any(k in lower for k in ('spark', 'muse', 'design', 'ui', 'vision'))
     in_heavy = ctx >= 400000 or any(k in lower for k in ('pro', 'max', 'ultra', 'preview', 'coder', 'kimi', 'glm', 'minimax'))
-    in_light = any(k in lower for k in ('flash', 'lightning', 'mini', 'nano', 'fast', 'lite'))
+    in_light = any(k in lower for k in ('flash', 'lightning', 'mini', 'nano', 'fast', 'lite', 'hy3'))
 
     entry = {'id': mid, 'provider': 'opencode', 'context': ctx}
 
