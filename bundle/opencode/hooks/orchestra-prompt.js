@@ -2,7 +2,7 @@
 "use strict";
 
 const { readStdinJson, emit } = require("./lib/io.js");
-const { loadState, saveState, startOrchestra } = require("./lib/state-manager.js");
+const { loadState, saveState, startOrchestra, getSessionId, getSessionState, setSessionState } = require("./lib/state-manager.js");
 const { extractPrompt, classifyPrompt } = require("./lib/prompt-classifier.js");
 const {
   detectContextInWorkspaces,
@@ -23,49 +23,55 @@ const { resumeOrchestra, detectCrashRecovery } = require("./lib/checkpoint-manag
 const { loadLongTermMemory, buildMemoryContext } = require("./lib/memory-manager.js");
 const { getAgentForPhase, LOOP_MODE_ENTERPRISE } = require("./lib/phase-engine.js");
 
-function handleDisable(state) {
-  state.ambient = false;
-  state.active = false;
-  state.currentPhase = "idle";
-  saveState(state);
+function handleDisable(state, sessionId) {
+  const session = getSessionState(state, sessionId);
+  session.ambient = false;
+  session.active = false;
+  session.currentPhase = "idle";
+  setSessionState(state, session, sessionId);
+  saveState(null, state, sessionId);
   emit({
     additional_context:
       "Orchestra ambient mode disabled for this machine. Re-enable: node ~/.cursor/hooks/orchestra-enable.js ambient-on",
   });
 }
 
-function handleEnable(state) {
-  state.ambient = true;
-  saveState(state);
+function handleEnable(state, sessionId) {
+  const session = getSessionState(state, sessionId);
+  session.ambient = true;
+  setSessionState(state, session, sessionId);
+  saveState(null, state, sessionId);
 }
 
 function agentForCheckpointPhase(phase) {
   return getAgentForPhase(phase) || "orchestra-planner";
 }
 
-function handleResume(state, input) {
-  const crash = detectCrashRecovery(state);
-  if (state.active && crash) {
-    state.active = false;
-    state.currentPhase = "idle";
-    state.resumable.paused = true;
-    state.resumable.paused_at = new Date().toISOString();
-    state.resumable.pause_reason = "crash_recovery";
-    if (!state.resumable.checkpoint) {
-      state.resumable.checkpoint = {
+function handleResume(state, input, sessionId) {
+  const session = getSessionState(state, sessionId);
+  const crash = detectCrashRecovery(session);
+  if (session.active && crash) {
+    session.active = false;
+    session.currentPhase = "idle";
+    session.resumable.paused = true;
+    session.resumable.paused_at = new Date().toISOString();
+    session.resumable.pause_reason = "crash_recovery";
+    if (!session.resumable.checkpoint) {
+      session.resumable.checkpoint = {
         phase: crash.phase,
         goal: crash.goal,
         iteration: crash.iteration,
-        last_subagent: state.last_subagent,
-        started_at: state.started_at,
-        loopMode: state.loopMode,
+        last_subagent: session.last_subagent,
+        started_at: session.started_at,
+        loopMode: session.loopMode,
         timestamp: new Date().toISOString(),
       };
     }
-    saveState(state);
+    setSessionState(state, session, sessionId);
+    saveState(null, state, sessionId);
   }
-  if (state.resumable?.paused && state.resumable?.checkpoint) {
-    const cp = resumeOrchestra(state);
+  if (session.resumable?.paused && session.resumable?.checkpoint) {
+    const cp = resumeOrchestra(session);
     if (cp) {
       const agent = agentForCheckpointPhase(cp.phase);
       emit({
@@ -75,7 +81,7 @@ function handleResume(state, input) {
             ? `Orchestra recovered from crash (was stuck at ${crash.last_activity}).`
             : `Orchestra RESUMED from checkpoint (paused at ${cp.timestamp}).`,
           `Goal: ${cp.goal}`,
-          `Mode: ${state.loopMode || "core"}`,
+          `Mode: ${session.loopMode || "core"}`,
           `Phase: ${cp.phase} (iteration ${cp.iteration}).`,
           `Launch **${agent}** subagent to continue.`,
         ].join("\n\n"),
@@ -86,9 +92,10 @@ function handleResume(state, input) {
   return false;
 }
 
-function handleBareResume(state) {
-  if (state.resumable?.paused && state.resumable?.checkpoint) {
-    const cp = resumeOrchestra(state);
+function handleBareResume(state, sessionId) {
+  const session = getSessionState(state, sessionId);
+  if (session.resumable?.paused && session.resumable?.checkpoint) {
+    const cp = resumeOrchestra(session);
     if (cp) {
       const agent = agentForCheckpointPhase(cp.phase);
       emit({
@@ -96,7 +103,7 @@ function handleBareResume(state) {
           AMBIENT_CONTEXT,
           `Orchestra RESUMED from checkpoint (paused at ${cp.timestamp}).`,
           `Goal: ${cp.goal}`,
-          `Mode: ${state.loopMode || "core"}`,
+          `Mode: ${session.loopMode || "core"}`,
           `Phase: ${cp.phase} (iteration ${cp.iteration}).`,
           `Launch **${agent}** subagent to continue.`,
         ].join("\n\n"),
@@ -109,35 +116,37 @@ function handleBareResume(state) {
 
 async function main() {
   const input = await readStdinJson();
-  const state = loadState();
+  const sessionId = getSessionId();
+  const state = loadState(null, sessionId);
   const prompt = extractPrompt(input);
 
   if (/\b(disable orchestra|orchestra off)\b/i.test(prompt)) {
-    handleDisable(state);
+    handleDisable(state, sessionId);
     return;
   }
 
   if (/\b(enable orchestra|orchestra on|ambient on)\b/i.test(prompt)) {
-    handleEnable(state);
+    handleEnable(state, sessionId);
   }
 
   if (/\b(resume orchestra|continue orchestra|approve plan)\b/i.test(prompt)) {
-    if (handleResume(state, input)) return;
+    if (handleResume(state, input, sessionId)) return;
     emit({
       additional_context: "No paused orchestration found to resume. Starting fresh if needed.",
     });
     return;
   }
 
-  if (/\b(resume|continue)\b/i.test(prompt) && !state.active) {
-    if (handleBareResume(state)) return;
+  const session = getSessionState(state, sessionId);
+  if (/\b(resume|continue)\b/i.test(prompt) && !session.active) {
+    if (handleBareResume(state, sessionId)) return;
     emit({
       additional_context: "No paused orchestration found to resume. Starting fresh if needed.",
     });
     return;
   }
 
-  const classified = classifyPrompt(prompt, state);
+  const classified = classifyPrompt(prompt, session);
   const {
     activate,
     reason,
@@ -156,7 +165,7 @@ async function main() {
 
   const pyMeta = detectProjectYamlInWorkspaces(input);
   let orchestraConfig = null;
-  const identitySync = syncWorkspaceIdentity(state, input);
+  const identitySync = syncWorkspaceIdentity(session, input);
   if (identitySync) {
     orchestraConfig = extractOrchestraFromIdentity(identitySync.identity);
   } else if (pyMeta) {
@@ -165,7 +174,7 @@ async function main() {
   }
 
   if (!activate) {
-    if (state.ambient !== false) {
+    if (session.ambient !== false) {
       const parts = [AMBIENT_CONTEXT];
       if (ctxBlock) parts.push(ctxBlock);
       emit({ additional_context: parts.join("\n\n") });
@@ -175,13 +184,13 @@ async function main() {
     return;
   }
 
-  if (state.active && state.goal && goal && state.goal.slice(0, 80) === goal.slice(0, 80)) {
-    const agent = getAgentForPhase(state.currentPhase);
+  if (session.active && session.goal && goal && session.goal.slice(0, 80) === goal.slice(0, 80)) {
+    const agent = getAgentForPhase(session.currentPhase);
     const parts = [
       AMBIENT_CONTEXT,
-      `Orchestra already active for this goal. Mode: ${state.loopMode}. Phase: ${state.currentPhase}.`,
+      `Orchestra already active for this goal. Mode: ${session.loopMode}. Phase: ${session.currentPhase}.`,
       `Launch **${agent}** subagent for the current phase.`,
-      buildPhaseHandoff(state, agent),
+      buildPhaseHandoff(session, agent),
     ];
     const warn = handoffWarningBlock(prompt);
     if (warn) parts.push(warn);
@@ -215,14 +224,16 @@ async function main() {
   const modeLabel =
     route === LOOP_MODE_ENTERPRISE ? "enterprise SDLC" : "core loop (plan→implement→verify→review)";
 
-  const firstAgent = getAgentForPhase(state.currentPhase);
+  // Reload session state after startOrchestra
+  const freshSession = getSessionState(state, sessionId);
+  const firstAgent = getAgentForPhase(freshSession.currentPhase);
   const parts = [
     AMBIENT_CONTEXT,
-    `Orchestra auto-started (${reason}, route=${state.loopMode || "core"} / ${routeReason || "default"}) — no /orchestra needed.`,
+    `Orchestra auto-started (${reason}, route=${freshSession.loopMode || "core"} / ${routeReason || "default"}) — no /orchestra needed.`,
     `Mode: ${modeLabel}`,
     `Goal: ${goal || prompt}`,
-    `Phase: ${state.currentPhase} — launch **${firstAgent}** subagent first (Task tool). Do not implement until planning completes.`,
-    buildPhaseHandoff(state, firstAgent),
+    `Phase: ${freshSession.currentPhase} — launch **${firstAgent}** subagent first (Task tool). Do not implement until planning completes.`,
+    buildPhaseHandoff(freshSession, firstAgent),
   ];
 
   if (informal || inferFromContext) {
@@ -251,6 +262,15 @@ async function main() {
         "- Loop slices until production checklist passes.",
       ].join("\n")
     );
+    if (!pyMeta) {
+      parts.push(
+        [
+          "⚠️ No project.yaml/project.json found in workspace.",
+          "Bootstrap project identity + six-file context:",
+          "`bash scripts/init-project.sh .`  (flags --type/--name optional)",
+        ].join("\n")
+      );
+    }
   }
 
   if (route === LOOP_MODE_ENTERPRISE) {
