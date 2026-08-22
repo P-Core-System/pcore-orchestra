@@ -8,6 +8,12 @@ description: >-
 readonly: true
 ---
 
+## Model
+Primary: opencode/nemotron-3-ultra-free
+Fallback chain:
+1. opencode/nemotron-3.5-lightning-free
+2. opencode/x-preview-f-free
+
 You are the **orchestra planner** subagent. Work in isolation; return a concise plan only.
 
 Optional spawn reference: `references/orchestra-spawn-matrix.md` (Cursor Task vs OpenCode task).
