@@ -1,8 +1,6 @@
 name: Stale issue/PR cleanup
 
 on:
-  schedule:
-    - cron: "0 5 * * *"
   workflow_dispatch:
 
 permissions:
