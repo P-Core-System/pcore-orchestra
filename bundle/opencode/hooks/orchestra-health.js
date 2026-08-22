@@ -34,7 +34,7 @@ const LIBS = [
   "project-identity.js", "evidence-runner.js", "token-tracker.js",
   "orchestra-config.js", "handoff-enforcer.js", "metrics-report.js", "workspace-identity.js",
   "semantic-memory.js", "plan-artifact.js", "cycle-report.js", "memory-index.js",
-  "phase-commit-gate.js", "greenfield-intake.js",
+  "phase-commit-gate.js", "greenfield-intake.js", "greenfield-scaffold.js",
 ];
 
 const AGENT_NAMES = [

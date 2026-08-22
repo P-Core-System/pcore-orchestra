@@ -54,9 +54,14 @@ Hook: `lib/greenfield-intake.js` · Skill: `greenfield-product`
 | Gap | Why | Next |
 |-----|-----|------|
 | **Interactive stack picker UI** | Users answer in chat; no structured form | Optional `orchestra.intake` JSON artifact |
-| **Auto init-project from hooks** | Parent must run script | Hook/skill that scaffolds when cwd empty |
 | **Slice backlog file** | `context/specs/` or tickets per MVP feature | Auto-write `context/specs/01-mvp-notes.md` |
 | **Production checklist gate** | Soft checklist today | Hard fail review until checklist IDs pass |
+
+### Completed (V3.8)
+
+| Gap | Solution |
+|-----|----------|
+| **Auto init-project from hooks** | `lib/greenfield-scaffold.js` + wired in `orchestra-prompt.js` (Cursor + OpenCode) — emits scaffold instruction when cwd empty and greenfield detected |
 
 ### High — agent-driven quality
 

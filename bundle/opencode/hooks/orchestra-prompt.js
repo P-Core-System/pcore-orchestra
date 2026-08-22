@@ -19,6 +19,7 @@ const {
 const { buildPhaseHandoff, handoffWarningBlock } = require("./lib/handoff-enforcer.js");
 const { syncWorkspaceIdentity } = require("./lib/workspace-identity.js");
 const { buildGreenfieldIntakeBriefing } = require("./lib/greenfield-intake.js");
+const { shouldAutoScaffold, buildScaffoldInstructionFromGoal } = require("./lib/greenfield-scaffold.js");
 const { resumeOrchestra, detectCrashRecovery } = require("./lib/checkpoint-manager.js");
 const { loadLongTermMemory, buildMemoryContext } = require("./lib/memory-manager.js");
 const { getAgentForPhase, LOOP_MODE_ENTERPRISE } = require("./lib/phase-engine.js");

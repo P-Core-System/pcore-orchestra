@@ -29,6 +29,7 @@
 | `bundle/hooks/lib/history-recorder.js` | Orchestration run history |
 | `bundle/hooks/lib/checkpoint-manager.js` | Resumable tasks and crash recovery |
 | `bundle/hooks/lib/context-detector.js` | Six-file workspace context detection |
+| `bundle/hooks/lib/greenfield-scaffold.js` | Greenfield auto-scaffold (empty repo → init-project instruction) |
 | `bundle/hooks/lib/version-manager.js` | Semver, changelog, release automation |
 | `bundle/hooks/lib/evidence-runner.js` | Command-evidence checks for quality gates |
 | `bundle/agents/` | Subagent prompts (divided by phase category) |
