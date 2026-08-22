@@ -10,6 +10,7 @@ const { loadProjectIdentity, validateProjectIdentity, findProjectIdentity } = re
 
 const HOOKS_DIR = __dirname;
 const ROOT = path.join(HOOKS_DIR, "..");
+const SESSION_CLAIMS_SCRIPT = path.join(__dirname, "..", "..", "scripts", "session-claims.sh");
 
 const SCRIPTS = [
   "orchestra-lib.js",
@@ -293,6 +294,57 @@ checkAgents();
 checkProjectFiles();
 checkProjectIdentityTemplate();
 checkAdaptiveInstall();
+
+// --- Session-claims validation ---
+function checkSessionClaims() {
+  console.log("\n=== Session-claims ===");
+  if (fs.existsSync(SESSION_CLAIMS_SCRIPT)) {
+    console.log("OK  session-claims.sh exists at", SESSION_CLAIMS_SCRIPT);
+    try {
+      const { spawnSync } = require("child_process");
+      // Check for stale/active conflicts in current repo
+      const result = spawnSync("bash", [SESSION_CLAIMS_SCRIPT, "check", process.cwd()], {
+        encoding: "utf8",
+        timeout: 10000,
+      });
+      if (result.status === 0) {
+        console.log("OK  check: no live conflicts in current repo");
+      } else if (result.status === 1) {
+        console.log("WARN check: active conflicting claim detected");
+        console.log("     Output:", result.stdout.trim() || result.stderr.trim());
+        ok = false;
+      } else {
+        console.log("WARN check: script error (exit", result.status, ")");
+        console.log("     stderr:", result.stderr.trim());
+        ok = false;
+      }
+      // Also list stale claims in current repo
+      const listResult = spawnSync("bash", [SESSION_CLAIMS_SCRIPT, "list", process.cwd()], {
+        encoding: "utf8",
+        timeout: 10000,
+      });
+      if (listResult.status === 0 && listResult.stdout.trim()) {
+        const lines = listResult.stdout.trim().split("\n");
+        const staleLines = lines.filter(l => l.startsWith("STALE"));
+        if (staleLines.length > 0) {
+          console.log("WARN stale claims in current repo:", staleLines.length);
+          staleLines.forEach(l => console.log("     ", l.trim()));
+        } else {
+          console.log("OK  no stale claims in current repo");
+        }
+      }
+    } catch (e) {
+      console.log("WARN session-claims check failed:", e.message);
+      ok = false;
+    }
+  } else {
+    console.log("MISS session-claims.sh not found at", SESSION_CLAIMS_SCRIPT);
+    console.log("     Expected at repo-root/scripts/session-claims.sh");
+    ok = false;
+  }
+}
+
+checkSessionClaims();
 
 console.log(ok ? "\nAll checks passed." : "\nSome checks failed — review output above.");
 process.exit(ok ? 0 : 1);
