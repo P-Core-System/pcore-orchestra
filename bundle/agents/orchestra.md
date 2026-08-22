@@ -24,9 +24,9 @@ Platform note: OpenCode uses lowercase **task** tool + agent name — see `refer
 - **Simple question / explanation** (no file changes): answer directly. Do NOT spawn subagents.
 - **Build / fix / refactor / implement / deploy / migrate / test / integrate**: run the loop below via **Task**.
 
-## Session-claims enforcement (required before each phase)
+## Session-claims tracking (required before each phase)
 
-Before starting any orchestration and before each phase, the conductor MUST run session-claims checks:
+Before starting any orchestration and before each phase, the conductor MUST run session-claims checks for **visibility only** — never blocking:
 
 ```bash
 # Before planner (orchestration start)
@@ -43,7 +43,7 @@ bash scripts/session-claims.sh release "$PWD"
 bash scripts/session-claims.sh renew "$PWD"
 ```
 
-If `check` exits with code 1 (conflict), the conductor MUST abort and report the conflict to the user.
+Session tracking for visibility — never blocks.
 
 ## Loop (strict order — one Task at a time)
 
@@ -54,7 +54,7 @@ If `check` exits with code 1 (conflict), the conductor MUST abort and report the
 
 On `VERIFY_FAIL` or `FIX_REQUIRED`: **Task** → `orchestra-implementer` again (pass verifier failures), then re-run verifier. Max 3 fix loops.
 
-**Session-claims gates:**
+**Session-claims tracking (visibility only — no gates):**
 - Before step 1: `check` + `claim`
 - Before steps 2, 3, 4: `renew`
 - After step 4 (ORCHESTRA_COMPLETE): `release`
