@@ -63,12 +63,21 @@ Do not modify without explicit instruction:
 
 ## Keeping docs in sync
 
-Update when implementation changes:
+Update when implementation changes — **mandatory, not optional**:
 
-- `context/architecture.md` — new hooks, state fields, invariants.
-- `context/progress-tracker.md` — every meaningful merge-ready change.
-- `README.md` — install URLs, command flags.
-- `templates/` — only when template structure intentionally changes.
+| If you change... | Update this file |
+|---|---|
+| Hook scripts, lib modules | `context/architecture.md` (system boundaries) + `context/progress-tracker.md` |
+| Agent prompts | `context/architecture.md` (agents section) + `context/progress-tracker.md` |
+| Install scripts | `README.md` (commands) + `context/architecture.md` + `context/progress-tracker.md` |
+| Templates | `templates/` content + `context/progress-tracker.md` |
+| Scoping/ignore files | `context/ai-workflow-rules.md` (scoping rules) + `context/architecture.md` + `context/progress-tracker.md` |
+| Code standards | `context/code-standards.md` + `context/progress-tracker.md` |
+| Project scope/features | `context/project-overview.md` + `context/progress-tracker.md` |
+
+**Rule:** A commit that changes code but doesn't update the relevant context file is incomplete. The reviewer MUST flag it.
+
+**Progress-tracker format:** `- YYYY-MM-DD — Description. Files: \`path\`. Impact: what changed.`
 
 ## Six-file integration rules
 

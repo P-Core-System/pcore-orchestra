@@ -10,6 +10,8 @@
 | Persistent state | JSON file | `~/.cursor/hooks/state/orchestra.json` |
 | Project context | Markdown six files | `context/*.md` in target repos |
 | Install | Bash + PowerShell | `install.sh`, `install.ps1`, `scripts/init-context.*`, `scripts/merge-autonomy-config.js` |
+| Repo scoping | `.ignore` + `.cursorignore` + `.gitignore` | Cross-tool ignore files prevent scanning `node_modules/`, `vendor/`, `venv/`, caches |
+| Scoping scripts | Bash | `scripts/setup-repo-scoping.sh` (auto-detect single vs monorepo), `scripts/opencode-maintenance.sh` (DB/log housekeeping) |
 
 ## System boundaries
 

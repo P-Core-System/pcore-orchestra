@@ -67,12 +67,23 @@ Do not modify the following unless explicitly instructed:
 ## Keeping Docs in Sync
 
 Update the relevant context file whenever implementation
-changes:
+changes — **mandatory, not optional**:
 
-- System architecture or boundaries
-- Storage model decisions
-- Code conventions or standards
-- Feature scope
+| If you change... | Update this file |
+|---|---|
+| System architecture or boundaries | `context/architecture.md` |
+| Storage model decisions | `context/architecture.md` |
+| Code conventions or standards | `context/code-standards.md` |
+| Feature scope | `context/project-overview.md` |
+| Workflow or scoping rules | `context/ai-workflow-rules.md` |
+| Any implementation | `context/progress-tracker.md` (add entry with date + description) |
+
+**Progress-tracker entry format:**
+```
+- YYYY-MM-DD — Description. Files: `path/file1`, `path/file2`. Impact: what changed.
+```
+
+**Rule:** A commit without a progress-tracker entry is incomplete.
 
 ## Before Moving to the Next Unit
 
