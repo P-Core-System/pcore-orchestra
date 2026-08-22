@@ -45,10 +45,10 @@ Usage:
   bash setup-opencode-proxy.sh --restore    Restore config from backup
   bash setup-opencode-proxy.sh --help       Show this help
 
-Free Zen models (as of July 2026):
-  minimax-m2.5-free, big-pickle, north-mini-code-free,
-  mimo-v2.5-free, qwen3.6-plus-free, nemotron-3-super-free,
-  ling-2.6-flash, hy3-preview-free
+Free Zen models (as of August 2026):
+  x-preview-f-free, muse-spark-1.2-contributor-free, big-pickle,
+  kimi-k2.5-free, nemotron-3-ultra-free, nemotron-3.5-lightning-free,
+  hy3-free, mimo-v2.5-free, qwen3.6-plus-free, minimax-m3-free
 
 Multi-key rotation tools:
   opencode-go-multi-auth  — Go + Zen multi-key proxy (recommended)
@@ -146,14 +146,16 @@ configure_free() {
 
   echo ""
   echo "  Free Zen models available:"
-  echo "    minimax-m2.5-free      (good for general coding)"
-  echo "    big-pickle             (balanced)"
-  echo "    north-mini-code-free   (best for code)"
-  echo "    mimo-v2.5-free         (fast)"
-  echo "    qwen3.6-plus-free      (strong reasoning)"
-  echo "    nemotron-3-super-free  (balanced)"
-  echo "    ling-2.6-flash         (fast, lightweight)"
-  echo "    hy3-preview-free       (experimental)"
+  echo "    x-preview-f-free              (strong general coding)"
+  echo "    muse-spark-1.2-contributor-free (frontend/UI)"
+  echo "    big-pickle                    (balanced)"
+  echo "    kimi-k2.5-free                (strong reasoning)"
+  echo "    nemotron-3-ultra-free         (balanced)"
+  echo "    nemotron-3.5-lightning-free   (fast, lightweight)"
+  echo "    hy3-free                      (fast)"
+  echo "    mimo-v2.5-free                (fast)"
+  echo "    qwen3.6-plus-free             (strong reasoning)"
+  echo "    minimax-m3-free               (balanced)"
   echo ""
   echo -e "${YELLOW}⚠ Free models may use data for training. Not for sensitive code.${NC}"
   echo ""
@@ -190,14 +192,16 @@ configure_free() {
         "baseURL": "https://opencode.ai/zen/v1"
       },
       "models": {
-        "north-mini-code-free": {},
-        "minimax-m2.5-free": {},
+        "x-preview-f-free": {},
+        "muse-spark-1.2-contributor-free": {},
         "big-pickle": {},
+        "kimi-k2.5-free": {},
+        "nemotron-3-ultra-free": {},
+        "nemotron-3.5-lightning-free": {},
+        "hy3-free": {},
         "mimo-v2.5-free": {},
         "qwen3.6-plus-free": {},
-        "nemotron-3-super-free": {},
-        "ling-2.6-flash": {},
-        "hy3-preview-free": {}
+        "minimax-m3-free": {}
       }
     }
   }
@@ -272,12 +276,12 @@ configure_multi_key() {
   echo '    "name": "OpenCode Zen (multi-auth)",'
   echo '    "options": { "baseURL": "http://localhost:18905/zen" },'
   echo '    "models": {'
-  echo '      "deepseek-v4-flash-free": {},'
-  echo '      "mimo-v2.5-free": {},'
-  echo '      "qwen3.6-plus-free": {},'
-  echo '      "minimax-m3-free": {},'
+  echo "      "x-preview-f-free": {},'
+  echo '      "muse-spark-1.2-contributor-free": {},'
+  echo '      "big-pickle": {},'
+  echo '      "kimi-k2.5-free": {},'
   echo '      "nemotron-3-ultra-free": {},'
-  echo '      "north-mini-code-free": {}'
+  echo '      "nemotron-3.5-lightning-free": {}'
   echo "    }"
   echo "  }"
   echo ""

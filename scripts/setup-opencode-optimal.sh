@@ -52,7 +52,7 @@ Usage:
   bash setup-opencode-optimal.sh --help           Show this help
 
 Profiles:
-  budget     Uses free/deepseek-v4-flash for all phases. ~$0.00-0.03/cycle
+  budget     Uses x-preview-f-free for all phases. ~$0.00-0.03/cycle
   balanced   Flash for read-only, kimi-k2.5 for implementation. ~$0.03-0.11/cycle
   premium    Sonnet 5 for implementation, flash for others. ~$0.10-0.30/cycle
 
@@ -197,8 +197,8 @@ generate_config() {
     budget)
       config='{
   "$schema": "https://opencode.ai/config.json",
-  "model": "opencode/deepseek-v4-flash-free",
-  "small_model": "opencode/gpt-5-nano",
+  "model": "opencode/x-preview-f-free",
+  "small_model": "opencode/nemotron-3.5-lightning-free",
   "compaction": {
     "auto": true,
     "prune": true,
@@ -210,21 +210,21 @@ generate_config() {
   "snapshot": false,
   "agent": {
     "orchestra-planner": {
-      "model": "opencode/deepseek-v4-flash-free",
+      "model": "opencode/x-preview-f-free",
       "steps": 6,
       "permission": { "edit": "deny", "bash": "allow", "websearch": "deny" }
     },
     "orchestra-implementer": {
-      "model": "opencode/deepseek-v4-flash-free",
+      "model": "opencode/x-preview-f-free",
       "steps": 20
     },
     "orchestra-verifier": {
-      "model": "opencode/deepseek-v4-flash-free",
+      "model": "opencode/nemotron-3.5-lightning-free",
       "steps": 8,
       "permission": { "edit": "deny", "bash": "allow" }
     },
     "orchestra-reviewer": {
-      "model": "opencode/deepseek-v4-flash-free",
+      "model": "opencode/x-preview-f-free",
       "steps": 4,
       "permission": { "edit": "deny", "bash": "allow", "websearch": "deny", "webfetch": "deny" }
     }
@@ -232,7 +232,7 @@ generate_config() {
   "provider": {
     "opencode": {
       "models": {
-        "deepseek-v4-flash-free": {
+        "x-preview-f-free": {
           "variants": {
             "fast": { "reasoningEffort": "low", "textVerbosity": "low" }
           }
@@ -243,8 +243,8 @@ generate_config() {
 }'
 
       echo -e "${GREEN}Budget profile:${NC}"
-      echo "  All phases: deepseek-v4-flash-free (free)"
-      echo "  Cost per cycle: ~$0.00-0.03"
+      echo "  All phases: x-preview-f-free (free)"
+      echo "  Cost per cycle: ~\$0.00-0.03"
       echo "  Limitation: rate-limited, may hit limits mid-loop"
       ;;
 
@@ -252,7 +252,7 @@ generate_config() {
       config='{
   "$schema": "https://opencode.ai/config.json",
   "model": "opencode/deepseek-v4-flash",
-  "small_model": "opencode/gpt-5-nano",
+  "small_model": "opencode/nemotron-3.5-lightning-free",
   "compaction": {
     "auto": true,
     "prune": true,
@@ -308,7 +308,7 @@ generate_config() {
       config='{
   "$schema": "https://opencode.ai/config.json",
   "model": "opencode/claude-sonnet-5",
-  "small_model": "opencode/gpt-5-nano",
+  "small_model": "opencode/nemotron-3.5-lightning-free",
   "compaction": {
     "auto": true,
     "prune": true,

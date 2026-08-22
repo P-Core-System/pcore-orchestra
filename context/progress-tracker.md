@@ -4,7 +4,7 @@ Update this file after every meaningful implementation change.
 
 ## Current Phase
 
-- V3.7.2 — install merges Cursor/OpenCode autonomy (CLI, permissions, sandbox, opencode.json)
+- V3.7.3 — ox-alpha + muse-spark models, free-model preflight & fallbacks, conductor-first routing
 
 ## Current Goal
 
@@ -12,6 +12,20 @@ Update this file after every meaningful implementation change.
 
 ## Completed
 
+- **V3.7.3**
+  - System config: implementer model → x-preview-f-free; global model → x-preview-f-free
+  - All orchestra-* agents: added `## Model` sections with primary + fallback chains
+  - SKILL.md: conductor-first entry point + Models & preflight subsection
+  - `scripts/update-free-models.sh` — fetch/validate free models against live API
+  - Auto pool generation: `--refresh` writes `model-pools.json` (frontend/heavy/light) from live Zen catalog; `--pools` prints them; `--check` verifies configured models exist in appropriate pools (STALE-POOL warnings)
+  - autonomy.json: dead deepseek-v4-flash-free refs → x-preview-f-free mapping
+  - docs/opencode.json.example: model→x-preview-f-free, small_model→nemotron-3.5-lightning-free
+  - setup scripts: refreshed free model IDs to live set
+  - docs/token-optimization.md §6.2: updated budget row + preflight pointer
+  - bundle/ORCHESTRA.md: flow diagrams → conductor-first
+  - README.md: orchestra conductor row as entry point; 4 phases marked internal
+  - bundle/opencode/agents/orchestra.md: copy of installed conductor
+  - bundle implementation engineers: Model sections added + pool note
 - **V3.7.1**
   - Vendored `ui-ux-pro-max`, `brand`, `design-system`, `ui-styling` (real assets, MIT) into Cursor + OpenCode skill trees
   - Install links UI skills into `~/.agents/skills`; `THIRD_PARTY.md` attribution
