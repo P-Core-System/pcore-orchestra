@@ -9,16 +9,22 @@ const BROAD_INSTRUCTION_GLOBS = new Set([
   "**/templates/**",
   "**/context/**",
   "**/**",
-]);
-
-/** Six-file + entry only — subagents read the rest on demand. */
-const NARROW_INSTRUCTIONS = [
   "**/AGENTS.md",
   "**/CLAUDE.md",
   "**/context/project-overview.md",
   "**/context/architecture.md",
   "**/context/code-standards.md",
   "**/context/progress-tracker.md",
+]);
+
+/** Six-file + entry only — subagents read the rest on demand. Root-relative (no **/ prefix) to avoid monorepo scans. */
+const NARROW_INSTRUCTIONS = [
+  "AGENTS.md",
+  "CLAUDE.md",
+  "context/project-overview.md",
+  "context/architecture.md",
+  "context/code-standards.md",
+  "context/progress-tracker.md",
 ];
 
 const ORCHESTRA_SKILLS = {

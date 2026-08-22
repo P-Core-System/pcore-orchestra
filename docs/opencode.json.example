@@ -19,17 +19,27 @@
       "dist/**",
       ".git/**",
       "build/**",
-      "coverage/**"
+      "coverage/**",
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/.next/**",
+      "**/.turbo/**",
+      "**/.vercel/**",
+      "**/vendor/**",
+      "**/venv/**",
+      "**/__pycache__/**",
+      "**/.pytest_cache/**"
     ]
   },
   "snapshot": false,
   "instructions": [
-    "**/AGENTS.md",
-    "**/CLAUDE.md",
-    "**/context/project-overview.md",
-    "**/context/architecture.md",
-    "**/context/code-standards.md",
-    "**/context/progress-tracker.md"
+    "AGENTS.md",
+    "CLAUDE.md",
+    "context/project-overview.md",
+    "context/architecture.md",
+    "context/code-standards.md",
+    "context/progress-tracker.md"
   ],
   "permission": {
     "*": "allow",
