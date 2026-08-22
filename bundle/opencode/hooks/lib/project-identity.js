@@ -169,6 +169,9 @@ const ARCHITECTURE_CATALOG = [
   { file: "22-ui-ux.md",                 title: "UI/UX Design System Architecture",                  types: ["web", "mobile", "saas"] },
   { file: "23-standard-code.md",         title: "Standard Code Architecture",                       types: ["web", "mobile", "api", "ai", "devops", "library", "saas", "internal-tool", "oss", "cli", "game", "data"] },
   { file: "24-ui-component.md",          title: "UI Component Architecture",                        types: ["web", "mobile", "saas"] },
+  { file: "25-design-tokens.md",         title: "Design Token Architecture (DTCG 3-tier)",         types: ["web", "mobile", "saas"] },
+  { file: "26-folder-structure.md",       title: "Folder Structure (Feature / Monorepo)",           types: ["web", "mobile", "api", "ai", "devops", "library", "saas", "internal-tool", "oss", "cli", "game", "data"] },
+  { file: "27-system-design.md",          title: "System Design Document (C4-lite)",                 types: ["web", "api", "saas", "data", "internal-tool"] },
 ];
 
 function suggestArchitectureTemplate(projectType) {
