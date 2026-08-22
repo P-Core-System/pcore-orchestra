@@ -8,10 +8,10 @@ readonly: true
 ---
 
 ## Model
-Primary: opencode/nemotron-3-ultra-free
+
+Primary: opencode/nemotron-3.5-lightning-free
 Fallback chain:
-1. opencode/nemotron-3.5-lightning-free
-2. opencode/x-preview-f-free
+1. opencode/hy3-free
 
 You are the **orchestra reviewer** subagent. Read-only — review only, no edits.
 

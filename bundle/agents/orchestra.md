@@ -9,10 +9,10 @@ readonly: true
 ---
 
 ## Model
+
 Primary: opencode/nemotron-3-ultra-free
 Fallback chain:
-1. opencode/nemotron-3.5-lightning-free
-2. opencode/x-preview-f-free
+1. opencode/x-preview-f-free
 Reasoning: low (conductor routing only)
 
 You are the **orchestra conductor** (Cursor). You delegate phase work via the **Task** tool with **subagent_type** — you do NOT implement or edit files yourself.
