@@ -20,8 +20,7 @@ const AGENT_BUDGETS = {
 
 const CYCLE_BUDGET = 63000;
 
-const DEFAULT_TOKEN_STATE = {
-  version: 1,
+const DEFAULT_SESSION_TOKENS = {
   runs: [],
   aggregates: {
     total_runs: 0,
@@ -33,6 +32,37 @@ const DEFAULT_TOKEN_STATE = {
   tips: [],
   last_summary: null,
 };
+
+const DEFAULT_TOKEN_STATE = {
+  version: 1,
+  sessions: {},
+};
+
+/** Get the session ID from environment variables. */
+function getSessionId() {
+  return (
+    process.env.PCORE_SESSION_ID ||
+    process.env.OPENCODE_SESSION_ID ||
+    process.env.CLAUDE_SESSION_ID ||
+    process.env.CURSOR_TRACE_ID ||
+    "pid-" + process.pid
+  );
+}
+
+/** Migrate legacy flat token state to session-namespaced structure. */
+function migrateToSessions(raw) {
+  if (raw && raw.sessions && typeof raw.sessions === "object") {
+    return raw;
+  }
+
+  const sessionId = getSessionId();
+  const migrated = {
+    version: 1,
+    sessions: {},
+  };
+  migrated.sessions[sessionId] = { ...DEFAULT_SESSION_TOKENS, ...(raw || {}) };
+  return migrated;
+}
 
 function estimateTokens(text) {
   if (!text || typeof text !== "string") return 0;
@@ -67,7 +97,10 @@ function extractReportedUsage(input) {
     const prompt =
       usage.prompt_tokens ?? usage.input_tokens ?? usage.promptTokens ?? null;
     const completion =
-      usage.completion_tokens ?? usage.output_tokens ?? usage.completionTokens ?? null;
+      usage.completion_tokens ??
+      usage.output_tokens ??
+      usage.completionTokens ??
+      null;
     let total = usage.total_tokens ?? usage.totalTokens ?? null;
     if (total == null && prompt != null && completion != null) {
       total = prompt + completion;
@@ -97,43 +130,133 @@ function extractReportedUsage(input) {
   return null;
 }
 
-function loadTokenState() {
+function loadTokenState(sessionId) {
+  const session = sessionId || getSessionId();
   try {
     if (!fs.existsSync(TOKENS_PATH)) {
-      return {
-        ...DEFAULT_TOKEN_STATE,
-        runs: [],
-        aggregates: { ...DEFAULT_TOKEN_STATE.aggregates, by_agent: {}, by_phase: {} },
-        tips: [],
-      };
+      const empty = { version: 1, sessions: {} };
+      empty.sessions[session] = { ...DEFAULT_SESSION_TOKENS };
+      return empty;
     }
     const raw = JSON.parse(fs.readFileSync(TOKENS_PATH, "utf8"));
-    return {
-      ...DEFAULT_TOKEN_STATE,
-      ...raw,
-      aggregates: { ...DEFAULT_TOKEN_STATE.aggregates, ...raw.aggregates },
-      runs: raw.runs || [],
-      tips: raw.tips || [],
-    };
+    const migrated = migrateToSessions(raw);
+
+    if (!migrated.sessions[session]) {
+      migrated.sessions[session] = { ...DEFAULT_SESSION_TOKENS };
+    }
+
+    return migrated;
   } catch {
-    return {
-      ...DEFAULT_TOKEN_STATE,
-      runs: [],
-      aggregates: { ...DEFAULT_TOKEN_STATE.aggregates, by_agent: {}, by_phase: {} },
-      tips: [],
-    };
+    const empty = { version: 1, sessions: {} };
+    empty.sessions[session] = { ...DEFAULT_SESSION_TOKENS };
+    return empty;
   }
 }
 
-function saveTokenState(ts) {
+/** Get aggregated token state across all sessions. */
+function getAggregatedTokenState(tokenState) {
+  if (!tokenState.sessions) return { ...DEFAULT_SESSION_TOKENS };
+
+  const aggregated = { ...DEFAULT_SESSION_TOKENS };
+  for (const [, sessionTokens] of Object.entries(tokenState.sessions)) {
+    if (!sessionTokens) continue;
+    aggregated.runs.push(...(sessionTokens.runs || []));
+
+    const agg = sessionTokens.aggregates;
+    if (agg) {
+      aggregated.aggregates.total_runs += agg.total_runs || 0;
+      aggregated.aggregates.total_tokens_estimated += agg.total_tokens_estimated || 0;
+      aggregated.aggregates.total_tokens_reported += agg.total_tokens_reported || 0;
+
+      for (const [agent, data] of Object.entries(agg.by_agent || {})) {
+        if (!aggregated.aggregates.by_agent[agent]) {
+          aggregated.aggregates.by_agent[agent] = {
+            count: 0,
+            total_tokens: 0,
+            over_budget: 0,
+            avg_tokens: 0,
+          };
+        }
+        const target = aggregated.aggregates.by_agent[agent];
+        target.count += data.count || 0;
+        target.total_tokens += data.total_tokens || 0;
+        target.over_budget += data.over_budget || 0;
+        target.avg_tokens =
+          target.count > 0 ? Math.round(target.total_tokens / target.count) : 0;
+      }
+
+      for (const [phase, data] of Object.entries(agg.by_phase || {})) {
+        if (!aggregated.aggregates.by_phase[phase]) {
+          aggregated.aggregates.by_phase[phase] = {
+            count: 0,
+            total_tokens: 0,
+            over_budget: 0,
+            avg_tokens: 0,
+          };
+        }
+        const target = aggregated.aggregates.by_phase[phase];
+        target.count += data.count || 0;
+        target.total_tokens += data.total_tokens || 0;
+        target.over_budget += data.over_budget || 0;
+        target.avg_tokens =
+          target.count > 0 ? Math.round(target.total_tokens / target.count) : 0;
+      }
+    }
+
+    aggregated.tips.push(...(sessionTokens.tips || []));
+    if (sessionTokens.last_summary) {
+      aggregated.last_summary = sessionTokens.last_summary;
+    }
+  }
+
+  // Sort runs by date
+  aggregated.runs.sort((a, b) => {
+    const da = new Date(a.completed_at || a.started_at || 0).getTime();
+    const db = new Date(b.completed_at || b.started_at || 0).getTime();
+    return da - db;
+  });
+
+  // Cap runs
+  if (aggregated.runs.length > TOKEN_HISTORY_MAX_RUNS) {
+    aggregated.runs = aggregated.runs.slice(-TOKEN_HISTORY_MAX_RUNS);
+  }
+
+  // Cap tips
+  if (aggregated.tips.length > TOKEN_TIPS_MAX) {
+    aggregated.tips = aggregated.tips.slice(-TOKEN_TIPS_MAX);
+  }
+
+  return aggregated;
+}
+
+function saveTokenState(ts, sessionId) {
+  const session = sessionId || getSessionId();
   fs.mkdirSync(path.dirname(TOKENS_PATH), { recursive: true });
-  if (ts.runs.length > TOKEN_HISTORY_MAX_RUNS) {
-    ts.runs = ts.runs.slice(-TOKEN_HISTORY_MAX_RUNS);
+
+  let fullState;
+  try {
+    if (fs.existsSync(TOKENS_PATH)) {
+      fullState = JSON.parse(fs.readFileSync(TOKENS_PATH, "utf8"));
+      fullState = migrateToSessions(fullState);
+    } else {
+      fullState = { version: 1, sessions: {} };
+    }
+  } catch {
+    fullState = { version: 1, sessions: {} };
   }
-  if (ts.tips.length > TOKEN_TIPS_MAX) {
-    ts.tips = ts.tips.slice(-TOKEN_TIPS_MAX);
+
+  if (!fullState.sessions) fullState.sessions = {};
+  if (!fullState.sessions[session]) {
+    fullState.sessions[session] = { ...DEFAULT_SESSION_TOKENS };
   }
-  fs.writeFileSync(TOKENS_PATH, JSON.stringify(ts, null, 2));
+
+  const target = fullState.sessions[session];
+  target.runs = (ts.runs || []).slice(-TOKEN_HISTORY_MAX_RUNS);
+  target.aggregates = ts.aggregates || { ...DEFAULT_SESSION_TOKENS.aggregates };
+  target.tips = (ts.tips || []).slice(-TOKEN_TIPS_MAX);
+  target.last_summary = ts.last_summary || null;
+
+  fs.writeFileSync(TOKENS_PATH, JSON.stringify(fullState, null, 2));
 }
 
 function initRunTokens(state) {
@@ -313,12 +436,15 @@ function agentTipAction(agent) {
   return map[agent] || "See docs/token-optimization.md.";
 }
 
-function finalizeRunTokens(state, outcome) {
+function finalizeRunTokens(state, outcome, sessionId) {
   if (!state.tokens?.phases?.length) return null;
 
   const cycleBudget = resolveCycleBudget(state);
 
-  const ts = loadTokenState();
+  const fullState = loadTokenState(sessionId);
+  const session = sessionId || getSessionId();
+  const sessionTokens = fullState.sessions[session] || { ...DEFAULT_SESSION_TOKENS };
+
   const run = {
     run_id: state.tokens.run_id,
     goal: (state.goal || "").slice(0, 200),
@@ -335,28 +461,45 @@ function finalizeRunTokens(state, outcome) {
     cycle_budget: cycleBudget,
   };
 
-  const tips = generateImprovementTips(run, ts.aggregates, ts.runs, cycleBudget);
+  const tips = generateImprovementTips(
+    run,
+    sessionTokens.aggregates,
+    sessionTokens.runs,
+    cycleBudget
+  );
   run.tips = tips;
 
-  ts.runs.push(run);
-  ts.aggregates.total_runs++;
-  ts.aggregates.total_tokens_estimated += run.total_estimated;
-  ts.aggregates.total_tokens_reported += run.total_reported;
+  sessionTokens.runs.push(run);
+  sessionTokens.aggregates.total_runs++;
+  sessionTokens.aggregates.total_tokens_estimated += run.total_estimated;
+  sessionTokens.aggregates.total_tokens_reported += run.total_reported;
 
   for (const p of run.phases) {
-    bumpAggregate(ts.aggregates, p.agent, "by_agent", p.estimated_tokens, p.over_budget);
+    bumpAggregate(
+      sessionTokens.aggregates,
+      p.agent,
+      "by_agent",
+      p.estimated_tokens,
+      p.over_budget
+    );
     if (p.phase) {
-      bumpAggregate(ts.aggregates, p.phase, "by_phase", p.estimated_tokens, p.over_budget);
+      bumpAggregate(
+        sessionTokens.aggregates,
+        p.phase,
+        "by_phase",
+        p.estimated_tokens,
+        p.over_budget
+      );
     }
   }
 
   const stamped = new Date().toISOString();
   for (const tip of tips) {
-    ts.tips.push({ ...tip, run_id: run.run_id, generated_at: stamped });
+    sessionTokens.tips.push({ ...tip, run_id: run.run_id, generated_at: stamped });
   }
 
-  ts.last_summary = formatRunSummary(run, tips);
-  saveTokenState(ts);
+  sessionTokens.last_summary = formatRunSummary(run, tips);
+  saveTokenState(sessionTokens, session);
 
   state.tokens.last_finalized = {
     run_id: run.run_id,
@@ -364,7 +507,7 @@ function finalizeRunTokens(state, outcome) {
     tips_count: tips.length,
   };
 
-  return { run, tips, summary: ts.last_summary };
+  return { run, tips, summary: sessionTokens.last_summary };
 }
 
 function formatRunSummary(run, tips) {
@@ -390,14 +533,15 @@ function formatRunSummary(run, tips) {
   return lines.join("\n");
 }
 
-function buildTokenContextForSession() {
-  const ts = loadTokenState();
-  if (ts.runs.length === 0) return "";
+function buildTokenContextForSession(sessionId) {
+  const fullState = loadTokenState(sessionId);
+  const aggregated = getAggregatedTokenState(fullState);
+  if (aggregated.runs.length === 0) return "";
 
-  const recent = ts.runs.slice(-TOKEN_CONTEXT_RUNS);
+  const recent = aggregated.runs.slice(-TOKEN_CONTEXT_RUNS);
   const avg =
     recent.reduce((s, r) => s + (r.total_estimated || 0), 0) / recent.length;
-  const last = ts.runs[ts.runs.length - 1];
+  const last = aggregated.runs[aggregated.runs.length - 1];
 
   const lines = [
     "Token usage tracker (orchestra-tokens.json):",
@@ -405,7 +549,7 @@ function buildTokenContextForSession() {
     `Recent ${recent.length}-run avg: ~${Math.round(avg).toLocaleString()} (cycle budget ${CYCLE_BUDGET.toLocaleString()})`,
   ];
 
-  const hotAgents = Object.entries(ts.aggregates.by_agent || {})
+  const hotAgents = Object.entries(aggregated.aggregates.by_agent || {})
     .sort((a, b) => b[1].avg_tokens - a[1].avg_tokens)
     .slice(0, 2);
   if (hotAgents.length > 0) {
@@ -415,7 +559,7 @@ function buildTokenContextForSession() {
     );
   }
 
-  const latestTips = (ts.tips || []).slice(-3);
+  const latestTips = (aggregated.tips || []).slice(-3);
   if (latestTips.length > 0) {
     lines.push("Apply next run:");
     for (const t of latestTips) {
@@ -427,17 +571,18 @@ function buildTokenContextForSession() {
   return lines.join("\n");
 }
 
-function printTokenReport() {
-  const ts = loadTokenState();
+function printTokenReport(sessionId) {
+  const fullState = loadTokenState(sessionId);
+  const aggregated = getAggregatedTokenState(fullState);
   console.log("=== Orchestra Token Usage ===\n");
 
-  if (ts.runs.length === 0) {
+  if (aggregated.runs.length === 0) {
     console.log("No token data yet. Complete an orchestra cycle to start tracking.");
     console.log("\nBudgets: planner 10k, implementer 30k, verifier 15k, reviewer 8k (63k/cycle)");
     return;
   }
 
-  const agg = ts.aggregates;
+  const agg = aggregated.aggregates;
   console.log(`Runs tracked: ${agg.total_runs}`);
   console.log(
     `All-time estimated: ~${agg.total_tokens_estimated.toLocaleString()} tokens` +
@@ -460,18 +605,18 @@ function printTokenReport() {
   }
 
   console.log("\n--- Recent runs ---");
-  for (const run of ts.runs.slice(-5)) {
+  for (const run of aggregated.runs.slice(-5)) {
     const flag = run.over_cycle_budget ? " OVER" : "";
     console.log(
       `  ${run.completed_at?.slice(0, 19) || "?"} | ~${run.total_estimated.toLocaleString()}${flag} | ${run.outcome} | "${(run.goal || "").slice(0, 50)}"`
     );
   }
 
-  if (ts.last_summary) {
-    console.log("\n--- Last run summary ---\n" + ts.last_summary);
+  if (aggregated.last_summary) {
+    console.log("\n--- Last run summary ---\n" + aggregated.last_summary);
   }
 
-  const openTips = (ts.tips || []).slice(-5);
+  const openTips = (aggregated.tips || []).slice(-5);
   if (openTips.length > 0) {
     console.log("\n--- Tips for next run ---");
     for (const t of openTips) {
@@ -481,11 +626,19 @@ function printTokenReport() {
   }
 }
 
+function getSessionTokenState(tokenState, sessionId) {
+  const session = sessionId || getSessionId();
+  if (!tokenState.sessions) return { ...DEFAULT_SESSION_TOKENS };
+  return tokenState.sessions[session] || { ...DEFAULT_SESSION_TOKENS };
+}
+
 module.exports = {
   TOKENS_PATH,
   AGENT_BUDGETS,
   CYCLE_BUDGET,
+  DEFAULT_SESSION_TOKENS,
   DEFAULT_TOKEN_STATE,
+  getSessionId,
   estimateTokens,
   extractOutputText,
   extractReportedUsage,
@@ -498,4 +651,7 @@ module.exports = {
   buildTokenContextForSession,
   formatRunSummary,
   printTokenReport,
+  getAggregatedTokenState,
+  getSessionTokenState,
+  migrateToSessions,
 };

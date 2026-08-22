@@ -20,7 +20,7 @@ function getReleaseSlug(version) {
   return "v" + version.replace(/\./g, "-");
 }
 
-const DEFAULT_VERSION_STATE = {
+const DEFAULT_SESSION_VERSION = {
   current: INITIAL_VERSION,
   buildNumber: INITIAL_BUILD,
   previous: null,
@@ -36,22 +36,118 @@ const DEFAULT_VERSION_STATE = {
   migrationNotes: [],
 };
 
-function loadVersionState() {
+const DEFAULT_VERSION_STATE = {
+  version: 1,
+  sessions: {},
+};
+
+/** Get the session ID from environment variables. */
+function getSessionId() {
+  return (
+    process.env.PCORE_SESSION_ID ||
+    process.env.OPENCODE_SESSION_ID ||
+    process.env.CLAUDE_SESSION_ID ||
+    process.env.CURSOR_TRACE_ID ||
+    "pid-" + process.pid
+  );
+}
+
+/** Migrate legacy flat version state to session-namespaced structure. */
+function migrateToSessions(raw) {
+  if (raw && raw.sessions && typeof raw.sessions === "object") {
+    return raw;
+  }
+
+  const sessionId = getSessionId();
+  const migrated = {
+    version: 1,
+    sessions: {},
+  };
+  migrated.sessions[sessionId] = { ...DEFAULT_SESSION_VERSION, ...(raw || {}) };
+  return migrated;
+}
+
+function loadVersionState(sessionId) {
+  const session = sessionId || getSessionId();
   try {
-    if (!fs.existsSync(VERSION_PATH)) return { ...DEFAULT_VERSION_STATE };
+    if (!fs.existsSync(VERSION_PATH)) {
+      const fresh = { version: 1, sessions: {} };
+      fresh.sessions[session] = { ...DEFAULT_SESSION_VERSION };
+      return fresh;
+    }
     const raw = JSON.parse(fs.readFileSync(VERSION_PATH, "utf8"));
-    return { ...DEFAULT_VERSION_STATE, ...raw,
-      releases: raw.releases || [],
-      changelog: raw.changelog || [],
-    };
+    const migrated = migrateToSessions(raw);
+    if (!migrated.sessions[session]) {
+      migrated.sessions[session] = { ...DEFAULT_SESSION_VERSION };
+    }
+    return migrated;
   } catch {
-    return { ...DEFAULT_VERSION_STATE };
+    const fresh = { version: 1, sessions: {} };
+    fresh.sessions[session] = { ...DEFAULT_SESSION_VERSION };
+    return fresh;
   }
 }
 
-function saveVersionState(vs) {
-  fs.mkdirSync(path.dirname(VERSION_PATH), { recursive: true });
-  fs.writeFileSync(VERSION_PATH, JSON.stringify(vs, null, 2));
+/** Atomic write with temp file + rename, with 3-retry backoff. */
+function atomicWrite(filePath, data, retries = 3) {
+  const tempPath = filePath + ".tmp." + process.pid + "." + Date.now().toString(36);
+  let lastError;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      fs.mkdirSync(path.dirname(filePath), { recursive: true });
+      fs.writeFileSync(tempPath, JSON.stringify(data, null, 2));
+      fs.renameSync(tempPath, filePath);
+      return true;
+    } catch (err) {
+      lastError = err;
+      if (attempt < retries) {
+        const delay = Math.min(50 * attempt, 200);
+        require("node:timers/promises").setTimeout(delay);
+      }
+      try { fs.unlinkSync(tempPath); } catch {}
+    }
+  }
+  throw lastError;
+}
+
+function saveVersionState(vs, sessionId) {
+  const session = sessionId || getSessionId();
+
+  let fullState;
+  try {
+    if (fs.existsSync(VERSION_PATH)) {
+      fullState = JSON.parse(fs.readFileSync(VERSION_PATH, "utf8"));
+      fullState = migrateToSessions(fullState);
+    } else {
+      fullState = { version: 1, sessions: {} };
+    }
+  } catch {
+    fullState = { version: 1, sessions: {} };
+  }
+
+  if (!fullState.sessions) fullState.sessions = {};
+  if (!fullState.sessions[session]) {
+    fullState.sessions[session] = { ...DEFAULT_SESSION_VERSION };
+  }
+
+  const target = fullState.sessions[session];
+  target.current = vs.current ?? target.current;
+  target.buildNumber = vs.buildNumber ?? target.buildNumber;
+  target.previous = vs.previous ?? target.previous;
+  target.bumpType = vs.bumpType ?? target.bumpType;
+  target.releaseName = vs.releaseName ?? target.releaseName;
+  target.releaseSlug = vs.releaseSlug ?? target.releaseSlug;
+  target.releaseTheme = vs.releaseTheme ?? target.releaseTheme;
+  target.releaseDate = vs.releaseDate ?? target.releaseDate;
+  target.gitSha = vs.gitSha ?? target.gitSha;
+  target.releases = (vs.releases || []).slice(-MAX_RELEASES);
+  target.changelog = (vs.changelog || []).slice(-MAX_CHANGELOG_ENTRIES);
+  target.breakingChanges = vs.breakingChanges ?? target.breakingChanges;
+  target.migrationNotes = vs.migrationNotes ?? target.migrationNotes;
+  target.sessionId = session;
+  target.lastUpdated = new Date().toISOString();
+
+  atomicWrite(VERSION_PATH, fullState);
 }
 
 function parseSemver(version) {
@@ -82,21 +178,23 @@ function determineBumpType(changeTypes) {
   return "patch";
 }
 
-function bumpProjectVersion(state, changeTypes, identityRootDir) {
-  const vs = loadVersionState();
-  const previous = vs.current;
+function bumpProjectVersion(state, changeTypes, identityRootDir, sessionId) {
+  const session = sessionId || getSessionId();
+  const fullState = loadVersionState(session);
+  const sessionState = fullState.sessions[session] || { ...DEFAULT_SESSION_VERSION };
+  const previous = sessionState.current;
   const bumpType = determineBumpType(changeTypes || []);
   const newVersion = bumpVersion(previous, bumpType);
   const parsed = parseSemver(newVersion);
-  const buildNumber = vs.buildNumber + 1;
+  const buildNumber = sessionState.buildNumber + 1;
 
-  vs.previous = previous;
-  vs.current = newVersion;
-  vs.buildNumber = buildNumber;
-  vs.bumpType = bumpType;
-  vs.releaseDate = new Date().toISOString();
-  vs.releaseTheme = getReleaseTheme(parsed.major);
-  vs.releaseSlug = getReleaseSlug(newVersion);
+  sessionState.previous = previous;
+  sessionState.current = newVersion;
+  sessionState.buildNumber = buildNumber;
+  sessionState.bumpType = bumpType;
+  sessionState.releaseDate = new Date().toISOString();
+  sessionState.releaseTheme = getReleaseTheme(parsed.major);
+  sessionState.releaseSlug = getReleaseSlug(newVersion);
 
   state.project.version = newVersion;
   state.project.buildNumber = buildNumber;
@@ -107,11 +205,10 @@ function bumpProjectVersion(state, changeTypes, identityRootDir) {
   state.versioning.releaseName = `${newVersion} — ${getReleaseTheme(parsed.major)}`;
   state.versioning.releaseSlug = getReleaseSlug(newVersion);
   state.versioning.releaseTheme = getReleaseTheme(parsed.major);
-  state.versioning.releaseDate = vs.releaseDate;
+  state.versioning.releaseDate = sessionState.releaseDate;
 
-  saveVersionState(vs);
+  saveVersionState(sessionState, session);
 
-  // Sync version bump back to project.yaml if identity root provided
   if (identityRootDir) {
     const identity = loadProjectIdentity(identityRootDir);
     if (identity) {
@@ -124,12 +221,10 @@ function bumpProjectVersion(state, changeTypes, identityRootDir) {
   return { previous, current: newVersion, buildNumber, bumpType };
 }
 
-function setProjectIdentityRoot(rootDir) {
-  IDENTITY_ROOT = rootDir;
-}
-
-function addChangelogEntry(state, entry) {
-  const vs = loadVersionState();
+function addChangelogEntry(state, entry, sessionId) {
+  const session = sessionId || getSessionId();
+  const fullState = loadVersionState(session);
+  const sessionState = fullState.sessions[session] || { ...DEFAULT_SESSION_VERSION };
   const changelogEntry = {
     version: state.versioning.current,
     buildNumber: state.versioning.buildNumber,
@@ -140,18 +235,19 @@ function addChangelogEntry(state, entry) {
     author: "orchestra",
     sha: entry.sha || null,
   };
-  vs.changelog.push(changelogEntry);
-  if (vs.changelog.length > MAX_CHANGELOG_ENTRIES) {
-    vs.changelog = vs.changelog.slice(-MAX_CHANGELOG_ENTRIES);
+  sessionState.changelog.push(changelogEntry);
+  if (sessionState.changelog.length > MAX_CHANGELOG_ENTRIES) {
+    sessionState.changelog = sessionState.changelog.slice(-MAX_CHANGELOG_ENTRIES);
   }
-  saveVersionState(vs);
+  saveVersionState(sessionState, session);
   return changelogEntry;
 }
 
-function recordRelease(state, identityRootDir) {
-  const vs = loadVersionState();
+function recordRelease(state, identityRootDir, sessionId) {
+  const session = sessionId || getSessionId();
+  const fullState = loadVersionState(session);
+  const sessionState = fullState.sessions[session] || { ...DEFAULT_SESSION_VERSION };
 
-  // Sync identity version history
   if (identityRootDir) {
     const identity = loadProjectIdentity(identityRootDir);
     if (identity) {
@@ -169,21 +265,23 @@ function recordRelease(state, identityRootDir) {
     gitSha: state.versioning.gitSha,
     breakingChanges: [...(state.versioning.breakingChanges || [])],
     channel: state.project.releaseChannel || "development",
-    changelogEntries: vs.changelog.filter(c => c.version === state.versioning.current),
+    changelogEntries: sessionState.changelog.filter((c) => c.version === state.versioning.current),
   };
-  vs.releases.push(release);
-  if (vs.releases.length > MAX_RELEASES) {
-    vs.releases = vs.releases.slice(-MAX_RELEASES);
+  sessionState.releases.push(release);
+  if (sessionState.releases.length > MAX_RELEASES) {
+    sessionState.releases = sessionState.releases.slice(-MAX_RELEASES);
   }
-  saveVersionState(vs);
+  saveVersionState(sessionState, session);
   return release;
 }
 
-function generateChangelogMd(version) {
-  const vs = loadVersionState();
+function generateChangelogMd(version, sessionId) {
+  const session = sessionId || getSessionId();
+  const fullState = loadVersionState(session);
+  const sessionState = fullState.sessions[session] || { ...DEFAULT_SESSION_VERSION };
   const entries = version
-    ? vs.changelog.filter(e => e.version === version)
-    : vs.changelog;
+    ? sessionState.changelog.filter((e) => e.version === version)
+    : sessionState.changelog;
   if (entries.length === 0) return "## Changelog\n\nNo entries.";
 
   const byType = {};
@@ -192,7 +290,10 @@ function generateChangelogMd(version) {
     byType[e.type].push(e);
   }
 
-  const typeOrder = ["added", "changed", "improved", "fixed", "deprecated", "removed", "security", "performance", "refactoring", "documentation", "tests", "infrastructure"];
+  const typeOrder = [
+    "added", "changed", "improved", "fixed", "deprecated", "removed",
+    "security", "performance", "refactoring", "documentation", "tests", "infrastructure",
+  ];
   const typeLabels = {
     added: "Added", changed: "Changed", improved: "Improved", fixed: "Fixed",
     deprecated: "Deprecated", removed: "Removed", security: "Security",
@@ -213,7 +314,10 @@ function generateChangelogMd(version) {
   return md;
 }
 
-function generateReleaseNotes(state) {
+function generateReleaseNotes(state, sessionId) {
+  const session = sessionId || getSessionId();
+  const fullState = loadVersionState(session);
+  const sessionState = fullState.sessions[session] || { ...DEFAULT_SESSION_VERSION };
   const version = state.versioning;
   let notes = `# Release ${version.releaseName}\n\n`;
   notes += `- **Version:** ${version.current}\n`;
@@ -239,15 +343,43 @@ function generateReleaseNotes(state) {
     notes += "\n";
   }
 
-  notes += generateChangelogMd(version.current);
+  notes += generateChangelogMd(version.current, session);
   return notes;
 }
 
-let IDENTITY_ROOT = null;
+function getSessionVersionState(versionState, sessionId) {
+  const session = sessionId || getSessionId();
+  if (!versionState.sessions) return { ...DEFAULT_SESSION_VERSION };
+  return versionState.sessions[session] || { ...DEFAULT_SESSION_VERSION };
+}
+
+function getAggregatedVersionState(versionState) {
+  if (!versionState.sessions) return { ...DEFAULT_SESSION_VERSION };
+
+  const aggregated = { ...DEFAULT_SESSION_VERSION };
+  for (const [, sessionVer] of Object.entries(versionState.sessions)) {
+    if (!sessionVer) continue;
+    aggregated.releases.push(...(sessionVer.releases || []));
+    aggregated.changelog.push(...(sessionVer.changelog || []));
+    aggregated.breakingChanges.push(...(sessionVer.breakingChanges || []));
+    aggregated.migrationNotes.push(...(sessionVer.migrationNotes || []));
+  }
+  aggregated.releases.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+  aggregated.changelog.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+  if (aggregated.releases.length > MAX_RELEASES) {
+    aggregated.releases = aggregated.releases.slice(-MAX_RELEASES);
+  }
+  if (aggregated.changelog.length > MAX_CHANGELOG_ENTRIES) {
+    aggregated.changelog = aggregated.changelog.slice(-MAX_CHANGELOG_ENTRIES);
+  }
+  return aggregated;
+}
 
 module.exports = {
   VERSION_PATH,
+  DEFAULT_SESSION_VERSION,
   DEFAULT_VERSION_STATE,
+  getSessionId,
   loadVersionState,
   saveVersionState,
   parseSemver,
@@ -259,5 +391,8 @@ module.exports = {
   generateChangelogMd,
   generateReleaseNotes,
   RELEASE_THEMES,
-  setProjectIdentityRoot,
+  getSessionVersionState,
+  getAggregatedVersionState,
+  migrateToSessions,
+  atomicWrite,
 };

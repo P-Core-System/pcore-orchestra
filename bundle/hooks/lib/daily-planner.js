@@ -7,39 +7,128 @@ const { loadProjectState } = require("./project-manager.js");
 
 const DAILY_PATH = path.join(__dirname, "..", "state", "orchestra-daily.json");
 
-const DEFAULT_DAILY_STATE = {
-  version: 1,
+const DEFAULT_SESSION_DAILY = {
   entries: [],
   currentSprint: null,
   sprintStart: null,
   sprintEnd: null,
 };
 
-function loadDailyState() {
+const DEFAULT_DAILY_STATE = {
+  version: 1,
+  sessions: {},
+};
+
+/** Get the session ID from environment variables. */
+function getSessionId() {
+  return (
+    process.env.PCORE_SESSION_ID ||
+    process.env.OPENCODE_SESSION_ID ||
+    process.env.CLAUDE_SESSION_ID ||
+    process.env.CURSOR_TRACE_ID ||
+    "pid-" + process.pid
+  );
+}
+
+/** Migrate legacy flat daily state to session-namespaced structure. */
+function migrateToSessions(raw) {
+  if (raw && raw.sessions && typeof raw.sessions === "object") {
+    return raw;
+  }
+
+  const sessionId = getSessionId();
+  const migrated = {
+    version: 1,
+    sessions: {},
+  };
+  migrated.sessions[sessionId] = { ...DEFAULT_SESSION_DAILY, ...(raw || {}), entries: (raw?.entries || []) };
+  return migrated;
+}
+
+function loadDailyState(sessionId) {
+  const session = sessionId || getSessionId();
   try {
-    if (!fs.existsSync(DAILY_PATH)) return { ...DEFAULT_DAILY_STATE, entries: [] };
+    if (!fs.existsSync(DAILY_PATH)) {
+      const fresh = { version: 1, sessions: {} };
+      fresh.sessions[session] = { ...DEFAULT_SESSION_DAILY };
+      return fresh;
+    }
     const raw = JSON.parse(fs.readFileSync(DAILY_PATH, "utf8"));
-    return { ...DEFAULT_DAILY_STATE, ...raw, entries: raw.entries || [] };
+    const migrated = migrateToSessions(raw);
+    if (!migrated.sessions[session]) {
+      migrated.sessions[session] = { ...DEFAULT_SESSION_DAILY };
+    }
+    return migrated;
   } catch {
-    return { ...DEFAULT_DAILY_STATE, entries: [] };
+    const fresh = { version: 1, sessions: {} };
+    fresh.sessions[session] = { ...DEFAULT_SESSION_DAILY };
+    return fresh;
   }
 }
 
-function saveDailyState(ds) {
-  fs.mkdirSync(path.dirname(DAILY_PATH), { recursive: true });
-  if (ds.entries.length > MAX_DAILY_ENTRIES) {
-    ds.entries = ds.entries.slice(-MAX_DAILY_ENTRIES);
+/** Atomic write with temp file + rename, with 3-retry backoff. */
+function atomicWrite(filePath, data, retries = 3) {
+  const tempPath = filePath + ".tmp." + process.pid + "." + Date.now().toString(36);
+  let lastError;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      fs.mkdirSync(path.dirname(filePath), { recursive: true });
+      fs.writeFileSync(tempPath, JSON.stringify(data, null, 2));
+      fs.renameSync(tempPath, filePath);
+      return true;
+    } catch (err) {
+      lastError = err;
+      if (attempt < retries) {
+        const delay = Math.min(50 * attempt, 200);
+        require("node:timers/promises").setTimeout(delay);
+      }
+      try { fs.unlinkSync(tempPath); } catch {}
+    }
   }
-  fs.writeFileSync(DAILY_PATH, JSON.stringify(ds, null, 2));
+  throw lastError;
+}
+
+function saveDailyState(ds, sessionId) {
+  const session = sessionId || getSessionId();
+
+  let fullState;
+  try {
+    if (fs.existsSync(DAILY_PATH)) {
+      fullState = JSON.parse(fs.readFileSync(DAILY_PATH, "utf8"));
+      fullState = migrateToSessions(fullState);
+    } else {
+      fullState = { version: 1, sessions: {} };
+    }
+  } catch {
+    fullState = { version: 1, sessions: {} };
+  }
+
+  if (!fullState.sessions) fullState.sessions = {};
+  if (!fullState.sessions[session]) {
+    fullState.sessions[session] = { ...DEFAULT_SESSION_DAILY };
+  }
+
+  const target = fullState.sessions[session];
+  target.entries = (ds.entries || []).slice(-MAX_DAILY_ENTRIES);
+  target.currentSprint = ds.currentSprint ?? target.currentSprint;
+  target.sprintStart = ds.sprintStart ?? target.sprintStart;
+  target.sprintEnd = ds.sprintEnd ?? target.sprintEnd;
+  target.sessionId = session;
+  target.lastUpdated = new Date().toISOString();
+
+  atomicWrite(DAILY_PATH, fullState);
 }
 
 function getTodayKey() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function getOrCreateTodayEntry(ds) {
+function getOrCreateTodayEntry(ds, sessionId) {
+  const session = sessionId || getSessionId();
+  const fullState = loadDailyState(session);
+  const sessionState = fullState.sessions[session] || { ...DEFAULT_SESSION_DAILY };
   const key = getTodayKey();
-  let entry = ds.entries.find(e => e.date === key);
+  let entry = sessionState.entries.find((e) => e.date === key);
   if (!entry) {
     entry = {
       date: key,
@@ -65,75 +154,86 @@ function getOrCreateTodayEntry(ds) {
         codeChanges: 0,
         testsWritten: 0,
       },
+      sessionId: session,
     };
-    ds.entries.push(entry);
+    sessionState.entries.push(entry);
+    saveDailyState(sessionState, session);
   }
+  return { entry, sessionState, fullState };
+}
+
+function addDailyGoal(ds, goal, sessionId) {
+  const session = sessionId || getSessionId();
+  const { entry, sessionState } = getOrCreateTodayEntry(ds, session);
+  entry.goals.push({ text: goal, status: "pending", createdAt: new Date().toISOString(), sessionId: session });
+  saveDailyState(sessionState, session);
   return entry;
 }
 
-function addDailyGoal(ds, goal) {
-  const entry = getOrCreateTodayEntry(ds);
-  entry.goals.push({ text: goal, status: "pending", createdAt: new Date().toISOString() });
-  saveDailyState(ds);
-  return entry;
-}
-
-function completeDailyGoal(ds, goalText) {
-  const entry = getOrCreateTodayEntry(ds);
-  const goal = entry.goals.find(g => g.text === goalText);
+function completeDailyGoal(ds, goalText, sessionId) {
+  const session = sessionId || getSessionId();
+  const { entry, sessionState } = getOrCreateTodayEntry(ds, session);
+  const goal = entry.goals.find((g) => g.text === goalText);
   if (goal) {
     goal.status = "completed";
     goal.completedAt = new Date().toISOString();
     entry.completed.push(goalText);
   }
-  saveDailyState(ds);
+  saveDailyState(sessionState, session);
   return entry;
 }
 
-function addBlockedItem(ds, item) {
-  const entry = getOrCreateTodayEntry(ds);
-  entry.blocked.push({ text: item, createdAt: new Date().toISOString() });
-  saveDailyState(ds);
+function addBlockedItem(ds, item, sessionId) {
+  const session = sessionId || getSessionId();
+  const { entry, sessionState } = getOrCreateTodayEntry(ds, session);
+  entry.blocked.push({ text: item, createdAt: new Date().toISOString(), sessionId: session });
+  saveDailyState(sessionState, session);
   return entry;
 }
 
-function recordDailyMetrics(ds, metricsUpdate) {
-  const entry = getOrCreateTodayEntry(ds);
+function recordDailyMetrics(ds, metricsUpdate, sessionId) {
+  const session = sessionId || getSessionId();
+  const { entry, sessionState } = getOrCreateTodayEntry(ds, session);
   Object.assign(entry.metrics, metricsUpdate);
-  saveDailyState(ds);
+  saveDailyState(sessionState, session);
   return entry;
 }
 
-function writeDailyJournal(ds, journalText) {
-  const entry = getOrCreateTodayEntry(ds);
+function writeDailyJournal(ds, journalText, sessionId) {
+  const session = sessionId || getSessionId();
+  const { entry, sessionState } = getOrCreateTodayEntry(ds, session);
   entry.dailyJournal = journalText;
-  saveDailyState(ds);
+  saveDailyState(sessionState, session);
   return entry;
 }
 
-function generateDailySummary(ds) {
-  const entry = getOrCreateTodayEntry(ds);
-  const ps = loadProjectState();
-  const completedTasks = ps.tasks.filter(t => t.status === "completed" || t.status === "done");
-  const pendingTasks = ps.tasks.filter(t => t.status === "backlog" || t.status === "in-progress");
-  const unresolvedDebt = ps.techDebt.filter(d => d.status === "unresolved");
+function generateDailySummary(ds, sessionId) {
+  const session = sessionId || getSessionId();
+  const { entry, sessionState, fullState } = getOrCreateTodayEntry(ds, session);
+  const ps = loadProjectState(null, session);
+  const sessionProject = ps.sessions?.[session] || { tasks: [], techDebt: [], velocity: { averageVelocity: 0 }, epics: [], milestones: [], stories: [] };
+  const completedTasks = sessionProject.tasks.filter((t) => t.status === "completed" || t.status === "done");
+  const pendingTasks = sessionProject.tasks.filter((t) => t.status === "backlog" || t.status === "in-progress");
+  const unresolvedDebt = sessionProject.techDebt.filter((d) => d.status === "unresolved");
 
   const summary = {
     date: entry.date,
     goalsToday: entry.goals.length,
     completedToday: entry.completed.length,
     blockedToday: entry.blocked.length,
-    totalTasks: ps.tasks.length,
+    totalTasks: sessionProject.tasks.length,
     completedTasks: completedTasks.length,
     pendingTasks: pendingTasks.length,
-    completionPercent: ps.tasks.length > 0
-      ? Math.round((completedTasks.length / ps.tasks.length) * 100) : 0,
+    completionPercent:
+      sessionProject.tasks.length > 0
+        ? Math.round((completedTasks.length / sessionProject.tasks.length) * 100)
+        : 0,
     unresolvedTechDebt: unresolvedDebt.length,
-    totalTechDebt: ps.techDebt.length,
-    velocity: ps.velocity.averageVelocity,
-    epicCount: ps.epics.length,
-    milestoneCount: ps.milestones.length,
-    storyCount: ps.stories.length,
+    totalTechDebt: sessionProject.techDebt.length,
+    velocity: sessionProject.velocity.averageVelocity,
+    epicCount: sessionProject.epics.length,
+    milestoneCount: sessionProject.milestones.length,
+    storyCount: sessionProject.stories.length,
     metrics: entry.metrics,
     blocked: entry.blocked,
     priorities: entry.priorities,
@@ -141,18 +241,21 @@ function generateDailySummary(ds) {
   };
 
   entry.summary = JSON.stringify(summary);
-  saveDailyState(ds);
+  saveDailyState(sessionState, session);
   return summary;
 }
 
-function generateWeeklySummary(ds) {
-  const entries = ds.entries;
+function generateWeeklySummary(ds, sessionId) {
+  const session = sessionId || getSessionId();
+  const fullState = loadDailyState(session);
+  const sessionState = fullState.sessions[session] || { ...DEFAULT_SESSION_DAILY };
+  const entries = sessionState.entries;
   const today = new Date();
   const weekAgo = new Date(today);
   weekAgo.setDate(weekAgo.getDate() - 7);
   const weekKey = weekAgo.toISOString().slice(0, 10);
 
-  const weekEntries = entries.filter(e => e.date >= weekKey);
+  const weekEntries = entries.filter((e) => e.date >= weekKey);
   const totalCompleted = weekEntries.reduce((s, e) => s + e.completed.length, 0);
   const totalBlocked = weekEntries.reduce((s, e) => s + e.blocked.length, 0);
   const totalGoals = weekEntries.reduce((s, e) => s + e.goals.length, 0);
@@ -164,15 +267,18 @@ function generateWeeklySummary(ds) {
     totalCompleted,
     totalBlocked,
     completionRate: totalGoals > 0 ? Math.round((totalCompleted / totalGoals) * 100) : 0,
-    entries: weekEntries.map(e => ({
-      date: e.date, goals: e.goals.length, completed: e.completed.length,
+    entries: weekEntries.map((e) => ({
+      date: e.date,
+      goals: e.goals.length,
+      completed: e.completed.length,
       metrics: e.metrics,
     })),
   };
 }
 
-function generateDailyEngineeringJournal(ds) {
-  const entry = getOrCreateTodayEntry(ds);
+function generateDailyEngineeringJournal(ds, sessionId) {
+  const session = sessionId || getSessionId();
+  const { entry, sessionState } = getOrCreateTodayEntry(ds, session);
   const today = getTodayKey();
   let journal = `# Engineering Journal — ${today}\n\n`;
 
@@ -207,19 +313,47 @@ function generateDailyEngineeringJournal(ds) {
   return journal;
 }
 
-function startSprint(ds, sprintName, durationDays) {
-  ds.currentSprint = sprintName;
-  ds.sprintStart = new Date().toISOString();
+function startSprint(ds, sprintName, durationDays, sessionId) {
+  const session = sessionId || getSessionId();
+  const { sessionState } = getOrCreateTodayEntry(ds, session);
+  sessionState.currentSprint = sprintName;
+  sessionState.sprintStart = new Date().toISOString();
   const end = new Date();
   end.setDate(end.getDate() + (durationDays || 14));
-  ds.sprintEnd = end.toISOString();
-  saveDailyState(ds);
-  return { sprint: sprintName, start: ds.sprintStart, end: ds.sprintEnd };
+  sessionState.sprintEnd = end.toISOString();
+  saveDailyState(sessionState, session);
+  return { sprint: sprintName, start: sessionState.sprintStart, end: sessionState.sprintEnd };
+}
+
+function getSessionDailyState(dailyState, sessionId) {
+  const session = sessionId || getSessionId();
+  if (!dailyState.sessions) return { ...DEFAULT_SESSION_DAILY };
+  return dailyState.sessions[session] || { ...DEFAULT_SESSION_DAILY };
+}
+
+function getAggregatedDailyState(dailyState) {
+  if (!dailyState.sessions) return { ...DEFAULT_SESSION_DAILY };
+
+  const aggregated = { ...DEFAULT_SESSION_DAILY };
+  for (const [, sessionDaily] of Object.entries(dailyState.sessions)) {
+    if (!sessionDaily) continue;
+    aggregated.entries.push(...(sessionDaily.entries || []));
+    if (sessionDaily.currentSprint) aggregated.currentSprint = sessionDaily.currentSprint;
+    if (sessionDaily.sprintStart) aggregated.sprintStart = sessionDaily.sprintStart;
+    if (sessionDaily.sprintEnd) aggregated.sprintEnd = sessionDaily.sprintEnd;
+  }
+  aggregated.entries.sort((a, b) => a.date.localeCompare(b.date));
+  if (aggregated.entries.length > MAX_DAILY_ENTRIES) {
+    aggregated.entries = aggregated.entries.slice(-MAX_DAILY_ENTRIES);
+  }
+  return aggregated;
 }
 
 module.exports = {
   DAILY_PATH,
+  DEFAULT_SESSION_DAILY,
   DEFAULT_DAILY_STATE,
+  getSessionId,
   loadDailyState,
   saveDailyState,
   getTodayKey,
@@ -233,4 +367,8 @@ module.exports = {
   generateWeeklySummary,
   generateDailyEngineeringJournal,
   startSprint,
+  getSessionDailyState,
+  getAggregatedDailyState,
+  migrateToSessions,
+  atomicWrite,
 };
