@@ -281,4 +281,18 @@ if ($Cursor) {
   Write-Host "  Autonomy: Settings → Agents → Approvals → Auto-review"
   Write-Host "            Docs: docs/autonomous-workflow.md"
 }
+
+# Repo scoping (cross-tool ignore files)
+Write-Host "==> Installing repo scoping (cross-tool ignore files)"
+$LocalBin = Join-Path $env:USERPROFILE ".local\bin"
+if (-not (Test-Path $LocalBin)) { New-Item -ItemType Directory -Force -Path $LocalBin | Out-Null }
+if (Test-Path (Join-Path $Root "scripts\setup-repo-scoping.sh")) {
+  Copy-Item (Join-Path $Root "scripts\setup-repo-scoping.sh") (Join-Path $LocalBin "setup-repo-scoping.sh") -Force
+  Write-Host "  Script:  $LocalBin\setup-repo-scoping.sh"
+}
+if (Test-Path (Join-Path $Root "scripts\opencode-maintenance.sh")) {
+  Copy-Item (Join-Path $Root "scripts\opencode-maintenance.sh") (Join-Path $LocalBin "opencode-maintenance.sh") -Force
+  Write-Host "  Maint:   $LocalBin\opencode-maintenance.sh"
+}
+Write-Host "  Usage:   bash setup-repo-scoping.sh /path/to/any/repo"
 Write-Host "============================================"
