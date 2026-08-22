@@ -76,8 +76,12 @@ Bootstrap templates: `bash scripts/init-context.sh <project-dir>`
 OpenCode uses a skill-driven approach instead of hooks:
 
 - **Agents** are defined as markdown files in `~/.config/opencode/agents/`
+- **Conductor** `orchestra.md` is `default_agent`; phase agents are `hidden: true`
+- **Spawn:** OpenCode **`task`** tool + agent name (not Cursor **`Task`** + `subagent_type`)
 - **Skills** at `~/.config/opencode/skills/` — orchestra-loop + UI skills + Cloudflare
-- **State** is shared at `~/.config/opencode/state/orchestra.json`
+- **State** at `~/.config/opencode/hooks/state/orchestra.json`
 - **External discovery** via symlinks under `~/.agents/skills/` (orchestra-loop, prompt-intake, verification-before-completion, ui-ux-pro-max, brand, design-system, ui-styling)
+
+Cross-platform spawn matrix: `docs/orchestra-cross-platform.md`
 
 The OpenCode agents mirror the Cursor agents but use OpenCode's frontmatter format (`mode: subagent` instead of `readonly: true`).

@@ -290,8 +290,9 @@ bash scripts/setup-opencode-optimal.sh --check      # audit current config
 
 ```json
 {
-  "small_model": "opencode/gpt-5-nano",
+  "small_model": "opencode/nemotron-3.5-lightning-free",
   "compaction": { "auto": true, "prune": true, "reserved": 8000 },
+  "tool_output": { "max_lines": 400, "max_bytes": 16384 },
   "snapshot": false,
   "watcher": { "ignore": ["node_modules/**", "dist/**", ".git/**"] }
 }
@@ -299,22 +300,28 @@ bash scripts/setup-opencode-optimal.sh --check      # audit current config
 
 | Setting | Why |
 |---------|-----|
+| `instructions` (narrow globs) | Inject AGENTS + six core context files only — **not** `**/templates/**` (100k+ tokens) |
+| `permission.skill.*: deny` | Block 27+ skill schemas from every request; allow orchestra skills only |
 | `small_model` | Titles/summaries off main model |
-| `compaction.prune` | Drop stale tool outputs from context |
-| `compaction.reserved` | Lower = more aggressive pruning |
+| `compaction.prune` + `tail_turns: 12` | Drop stale tool outputs; keep recent turns only |
+| `compaction.reserved` | Lower = more aggressive pruning (6000 orchestra default) |
+| `agent.*.reasoningEffort` | Conductor low (speed); planner/implementer medium (accuracy) |
+| `tool_output` | Cap tool result size (300 lines / 12 KB); **requires OpenCode ≥ 1.19.0** |
 | `snapshot: false` | Large repos — avoid full-tree snapshots |
 | `agent.*.steps` | Hard cap on tool loops per phase |
 | `permission.websearch: deny` | Block expensive web on read-only agents |
+
+`bash install.sh` runs `ensure-opencode-latest.sh` (npm/bun `opencode-ai@latest`). Restart the **OpenCode desktop app** after upgrade. Pre-release: `OPENCODE_CHANNEL=beta bash install.sh`.
 
 ### 6.2 Profile comparison
 
 | Profile | Planner/Verifier/Reviewer | Implementer | Est. cost/cycle |
 |---------|---------------------------|-------------|-----------------|
-| budget | x-preview-f-free / verifier nemotron-3.5-lightning-free | same | ~$0.00–0.03 |
+| budget | nemotron-3-ultra-free / verifier nemotron-3.5-lightning-free | same | ~$0.00–0.03 |
 | balanced | deepseek-v4-flash | kimi-k2.5 | ~$0.03–0.11 |
 | premium | deepseek-v4-flash | claude-sonnet | ~$0.10–0.30 |
 
-Run `bash scripts/update-free-models.sh --check` to validate all configured models are still free.
+Run `bash scripts/update-free-models.sh --refresh` then `--probe` to validate free models respond (not just listed).
 
 ---
 

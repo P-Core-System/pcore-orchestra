@@ -5,6 +5,7 @@ Update this file after every meaningful implementation change.
 ## Current Phase
 
 - V3.7.3 — ox-alpha + muse-spark models, free-model preflight & fallbacks, conductor-first routing
+- 2026-08-22 — OpenCode no-response fix: `fix-opencode-response.sh`; conductor uses OpenCode **task** tool (not Cursor Task); phase agents `hidden: true`; task permission `orchestra-*` only; install copies `orchestra.md`; merge patches dead models (x-preview/hy3/muse-spark); primary nemotron-3-ultra-free
 - 2026-08-22 — New guidance templates: `25-design-tokens.md` (DTCG 3-tier), `26-folder-structure.md` (feature/monorepo), `27-system-design.md` (C4-lite), `AGENTS.authoring.md` (five-tool authoring). Wired into five agent tools: OpenCode global `AGENTS.md` + `opencode.json` instructions globs, repo `CLAUDE.md`, `.github/copilot-instructions.md`, and registered 25/26/27 in `project-identity.js` ARCHITECTURE_CATALOG.
 
 ## Current Goal
@@ -112,6 +113,20 @@ Update this file after every meaningful implementation change.
   - Greenfield intake: "build a note app" → stack recommendations + requirements gather
   - `lib/greenfield-intake.js` + skill `greenfield-product`; enterprise discovery first
   - Small-task production loop documented; `docs/greenfield-and-gaps.md` gap analysis
+
+- **V3.7.1** (cross-platform orchestra)
+  - `docs/orchestra-cross-platform.md` — Cursor Task vs OpenCode task spawn matrix
+  - `bundle/hooks/lib/orchestra-spawn-matrix.js` — shared handoff/ambient text for hooks
+  - Cursor conductor `bundle/agents/orchestra.md`; install copies conductor + references
+  - orchestra-loop skill + mdc updated for both platforms; identity refs → spawn matrix
+- **V3.7.2** (OpenCode desktop no-response)
+  - `agent.orchestra.mode: primary` + `reasoningEffort: low` in autonomy merge (required for `default_agent`)
+  - Health check validates conductor + `--heal` patches missing mode
+  - `fix-opencode-response.sh` upgrades CLI, syncs health script, improved probe
+- **V3.7.3** (OpenCode token + quality profile)
+  - `scripts/lib/opencode-token-profile.js` — narrow instructions, skill deny-by-default, phase reasoning
+  - Removed `**/templates/**` from instructions merge (was unioned forever, ~160k input tokens)
+  - Planner/implementer `reasoningEffort: medium` for accuracy; conductor/verifier low for speed
 
 ## Next Up
 

@@ -1,19 +1,29 @@
 {
-  "model": "opencode/x-preview-f-free",
+  "model": "opencode/nemotron-3-ultra-free",
   "small_model": "opencode/nemotron-3.5-lightning-free",
   "compaction": {
     "auto": true,
     "prune": true,
-    "reserved": 8000
+    "reserved": 6000,
+    "tail_turns": 12
+  },
+  "tool_output": {
+    "max_lines": 300,
+    "max_bytes": 12288
   },
   "watcher": {
     "ignore": ["node_modules/**", "dist/**", ".git/**", "build/**", "coverage/**"]
   },
+  "default_agent": "orchestra",
   "snapshot": false,
-  "instructions": {
-    "context": "**/context/**",
-    "templates": "**/templates/**"
-  },
+  "instructions": [
+    "**/AGENTS.md",
+    "**/CLAUDE.md",
+    "**/context/project-overview.md",
+    "**/context/architecture.md",
+    "**/context/code-standards.md",
+    "**/context/progress-tracker.md"
+  ],
   "permission": {
     "*": "allow",
     "doom_loop": "ask",
@@ -50,14 +60,11 @@
       "~/code/**": "allow"
     },
     "skill": {
+      "*": "deny",
       "orchestra-loop": "allow",
       "verification-before-completion": "allow",
       "prompt-intake": "allow",
       "greenfield-product": "allow",
-      "ui-ux-pro-max": "allow",
-      "brand": "allow",
-      "design-system": "allow",
-      "ui-styling": "allow",
       "internal-*": "deny"
     },
     "websearch": "allow",
@@ -65,43 +72,148 @@
     "task": "allow"
   },
   "agent": {
+    "orchestra": {
+      "description": "Orchestra conductor — plan → implement → verify → review via task tool",
+      "mode": "primary",
+      "model": "opencode/nemotron-3-ultra-free",
+      "reasoningEffort": "low",
+      "textVerbosity": "low",
+      "steps": 24,
+      "permission": {
+        "task": {
+          "*": "deny",
+          "orchestra-*": "allow"
+        },
+        "bash": "allow",
+        "edit": "deny",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "skill": {
+          "*": "deny",
+          "orchestra-loop": "allow",
+          "prompt-intake": "allow"
+        }
+      }
+    },
     "orchestra-planner": {
-      "model": "opencode/x-preview-f-free",
+      "description": "Internal orchestra phase 1 — plan only",
+      "mode": "subagent",
+      "model": "opencode/nemotron-3-ultra-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "medium",
       "steps": 8,
+      "hidden": true,
       "permission": {
         "edit": "deny",
         "bash": "allow",
-        "websearch": "deny",
-        "webfetch": "deny"
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny",
+        "skill": {
+          "*": "deny",
+          "orchestra-loop": "allow",
+          "prompt-intake": "allow"
+        }
       }
     },
     "orchestra-implementer": {
-      "model": "opencode/x-preview-f-free",
-      "steps": 25,
+      "description": "Internal orchestra phase 2 — implement",
+      "mode": "subagent",
+      "model": "opencode/nemotron-3-ultra-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "medium",
+      "steps": 20,
+      "hidden": true,
       "permission": {
         "edit": "allow",
         "bash": "allow",
         "websearch": "deny",
-        "webfetch": "deny"
+        "webfetch": "allow",
+        "task": "deny",
+        "skill": {
+          "*": "deny",
+          "orchestra-loop": "allow",
+          "verification-before-completion": "allow"
+        }
       }
     },
     "orchestra-verifier": {
+      "description": "Internal orchestra phase 3 — verify",
+      "mode": "subagent",
       "model": "opencode/nemotron-3.5-lightning-free",
-      "steps": 10,
-      "permission": {
-        "edit": "deny",
-        "bash": "allow",
-        "websearch": "deny"
-      }
-    },
-    "orchestra-reviewer": {
-      "model": "opencode/x-preview-f-free",
-      "steps": 5,
+      "reasoningEffort": "low",
+      "textVerbosity": "low",
+      "steps": 8,
+      "hidden": true,
       "permission": {
         "edit": "deny",
         "bash": "allow",
         "websearch": "deny",
-        "webfetch": "deny"
+        "webfetch": "deny",
+        "task": "deny",
+        "skill": {
+          "*": "deny",
+          "orchestra-loop": "allow",
+          "verification-before-completion": "allow"
+        }
+      }
+    },
+    "orchestra-reviewer": {
+      "description": "Internal orchestra phase 4 — review",
+      "mode": "subagent",
+      "model": "opencode/nemotron-3-ultra-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 5,
+      "hidden": true,
+      "permission": {
+        "edit": "deny",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny",
+        "skill": {
+          "*": "deny",
+          "orchestra-loop": "allow",
+          "verification-before-completion": "allow"
+        }
+      }
+    }
+  },
+  "provider": {
+    "opencode": {
+      "models": {
+        "x-preview-f-free": {
+          "variants": {
+            "fast": {
+              "reasoningEffort": "low",
+              "textVerbosity": "low"
+            },
+            "thorough": {
+              "reasoningEffort": "high"
+            }
+          }
+        },
+        "nemotron-3-ultra-free": {
+          "variants": {
+            "fast": {
+              "reasoningEffort": "low",
+              "textVerbosity": "low"
+            },
+            "quality": {
+              "reasoningEffort": "medium",
+              "textVerbosity": "medium"
+            }
+          }
+        },
+        "nemotron-3.5-lightning-free": {
+          "variants": {
+            "fast": {
+              "reasoningEffort": "low",
+              "textVerbosity": "low"
+            }
+          }
+        }
       }
     }
   }

@@ -1,29 +1,45 @@
 ---
 name: orchestra-loop
 description: >-
-  Ambient multi-agent orchestra for Cursor — auto plan → implement → verify →
-  review on build/fix/refactor prompts without /orchestra. Use when coding in
-  Cursor Agent, implementing features, fixing bugs, deploying, or when user
-  mentions orchestra, agent loop, or multi-step implementation.
+  Multi-agent orchestra — plan → implement → verify → review. Cursor: ambient
+  hooks + Task subagent_type. OpenCode: orchestra conductor + task tool. Use for
+  build/fix/refactor, agent loop, or cross-platform orchestra setup.
 ---
 
-# Orchestra Loop (ambient, global)
+# Orchestra Loop (Cursor + OpenCode)
 
-Runs on **this machine** via `~/.cursor/`. **You do not need `/orchestra`** — hooks auto-start on implementation-style prompts.
+- **Cursor:** runs via `~/.cursor/` hooks — ambient auto-start; spawn with **Task** + `subagent_type`.
+- **OpenCode:** runs via `~/.config/opencode/` — user talks to **orchestra** conductor; spawn with **task** + agent name.
+
+You do not need `/orchestra` on Cursor when ambient mode is ON.
+
+## Cross-platform (Cursor + OpenCode)
+
+Same four phase agent names; **different spawn tool and chaining**.
+
+| | **Cursor IDE** | **OpenCode CLI / desktop** |
+|---|----------------|----------------------------|
+| User entry | Main Agent (ambient hooks) or `orchestra` conductor | `orchestra` only (`default_agent`) |
+| Spawn tool | **Task** (capital T) | **task** (lowercase) |
+| Spawn param | `subagent_type="orchestra-planner"` | `agent="orchestra-planner"` |
+| Phase chain | Hooks `subagentStop` auto-advance | Conductor calls **task** once per phase |
+| Phase visibility | Task picker | `hidden: true` — not in @ menu |
+
+Full matrix: `docs/orchestra-cross-platform.md` · agent ref: `references/orchestra-spawn-matrix.md`
 
 ## Conductor-first entry
 
-> **Do NOT invoke `orchestra-planner`, `orchestra-implementer`, `orchestra-verifier`, or `orchestra-reviewer` directly as an entry point.** The parent/user invokes `orchestra` (the conductor) via the Task tool; the conductor internally spawns the `orchestra-*` phases. Hook matchers still require the exact `orchestra-*` names for chaining — do not rename them.
+> **Do NOT pick `orchestra-planner`, `orchestra-implementer`, `orchestra-verifier`, or `orchestra-reviewer` as the user entry on OpenCode.** On Cursor, ambient hooks may launch the first phase directly; optional `orchestra` conductor uses **Task** + `subagent_type`. Hook matchers require exact `orchestra-*` names — do not rename them.
 
 ## Models & preflight
 
 | Role | Primary model | Fallback chain |
 |------|--------------|----------------|
-| planner / implementer / reviewer / backend | x-preview-f-free | big-pickle → kimi-k2.5-free → nemotron-3-ultra-free |
+| planner / implementer / reviewer / backend | nemotron-3-ultra-free | x-preview-f-free → big-pickle → kimi-k2.5-free |
 | verifier / small_model | nemotron-3.5-lightning-free | hy3-free → mimo-v2.5-free |
-| frontend | muse-spark-1.2-contributor-free | x-preview-f-free → big-pickle |
+| frontend | nemotron-3-ultra-free | x-preview-f-free → big-pickle (muse-spark region-blocked in some locales) |
 
-**Before use:** run `bash ~/Documents/Project/pcore/pcore-orchestra/scripts/update-free-models.sh --check` to validate all configured models are still free and live.
+**Before use:** run `bash scripts/update-free-models.sh --refresh` then `bash scripts/update-free-models.sh --probe` to validate configured models respond (not just listed).
 
 **Auto pools:** `--refresh` regenerates `~/.config/opencode/state/model-pools.json` (frontend/heavy/light) from the live Zen catalog; use `--pools` to print them. Static chains below are the offline fallback only.
 

@@ -15,6 +15,17 @@
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
+const {
+  sanitizeOpenCodeConfig,
+  supportsToolOutput,
+  normalizeInstructions,
+  MIN_TOOL_OUTPUT_VERSION,
+} = require("./lib/opencode-config-sanitize.js");
+const {
+  applyTokenProfile,
+  filterBroadInstructions,
+  NARROW_INSTRUCTIONS,
+} = require("./lib/opencode-token-profile.js");
 
 const ROOT = path.resolve(__dirname, "..");
 const CONFIG = path.join(ROOT, "bundle", "config");
@@ -162,6 +173,40 @@ function writeCursorSandbox(cursorHome) {
   console.log("  Updated Cursor sandbox.json ->", destPath);
 }
 
+const DEAD_OR_UNRELIABLE_MODELS = new Set([
+  "opencode/x-preview-f-free",
+  "opencode/hy3-free",
+  "opencode/mimo-v2.5-free",
+  "opencode/muse-spark-1.2-contributor-free",
+  "opencode/laguna-s-2.1-free",
+  "opencode/deepseek-v4-flash-free",
+]);
+const RELIABLE_HEAVY = "opencode/nemotron-3-ultra-free";
+const RELIABLE_LIGHT = "opencode/nemotron-3.5-lightning-free";
+
+function patchUnreliableAgentModels(dest) {
+  const agents = dest.agent || {};
+  for (const [name, cfg] of Object.entries(agents)) {
+    if (!cfg || typeof cfg !== "object") continue;
+    const model = cfg.model;
+    if (!model || !DEAD_OR_UNRELIABLE_MODELS.has(model)) continue;
+    if (name.includes("verifier") || name === "explore") {
+      cfg.model = RELIABLE_LIGHT;
+    } else {
+      cfg.model = RELIABLE_HEAVY;
+    }
+  }
+}
+
+function mergeOrchestraAgents(dest, patchAgents) {
+  dest.agent = dest.agent || {};
+  for (const [name, cfg] of Object.entries(patchAgents || {})) {
+    if (name === "orchestra" || name.startsWith("orchestra-")) {
+      dest.agent[name] = cfg;
+    }
+  }
+}
+
 function mergeOpenCodeAutonomy(opencodeHome) {
   const patch = readJson(path.join(CONFIG, "opencode", "autonomy.json"));
   if (!patch) throw new Error("missing bundle/config/opencode/autonomy.json");
@@ -172,24 +217,60 @@ function mergeOpenCodeAutonomy(opencodeHome) {
   // Preserve MCP / secrets entirely
   const mcp = dest.mcp;
 
-  if (!dest.model && patch.model) dest.model = patch.model;
-  if (!dest.small_model && patch.small_model) dest.small_model = patch.small_model;
+  if (patch.model) dest.model = patch.model;
+  if (patch.small_model) dest.small_model = patch.small_model;
+  if (patch.default_agent) dest.default_agent = patch.default_agent;
   dest.compaction = { ...(dest.compaction || {}), ...(patch.compaction || {}) };
+  if (patch.tool_output && supportsToolOutput()) {
+    dest.tool_output = { ...(dest.tool_output || {}), ...patch.tool_output };
+  }
   if (patch.watcher) dest.watcher = { ...(dest.watcher || {}), ...patch.watcher };
   if (patch.snapshot !== undefined) dest.snapshot = patch.snapshot;
   dest.permission = { ...(dest.permission || {}), ...(patch.permission || {}) };
-  dest.agent = { ...(dest.agent || {}), ...(patch.agent || {}) };
-  if (patch.instructions) dest.instructions = { ...(dest.instructions || {}), ...patch.instructions };
+  mergeOrchestraAgents(dest, patch.agent);
+  patchUnreliableAgentModels(dest);
+
+  // Replace broad instruction globs (do not union — union kept **/templates/** forever)
+  if (patch.instructions) {
+    const incoming = normalizeInstructions(patch.instructions) || NARROW_INSTRUCTIONS;
+    dest.instructions = incoming;
+  } else {
+    const existing = filterBroadInstructions(normalizeInstructions(dest.instructions) || []);
+    dest.instructions =
+      existing.length > 0 ? existing : [...NARROW_INSTRUCTIONS];
+  }
+
+  const toolOk = supportsToolOutput();
+  applyTokenProfile(dest, { supportsToolOutput: toolOk });
   if (patch.provider) {
     dest.provider = dest.provider || {};
     for (const [k, v] of Object.entries(patch.provider)) {
       dest.provider[k] = { ...(dest.provider[k] || {}), ...v };
+      if (v.models && dest.provider[k].models) {
+        dest.provider[k].models = { ...(dest.provider[k].models || {}), ...v.models };
+      }
     }
   }
   if (mcp) dest.mcp = mcp;
 
-  writeJson(destPath, dest);
+  const { config: sanitized, removed, fixed, version, supportsToolOutput: toolOkSanitize } =
+    sanitizeOpenCodeConfig(dest);
+  if (removed.length > 0) {
+    console.log(
+      "  Stripped unsupported opencode.json keys:",
+      removed.join(", "),
+      `(OpenCode ${version || "unknown"}; need >= ${MIN_TOOL_OUTPUT_VERSION} for tool_output)`
+    );
+  }
+  if (fixed.length > 0) {
+    console.log("  Normalized opencode.json fields:", fixed.join(", "));
+  } else if (sanitized.tool_output) {
+    console.log("  tool_output limits applied (OpenCode", version + ")");
+  }
+
+  writeJson(destPath, sanitized);
   console.log("  Merged OpenCode autonomy ->", destPath);
+  console.log("  Token profile: narrow instructions, skill deny-by-default, phase reasoning tuned");
   console.log("  Tip: start OpenCode with --auto for session auto-approve");
 }
 

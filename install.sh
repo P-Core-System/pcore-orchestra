@@ -7,6 +7,7 @@
 #   bash install.sh --opencode   # OpenCode only
 #   bash install.sh --project    # also install project bridge in current repo
 #   bash install.sh --all --project
+#   bash install.sh --skip-opencode-upgrade   # skip npm/bun OpenCode CLI upgrade
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -18,6 +19,7 @@ AGENTS_SKILLS="${AGENTS_SKILLS:-$HOME/.agents/skills}"
 INSTALL_CURSOR=0
 INSTALL_OPENCODE=0
 INSTALL_PROJECT=0
+SKIP_OPENCODE_UPGRADE=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -25,15 +27,21 @@ while [[ $# -gt 0 ]]; do
     --cursor)     INSTALL_CURSOR=1; shift ;;
     --opencode)   INSTALL_OPENCODE=1; shift ;;
     --project)    INSTALL_PROJECT=1; shift ;;
+    --skip-opencode-upgrade) SKIP_OPENCODE_UPGRADE=1; shift ;;
     -h|--help)
       cat <<'HELP'
-Usage: bash install.sh [--all|--cursor|--opencode] [--project]
+Usage: bash install.sh [--all|--cursor|--opencode] [--project] [--skip-opencode-upgrade]
 
 Options:
   --all        Install for both Cursor and OpenCode (default)
   --cursor     Install for Cursor IDE only
   --opencode   Install for OpenCode CLI only
   --project    Also install project bridge (.cursor/) in current repo
+  --skip-opencode-upgrade  Skip upgrading OpenCode CLI to latest (npm/bun)
+
+OpenCode: upgrades CLI via scripts/ensure-opencode-latest.sh unless skipped.
+          Set OPENCODE_CHANNEL=beta|dev for pre-release builds.
+          Restart the OpenCode desktop app after install (sidecar sync).
 
 No flags = --all. Restart IDE/editor after install.
 HELP
@@ -74,7 +82,12 @@ install_cursor() {
   fi
 
   # Agents, rule, docs
+  cp -f "$BUNDLE/agents/orchestra.md" "$CURSOR/agents/" 2>/dev/null || true
   cp -f "$BUNDLE/agents/"orchestra-*.md "$CURSOR/agents/"
+  if [[ -d "$BUNDLE/agents/references" ]]; then
+    mkdir -p "$CURSOR/agents/references"
+    cp -f "$BUNDLE/agents/references/"*.md "$CURSOR/agents/references/" 2>/dev/null || true
+  fi
   # Copy enterprise agent category directories (01-idea … 10-review)
   for agent_dir in "$BUNDLE/agents"/*/; do
     [ -d "$agent_dir" ] || continue
@@ -142,7 +155,7 @@ MERGE
   # Autonomy: CLI + permissions.json + sandbox.json (preserves auth/model)
   node "$ROOT/scripts/merge-autonomy-config.js" --cursor --cursor-home "$CURSOR"
 
-  echo "  Cursor agents:    $CURSOR/agents/orchestra-*.md"
+  echo "  Cursor agents:    $CURSOR/agents/orchestra.md + orchestra-*.md"
   echo "  Cursor hooks:     $CURSOR/hooks/"
   echo "  Cursor skills:    $CURSOR/skills/ (orchestra-loop + intake/verify + UI + Cloudflare)"
   echo "  Cursor built-in:  $CURSOR/skills-cursor/ (17 skills)"
@@ -156,10 +169,21 @@ MERGE
 install_opencode() {
   echo "==> Installing OpenCode Orchestra to $OPENCODE"
 
+  if [[ "$SKIP_OPENCODE_UPGRADE" -eq 0 ]]; then
+    bash "$ROOT/scripts/ensure-opencode-latest.sh" || {
+      echo "WARN OpenCode upgrade failed — continuing with existing CLI if present"
+    }
+  fi
+
   mkdir -p "$OPENCODE/agents" "$OPENCODE/skills" "$OPENCODE/state" "$OPENCODE/hooks"
 
-  # Copy OpenCode agents (core + enterprise category dirs)
+  # Copy OpenCode agents (conductor + core + enterprise category dirs)
+  cp -f "$BUNDLE/opencode/agents/orchestra.md" "$OPENCODE/agents/" 2>/dev/null || true
   cp -f "$BUNDLE/opencode/agents/"orchestra-*.md "$OPENCODE/agents/" 2>/dev/null || true
+  if [[ -d "$BUNDLE/agents/references" ]]; then
+    mkdir -p "$OPENCODE/agents/references"
+    cp -f "$BUNDLE/agents/references/orchestra-spawn-matrix.md" "$OPENCODE/agents/references/" 2>/dev/null || true
+  fi
   for agent_dir in "$BUNDLE/opencode/agents"/*/; do
     [ -d "$agent_dir" ] || continue
     dir_name=$(basename "$agent_dir")
@@ -179,6 +203,8 @@ install_opencode() {
   cp -f "$BUNDLE/opencode/hooks/"orchestra-*.js "$OPENCODE/hooks/"
   rm -rf "$OPENCODE/hooks/lib"
   cp -rf "$BUNDLE/opencode/hooks/lib" "$OPENCODE/hooks/lib"
+  cp -f "$ROOT/scripts/lib/opencode-config-sanitize.js" "$ROOT/scripts/lib/opencode-version.js" \
+    "$OPENCODE/hooks/lib/" 2>/dev/null || true
   # Default state (don't overwrite) — runtime reads hooks/state/orchestra.json
   mkdir -p "$OPENCODE/hooks/state"
   if [[ ! -f "$OPENCODE/hooks/state/orchestra.json" ]]; then
@@ -208,6 +234,7 @@ install_opencode() {
   echo "  OpenCode skills:  $OPENCODE/skills/ (orchestra-loop + intake/verify + UI + Cloudflare)"
   echo "  OpenCode state:   $OPENCODE/state/orchestra.json"
   echo "  OpenCode autonomy:$OPENCODE/opencode.json (permission + agents; mcp preserved)"
+  echo "  OpenCode CLI:     run 'opencode --version' — restart desktop app after upgrade"
 }
 
 ###############################################################################

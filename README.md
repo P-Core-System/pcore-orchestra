@@ -17,14 +17,16 @@
 ## Quick Start (2 minutes)
 
 ```bash
-# 1. Clone and install (hooks + skills + CLI/permissions/OpenCode autonomy)
+# 1. Clone and install (hooks + skills + CLI/permissions/OpenCode autonomy + OpenCode CLI upgrade)
 git clone https://github.com/P-Core-System/pcore-orchestra.git
 cd pcore-orchestra
 bash install.sh
+# Skip CLI upgrade: bash install.sh --skip-opencode-upgrade
+# Pre-release OpenCode: OPENCODE_CHANNEL=beta bash install.sh
 # Windows: powershell -ExecutionPolicy Bypass -File install.ps1
 
 # 2. Restart Cursor → Settings → Agents → Approvals → Auto-review
-#    OpenCode: opencode --auto
+#    OpenCode: restart desktop app + opencode --auto
 
 # 3. Use it (no special commands)
 fix the login bug
@@ -42,7 +44,7 @@ Orchestra auto-runs: **planner → implementer → verifier → reviewer**.
 |-------------|---------|---------|
 | Node.js | 18+ | Hook scripts |
 | Cursor IDE | Latest | Agent mode (for Cursor) |
-| OpenCode CLI | Latest | Optional (for OpenCode) |
+| OpenCode CLI | Latest ([install](https://opencode.ai)) | Optional; `install.sh` upgrades CLI automatically |
 | Git | 2.x | Version control |
 | Python 3 | Optional | Only for `ui-ux-pro-max` / design-system `search.py` scripts — not required for orchestra hooks |
 

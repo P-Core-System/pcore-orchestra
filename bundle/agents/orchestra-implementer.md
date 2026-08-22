@@ -9,7 +9,7 @@ description: >-
 
 You are the **orchestra implementer** subagent.
 
-Optional flavor: `references/orchestra-implementer-identity.md` (not required for implementation).
+Optional spawn reference: `references/orchestra-spawn-matrix.md` (Cursor Task vs OpenCode task).
 
 ## When invoked
 

@@ -5,6 +5,20 @@ const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
 
+function loadSanitizer() {
+  const candidates = [
+    path.join(__dirname, "lib", "opencode-config-sanitize.js"),
+    path.join(__dirname, "..", "..", "..", "scripts", "lib", "opencode-config-sanitize.js"),
+    path.join(os.homedir(), "Documents", "Project", "pcore", "pcore-orchestra", "scripts", "lib", "opencode-config-sanitize.js"),
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return require(p);
+  }
+  throw new Error("opencode-config-sanitize.js not found — re-run bash install.sh --opencode");
+}
+
+const { sanitizeOpenCodeConfig, getOpenCodeVersion, MIN_TOOL_OUTPUT_VERSION } = loadSanitizer();
+
 const OPENCODE = process.env.OPENCODE_CONFIG_DIR
   || path.join(os.homedir(), ".config", "opencode");
 
@@ -23,6 +37,7 @@ const HEAL = process.argv.includes("--heal");
 const BUNDLE_OPENCODE = process.env.PCORE_ORCHESTRA_BUNDLE
   || (() => {
     const candidates = [
+      path.join(os.homedir(), "Documents", "Project", "pcore", "pcore-orchestra", "bundle", "opencode"),
       path.join(os.homedir(), "Documents", "Project", "pcore-orchestra", "bundle", "opencode"),
       path.join(os.homedir(), "Projects", "pcore-orchestra", "bundle", "opencode"),
       path.join(os.homedir(), "code", "pcore-orchestra", "bundle", "opencode"),
@@ -32,6 +47,7 @@ const BUNDLE_OPENCODE = process.env.PCORE_ORCHESTRA_BUNDLE
   })();
 
 const coreAgents = [
+  "orchestra.md",
   "orchestra-planner.md",
   "orchestra-implementer.md",
   "orchestra-verifier.md",
@@ -129,7 +145,13 @@ for (const name of coreAgents) {
       const fm = fmMatch[1];
       if (!fm.includes("name:")) console.log("      WARN: missing name in frontmatter");
       if (!fm.includes("description:")) console.log("      WARN: missing description in frontmatter");
-      if (!fm.includes("mode: subagent")) console.log("      WARN: mode should be 'subagent'");
+      const isConductor = name === "orchestra.md";
+      if (isConductor && !fm.includes("mode: primary")) {
+        console.log("      WARN: conductor should have mode: primary");
+      }
+      if (!isConductor && !fm.includes("mode: subagent")) {
+        console.log("      WARN: phase agent should have mode: subagent");
+      }
     }
   }
 }
@@ -273,15 +295,67 @@ const configPath = path.join(OPENCODE, "opencode.json");
 if (fs.existsSync(configPath)) {
   try {
     const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
-    const agents_cfg = cfg.agent || {};
-    const orchestra_agents = Object.keys(agents_cfg).filter(k => k.startsWith("orchestra-"));
+    const { config: sanitized, removed, fixed, version } = sanitizeOpenCodeConfig(cfg);
+
+    if (removed.length > 0) {
+      const ver = version || getOpenCodeVersion() || "unknown";
+      console.log("WARN opencode.json has unsupported keys:", removed.join(", "));
+      console.log(`      OpenCode ${ver} — need >= ${MIN_TOOL_OUTPUT_VERSION} for tool_output.`);
+      console.log("      Upgrade: bash scripts/ensure-opencode-latest.sh (or OPENCODE_CHANNEL=beta)");
+      ok = false;
+      if (HEAL) {
+        fs.writeFileSync(configPath, JSON.stringify(sanitized, null, 2) + "\n");
+        healed++;
+        console.log("HEALED  removed unsupported keys from opencode.json");
+      }
+    } else if (fixed.length > 0) {
+      console.log("WARN opencode.json invalid fields:", fixed.join(", "));
+      ok = false;
+      if (HEAL) {
+        fs.writeFileSync(configPath, JSON.stringify(sanitized, null, 2) + "\n");
+        healed++;
+        console.log("HEALED  normalized", fixed.join(", "));
+      }
+    }
+
+    const agents_cfg = sanitized.agent || {};
+    const orchestra_agents = Object.keys(agents_cfg).filter(
+      (k) => k.startsWith("orchestra-") || k === "orchestra"
+    );
     if (orchestra_agents.length > 0) {
       console.log("OK   opencode.json has orchestra agents:", orchestra_agents.join(", "));
     } else {
       console.log("OK   opencode.json (agents from files, not inline)");
     }
+
+    const def = sanitized.default_agent;
+    const orch = agents_cfg.orchestra;
+    if (def === "orchestra") {
+      if (!orch) {
+        console.log("WARN default_agent is orchestra but agent.orchestra missing in opencode.json");
+        ok = false;
+      } else if (orch.mode !== "primary") {
+        console.log("WARN agent.orchestra.mode should be 'primary' (desktop default_agent requires it)");
+        ok = false;
+        if (HEAL) {
+          orch.mode = "primary";
+          orch.description =
+            orch.description ||
+            "Orchestra conductor — plan → implement → verify → review via task tool";
+          orch.reasoningEffort = orch.reasoningEffort || "low";
+          orch.textVerbosity = orch.textVerbosity || "low";
+          sanitized.agent = agents_cfg;
+          fs.writeFileSync(configPath, JSON.stringify(sanitized, null, 2) + "\n");
+          healed++;
+          console.log("HEALED  set agent.orchestra.mode=primary + low reasoning");
+        }
+      } else {
+        console.log("OK   default_agent orchestra with mode: primary");
+      }
+    }
   } catch {
     console.log("WARN opencode.json parse error");
+    ok = false;
   }
 } else {
   console.log("INFO no opencode.json found (agents loaded from files)");
