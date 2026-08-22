@@ -174,7 +174,6 @@ function writeCursorSandbox(cursorHome) {
 }
 
 const DEAD_OR_UNRELIABLE_MODELS = new Set([
-  "opencode/x-preview-f-free",
   "opencode/hy3-free",
   "opencode/mimo-v2.5-free",
   "opencode/muse-spark-1.2-contributor-free",
@@ -299,6 +298,35 @@ function parseArgs(argv) {
   return out;
 }
 
+function validateCursorAgentModels(repoRoot) {
+  const agentsDir = path.join(repoRoot, "bundle", "agents");
+  if (!fs.existsSync(agentsDir)) return;
+  const required = [
+    "orchestra.md",
+    "orchestra-planner.md",
+    "orchestra-implementer.md",
+    "orchestra-verifier.md",
+    "orchestra-reviewer.md",
+  ];
+  let ok = 0;
+  for (const f of required) {
+    const fp = path.join(agentsDir, f);
+    if (!fs.existsSync(fp)) {
+      console.warn(`  Missing agent: ${fp}`);
+      continue;
+    }
+    const text = fs.readFileSync(fp, "utf8");
+    if (/^model:\s*composer-2\.5/m.test(text)) {
+      ok += 1;
+    } else {
+      console.warn(
+        `  ${f}: missing or wrong model frontmatter (expected model: composer-2.5)`
+      );
+    }
+  }
+  console.log(`  Validated ${ok}/${required.length} Cursor agents pinned to composer-2.5`);
+}
+
 function main() {
   const opts = parseArgs(process.argv.slice(2));
   console.log("==> Applying orchestra autonomy config");
@@ -309,6 +337,10 @@ function main() {
     console.log(
       "  Manual: Cursor Settings → Agents → Approvals & Execution → Auto-review"
     );
+    console.log(
+      "  Manual: Cursor model picker → Composer 2.5 (standard) or run scripts/setup-cursor-model.sh"
+    );
+    validateCursorAgentModels(ROOT);
   }
   if (opts.opencode) {
     fs.mkdirSync(opts.opencodeHome, { recursive: true });
