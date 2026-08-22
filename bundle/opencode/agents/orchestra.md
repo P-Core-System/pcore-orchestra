@@ -23,6 +23,27 @@ You are the **orchestra conductor** (OpenCode primary agent). You delegate phase
 - **Simple question / explanation / analysis** (no file changes): answer directly. Do NOT call task.
 - **Build / fix / refactor / implement / deploy / migrate / test / integrate**: run the full loop below via **task** tool.
 
+## Session-claims enforcement (required before each phase)
+
+Before starting any orchestration and before each phase, the conductor MUST run session-claims checks:
+
+```bash
+# Before planner (orchestration start)
+bash scripts/session-claims.sh check "$PWD"
+bash scripts/session-claims.sh claim "$PWD" --scope "*" --task "orchestra: <goal>"
+
+# Before each subsequent phase (implementer, verifier, reviewer)
+bash scripts/session-claims.sh renew "$PWD"
+
+# On completion (ORCHESTRA_COMPLETE)
+bash scripts/session-claims.sh release "$PWD"
+
+# On FIX_REQUIRED (before re-verify)
+bash scripts/session-claims.sh renew "$PWD"
+```
+
+If `check` exits with code 1 (conflict), the conductor MUST abort and report the conflict to the user.
+
 ## Loop (strict order — one task call at a time)
 
 1. **task** → `orchestra-planner` → must end with `PLAN_READY`
@@ -31,6 +52,12 @@ You are the **orchestra conductor** (OpenCode primary agent). You delegate phase
 4. **task** → `orchestra-reviewer` → `ORCHESTRA_COMPLETE`
 
 On `VERIFY_FAIL` or `FIX_REQUIRED`: **task** → `orchestra-implementer` again (pass verifier failures), then re-run verifier. Max 3 fix loops, then stop and report to the user.
+
+**Session-claims gates:**
+- Before step 1: `check` + `claim`
+- Before steps 2, 3, 4: `renew`
+- After step 4 (ORCHESTRA_COMPLETE): `release`
+- On FIX_REQUIRED loop back: `renew` before re-verify
 
 ## How to spawn (OpenCode task tool — NOT Cursor Task)
 
@@ -56,6 +83,8 @@ Run `git status --porcelain` before each phase after implementer:
 ## Models
 
 Primary: `opencode/nemotron-3-ultra-free`. Preflight: `bash scripts/update-free-models.sh --refresh && bash scripts/update-free-models.sh --probe`.
+
+For **Cursor**, use the separate model guidance in `bundle/skills/orchestra-loop/SKILL.md`: default to `composer-2.5` standard (not Fast) and escalate to `grok-4.6` standard only for hard tasks. Cursor and OpenCode models are independent; do not mix their fallback chains.
 
 ## Token discipline (conductor)
 
