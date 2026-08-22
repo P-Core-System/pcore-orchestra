@@ -60,3 +60,10 @@ echo ""
 echo "==> Done. Fill in context/*.md using your planning conversation."
 echo "    Entry point: $TARGET/AGENTS.md"
 echo "    Install global orchestra: bash $ROOT/install.sh"
+echo ""
+echo "==> Generating repo scoping files (.ignore + .cursorignore)"
+if [[ -f "$ROOT/scripts/setup-repo-scoping.sh" ]]; then
+  bash "$ROOT/scripts/setup-repo-scoping.sh" "$TARGET" 2>&1 | grep -E 'wrote:|skip:|Type:' || true
+else
+  echo "    (setup-repo-scoping.sh not found — skip)"
+fi

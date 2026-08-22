@@ -90,8 +90,11 @@ implementing, and again before committing:
 bash <orchestra>/scripts/session-claims.sh check "$PWD" <paths-you-will-touch>
 ```
 
-- Exit 1 = another LIVE session holds a claim on those paths → coordinate or wait.
-- Claim your own work at phase start, renew on long operations, release when done:
+- `check` → visibility only (shows other sessions working on those paths)
+- `claim`/`renew`/`release` → tracking for coordination
+- Multiple sessions can work in parallel; use `check` to see who's working on what
+
+Claim your own work at phase start, renew on long operations, release when done:
 
 ```bash
 bash scripts/session-claims.sh claim  "$PWD" --scope "app/,packages/" --task "goal text"

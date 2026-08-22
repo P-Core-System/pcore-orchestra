@@ -1,0 +1,21 @@
+# Tool-agnostic ignore for pcore-orchestra — respected by ripgrep, fd, ag.
+# Prevents scans of duplicated skill bundles and template node_modules.
+
+# Template/skill bundle copies (duplicated content)
+**/templates/**/node_modules/
+bundle/skills-cursor/
+
+# Build artifacts
+dist/
+build/
+coverage/
+
+# Caches
+.cache/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+
+# VCS and logs
+.git/
+*.log
