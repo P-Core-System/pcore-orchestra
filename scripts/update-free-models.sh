@@ -129,8 +129,10 @@ result = {
     'pools': pools
 }
 
-with open(pools_file, 'w') as f:
+tmp_pools = pools_file + '.tmp'
+with open(tmp_pools, 'w') as f:
     json.dump(result, f, indent=2)
+os.replace(tmp_pools, pools_file)
 
 for name, items in pools.items():
     print('  %s: %d models' % (name, len(items)))
@@ -165,14 +167,14 @@ for m in models:
     if is_free and mid not in known_dead:
         free.append(mid)
 print(json.dumps({'models': sorted(free), 'fetched': '$(date -u +%Y-%m-%dT%H:%M:%SZ)'}, indent=2))
-" > "$CACHE_FILE"
+" > "${CACHE_FILE}.tmp"
     elif command -v jq &>/dev/null; then
       jq --arg known_dead "$KNOWN_DEAD_CSV" '[.data[]? // .[]? | select(
         ((.pricing.input // "1") | tonumber == 0 and (.pricing.output // "1") | tonumber == 0)
         or (.id | ascii_downcase | test("free"))
-      ) | select((. as $mid | $known_dead | split(",") | index($mid)) | not) | .id] | {models: (sort_by(.) | .[]), fetched: (now | todate)}' "$tmp" > "$CACHE_FILE" 2>/dev/null || {
+      ) | select((.id // empty as $mid | $known_dead | split(",") | index($mid)) | not) | .id] | {models: (sort_by(.) | .[]), fetched: (now | todate)}' "$tmp" > "${CACHE_FILE}.tmp" 2>/dev/null || {
         err "jq parse failed"
-        rm -f "$tmp"
+        rm -f "$tmp" "${CACHE_FILE}.tmp"
         return 1
       }
     else
@@ -180,6 +182,7 @@ print(json.dumps({'models': sorted(free), 'fetched': '$(date -u +%Y-%m-%dT%H:%M:
       rm -f "$tmp"
       return 1
     fi
+    mv -f "${CACHE_FILE}.tmp" "$CACHE_FILE"
     rm -f "$tmp"
     local count
     count=$(python3 -c "import json; print(len(json.load(open('$CACHE_FILE')).get('models', [])))" 2>/dev/null || echo "?")
