@@ -47,7 +47,7 @@ Usage:
 
 Free Zen models (as of August 2026):
   x-preview-f-free, muse-spark-1.2-contributor-free, big-pickle,
-  kimi-k2.5-free, nemotron-3-ultra-free, nemotron-3.5-lightning-free,
+  kimi-k2.5-free, x-preview-f-free (ox-alpha), mimo-v2.5-free,
   hy3-free, mimo-v2.5-free, qwen3.6-plus-free, minimax-m3-free
 
 Multi-key rotation tools:
@@ -150,8 +150,8 @@ configure_free() {
   echo "    muse-spark-1.2-contributor-free (frontend/UI)"
   echo "    big-pickle                    (balanced)"
   echo "    kimi-k2.5-free                (strong reasoning)"
-  echo "    nemotron-3-ultra-free         (balanced)"
-  echo "    nemotron-3.5-lightning-free   (fast, lightweight)"
+  echo "    x-preview-f-free (ox-alpha)         (balanced)"
+  echo "    mimo-v2.5-free   (fast, lightweight)"
   echo "    hy3-free                      (fast)"
   echo "    mimo-v2.5-free                (fast)"
   echo "    qwen3.6-plus-free             (strong reasoning)"
@@ -196,8 +196,8 @@ configure_free() {
         "muse-spark-1.2-contributor-free": {},
         "big-pickle": {},
         "kimi-k2.5-free": {},
-        "nemotron-3-ultra-free": {},
-        "nemotron-3.5-lightning-free": {},
+        "x-preview-f-free (ox-alpha)": {},
+        "mimo-v2.5-free": {},
         "hy3-free": {},
         "mimo-v2.5-free": {},
         "qwen3.6-plus-free": {},
@@ -280,8 +280,8 @@ configure_multi_key() {
   echo '      "muse-spark-1.2-contributor-free": {},'
   echo '      "big-pickle": {},'
   echo '      "kimi-k2.5-free": {},'
-  echo '      "nemotron-3-ultra-free": {},'
-  echo '      "nemotron-3.5-lightning-free": {}'
+  echo '      "x-preview-f-free (ox-alpha)": {},'
+  echo '      "mimo-v2.5-free": {}'
   echo "    }"
   echo "  }"
   echo ""

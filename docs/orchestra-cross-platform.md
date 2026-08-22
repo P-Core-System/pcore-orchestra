@@ -82,8 +82,8 @@ bash scripts/update-free-models.sh --probe
 
 | Role | Primary | Notes |
 |------|---------|--------|
-| planner / implementer / reviewer / conductor | `nemotron-3-ultra-free` | Reliable text on OpenCode Zen |
-| verifier / small_model | `nemotron-3.5-lightning-free` | Fast checks |
+| planner / implementer / reviewer / conductor | `x-preview-f-free` (ox-alpha) | Reliable text on OpenCode Zen |
+| verifier / small_model | `mimo-v2.5-free` | Fast checks |
 | Avoid as primary | `x-preview-f-free`, `hy3-free`, `muse-spark-*` | Silent, timeout, or region-blocked |
 
 ## Fix “no response”
@@ -100,7 +100,7 @@ bash scripts/update-free-models.sh --probe
    bash scripts/fix-opencode-response.sh
    node ~/.config/opencode/hooks/orchestra-health-opencode.js --heal
    ```
-3. **Slow free model** — nemotron can take **30–90s** before text appears; desktop looks frozen. Orchestra agent uses `reasoningEffort: low` after merge.
+3. **Slow free model** — free models can take **30–90s** before text appears; desktop looks frozen. Orchestra agent uses `reasoningEffort: low` after merge.
 4. **Reasoning-only flash** — some models emit reasoning tokens before text; UI may look blank briefly.
 
 ### OpenCode

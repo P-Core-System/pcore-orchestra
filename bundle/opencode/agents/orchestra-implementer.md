@@ -5,7 +5,7 @@ description: >-
   via task tool only. Commits before IMPLEMENT_DONE.
 mode: subagent
 hidden: true
-model: opencode/nemotron-3-ultra-free
+model: opencode/x-preview-f-free
 permission:
   edit: allow
   bash: allow
@@ -52,5 +52,5 @@ IMPLEMENT_DONE
 
 ## Model
 
-- **Primary:** `opencode/nemotron-3-ultra-free`
+- **Primary:** `opencode/x-preview-f-free`
 - **Fallback:** x-preview-f-free → big-pickle → kimi-k2.5-free

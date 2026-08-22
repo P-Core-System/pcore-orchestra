@@ -1,6 +1,6 @@
 {
-  "model": "opencode/nemotron-3-ultra-free",
-  "small_model": "opencode/nemotron-3.5-lightning-free",
+  "model": "opencode/x-preview-f-free",
+  "small_model": "opencode/mimo-v2.5-free",
   "compaction": {
     "auto": true,
     "prune": true,
@@ -75,7 +75,7 @@
     "orchestra": {
       "description": "Orchestra conductor — plan → implement → verify → review via task tool",
       "mode": "primary",
-      "model": "opencode/nemotron-3-ultra-free",
+      "model": "opencode/x-preview-f-free",
       "reasoningEffort": "low",
       "textVerbosity": "low",
       "steps": 24,
@@ -98,7 +98,7 @@
     "orchestra-planner": {
       "description": "Internal orchestra phase 1 — plan only",
       "mode": "subagent",
-      "model": "opencode/nemotron-3-ultra-free",
+      "model": "opencode/x-preview-f-free",
       "reasoningEffort": "medium",
       "textVerbosity": "medium",
       "steps": 8,
@@ -119,7 +119,7 @@
     "orchestra-implementer": {
       "description": "Internal orchestra phase 2 — implement",
       "mode": "subagent",
-      "model": "opencode/nemotron-3-ultra-free",
+      "model": "opencode/x-preview-f-free",
       "reasoningEffort": "medium",
       "textVerbosity": "medium",
       "steps": 20,
@@ -140,7 +140,7 @@
     "orchestra-verifier": {
       "description": "Internal orchestra phase 3 — verify",
       "mode": "subagent",
-      "model": "opencode/nemotron-3.5-lightning-free",
+      "model": "opencode/mimo-v2.5-free",
       "reasoningEffort": "low",
       "textVerbosity": "low",
       "steps": 8,
@@ -161,7 +161,7 @@
     "orchestra-reviewer": {
       "description": "Internal orchestra phase 4 — review",
       "mode": "subagent",
-      "model": "opencode/nemotron-3-ultra-free",
+      "model": "opencode/x-preview-f-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 5,
@@ -194,7 +194,7 @@
             }
           }
         },
-        "nemotron-3-ultra-free": {
+        "x-preview-f-free (ox-alpha)": {
           "variants": {
             "fast": {
               "reasoningEffort": "low",
@@ -206,7 +206,7 @@
             }
           }
         },
-        "nemotron-3.5-lightning-free": {
+        "mimo-v2.5-free": {
           "variants": {
             "fast": {
               "reasoningEffort": "low",

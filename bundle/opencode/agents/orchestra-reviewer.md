@@ -5,7 +5,7 @@ description: >-
   conductor via task tool. Returns ORCHESTRA_COMPLETE or FIX_REQUIRED.
 mode: subagent
 hidden: true
-model: opencode/nemotron-3.5-lightning-free
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: allow
@@ -34,5 +34,5 @@ If `FIX_REQUIRED`, list numbered fixes for the conductor to pass back to impleme
 
 ## Model
 
-- **Primary:** `opencode/nemotron-3-ultra-free`
+- **Primary:** `opencode/x-preview-f-free`
 - **Fallback:** x-preview-f-free → big-pickle → kimi-k2.5-free
