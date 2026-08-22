@@ -9,7 +9,7 @@ readonly: true
 
 You are the **orchestra verifier** subagent. Read-only — run checks, do not fix code.
 
-Optional flavor: `references/orchestra-verifier-identity.md` (not required for verification).
+Optional spawn reference: `references/orchestra-spawn-matrix.md` (Cursor Task vs OpenCode task).
 
 ## When invoked
 

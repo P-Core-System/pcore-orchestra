@@ -35,7 +35,9 @@ For prompts that **implement, fix, build, refactor, deploy, install, configure, 
 
 ## Parent agent rules
 
-- Use Task with subagent names `orchestra-planner`, `orchestra-implementer`, `orchestra-verifier`, `orchestra-reviewer` — not `generalPurpose`.
+- **Cursor:** Task with `subagent_type` `orchestra-planner`, `orchestra-implementer`, `orchestra-verifier`, `orchestra-reviewer` — not `generalPurpose`.
+- **OpenCode:** user talks to `orchestra` conductor only; conductor uses **task** tool with same agent names (phases are `hidden: true`).
+- Cross-platform spawn matrix: `docs/orchestra-cross-platform.md`
 - On `FIX_REQUIRED` or `VERIFY_FAIL`, re-run implementer → verifier → reviewer.
 - One global goal at a time (`~/.cursor/hooks/state/orchestra.json`).
 - Read skill `orchestra-loop` when unsure.
@@ -49,6 +51,7 @@ For prompts that **implement, fix, build, refactor, deploy, install, configure, 
 - Harness / loop / prompts: `docs/agent-harness-recommendations.md`
 - Token usage: `docs/token-optimization.md` + `orchestra-enable.js tokens`
 - OpenCode example config: `docs/opencode.json.example`
+- Cross-platform Cursor ↔ OpenCode: `docs/orchestra-cross-platform.md`
 - Production loop: `docs/production-loop.md`
 
 ## Git commit workflow per phase (commit before next)

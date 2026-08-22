@@ -16,19 +16,19 @@ Agent → orchestra (conductor) → planner → implementer → verifier → rev
 hooks chain each phase (subagentStop)
 ```
 
-### OpenCode CLI (skill-driven)
+### OpenCode CLI (conductor-driven)
 
 ```
 You: "fix the signal bot import error"
         ↓
-orchestra-loop skill → classifies as implement prompt
+default_agent: orchestra (conductor)
         ↓
-Main agent → orchestra (conductor) → planner → implementer → verifier → reviewer
+orchestra → task(orchestra-planner) → task(implementer) → task(verifier) → task(reviewer)
         ↓
-Task tool chains each phase
+Conductor waits for each phase marker (no Cursor hooks)
 ```
 
-> **Note:** The 4 phases are internal — the entry point is `orchestra` (the conductor), which spawns them via Task tool.
+> **Spawn syntax:** Cursor uses **Task** + `subagent_type`. OpenCode uses **task** + agent name. See `docs/orchestra-cross-platform.md`.
 
 ## What triggers auto-orchestration
 

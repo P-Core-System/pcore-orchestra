@@ -197,7 +197,7 @@ generate_config() {
     budget)
       config='{
   "$schema": "https://opencode.ai/config.json",
-  "model": "opencode/x-preview-f-free",
+  "model": "opencode/nemotron-3-ultra-free",
   "small_model": "opencode/nemotron-3.5-lightning-free",
   "compaction": {
     "auto": true,
@@ -209,30 +209,40 @@ generate_config() {
   },
   "snapshot": false,
   "agent": {
+    "orchestra": {
+      "model": "opencode/nemotron-3-ultra-free",
+      "steps": 40,
+      "permission": { "task": "allow", "bash": "allow", "edit": "deny", "websearch": "allow", "webfetch": "allow" }
+    },
     "orchestra-planner": {
-      "model": "opencode/x-preview-f-free",
+      "model": "opencode/nemotron-3-ultra-free",
       "steps": 6,
-      "permission": { "edit": "deny", "bash": "allow", "websearch": "deny" }
+      "permission": { "edit": "deny", "bash": "allow", "websearch": "allow", "webfetch": "allow" }
     },
     "orchestra-implementer": {
-      "model": "opencode/x-preview-f-free",
+      "model": "opencode/nemotron-3-ultra-free",
       "steps": 20
     },
     "orchestra-verifier": {
       "model": "opencode/nemotron-3.5-lightning-free",
       "steps": 8,
-      "permission": { "edit": "deny", "bash": "allow" }
+      "permission": { "edit": "deny", "bash": "allow", "websearch": "deny", "webfetch": "deny" }
     },
     "orchestra-reviewer": {
-      "model": "opencode/x-preview-f-free",
+      "model": "opencode/nemotron-3-ultra-free",
       "steps": 4,
-      "permission": { "edit": "deny", "bash": "allow", "websearch": "deny", "webfetch": "deny" }
+      "permission": { "edit": "deny", "bash": "allow", "websearch": "allow", "webfetch": "allow" }
     }
   },
   "provider": {
     "opencode": {
       "models": {
         "x-preview-f-free": {
+          "variants": {
+            "fast": { "reasoningEffort": "low", "textVerbosity": "low" }
+          }
+        },
+        "nemotron-3-ultra-free": {
           "variants": {
             "fast": { "reasoningEffort": "low", "textVerbosity": "low" }
           }
@@ -243,7 +253,7 @@ generate_config() {
 }'
 
       echo -e "${GREEN}Budget profile:${NC}"
-      echo "  All phases: x-preview-f-free (free)"
+      echo "  All phases: nemotron-3-ultra-free (free, reliable text output)"
       echo "  Cost per cycle: ~\$0.00-0.03"
       echo "  Limitation: rate-limited, may hit limits mid-loop"
       ;;

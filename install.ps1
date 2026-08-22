@@ -9,7 +9,8 @@ param(
   [switch]$All,
   [switch]$Cursor,
   [switch]$OpenCode,
-  [switch]$Project
+  [switch]$Project,
+  [switch]$SkipOpenCodeUpgrade
 )
 
 $ErrorActionPreference = "Stop"
@@ -59,7 +60,14 @@ function Install-Cursor {
   if (-not (Test-Path $stateDest)) {
     Copy-Item (Join-Path $Bundle "hooks\state\orchestra.json") $stateDest -Force
   }
+  Copy-Item (Join-Path $Bundle "agents\orchestra.md") (Join-Path $CursorDir "agents\") -Force -ErrorAction SilentlyContinue
   Copy-Item (Join-Path $Bundle "agents\orchestra-*.md") (Join-Path $CursorDir "agents\") -Force
+  $refSrc = Join-Path $Bundle "agents\references"
+  if (Test-Path $refSrc) {
+    $refDest = Join-Path (Join-Path $CursorDir "agents") "references"
+    New-Item -ItemType Directory -Force -Path $refDest | Out-Null
+    Copy-Item (Join-Path $refSrc "*.md") $refDest -Force -ErrorAction SilentlyContinue
+  }
   # Copy all enterprise agent directories (01-idea through 10-review)
   $agentDirs = Get-ChildItem -Path (Join-Path $Bundle "agents") -Directory
   foreach ($agentDir in $agentDirs) {
@@ -149,6 +157,10 @@ console.log("  Merged hooks.json ->", destPath);
 function Install-OpenCode {
   Write-Host "==> Installing OpenCode Orchestra to $OpenCodeDir"
 
+  if (-not $SkipOpenCodeUpgrade) {
+    & (Join-Path $Root "scripts\ensure-opencode-latest.ps1")
+  }
+
   @(
     (Join-Path $OpenCodeDir "hooks\state"),
     (Join-Path $OpenCodeDir "hooks\lib"),
@@ -158,7 +170,14 @@ function Install-OpenCode {
   ) | ForEach-Object { New-Item -ItemType Directory -Force -Path $_ | Out-Null }
 
   # Agents (orchestra core + enterprise)
+  Copy-Item (Join-Path $Bundle "opencode\agents\orchestra.md") (Join-Path $OpenCodeDir "agents\") -Force
   Copy-Item (Join-Path $Bundle "opencode\agents\orchestra-*.md") (Join-Path $OpenCodeDir "agents\") -Force
+  $refSrc = Join-Path $Bundle "agents\references\orchestra-spawn-matrix.md"
+  if (Test-Path $refSrc) {
+    $refDest = Join-Path (Join-Path $OpenCodeDir "agents") "references"
+    New-Item -ItemType Directory -Force -Path $refDest | Out-Null
+    Copy-Item $refSrc (Join-Path $refDest "orchestra-spawn-matrix.md") -Force
+  }
   $ocAgentDirs = Get-ChildItem -Path (Join-Path $Bundle "opencode\agents") -Directory -ErrorAction SilentlyContinue
   foreach ($agentDir in $ocAgentDirs) {
     $destDir = Join-Path (Join-Path $OpenCodeDir "agents") $agentDir.Name
@@ -179,6 +198,12 @@ function Install-OpenCode {
   $libDest = Join-Path $OpenCodeDir "hooks\lib"
   if (Test-Path $libDest) { Remove-Item $libDest -Recurse -Force }
   Copy-Item (Join-Path $Bundle "opencode\hooks\lib") $libDest -Recurse -Force
+  foreach ($libFile in @("opencode-config-sanitize.js", "opencode-version.js")) {
+    $src = Join-Path (Join-Path $Root "scripts\lib") $libFile
+    if (Test-Path $src) {
+      Copy-Item $src (Join-Path $libDest $libFile) -Force
+    }
+  }
 
   # State files
   Copy-Item (Join-Path $Bundle "opencode\hooks\state\orchestra-memory.json") (Join-Path $OpenCodeDir "hooks\state\") -Force
@@ -213,6 +238,7 @@ function Install-OpenCode {
   Write-Host "  OpenCode skills:  $OpenCodeDir\skills\ (orchestra-loop + UI + Cloudflare)"
   Write-Host "  OpenCode state:   $OpenCodeDir\state\orchestra.json"
   Write-Host "  OpenCode autonomy:$OpenCodeDir\opencode.json (permission + agents; mcp preserved)"
+  Write-Host "  OpenCode CLI:     opencode --version — restart desktop app after upgrade"
 }
 
 ###############################################################################

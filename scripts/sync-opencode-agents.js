@@ -120,23 +120,30 @@ function main() {
   let written = 0;
   let skipped = 0;
 
-  // Copy identity references (Cursor + OpenCode share references/)
+  // Copy shared references (spawn matrix only — not legacy identity files)
   const refSrc = path.join(SRC, "references");
   const refDest = path.join(DEST, "references");
+  const sharedRefs = ["orchestra-spawn-matrix.md"];
   if (fs.existsSync(refSrc)) {
-    for (const name of fs.readdirSync(refSrc)) {
-      if (!name.endsWith(".md")) continue;
-      fs.mkdirSync(refDest, { recursive: true });
-      fs.copyFileSync(path.join(refSrc, name), path.join(refDest, name));
+    fs.mkdirSync(refDest, { recursive: true });
+    for (const name of sharedRefs) {
+      const srcPath = path.join(refSrc, name);
+      if (!fs.existsSync(srcPath)) continue;
+      fs.copyFileSync(srcPath, path.join(refDest, name));
       console.log("copied", path.relative(ROOT, path.join(refDest, name)));
     }
   }
 
   for (const src of sources) {
     const rel = path.relative(SRC, src);
+    const base = path.basename(src);
     if (rel.startsWith("references" + path.sep)) continue;
+    if (base === "orchestra.md") {
+      skipped++;
+      continue;
+    }
     const dest = path.join(DEST, rel);
-    const isCore = CORE_NAMES.has(path.basename(src));
+    const isCore = CORE_NAMES.has(base);
 
     if (isCore && fs.existsSync(dest) && !forceCore) {
       skipped++;

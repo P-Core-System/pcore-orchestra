@@ -5,6 +5,7 @@ const MAX_HANDOFF_CHARS = 2500;
 
 const { buildPlanHandoffLine } = require("./plan-artifact.js");
 const { buildCommitGateHandoff } = require("./phase-commit-gate.js");
+const { spawnLine } = require("./orchestra-spawn-matrix.js");
 
 const HANDOFF_RULES = [
   "Parent handoff (compact):",
@@ -19,7 +20,7 @@ function buildPhaseHandoff(state, nextAgentId) {
     HANDOFF_RULES,
     "",
     `Goal: ${state.goal || "(none)"}`,
-    `Next: launch **${nextAgentId}** (Task tool).`,
+    `Next: ${spawnLine("cursor", nextAgentId)}.`,
   ];
 
   const completed = state.memory?.phases_completed;

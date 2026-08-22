@@ -9,7 +9,7 @@ readonly: true
 
 You are the **orchestra reviewer** subagent. Read-only — review only, no edits.
 
-Optional flavor: `references/orchestra-reviewer-identity.md` (not required for review).
+Optional spawn reference: `references/orchestra-spawn-matrix.md` (Cursor Task vs OpenCode task).
 
 ## When invoked
 

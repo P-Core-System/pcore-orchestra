@@ -38,6 +38,7 @@ EXAMPLE_CONFIG="${REPO_ROOT}/docs/opencode.json.example"
 # flat free-models cache and the generated pools below.
 KNOWN_DEAD=(
   "deepseek-v4-flash-free"
+  "laguna-s-2.1-free"
 )
 KNOWN_DEAD_CSV="$(IFS=,; echo "${KNOWN_DEAD[*]}")"
 
@@ -422,6 +423,74 @@ for name in ('frontend', 'heavy', 'light'):
 " "$POOLS_FILE"
 }
 
+# ── Probe mode: live ping each free model ───────────────────────────
+run_probe() {
+  set +e
+  if [[ ! -f "$CACHE_FILE" ]]; then
+    warn "No cache — fetching first..."
+    fetch_free_models || { err "Cannot fetch models"; return 1; }
+  fi
+
+  if ! command -v opencode &>/dev/null; then
+    err "opencode CLI not found — install OpenCode first"
+    set -e
+    return 1
+  fi
+
+  echo -e "${CYAN}Probing free models (opencode run, 60s timeout each)...${NC}"
+  echo ""
+
+  local failed=0
+  local mid tmp
+  mapfile -t _probe_models < <(python3 -c "
+import json
+with open('$CACHE_FILE') as f:
+    data = json.load(f)
+for m in data.get('models', []):
+    print(m)
+" 2>/dev/null)
+
+  for mid in "${_probe_models[@]}"; do
+    [[ -z "$mid" ]] && continue
+    echo -e "${CYAN}── opencode/$mid ──${NC}"
+    tmp=$(mktemp)
+    if timeout 60 opencode run -m "opencode/$mid" --format json "Reply with exactly: OK" >"$tmp" 2>&1; then
+      if grep -q '"type":"text"' "$tmp" && grep -q 'OK' "$tmp"; then
+        ok "$mid: PASS (text response)"
+      elif grep -q 'RegionError\|not available in your country' "$tmp"; then
+        warn "$mid: REGION (blocked in this locale)"
+        failed=1
+      elif grep -q '"type":"error"' "$tmp"; then
+        err "$mid: ERROR ($(grep -o '"message":"[^"]*"' "$tmp" | head -1 | cut -d'"' -f4))"
+        failed=1
+      else
+        warn "$mid: NO_RESPONSE (no text in output — reasoning model may need variant fast or higher steps)"
+        failed=1
+      fi
+    else
+      if grep -q 'RegionError\|not available in your country' "$tmp" 2>/dev/null; then
+        warn "$mid: REGION (blocked in this locale)"
+      elif grep -q '"type":"error"' "$tmp" 2>/dev/null; then
+        err "$mid: ERROR ($(grep -o '"message":"[^"]*"' "$tmp" | head -1 | cut -d'"' -f4))"
+      else
+        err "$mid: TIMEOUT or CLI failure"
+      fi
+      failed=1
+    fi
+    rm -f "$tmp"
+    echo ""
+  done
+
+  if [[ $failed -ne 0 ]]; then
+    err "Some models failed probe — check primary model in opencode.json (prefer nemotron-3-ultra-free over x-preview-f-free for reliability)"
+    set -e
+    return 1
+  fi
+  ok "All probed models responded"
+  set -e
+  return 0
+}
+
 # ── Help ────────────────────────────────────────────────────────────
 show_help() {
   cat <<'EOF'
@@ -432,6 +501,7 @@ Usage:
   bash update-free-models.sh --check    Same as above (default)
   bash update-free-models.sh --refresh  Re-fetch model list then check
   bash update-free-models.sh --pools    Print auto-generated model pools
+  bash update-free-models.sh --probe    Live ping every cached free model via opencode run
   bash update-free-models.sh --help     Show this help
 
 Checks both ~/.config/opencode/opencode.json and docs/opencode.json.example
@@ -446,6 +516,7 @@ case "${1:-}" in
   --help|-h) show_help ;;
   --refresh) run_refresh ;;
   --pools) run_pools ;;
+  --probe) run_probe ;;
   --check|"") run_check ;;
   *) err "Unknown option: $1"; show_help; exit 1 ;;
 esac

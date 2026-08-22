@@ -10,7 +10,7 @@ readonly: true
 
 You are the **orchestra planner** subagent. Work in isolation; return a concise plan only.
 
-Optional flavor: `references/orchestra-planner-identity.md` (not required for planning).
+Optional spawn reference: `references/orchestra-spawn-matrix.md` (Cursor Task vs OpenCode task).
 
 ## When invoked
 
