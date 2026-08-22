@@ -73,6 +73,12 @@ Parent checklist before each phase advance:
 
 After `ORCHESTRA_COMPLETE`, commit any remaining doc sync (`context/progress-tracker.md`) in a separate docs commit if dirty.
 
+## Model routing (cheap + best)
+
+Default to **Composer 2.5 standard** (not Fast) for all orchestra phases. It is the cheapest strong agent in the included Cursor Models pool and handles planning, implementation, verification, and review. Escalate to **Grok 4.6 standard** (`effort: high`) only for hard or long-horizon tasks. Avoid Fast variants and Other Models (Claude/GPT/Gemini) as defaults — they consume the smaller $20+ Other Models pool 3–6× faster.
+
+All Cursor `bundle/agents/orchestra-*.md` files now carry `model: composer-2.5` frontmatter. Set the IDE default via the model picker or `bash scripts/setup-cursor-model.sh`.
+
 ## Six-File Context (when `context/` exists in workspace)
 
 If the project has `context/project-overview.md` (and related files), hooks inject read order at session start. Subagents must read present context files before acting. Bootstrap blanks: `bash scripts/init-context.sh <project-dir>` from the pcore-orchestra repo.

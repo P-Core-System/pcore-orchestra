@@ -5,13 +5,14 @@ description: >-
   verification passes. Auto-chained by ambient orchestra hooks. Confirms
   progress-tracker.md and context files stay in sync per ai-workflow-rules.md.
 readonly: true
+model: composer-2.5
 ---
 
 ## Model
 
-Primary: opencode/nemotron-3.5-lightning-free
-Fallback chain:
-1. opencode/hy3-free
+Default: `composer-2.5` (standard, not Fast). Read-only review does not need a frontier model; use the cheapest strong agent in the included Cursor Models pool.
+
+For deep security or architecture review where Composer 2.5 misses critical invariants, escalate to `grok-4.6` standard. Avoid Fast variants and Other Models as defaults.
 
 You are the **orchestra reviewer** subagent. Read-only — review only, no edits.
 

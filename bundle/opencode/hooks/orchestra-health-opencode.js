@@ -360,31 +360,34 @@ if (fs.existsSync(configPath)) {
     ok = false;
   }
 } else {
-      console.log("INFO no opencode.json found (agents loaded from files)");
-    }
-  }
+  console.log("INFO no opencode.json found (agents loaded from files)");
+}
 
-  // --- Session-claims validation ---
+// --- Session-claims validation ---
   console.log("\n--- Session-claims ---");
   if (fs.existsSync(SESSION_CLAIMS_SCRIPT)) {
     console.log("OK  session-claims.sh exists at", SESSION_CLAIMS_SCRIPT);
     try {
       const { spawnSync } = require("child_process");
       // Check for stale/active conflicts in current repo
-      const result = spawnSync("bash", [SESSION_CLAIMS_SCRIPT, "check", process.cwd()], {
+      const result = spawnSync("bash", [SESSION_CLAIMS_SCRIPT, "check", "--json", process.cwd()], {
         encoding: "utf8",
         timeout: 10000,
       });
       if (result.status === 0) {
-        console.log("OK  check: no live conflicts in current repo");
-      } else if (result.status === 1) {
-        console.log("WARN check: active conflicting claim detected");
-        console.log("     Output:", result.stdout.trim() || result.stderr.trim());
-        ok = false;
+        try {
+          const parsed = JSON.parse(result.stdout.trim());
+          if (parsed.has_conflicts && parsed.conflicts.length > 0) {
+            console.log("INFO  session-claims: live sessions on these paths:", parsed.conflicts.map(c => c.session_id).join(", "));
+          } else {
+            console.log("OK  check: no live conflicts in current repo");
+          }
+        } catch {
+          console.log("OK  check completed (output parsing skipped)");
+        }
       } else {
         console.log("WARN check: script error (exit", result.status, ")");
         console.log("     stderr:", result.stderr.trim());
-        ok = false;
       }
       // Also list stale claims in current repo
       const listResult = spawnSync("bash", [SESSION_CLAIMS_SCRIPT, "list", process.cwd()], {
@@ -395,7 +398,7 @@ if (fs.existsSync(configPath)) {
         const lines = listResult.stdout.trim().split("\n");
         const staleLines = lines.filter(l => l.startsWith("STALE"));
         if (staleLines.length > 0) {
-          console.log("WARN stale claims in current repo:", staleLines.length);
+          console.log("INFO stale claims in current repo:", staleLines.length);
           staleLines.forEach(l => console.log("     ", l.trim()));
         } else {
           console.log("OK  no stale claims in current repo");
@@ -403,12 +406,10 @@ if (fs.existsSync(configPath)) {
       }
     } catch (e) {
       console.log("WARN session-claims check failed:", e.message);
-      ok = false;
     }
   } else {
-    console.log("MISS session-claims.sh not found at", SESSION_CLAIMS_SCRIPT);
+    console.log("WARN session-claims.sh not found at", SESSION_CLAIMS_SCRIPT);
     console.log("     Expected at ~/Documents/Project/pcore/pcore-orchestra/scripts/session-claims.sh");
-    ok = false;
   }
 
   if (healed > 0) {

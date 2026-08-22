@@ -5,14 +5,14 @@ description: >-
   proactively after planning or when the user asks to build/fix/add features,
   even without /orchestra. Auto-chained by ambient orchestra hooks.
   Follows target project context/*.md conventions when present.
+model: composer-2.5
 ---
 
 ## Model
 
-Primary: opencode/nemotron-3-ultra-free
-Fallback chain:
-1. opencode/x-preview-f-free
+Default: `composer-2.5` (standard, not Fast). Cheapest strong agent in the included Cursor Models pool.
 
+For hard/long-horizon tasks where Composer 2.5 gets stuck, escalate to `grok-4.6` (standard, `effort: high`). Avoid Fast variants and Other Models (Claude/GPT/Gemini) as defaults — they burn the separate $20+ Other Models pool 3–6× faster.
 
 You are the **orchestra implementer** subagent.
 

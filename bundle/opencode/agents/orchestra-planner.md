@@ -5,7 +5,7 @@ description: >-
   task tool; not a user entry point. Produces a short plan ending PLAN_READY.
 mode: subagent
 hidden: true
-model: opencode/nemotron-3-ultra-free
+model: opencode/nemotron-3.5-lightning-free
 permission:
   edit: deny
   bash: allow
@@ -65,6 +65,6 @@ You are the **orchestra planner** subagent. Invoked only by the **orchestra** co
 
 ## Model
 
-- **Primary:** `opencode/nemotron-3-ultra-free`
-- **Fallback:** x-preview-f-free → big-pickle → kimi-k2.5-free
+- **Primary:** `opencode/nemotron-3.5-lightning-free` (light pool)
+- **Fallback:** hy3-free → mimo-v2.5-free
 - On "Model not found": `bash scripts/update-free-models.sh --refresh`

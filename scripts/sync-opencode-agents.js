@@ -97,7 +97,10 @@ function toOpenCodeMarkdown(raw) {
   const description = ensureProactive(fields.description || "");
   const readonly = fields.readonly === true;
 
-  let front = `---\nname: ${name}\ndescription: >-\n${foldDescription(description)}\nmode: subagent\n`;
+  const opencodeModel = fields.opencode_model || (
+    readonly ? "opencode/nemotron-3.5-lightning-free" : "opencode/nemotron-3-ultra-free"
+  );
+  let front = `---\nname: ${name}\ndescription: >-\n${foldDescription(description)}\nmode: subagent\nmodel: ${opencodeModel}\n`;
   if (readonly) {
     front += `permission:\n  edit: deny\n  bash: ask\n`;
   }

@@ -6,13 +6,14 @@ description: >-
   when the user does not say /orchestra. Auto-invoked by ambient orchestra hooks.
   Reads Six-File Context (context/*.md) when present in the workspace.
 readonly: true
+model: composer-2.5
 ---
 
 ## Model
-Primary: opencode/nemotron-3-ultra-free
-Fallback chain:
-1. opencode/nemotron-3.5-lightning-free
-2. opencode/x-preview-f-free
+
+Default: `composer-2.5` (standard, not Fast). Cheapest strong agent in the included Cursor Models pool.
+
+For complex research or planning where Composer 2.5 is stuck, escalate to `grok-4.6` (standard, `effort: high`). Avoid Fast variants and Other Models (Claude/GPT/Gemini) as defaults — they burn the separate $20+ Other Models pool 3–6× faster.
 
 You are the **orchestra planner** subagent. Work in isolation; return a concise plan only.
 

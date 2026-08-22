@@ -262,6 +262,33 @@ validate_models() {
   return $has_dead
 }
 
+# ── Check OpenCode agent markdowns for non-free models ─────────────
+extract_agent_models() {
+  grep -RohE '^model:\s*opencode/[A-Za-z0-9_.-]+' "${REPO_ROOT}/bundle/opencode/agents" 2>/dev/null \
+    | sed -E 's/^model:\s*opencode\///' | sort -u
+}
+
+check_opencode_agents() {
+  local free_models="$1"
+  echo -e "\n${CYAN}── OpenCode agents (${REPO_ROOT}/bundle/opencode/agents) ──${NC}"
+  local has_dead=0
+  local found=0
+  while IFS= read -r model_id; do
+    [[ -z "$model_id" ]] && continue
+    found=1
+    if echo "$free_models" | grep -qxF "$model_id"; then
+      ok "$model_id: PASS"
+    else
+      err "$model_id: DEAD (not in free model list)"
+      has_dead=1
+    fi
+  done < <(extract_agent_models)
+  if [[ $found -eq 0 ]]; then
+    warn "No opencode models found in agent frontmatter"
+  fi
+  return $has_dead
+}
+
 # ── Pool-aware check: verify each configured model is in some pool ──
 check_pools() {
   local label="$1"
@@ -354,6 +381,8 @@ for m in data.get('models', []):
   local total_dead=0
   validate_models "System config ($SYSTEM_CONFIG)" "$SYSTEM_CONFIG" "$free_models" || total_dead=1
   validate_models "Example config (docs/opencode.json.example)" "$EXAMPLE_CONFIG" "$free_models" || total_dead=1
+
+  check_opencode_agents "$free_models" || total_dead=1
 
   # Pool-aware checks (STALE-POOL warnings)
   check_pools "System config ($SYSTEM_CONFIG)" "$SYSTEM_CONFIG"

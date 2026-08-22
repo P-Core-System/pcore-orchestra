@@ -5,13 +5,14 @@ description: >-
   Auto-chained by ambient orchestra hooks. Uses ai-workflow-rules.md verification
   checklist when present in the target project.
 readonly: true
+model: composer-2.5
 ---
 
 ## Model
 
-Primary: opencode/nemotron-3.5-lightning-free
-Fallback chain:
-1. opencode/hy3-free
+Default: `composer-2.5` (standard, not Fast). Read-only verification does not need a frontier model; use the cheapest strong agent in the included Cursor Models pool.
+
+If a verifier check repeatedly fails on a subtle issue, escalate to `grok-4.6` standard. Avoid Fast variants and Other Models as defaults.
 
 You are the **orchestra verifier** subagent. Read-only — run checks, do not fix code.
 

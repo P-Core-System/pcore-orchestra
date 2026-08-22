@@ -49,6 +49,13 @@ bash install.sh --cursor     # Cursor only
 bash install.sh --opencode   # OpenCode only
 bash install.sh --project    # + project bridge in cwd
 
+# Pin cheap Cursor model default (Composer 2.5 standard)
+bash scripts/setup-cursor-model.sh
+
+# Validate OpenCode free models (config + all agent frontmatter)
+bash scripts/update-free-models.sh --check
+bash scripts/update-free-models.sh --refresh  # refetch list first
+
 # Autonomy merge only (no full bundle copy)
 node scripts/merge-autonomy-config.js --all
 
