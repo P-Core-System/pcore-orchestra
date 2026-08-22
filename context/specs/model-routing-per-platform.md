@@ -2,7 +2,7 @@
 
 ## Goal
 
-Orchestra routes model selection per platform and per agent role: Cursor uses `composer-2.5` (daily) → `grok-4.6` (hard tasks); OpenCode uses free models only (`nemotron-3-ultra-free` primary, `nemotron-3.5-lightning-free` for verifier/small_model), with preflight validation against live model catalog.
+Orchestra routes model selection per platform and per agent role: Cursor uses `composer-2.5` (daily) → `grok-4.6` (hard tasks); OpenCode uses free models only (`x-preview-f-free` (ox-alpha) primary, `mimo-v2.5-free` for verifier/small_model), with preflight validation against live model catalog.
 
 ## Context
 
@@ -12,18 +12,18 @@ Orchestra routes model selection per platform and per agent role: Cursor uses `c
 ## Requirements
 
 1. Cursor agent frontmatter: `model: composer-2.5` for core agents; enterprise specialists (architect, tech-lead, security, performance) use `model: grok-4.6`
-2. OpenCode agent frontmatter: `model: nemotron-3-ultra-free` for planner/implementer/reviewer/conductor; `model: nemotron-3.5-lightning-free` for verifier/small_model
+2. OpenCode agent frontmatter: `model: x-preview-f-free (ox-alpha)` for planner/implementer/reviewer/conductor; `model: mimo-v2.5-free` for verifier/small_model
 3. OpenCode: `scripts/update-free-models.sh --refresh` fetches live Zen catalog → writes `model-pools.json` (frontend/heavy/light); `--check` validates configured models exist in pools; `--pools` prints pool contents
 4. `opencode-token-profile.js`: `REASONING` object maps each agent to `reasoningEffort`/`textVerbosity` (conductor/verifier low; planner/implementer/reviewer medium)
 5. `merge-autonomy-config.js`: patches dead model refs (e.g., `deepseek-v4-flash-free` → `x-preview-f-free`) in `opencode.json` during install
-6. OpenCode `opencode.json.example`: `model: nemotron-3-ultra-free`, `small_model: nemotron-3.5-lightning-free`, provider variants for both
+6. OpenCode `opencode.json.example`: `model: x-preview-f-free (ox-alpha)`, `small_model: mimo-v2.5-free`, provider variants for both
 7. Conductor-first routing: `orchestra` conductor is `default_agent` with `mode: primary`, `reasoningEffort: low`; phase agents are `hidden: true`
 8. Docs: `README.md` feature table + token optimization table reflect model routing; `docs/orchestra-cross-platform.md` Models section current
 
 ## Acceptance criteria
 
 - [ ] Cursor agents in `bundle/agents/orchestra-*.md` have `model: composer-2.5` or `grok-4.6`
-- [ ] OpenCode agents in `bundle/opencode/agents/orchestra-*.md` have `model: nemotron-3-ultra-free` / `nemotron-3.5-lightning-free`
+- [ ] OpenCode agents in `bundle/opencode/agents/orchestra-*.md` have `model: x-preview-f-free (ox-alpha)` / `mimo-v2.5-free`
 - [ ] `bash scripts/update-free-models.sh --check` → exits 0 (all configured models in pools)
 - [ ] `bash scripts/update-free-models.sh --pools` → prints frontend/heavy/light pool contents
 - [ ] `node scripts/lib/opencode-token-profile.js` exports `REASONING` with correct per-agent values
@@ -33,7 +33,7 @@ Orchestra routes model selection per platform and per agent role: Cursor uses `c
 
 - Command: `bash scripts/update-free-models.sh --refresh && bash scripts/update-free-models.sh --check` → PASS
 - Command: `grep -r "model:" bundle/agents/orchestra-*.md | head -5` → shows `composer-2.5` or `grok-4.6`
-- Command: `grep -r "model:" bundle/opencode/agents/orchestra-*.md | head -5` → shows `nemotron-3-ultra-free` / `nemotron-3.5-lightning-free`
+- Command: `grep -r "model:" bundle/opencode/agents/orchestra-*.md | head -5` → shows `x-preview-f-free` (ox-alpha) / `mimo-v2.5-free`
 - Command: `node -e "const p=require('./scripts/lib/opencode-token-profile.js'); console.log(p.REASONING.planner)"` → `{ reasoningEffort: 'medium', textVerbosity: 'medium' }`
 
 ## Files (expected)

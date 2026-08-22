@@ -163,18 +163,18 @@ function applyTokenProfile(dest, opts = {}) {
   dest.provider.opencode = dest.provider.opencode || {};
   dest.provider.opencode.models = {
     ...(dest.provider.opencode.models || {}),
-    "nemotron-3-ultra-free": {
+    "x-preview-f-free (ox-alpha)": {
       variants: {
         fast: { reasoningEffort: "low", textVerbosity: "low" },
         quality: { reasoningEffort: "medium", textVerbosity: "medium" },
       },
-      ...(dest.provider.opencode.models?.["nemotron-3-ultra-free"] || {}),
+      ...(dest.provider.opencode.models?.["x-preview-f-free (ox-alpha)"] || {}),
     },
-    "nemotron-3.5-lightning-free": {
+    "mimo-v2.5-free": {
       variants: {
         fast: { reasoningEffort: "low", textVerbosity: "low" },
       },
-      ...(dest.provider.opencode.models?.["nemotron-3.5-lightning-free"] || {}),
+      ...(dest.provider.opencode.models?.["mimo-v2.5-free"] || {}),
     },
   };
   changed.push("provider.variants");

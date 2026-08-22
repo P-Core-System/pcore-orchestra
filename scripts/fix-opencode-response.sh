@@ -130,7 +130,7 @@ probe_opencode() {
 if [[ "$SKIP_PROBE" -eq 0 ]] && command -v opencode &>/dev/null; then
   echo ""
   echo "==> Quick response probe (CLI; desktop needs app restart after this)"
-  probe_opencode "opencode/nemotron-3-ultra-free" || true
+  probe_opencode "opencode/x-preview-f-free" || true
   probe_opencode "orchestra" || true
 fi
 

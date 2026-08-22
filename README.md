@@ -191,8 +191,8 @@ bash scripts/init-context.sh /path/to/your-app --bridge   # with project bridge
 | Agent | Max Tokens | Cursor (default) | OpenCode (free) |
 |-------|------------|------------------|-----------------|
 | Planner | 10,000 | `composer-2.5` | `x-preview-f-free` |
-| Implementer | 30,000 | `composer-2.5` (or `grok-4.6` for hard tasks) | `nemotron-3-ultra-free` |
-| Verifier | 15,000 | `composer-2.5` | `nemotron-3.5-lightning-free` |
+| Implementer | 30,000 | `composer-2.5` (or `grok-4.6` for hard tasks) | `x-preview-f-free` (ox-alpha) |
+| Verifier | 15,000 | `composer-2.5` | `mimo-v2.5-free` |
 | Reviewer | 8,000 | `composer-2.5` | `x-preview-f-free` |
 
 **Total per cycle:** ~63k tokens max.

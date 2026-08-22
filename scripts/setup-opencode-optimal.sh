@@ -197,8 +197,8 @@ generate_config() {
     budget)
       config='{
   "$schema": "https://opencode.ai/config.json",
-  "model": "opencode/nemotron-3-ultra-free",
-  "small_model": "opencode/nemotron-3.5-lightning-free",
+  "model": "opencode/x-preview-f-free",
+  "small_model": "opencode/mimo-v2.5-free",
   "compaction": {
     "auto": true,
     "prune": true,
@@ -210,26 +210,26 @@ generate_config() {
   "snapshot": false,
   "agent": {
     "orchestra": {
-      "model": "opencode/nemotron-3-ultra-free",
+      "model": "opencode/x-preview-f-free",
       "steps": 40,
       "permission": { "task": "allow", "bash": "allow", "edit": "deny", "websearch": "allow", "webfetch": "allow" }
     },
     "orchestra-planner": {
-      "model": "opencode/nemotron-3-ultra-free",
+      "model": "opencode/x-preview-f-free",
       "steps": 6,
       "permission": { "edit": "deny", "bash": "allow", "websearch": "allow", "webfetch": "allow" }
     },
     "orchestra-implementer": {
-      "model": "opencode/nemotron-3-ultra-free",
+      "model": "opencode/x-preview-f-free",
       "steps": 20
     },
     "orchestra-verifier": {
-      "model": "opencode/nemotron-3.5-lightning-free",
+      "model": "opencode/mimo-v2.5-free",
       "steps": 8,
       "permission": { "edit": "deny", "bash": "allow", "websearch": "deny", "webfetch": "deny" }
     },
     "orchestra-reviewer": {
-      "model": "opencode/nemotron-3-ultra-free",
+      "model": "opencode/x-preview-f-free",
       "steps": 4,
       "permission": { "edit": "deny", "bash": "allow", "websearch": "allow", "webfetch": "allow" }
     }
@@ -242,7 +242,7 @@ generate_config() {
             "fast": { "reasoningEffort": "low", "textVerbosity": "low" }
           }
         },
-        "nemotron-3-ultra-free": {
+        "x-preview-f-free (ox-alpha)": {
           "variants": {
             "fast": { "reasoningEffort": "low", "textVerbosity": "low" }
           }
@@ -253,7 +253,7 @@ generate_config() {
 }'
 
       echo -e "${GREEN}Budget profile:${NC}"
-      echo "  All phases: nemotron-3-ultra-free (free, reliable text output)"
+      echo "  All phases: x-preview-f-free (ox-alpha) (free, reliable text output)"
       echo "  Cost per cycle: ~\$0.00-0.03"
       echo "  Limitation: rate-limited, may hit limits mid-loop"
       ;;
@@ -262,7 +262,7 @@ generate_config() {
       config='{
   "$schema": "https://opencode.ai/config.json",
   "model": "opencode/deepseek-v4-flash",
-  "small_model": "opencode/nemotron-3.5-lightning-free",
+  "small_model": "opencode/mimo-v2.5-free",
   "compaction": {
     "auto": true,
     "prune": true,
@@ -318,7 +318,7 @@ generate_config() {
       config='{
   "$schema": "https://opencode.ai/config.json",
   "model": "opencode/claude-sonnet-5",
-  "small_model": "opencode/nemotron-3.5-lightning-free",
+  "small_model": "opencode/mimo-v2.5-free",
   "compaction": {
     "auto": true,
     "prune": true,

@@ -5,7 +5,7 @@ description: >-
   task tool. Returns VERIFY_PASS or VERIFY_FAIL; does not fix code.
 mode: subagent
 hidden: true
-model: opencode/nemotron-3.5-lightning-free
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: allow
@@ -35,5 +35,5 @@ Use skill `verification-before-completion` when unsure.
 
 ## Model
 
-- **Primary:** `opencode/nemotron-3.5-lightning-free`
+- **Primary:** `opencode/mimo-v2.5-free`
 - **Fallback:** hy3-free → mimo-v2.5-free
