@@ -5,22 +5,21 @@ const path = require("node:path");
 const { findProjectIdentity, buildIdentitySummary } = require("./project-identity.js");
 const { PROJECT_YAML_NAME } = require("./constants.js");
 
+const {
+  ambientContextBlock,
+  handoffBlock,
+} = require("./orchestra-spawn-matrix.js");
+
 const AMBIENT_CONTEXT = [
-  "Global orchestra (ambient mode ON): for implementation/fix/build/refactor tasks,",
-  "run plan → implement → verify → review using Task subagents:",
-  "orchestra-planner, orchestra-implementer, orchestra-verifier, orchestra-reviewer.",
-  "User does NOT need to say /orchestra. Hooks auto-chain phases.",
-  "Skip orchestra for pure questions/explanations. Opt out: say 'no orchestra'.",
+  ambientContextBlock(),
   "Stop: /orchestra stop or node ~/.cursor/hooks/orchestra-enable.js stop",
 ].join(" ");
 
 /** Stable prefix for prompt-cache — same every session when orchestra is installed. */
 const PARENT_HANDOFF_CONTEXT = [
-  "Orchestra parent handoff:",
-  "Pass to subagents: goal (1 line) + plan summary (3–5 bullets) + prior failures only.",
-  "Do NOT pass full chat history. Do NOT edit files or commit between phases.",
-  "Task names: orchestra-planner | orchestra-implementer | orchestra-verifier | orchestra-reviewer.",
-  "Docs: docs/agent-harness-recommendations.md | tokens: orchestra-enable.js tokens",
+  handoffBlock("cursor"),
+  "OpenCode (not Cursor): task tool + agent name — docs/orchestra-cross-platform.md",
+  "Harness: docs/agent-harness-recommendations.md | tokens: orchestra-enable.js tokens",
 ].join("\n");
 
 const SIX_FILE_CONTEXT = [
