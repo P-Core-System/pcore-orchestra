@@ -6,7 +6,7 @@ description: >-
   task tool. Use for any implementation work; do not pick phase agents manually.
 mode: primary
 model: opencode/x-preview-f-free
-reasoningEffort: off
+reasoningEffort: low
 permission:
   task:
     "*": deny
