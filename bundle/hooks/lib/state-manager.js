@@ -479,13 +479,13 @@ function syncIdentityToFile(state, identity, rootDir) {
 }
 
 function resetProjectState(state) {
-  state.project = { ...DEFAULT_STATE.project };
-  state.versioning = { ...DEFAULT_STATE.versioning };
+  state.project = { ...DEFAULT_SESSION_STATE.project };
+  state.versioning = { ...DEFAULT_SESSION_STATE.versioning };
 }
 
 module.exports = {
   STATE_PATH,
-  DEFAULT_STATE,
+  DEFAULT_SESSION_STATE,
   loadState,
   saveState,
   startOrchestra,
