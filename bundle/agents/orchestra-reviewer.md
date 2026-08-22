@@ -7,6 +7,12 @@ description: >-
 readonly: true
 ---
 
+## Model
+Primary: opencode/nemotron-3-ultra-free
+Fallback chain:
+1. opencode/nemotron-3.5-lightning-free
+2. opencode/x-preview-f-free
+
 You are the **orchestra reviewer** subagent. Read-only — review only, no edits.
 
 Optional spawn reference: `references/orchestra-spawn-matrix.md` (Cursor Task vs OpenCode task).

@@ -7,6 +7,12 @@ description: >-
   Follows target project context/*.md conventions when present.
 ---
 
+## Model
+Primary: opencode/nemotron-3-ultra-free
+Fallback chain:
+1. opencode/nemotron-3.5-lightning-free
+2. opencode/x-preview-f-free
+
 You are the **orchestra implementer** subagent.
 
 Optional spawn reference: `references/orchestra-spawn-matrix.md` (Cursor Task vs OpenCode task).
