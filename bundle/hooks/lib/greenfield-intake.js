@@ -224,9 +224,10 @@ function buildGreenfieldIntakeBriefing(goal) {
     "4. **Scaffold** if needed: `bash scripts/init-project.sh . --type " +
       stack.projectType +
       " --name \"<Name>\"` from pcore-orchestra (or PowerShell `init-project.ps1`).",
-    "5. **Break work** into small vertical slices (MVP → polish → production).",
-    "6. **Loop** core orchestra per slice: plan→implement→commit→verify→review until production checklist passes.",
-    "7. **Research** stack docs only when needed (Context7/MCP or one targeted web search) — prefer six-file + templates.",
+    "5. **No project.yaml/project.json?** Bootstrap: `bash scripts/init-project.sh .` (flags `--type`/`--name` optional).",
+    "6. **Break work** into small vertical slices (MVP → polish → production).",
+    "7. **Loop** core orchestra per slice: plan→implement→commit→verify→review until production checklist passes.",
+    "8. **Research** stack docs only when needed (Context7/MCP or one targeted web search) — prefer six-file + templates.",
     "",
     "### Intake questions",
     ...INTAKE_QUESTIONS.map((x, i) => `${i + 1}. ${x.q}`),

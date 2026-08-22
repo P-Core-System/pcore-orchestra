@@ -262,6 +262,15 @@ async function main() {
         "- Loop slices until production checklist passes.",
       ].join("\n")
     );
+    if (!pyMeta) {
+      parts.push(
+        [
+          "⚠️ No project.yaml/project.json found in workspace.",
+          "Bootstrap project identity + six-file context:",
+          "`bash scripts/init-project.sh .`  (flags --type/--name optional)",
+        ].join("\n")
+      );
+    }
   }
 
   if (route === LOOP_MODE_ENTERPRISE) {
