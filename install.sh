@@ -270,6 +270,68 @@ install_project_bridge() {
 }
 
 ###############################################################################
+# Repo scoping (cross-tool ignore files)
+###############################################################################
+install_scoping() {
+  echo "==> Installing repo scoping (cross-tool ignore files)"
+
+  # Install setup-repo-scoping.sh to ~/.local/bin
+  mkdir -p "$HOME/.local/bin"
+  if [[ -f "$ROOT/scripts/setup-repo-scoping.sh" ]]; then
+    rm -f "$HOME/.local/bin/setup-repo-scoping.sh"
+    cp -f "$ROOT/scripts/setup-repo-scoping.sh" "$HOME/.local/bin/setup-repo-scoping.sh"
+    chmod +x "$HOME/.local/bin/setup-repo-scoping.sh"
+    echo "  Global script:   ~/.local/bin/setup-repo-scoping.sh"
+  fi
+
+  # Install opencode-maintenance.sh to ~/.local/bin
+  if [[ -f "$ROOT/scripts/opencode-maintenance.sh" ]]; then
+    rm -f "$HOME/.local/bin/opencode-maintenance.sh"
+    cp -f "$ROOT/scripts/opencode-maintenance.sh" "$HOME/.local/bin/opencode-maintenance.sh"
+    chmod +x "$HOME/.local/bin/opencode-maintenance.sh"
+    echo "  Maintenance:     ~/.local/bin/opencode-maintenance.sh"
+  fi
+
+  # Global gitignore — excludes common heavy dirs from all repos
+  mkdir -p "$HOME/.config/git"
+  local GITIGNORE="$HOME/.config/git/ignore"
+  if [[ ! -f "$GITIGNORE" ]]; then
+    cat > "$GITIGNORE" <<'GITEOF'
+node_modules/
+vendor/
+dist/
+build/
+coverage/
+.next/
+.turbo/
+.cache/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+__pycache__/
+venv/
+.venv/
+env/
+*.pyc
+*.log
+.DS_Store
+GITEOF
+    echo "  Global gitignore: $GITIGNORE"
+  else
+    echo "  Global gitignore: $GITIGNORE (exists, kept)"
+  fi
+
+  # Tell git to use it
+  if command -v git >/dev/null 2>&1; then
+    git config --global core.excludesfile "$GITIGNORE"
+    echo "  git excludesfile: $(git config --global core.excludesfile)"
+  fi
+
+  echo "  Usage:           setup-repo-scoping.sh /path/to/any/repo"
+  echo "  Auto-detects:    single-repo vs monorepo, generates .ignore + .cursorignore"
+}
+
+###############################################################################
 # Main
 ###############################################################################
 if [[ "$INSTALL_CURSOR" -eq 1 ]]; then
@@ -283,6 +345,9 @@ fi
 if [[ "$INSTALL_PROJECT" -eq 1 ]]; then
   install_project_bridge
 fi
+
+# Repo scoping (always install — benefits all tools on the device)
+install_scoping
 
 # Health checks
 if [[ "$INSTALL_CURSOR" -eq 1 ]]; then
@@ -309,6 +374,9 @@ if [[ "$INSTALL_OPENCODE" -eq 1 ]]; then
   echo "  OpenCode tip:    opencode --auto  (session auto-approve; denies still bind)"
   echo "  OpenCode test:   node $OPENCODE/hooks/orchestra-health-opencode.js"
 fi
+echo "  Repo scoping:    ~/.local/bin/setup-repo-scoping.sh (run on any repo)"
+echo "  Maintenance:    ~/.local/bin/opencode-maintenance.sh --apply (clean DB/logs)"
+echo "  Global gitignore: ~/.config/git/ignore (node_modules, vendor, venv, caches)"
 echo ""
 echo "  Docs: docs/autonomous-workflow.md"
 echo "  Restart Cursor IDE or opencode for changes to take effect."
