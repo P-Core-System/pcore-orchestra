@@ -228,7 +228,12 @@ bash scripts/setup-cursor-byok.sh --litellm # GPT-5.5 proxy
 ```bash
 bash scripts/setup-opencode-proxy.sh --free       # free Zen models
 bash scripts/setup-opencode-proxy.sh --multi-key  # rotation guide
-bash scripts/update-free-models.sh --check        # validate all agents are free
+bash scripts/update-free-models.sh --check        # validate all agents stay on the free tier
+```
+
+### Plan-Signal Watcher
+```bash
+bash scripts/watch-plan-signal.sh --once   # detect new plan/spec work → pending-signal.json (docs/plan-signal-watcher.md)
 ```
 
 ---
