@@ -317,7 +317,7 @@ See `docs/token-optimization.md` for full detail. Harness-level summary:
 | Phase isolation (subagent context) | ✅ Built-in |
 | Token tracker + tips | ✅ V3.3.5 |
 | Per-agent budgets in prompts | ✅ V3.3.4 |
-| Model routing (OpenCode) | ✅ setup-opencode-optimal.sh |
+| Model routing (Cursor + OpenCode) | ✅ `setup-cursor-model.sh` + `setup-opencode-optimal.sh` |
 | Prompt caching (static prefix) | ⚠️ Recommended — structure injections |
 | Parent concise handoffs | ⚠️ Documented — enforce via rules |
 | Parallel tool batching | ⚠️ Agent guidance only |

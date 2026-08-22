@@ -373,6 +373,8 @@ IMPLEMENT_RE = /\b(add|implement|build|create|fix|refactor|update|deploy|install
 
 **Cursor agents** use `readonly: true` frontmatter. **OpenCode agents** use `mode: subagent` + `permission: { edit: deny, bash: allow }` (readonly phases still deny edit; bash allow avoids inspection prompts).
 
+**Model defaults:** Cursor agents are pinned to `composer-2.5` (escalate to `grok-4.6` standard for hard/long-horizon tasks). OpenCode agents use free models only (`x-preview-f-free`, `nemotron-3-ultra-free`, `nemotron-3.5-lightning-free`). See `docs/token-optimization.md` and `docs/orchestra-cross-platform.md`.
+
 ## Agent: orchestra-planner
 
 **Workflow:**

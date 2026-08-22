@@ -58,6 +58,7 @@ Modern AI coding assistants (Cursor IDE, OpenCode CLI) are fundamentally statele
 | **Lifecycle Events** | Every phase transition, error, and completion recorded (200-event ring buffer) |
 | **Git Workflow** | Only implementer commits; verifier checks clean tree; reviewer reviews diff |
 | **Cross-Platform** | Bash (Unix) + PowerShell (Windows) installers |
+| **Model Routing** | Cursor: `composer-2.5` default, `grok-4.6` for hard tasks; OpenCode: free models only |
 | **Zero NPM Dependencies** | Core uses only Node.js built-in modules (`fs`, `path`, `child_process`) |
 
 ## Current Status

@@ -91,6 +91,7 @@ Orchestra auto-detects `project.yaml` in any workspace and injects its identity 
 | **Stall Detection** | Identical failures 2x → strategy change → 3rd → escalate |
 | **Human Checkpoints** | Auth/payments/security/scope-creep require human review |
 | **Token Budgets** | planner:10k, implementer:30k, verifier:15k, reviewer:8k |
+| **Model Routing** | Cursor: `composer-2.5` default, `grok-4.6` for hard tasks; OpenCode: free models only |
 | **6 Hooks** | Session, prompt, stop, heartbeat, lifecycle, subagent-stop |
 | **Six-File Context** | Stable grounding across sessions (JavaScript Mastery methodology) |
 | **Free Model Support** | OpenCode Zen free models + multi-key rotation |
@@ -187,17 +188,20 @@ bash scripts/init-context.sh /path/to/your-app --bridge   # with project bridge
 
 ## Token Optimization
 
-| Agent | Max Tokens | Model |
-|-------|------------|-------|
-| Planner | 10,000 | x-preview-f-free |
-| Implementer | 30,000 | x-preview-f-free |
-| Verifier | 15,000 | nemotron-3.5-lightning-free |
-| Reviewer | 8,000 | x-preview-f-free |
+| Agent | Max Tokens | Cursor (default) | OpenCode (free) |
+|-------|------------|------------------|-----------------|
+| Planner | 10,000 | `composer-2.5` | `x-preview-f-free` |
+| Implementer | 30,000 | `composer-2.5` (or `grok-4.6` for hard tasks) | `nemotron-3-ultra-free` |
+| Verifier | 15,000 | `composer-2.5` | `nemotron-3.5-lightning-free` |
+| Reviewer | 8,000 | `composer-2.5` | `x-preview-f-free` |
 
-**Total per cycle:** ~63k tokens max
+**Total per cycle:** ~63k tokens max.
 
 ```bash
-# Auto-generate optimized config
+# Pin the cheapest strong Cursor model
+bash scripts/setup-cursor-model.sh
+
+# Auto-generate optimized OpenCode config
 bash scripts/setup-opencode-optimal.sh --balanced   # recommended
 bash scripts/setup-opencode-optimal.sh --budget     # free models only
 bash scripts/setup-opencode-optimal.sh --premium    # best quality
@@ -207,7 +211,14 @@ bash scripts/setup-opencode-optimal.sh --premium    # best quality
 
 ## Bypass Limits
 
-### Cursor: BYOK
+### Cursor: Cheap built-in models
+Use the included **Cursor Models** pool by default:
+```bash
+bash scripts/setup-cursor-model.sh            # pin composer-2.5 + validate agents
+bash scripts/setup-cursor-model.sh --check    # audit only
+```
+
+For BYOK or premium models, see:
 ```bash
 bash scripts/setup-cursor-byok.sh          # interactive guide
 bash scripts/setup-cursor-byok.sh --litellm # GPT-5.5 proxy
@@ -217,6 +228,7 @@ bash scripts/setup-cursor-byok.sh --litellm # GPT-5.5 proxy
 ```bash
 bash scripts/setup-opencode-proxy.sh --free       # free Zen models
 bash scripts/setup-opencode-proxy.sh --multi-key  # rotation guide
+bash scripts/update-free-models.sh --check        # validate all agents are free
 ```
 
 ---
