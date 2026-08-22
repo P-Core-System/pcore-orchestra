@@ -78,3 +78,8 @@ When the loop completes, report:
 - Commits created
 - Test/lint results
 - Any open risks
+
+## Concurrency check (before spawning implementer)
+Run `scripts/session-claims.sh list -a` to see other live sessions. If another
+session claims this repo/scope, surface it to the user before proceeding.
+The implementer should `claim` at start and `release` after its commit gate.
