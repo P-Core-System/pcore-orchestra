@@ -100,16 +100,43 @@ EOF
 stale_iso() { python3 -c "import datetime; d=datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(minutes=$STALE_MIN); print(d.strftime('%Y-%m-%dT%H:%M:%SZ'))"; }
 
 cmd_list() {
-  local target="${1:--a}"
+  local target="${1:--a}"; shift || true
+  local json_output=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --json) json_output=1; shift ;;
+      *) shift ;;
+    esac
+  done
   local repos=()
   if [ "$target" = "-a" ]; then
     for d in "$PCORE_ROOT"/*/; do [ -f "$(claims_file "${d%/}")" ] && repos+=("${d%/}"); done
   else
     repos+=("$target")
   fi
-  local stale; stale=$(stale_iso); printf "%-6.6s %-14.14s %-24.24s %-11.11s %-10.10s %-17.17s %s\n" STATE REPO SESSION TOOL BRANCH HEARTBEAT TASK
-  for r in "${repos[@]}"; do
-    _py "$r" "$stale" <<'EOF'
+  local stale; stale=$(stale_iso)
+  if [ "$json_output" = "1" ]; then
+    _py "$stale" "${repos[@]}" <<'EOF'
+import json,os,sys
+stale=sys.argv[1]
+repos=sys.argv[2:]
+output = {}
+for r in repos:
+    p=os.path.join(r,".pcore","session-claims.json")
+    claims = []
+    if os.path.exists(p):
+        try: data=json.load(open(p))
+        except Exception: data={}
+        for sid,c in data.items():
+            state = "LIVE" if c["heartbeat_at"]>=stale else "STALE"
+            claims.append({"session_id": sid, "repo": c["repo"], "tool": c["tool"], "agent": c["agent"], "branch": c["branch"], "scope": c["scope"], "task": c["task"], "heartbeat_at": c["heartbeat_at"], "started_at": c["started_at"], "state": state})
+    output[os.path.basename(r)] = claims
+print(json.dumps(output))
+EOF
+  else
+    printf "%-6.6s %-14.14s %-24.24s %-11.11s %-10.10s %-17.17s %s\n" STATE REPO SESSION TOOL BRANCH HEARTBEAT TASK
+    for r in "${repos[@]}"; do
+      _py "$r" "$stale" <<'EOF'
 import json,os,sys
 r,stale=sys.argv[1],sys.argv[2]
 p=os.path.join(r,".pcore","session-claims.json")
@@ -123,42 +150,54 @@ if os.path.exists(p):
 for row in sorted(rows):
     print(f"{row[0]:<6} {row[1]:<14.14s} {row[2]:<23.23s} {row[3]:<11.11s} {row[4]:<8.8s} {row[5]} {row[6]}")
 EOF
-  done
+    done
+  fi
 }
 
 cmd_check() {
   local repo="$1"; shift
-  local paths=("$@")
+  local paths=() json_output=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --json) json_output=1; shift ;;
+      *) paths+=("$1"); shift ;;
+    esac
+  done
   local stale; stale=$(stale_iso)
-  _py "$repo" "$stale" "${paths[@]:-}" <<'EOF'
+  _py "$repo" "$stale" "$json_output" "${paths[@]:-}" <<'EOF'
 import json,os,sys,fnmatch
-repo,stale = sys.argv[1], sys.argv[2]
-mine_paths=[p for p in sys.argv[3:] if p]
+repo,stale,json_output = sys.argv[1], sys.argv[2], int(sys.argv[3])
+mine_paths=[p for p in sys.argv[4:] if p]
 p=os.path.join(repo,".pcore","session-claims.json")
-if not os.path.exists(p): sys.exit(0)
-try: data=json.load(open(p))
-except Exception: sys.exit(0)
-me=os.environ.get("OPENCODE_SESSION_ID") or os.environ.get("CLAUDE_SESSION_ID") \
-   or os.environ.get("CURSOR_TRACE_ID") or f"pid-{os.getpid()}"
-conflicts=[]
-for sid,c in data.items():
-    if sid==me: continue
-    if c["heartbeat_at"]<stale: continue   # stale claim = dead session
-    scopes=c["scope"].split(",") if isinstance(c,str) or c["scope"]!="*" else ["*"]
-    hit=False
-    if c["scope"]=="*" or not mine_paths: hit=True
+result = {"conflicts": [], "has_conflicts": False}
+if os.path.exists(p):
+    try: data=json.load(open(p))
+    except Exception: data={}
+    me=os.environ.get("OPENCODE_SESSION_ID") or os.environ.get("CLAUDE_SESSION_ID") \
+       or os.environ.get("CURSOR_TRACE_ID") or f"pid-{os.getpid()}"
+    for sid,c in data.items():
+        if sid==me: continue
+        if c["heartbeat_at"]<stale: continue
+        hit=False
+        if c["scope"]=="*" or not mine_paths: hit=True
+        else:
+            for sc in c["scope"].split(","):
+                sc=sc.strip()
+                for mp in mine_paths:
+                    if fnmatch.fnmatch(mp,sc) or mp.startswith(sc.rstrip("/")+"/"): hit=True
+        if hit:
+            result["conflicts"].append({"session_id": sid, "tool": c["tool"], "agent": c["agent"], "scope": c["scope"], "task": c["task"][:60]})
+            result["has_conflicts"] = True
+if json_output:
+    print(json.dumps(result))
+else:
+    if result["has_conflicts"]:
+        print("[info] another LIVE session is working here:")
+        for c in result["conflicts"]:
+            print(f"  - {c['session_id']} ({c['tool']}/{c['agent']}) on [{c['scope']}] task={c['task']}")
     else:
-        for sc in c["scope"].split(","):
-            sc=sc.strip()
-            for mp in mine_paths:
-                if fnmatch.fnmatch(mp,sc) or mp.startswith(sc.rstrip("/")+"/"): hit=True
-    if hit:
-        conflicts.append(f"{sid} ({c['tool']}/{c['agent']}) on [{c['scope']}] task={c['task'][:60]}")
-if conflicts:
-    print("[conflict] another LIVE session is working here:")
-    for c in conflicts: print("  - "+c)
-    sys.exit(1)
-print("[check] no live conflicts")
+        print("[check] no live conflicts")
+sys.exit(0)
 EOF
 }
 
