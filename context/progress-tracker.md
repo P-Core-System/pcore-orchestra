@@ -130,3 +130,9 @@ Update this file after every meaningful implementation change.
 - Core ambient default; enterprise opt-in
 - Short/informal → infer from context (do not clarify-block)
 - Evidence gates on final review only
+
+## 2026-08-22 — Concurrent session tracking
+- New `scripts/session-claims.sh`: per-repo claim registry (.pcore/session-claims.json) — claim/renew/release/list/check/gc; stale-after-30min auto-expiry; identity via PCORE_SESSION_ID → tool session envs → pid.
+- Wired into: templates/context/ai-workflow-rules.md, both orchestra-loop skills (opencode + cursor), conductor agent (bundle/opencode/agents/orchestra.md).
+- Docs: docs/concurrency-tracking.md.
+- Motivation: two live sessions collided in pcore-monitor (Go scaffold committed over a Python-frozen stack mid-docs-work).

@@ -12,3 +12,4 @@ bundle/hooks/state/orchestra-metrics.json
 bundle/hooks/state/memory-index.json
 bundle/opencode/hooks/state/cycles/
 bundle/opencode/hooks/state/plans/
+.pcore/

@@ -193,3 +193,25 @@ Orchestra cycles cost **3–10×** a single chat turn. Default policy:
 Full guide: `docs/token-optimization.md`. OpenCode: copy `docs/opencode.json.example` or run `bash scripts/setup-opencode-optimal.sh --balanced`.
 
 Harness / agents / prompts: `docs/agent-harness-recommendations.md`.
+
+## Concurrent Session Guard (session-claims)
+
+Other AI sessions may be editing the same repo at the same time. Before
+implementing, and again before committing:
+
+```bash
+bash <orchestra>/scripts/session-claims.sh check "$PWD" <paths-you-will-touch>
+```
+
+- Exit 1 = another LIVE session holds a claim on those paths → coordinate or wait.
+- Claim your own work at phase start, renew on long operations, release when done:
+
+```bash
+bash scripts/session-claims.sh claim  "$PWD" --scope "app/,packages/" --task "goal text"
+bash scripts/session-claims.sh renew  "$PWD"
+bash scripts/session-claims.sh release "$PWD"
+```
+
+Claims auto-expire after 30 min without heartbeat (`gc` purges them). Set
+`PCORE_SESSION_ID` in your session env for stable identity across shells.
+
