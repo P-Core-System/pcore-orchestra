@@ -1,4 +1,4 @@
-# ensure-opencode-latest.ps1 — install or upgrade OpenCode CLI
+﻿# ensure-opencode-latest.ps1 — install or upgrade OpenCode CLI
 param(
   [switch]$Check,
   [ValidateSet("stable", "beta", "dev")]

@@ -1,4 +1,4 @@
-# Bootstrap a new project with full P-Core Orchestra context.
+﻿# Bootstrap a new project with full P-Core Orchestra context.
 # Usage:
 #   powershell -ExecutionPolicy Bypass -File scripts/init-project.ps1                     # interactive
 #   powershell -ExecutionPolicy Bypass -File scripts/init-project.ps1 -Target .           # interactive
@@ -34,7 +34,7 @@ function Write-Error($msg) { Write-Host "==> $msg" -ForegroundColor Red }
 function Slugify($s) { return ($s.ToLower() -replace '[^a-z0-9-]','-') -replace '-+','-' }
 
 function Ask($msg, $default) {
-  if ($default) { $p = "❯ $msg [$default]: " } else { $p = "❯ $msg: " }
+  if ($default) { $p = "❯ ${msg} [$default]: " } else { $p = "❯ ${msg}: " }
   $val = Read-Host -Prompt $p
   if (-not $val -and $default) { return $default }
   return $val

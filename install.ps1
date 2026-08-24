@@ -1,4 +1,4 @@
-# Install Orchestra bundle to ~/.cursor AND ~/.config/opencode (global)
+﻿# Install Orchestra bundle to ~/.cursor AND ~/.config/opencode (global)
 # Usage:
 #   powershell -ExecutionPolicy Bypass -File install.ps1              # both
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -All         # same
