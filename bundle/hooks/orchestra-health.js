@@ -10,7 +10,36 @@ const { loadProjectIdentity, validateProjectIdentity, findProjectIdentity } = re
 
 const HOOKS_DIR = __dirname;
 const ROOT = path.join(HOOKS_DIR, "..");
-const SESSION_CLAIMS_SCRIPT = path.join(__dirname, "..", "..", "scripts", "session-claims.sh");
+
+// Walk-up limit when searching for the repo sentinel from the installed location
+const REPO_WALK_MAX_LEVELS = 4;
+const REPO_SENTINEL = path.join("scripts", "session-claims.sh");
+
+/**
+ * Locate the pcore-orchestra source repository.
+ * Order: PCORE_ORCHESTRA_REPO env → walk up from __dirname → process.cwd().
+ * Returns null when not found (callers must degrade to INFO, never fail).
+ */
+function findRepoRoot() {
+  if (process.env.PCORE_ORCHESTRA_REPO) {
+    const envRoot = process.env.PCORE_ORCHESTRA_REPO;
+    if (fs.existsSync(path.join(envRoot, REPO_SENTINEL))) return envRoot;
+  }
+  let dir = __dirname;
+  for (let i = 0; i < REPO_WALK_MAX_LEVELS; i++) {
+    if (fs.existsSync(path.join(dir, REPO_SENTINEL))) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  if (fs.existsSync(path.join(process.cwd(), REPO_SENTINEL))) return process.cwd();
+  return null;
+}
+
+const REPO_ROOT = findRepoRoot();
+const SESSION_CLAIMS_SCRIPT = REPO_ROOT
+  ? path.join(REPO_ROOT, "scripts", "session-claims.sh")
+  : null;
 
 const SCRIPTS = [
   "orchestra-lib.js",
@@ -208,11 +237,16 @@ function checkProjectFiles() {
 
 function checkProjectIdentityTemplate() {
   console.log("\n=== Project Identity System ===");
-  const templateDir = path.join(ROOT, "..", "templates");
-  const templateYaml = path.join(templateDir, "project.yaml");
-  const templateExists = fs.existsSync(templateYaml);
-  console.log(templateExists ? "OK  " : "MISS ", "templates/project.yaml");
-  if (!templateExists) { ok = false; return; }
+  const templateDir = REPO_ROOT ? path.join(REPO_ROOT, "templates") : null;
+  const templateYaml = templateDir
+    ? path.join(templateDir, "project.yaml")
+    : null;
+  const templateExists = templateYaml && fs.existsSync(templateYaml);
+  if (!templateExists) {
+    console.log("INFO templates/project.yaml not found (source repo not located) — skipping identity validation");
+    return;
+  }
+  console.log("OK  ", "templates/project.yaml");
 
   try {
     const identity = loadProjectIdentity(templateDir);
@@ -298,6 +332,10 @@ checkAdaptiveInstall();
 // --- Session-claims validation ---
 function checkSessionClaims() {
   console.log("\n=== Session-claims ===");
+  if (!SESSION_CLAIMS_SCRIPT) {
+    console.log("INFO  session-claims.sh not found (source repo not located — set PCORE_ORCHESTRA_REPO to enable this check)");
+    return;
+  }
   if (fs.existsSync(SESSION_CLAIMS_SCRIPT)) {
     console.log("OK  session-claims.sh exists at", SESSION_CLAIMS_SCRIPT);
     try {
@@ -342,7 +380,6 @@ function checkSessionClaims() {
     }
   } else {
     console.log("WARN session-claims.sh not found at", SESSION_CLAIMS_SCRIPT);
-    console.log("     Expected at repo-root/scripts/session-claims.sh");
   }
 }
 

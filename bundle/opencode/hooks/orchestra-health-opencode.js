@@ -5,11 +5,38 @@ const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
 
+// Walk-up limit when searching for the repo sentinel from the installed location
+const REPO_WALK_MAX_LEVELS = 4;
+const REPO_SENTINEL = path.join("scripts", "session-claims.sh");
+
+/**
+ * Locate the pcore-orchestra source repository.
+ * Order: PCORE_ORCHESTRA_REPO env → walk up from __dirname → process.cwd().
+ * Returns null when not found (callers must degrade to INFO, never fail).
+ */
+function findRepoRoot() {
+  if (process.env.PCORE_ORCHESTRA_REPO) {
+    const envRoot = process.env.PCORE_ORCHESTRA_REPO;
+    if (fs.existsSync(path.join(envRoot, REPO_SENTINEL))) return envRoot;
+  }
+  let dir = __dirname;
+  for (let i = 0; i < REPO_WALK_MAX_LEVELS; i++) {
+    if (fs.existsSync(path.join(dir, REPO_SENTINEL))) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  if (fs.existsSync(path.join(process.cwd(), REPO_SENTINEL))) return process.cwd();
+  return null;
+}
+
 function loadSanitizer() {
+  const repoRoot = findRepoRoot();
   const candidates = [
     path.join(__dirname, "lib", "opencode-config-sanitize.js"),
-    path.join(__dirname, "..", "..", "..", "scripts", "lib", "opencode-config-sanitize.js"),
-    path.join(os.homedir(), "Documents", "Project", "pcore", "pcore-orchestra", "scripts", "lib", "opencode-config-sanitize.js"),
+    ...(repoRoot
+      ? [path.join(repoRoot, "scripts", "lib", "opencode-config-sanitize.js")]
+      : []),
   ];
   for (const p of candidates) {
     if (fs.existsSync(p)) return require(p);
@@ -32,21 +59,17 @@ const EXTERNAL_SKILL = path.join(
   "orchestra-loop"
 );
 
-const SESSION_CLAIMS_SCRIPT = path.join(os.homedir(), "Documents", "Project", "pcore", "pcore-orchestra", "scripts", "session-claims.sh");
+const REPO_ROOT = findRepoRoot();
+const SESSION_CLAIMS_SCRIPT = REPO_ROOT
+  ? path.join(REPO_ROOT, "scripts", "session-claims.sh")
+  : null;
 
 // --- Auto-heal: locate the pcore-orchestra bundle to restore from ---
 const HEAL = process.argv.includes("--heal");
 const BUNDLE_OPENCODE = process.env.PCORE_ORCHESTRA_BUNDLE
-  || (() => {
-    const candidates = [
-      path.join(os.homedir(), "Documents", "Project", "pcore", "pcore-orchestra", "bundle", "opencode"),
-      path.join(os.homedir(), "Documents", "Project", "pcore-orchestra", "bundle", "opencode"),
-      path.join(os.homedir(), "Projects", "pcore-orchestra", "bundle", "opencode"),
-      path.join(os.homedir(), "code", "pcore-orchestra", "bundle", "opencode"),
-      path.join(os.homedir(), "Developer", "pcore-orchestra", "bundle", "opencode"),
-    ];
-    return candidates.find((p) => fs.existsSync(path.join(p, "hooks")));
-  })();
+  || (REPO_ROOT && fs.existsSync(path.join(REPO_ROOT, "bundle", "opencode", "hooks"))
+    ? path.join(REPO_ROOT, "bundle", "opencode")
+    : null);
 
 const coreAgents = [
   "orchestra.md",
@@ -244,14 +267,15 @@ if (!externalExists) {
 // --- State ---
 console.log("\n--- State ---");
 const stateExists = fs.existsSync(STATE_PATH);
-console.log(stateExists ? "OK  " : "MISS", "state/orchestra.json (hooks/state)");
+console.log(stateExists ? "OK  " : "INFO", "state/orchestra.json (hooks/state)");
 if (!stateExists) {
   if (HEAL) {
     fs.mkdirSync(path.dirname(STATE_PATH), { recursive: true });
     fs.writeFileSync(STATE_PATH, "{}");
     console.log("HEALED  state/orchestra.json (initialized empty)");
+  } else {
+    console.log("      state/orchestra.json — created on first orchestration run");
   }
-  ok = false;
 } else {
   try {
     let state = JSON.parse(fs.readFileSync(STATE_PATH, "utf8"));
@@ -365,7 +389,9 @@ if (fs.existsSync(configPath)) {
 
 // --- Session-claims validation ---
   console.log("\n--- Session-claims ---");
-  if (fs.existsSync(SESSION_CLAIMS_SCRIPT)) {
+  if (!SESSION_CLAIMS_SCRIPT) {
+    console.log("INFO  session-claims.sh not found (source repo not located — set PCORE_ORCHESTRA_REPO to enable this check)");
+  } else if (fs.existsSync(SESSION_CLAIMS_SCRIPT)) {
     console.log("OK  session-claims.sh exists at", SESSION_CLAIMS_SCRIPT);
     try {
       const { spawnSync } = require("child_process");
@@ -408,8 +434,7 @@ if (fs.existsSync(configPath)) {
       console.log("WARN session-claims check failed:", e.message);
     }
   } else {
-    console.log("WARN session-claims.sh not found at", SESSION_CLAIMS_SCRIPT);
-    console.log("     Expected at ~/Documents/Project/pcore/pcore-orchestra/scripts/session-claims.sh");
+    console.log("INFO  session-claims.sh not found at", SESSION_CLAIMS_SCRIPT);
   }
 
   if (healed > 0) {
