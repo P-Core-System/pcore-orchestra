@@ -47,6 +47,7 @@
 | `bundle/skills/orchestra-loop/` | Skill documentation |
 | `bundle/skills/prompt-intake/` | Vague-goal intake before planning |
 | `bundle/skills/verification-before-completion/` | Evidence-required verification |
+| `bundle/skills/performance-engineering/` | Evidence-based performance investigation master prompt (measure → diagnose → optimize → verify) |
 | `bundle/skills/{ui-ux-pro-max,brand,design-system,ui-styling}/` | Vendored UI skills (real assets; MIT — see `THIRD_PARTY.md`) |
 | `bundle/config/cursor/` | CLI autonomy patch + `permissions.json` + `sandbox.json` |
 | `bundle/config/opencode/autonomy.json` | OpenCode permission/agent profile (install merges; preserves `mcp`) |
