@@ -41,7 +41,7 @@ Also update these files if the change affects them:
 - 2026-08-22 — Full Cursor + OpenCode platform split: all 23 enterprise specialists in `bundle/agents/01-idea/` through `10-review/` now have `model:` (Cursor) + `opencode_model:` (OpenCode) frontmatter and `## Models` sections. Hard roles (architect, tech-lead, security, performance) default to `grok-4.6`; others to `composer-2.5`. OpenCode models are free only. `scripts/sync-opencode-agents.js` updated to emit `model:`; `scripts/update-free-models.sh --check` now validates OpenCode agent markdowns; `scripts/setup-cursor-model.sh` validates all Cursor agents. Fixed syntax error in `bundle/opencode/hooks/orchestra-health-opencode.js` so `install.sh --opencode` health check passes.
 - 2026-08-22 — Cursor cheap/best model routing: Composer 2.5 standard as daily default, Grok 4.6 standard escalation for hard tasks, `setup-cursor-model.sh`, `bundle/agents/orchestra-*.md` frontmatter `model: composer-2.5`, updated `orchestra-loop` skill + `.mdc` rule + token/cross-platform docs.
 - V3.7.3 — ox-alpha + muse-spark models, free-model preflight & fallbacks, conductor-first routing
-- 2026-08-22 — OpenCode no-response fix: `fix-opencode-response.sh`; conductor uses OpenCode **task** tool (not Cursor Task); phase agents `hidden: true`; task permission `orchestra-*` only; install copies `orchestra.md`; merge patches dead models (x-preview/hy3/muse-spark); primary muse-spark-1.2-contributor-free (ox-alpha)
+- 2026-08-22 — OpenCode no-response fix: `fix-opencode-response.sh`; conductor uses OpenCode **task** tool (not Cursor Task); phase agents `hidden: true`; task permission `orchestra-*` only; install copies `orchestra.md`; merge patches dead models (x-preview/hy3/muse-spark); primary mimo-v2.5-free (ox-alpha)
 - 2026-08-22 — New guidance templates: `25-design-tokens.md` (DTCG 3-tier), `26-folder-structure.md` (feature/monorepo), `27-system-design.md` (C4-lite), `AGENTS.authoring.md` (five-tool authoring). Wired into five agent tools: OpenCode global `AGENTS.md` + `opencode.json` instructions globs, repo `CLAUDE.md`, `.github/copilot-instructions.md`, and registered 25/26/27 in `project-identity.js` ARCHITECTURE_CATALOG.
 
 ## Current Goal
@@ -51,13 +51,13 @@ Also update these files if the change affects them:
 ## Completed
 
 - **V3.7.3**
-  - System config: implementer model → muse-spark-1.2-contributor-free; global model → muse-spark-1.2-contributor-free
+  - System config: implementer model → mimo-v2.5-free; global model → mimo-v2.5-free
   - All orchestra-* agents: added `## Model` sections with primary + fallback chains
   - SKILL.md: conductor-first entry point + Models & preflight subsection
   - `scripts/update-free-models.sh` — fetch/validate free models against live API
   - Auto pool generation: `--refresh` writes `model-pools.json` (frontend/heavy/light) from live Zen catalog; `--pools` prints them; `--check` verifies configured models exist in appropriate pools (STALE-POOL warnings)
-  - autonomy.json: dead deepseek-v4-flash-free refs → muse-spark-1.2-contributor-free mapping
-  - docs/opencode.json.example: model→muse-spark-1.2-contributor-free, small_model→mimo-v2.5-free
+  - autonomy.json: dead deepseek-v4-flash-free refs → mimo-v2.5-free mapping
+  - docs/opencode.json.example: model→mimo-v2.5-free, small_model→mimo-v2.5-free
   - setup scripts: refreshed free model IDs to live set
   - docs/token-optimization.md §6.2: updated budget row + preflight pointer
   - bundle/ORCHESTRA.md: flow diagrams → conductor-first

@@ -5,7 +5,6 @@ description: >-
   task tool; not a user entry point. Produces a short plan ending PLAN_READY.
 mode: subagent
 hidden: true
-model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: allow

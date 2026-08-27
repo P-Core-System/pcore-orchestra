@@ -5,7 +5,6 @@ description: >-
   Runs during review phase of any implementation cycle. Use proactively when this specialist's phase is active.
 readonly: true
 model: composer-2.5
-opencode_model: opencode/mimo-v2.5-free
 ---
 
 ## Models

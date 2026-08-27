@@ -46,8 +46,8 @@ Usage:
   bash setup-opencode-proxy.sh --help       Show this help
 
 Free Zen models (as of August 2026):
-  muse-spark-1.2-contributor-free, muse-spark-1.2-contributor-free, big-pickle,
-  kimi-k2.5-free, muse-spark-1.2-contributor-free (ox-alpha), mimo-v2.5-free,
+  mimo-v2.5-free, mimo-v2.5-free, big-pickle,
+  kimi-k2.5-free, mimo-v2.5-free (ox-alpha), mimo-v2.5-free,
   hy3-free, mimo-v2.5-free, qwen3.6-plus-free, minimax-m3-free
 
 Multi-key rotation tools:
@@ -146,11 +146,11 @@ configure_free() {
 
   echo ""
   echo "  Free Zen models available:"
-  echo "    muse-spark-1.2-contributor-free              (strong general coding)"
-  echo "    muse-spark-1.2-contributor-free (frontend/UI)"
+  echo "    mimo-v2.5-free              (strong general coding)"
+  echo "    mimo-v2.5-free (frontend/UI)"
   echo "    big-pickle                    (balanced)"
   echo "    kimi-k2.5-free                (strong reasoning)"
-  echo "    muse-spark-1.2-contributor-free (ox-alpha)         (balanced)"
+  echo "    mimo-v2.5-free (ox-alpha)         (balanced)"
   echo "    mimo-v2.5-free   (fast, lightweight)"
   echo "    hy3-free                      (fast)"
   echo "    mimo-v2.5-free                (fast)"
@@ -192,11 +192,11 @@ configure_free() {
         "baseURL": "https://opencode.ai/zen/v1"
       },
       "models": {
-        "muse-spark-1.2-contributor-free": {},
-        "muse-spark-1.2-contributor-free": {},
+        "mimo-v2.5-free": {},
+        "mimo-v2.5-free": {},
         "big-pickle": {},
         "kimi-k2.5-free": {},
-        "muse-spark-1.2-contributor-free (ox-alpha)": {},
+        "mimo-v2.5-free (ox-alpha)": {},
         "mimo-v2.5-free": {},
         "hy3-free": {},
         "mimo-v2.5-free": {},
@@ -276,11 +276,11 @@ configure_multi_key() {
   echo '    "name": "OpenCode Zen (multi-auth)",'
   echo '    "options": { "baseURL": "http://localhost:18905/zen" },'
   echo '    "models": {'
-  echo "      "muse-spark-1.2-contributor-free": {},'
-  echo '      "muse-spark-1.2-contributor-free": {},'
+  echo "      "mimo-v2.5-free": {},'
+  echo '      "mimo-v2.5-free": {},'
   echo '      "big-pickle": {},'
   echo '      "kimi-k2.5-free": {},'
-  echo '      "muse-spark-1.2-contributor-free (ox-alpha)": {},'
+  echo '      "mimo-v2.5-free (ox-alpha)": {},'
   echo '      "mimo-v2.5-free": {}'
   echo "    }"
   echo "  }"

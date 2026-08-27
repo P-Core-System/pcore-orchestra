@@ -5,7 +5,6 @@ description: >-
   via task tool only. Commits before IMPLEMENT_DONE.
 mode: subagent
 hidden: true
-model: opencode/muse-spark-1.2-contributor-free
 reasoningEffort: low
 permission:
   edit: allow
@@ -53,5 +52,5 @@ IMPLEMENT_DONE
 
 ## Model
 
-- **Primary:** `opencode/muse-spark-1.2-contributor-free`
-- **Fallback:** muse-spark-1.2-contributor-free → big-pickle → kimi-k2.5-free
+- **Primary:** `opencode/mimo-v2.5-free`
+- **Fallback:** mimo-v2.5-free → big-pickle → kimi-k2.5-free

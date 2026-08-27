@@ -5,7 +5,6 @@ description: >-
   during review phase of any implementation cycle. Use proactively when
   this specialist's phase is active.
 mode: subagent
-model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

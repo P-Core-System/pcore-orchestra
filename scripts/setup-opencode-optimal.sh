@@ -52,7 +52,7 @@ Usage:
   bash setup-opencode-optimal.sh --help           Show this help
 
 Profiles:
-  budget     Uses muse-spark-1.2-contributor-free for all phases. ~$0.00-0.03/cycle
+  budget     Uses mimo-v2.5-free for all phases. ~$0.00-0.03/cycle
   balanced   Flash for read-only, kimi-k2.5 for implementation. ~$0.03-0.11/cycle
   premium    Sonnet 5 for implementation, flash for others. ~$0.10-0.30/cycle
 
@@ -197,7 +197,7 @@ generate_config() {
     budget)
       config='{
   "$schema": "https://opencode.ai/config.json",
-  "model": "opencode/muse-spark-1.2-contributor-free",
+  "model": "opencode/mimo-v2.5-free",
   "small_model": "opencode/mimo-v2.5-free",
   "compaction": {
     "auto": true,
@@ -210,17 +210,17 @@ generate_config() {
   "snapshot": false,
   "agent": {
     "orchestra": {
-      "model": "opencode/muse-spark-1.2-contributor-free",
+      "model": "opencode/mimo-v2.5-free",
       "steps": 40,
       "permission": { "task": "allow", "bash": "allow", "edit": "deny", "websearch": "allow", "webfetch": "allow" }
     },
     "orchestra-planner": {
-      "model": "opencode/muse-spark-1.2-contributor-free",
+      "model": "opencode/mimo-v2.5-free",
       "steps": 6,
       "permission": { "edit": "deny", "bash": "allow", "websearch": "allow", "webfetch": "allow" }
     },
     "orchestra-implementer": {
-      "model": "opencode/muse-spark-1.2-contributor-free",
+      "model": "opencode/mimo-v2.5-free",
       "steps": 20
     },
     "orchestra-verifier": {
@@ -229,7 +229,7 @@ generate_config() {
       "permission": { "edit": "deny", "bash": "allow", "websearch": "deny", "webfetch": "deny" }
     },
     "orchestra-reviewer": {
-      "model": "opencode/muse-spark-1.2-contributor-free",
+      "model": "opencode/mimo-v2.5-free",
       "steps": 4,
       "permission": { "edit": "deny", "bash": "allow", "websearch": "allow", "webfetch": "allow" }
     }
@@ -237,12 +237,12 @@ generate_config() {
   "provider": {
     "opencode": {
       "models": {
-        "muse-spark-1.2-contributor-free": {
+        "mimo-v2.5-free": {
           "variants": {
             "fast": { "reasoningEffort": "low", "textVerbosity": "low" }
           }
         },
-        "muse-spark-1.2-contributor-free (ox-alpha)": {
+        "mimo-v2.5-free (ox-alpha)": {
           "variants": {
             "fast": { "reasoningEffort": "low", "textVerbosity": "low" }
           }
@@ -253,7 +253,7 @@ generate_config() {
 }'
 
       echo -e "${GREEN}Budget profile:${NC}"
-      echo "  All phases: muse-spark-1.2-contributor-free (ox-alpha) (free, reliable text output)"
+      echo "  All phases: mimo-v2.5-free (ox-alpha) (free, reliable text output)"
       echo "  Cost per cycle: ~\$0.00-0.03"
       echo "  Limitation: rate-limited, may hit limits mid-loop"
       ;;

@@ -163,12 +163,12 @@ function applyTokenProfile(dest, opts = {}) {
   dest.provider.opencode = dest.provider.opencode || {};
   dest.provider.opencode.models = {
     ...(dest.provider.opencode.models || {}),
-    "muse-spark-1.2-contributor-free (ox-alpha)": {
+    "mimo-v2.5-free (ox-alpha)": {
       variants: {
         fast: { reasoningEffort: "low", textVerbosity: "low" },
         quality: { reasoningEffort: "medium", textVerbosity: "medium" },
       },
-      ...(dest.provider.opencode.models?.["muse-spark-1.2-contributor-free (ox-alpha)"] || {}),
+      ...(dest.provider.opencode.models?.["mimo-v2.5-free (ox-alpha)"] || {}),
     },
     "mimo-v2.5-free": {
       variants: {
