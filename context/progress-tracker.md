@@ -50,6 +50,7 @@ Also update these files if the change affects them:
 
 ## Completed
 
+- **Dead model x-preview-f-free replaced (2026-08-27)**: all hardcoded x-preview-f-free references replaced with mimo-v2.5-free (works globally without VPN). Subagents no longer hardcode model: in frontmatter — they inherit from global model/small_model config. muse-spark-1.2-contributor-free only documented as region-blocked option. autonomy.json cleaned (no per-agent model overrides, duplicate entries removed, trailing comma fixed). 4 commits pushed to origin/main (59bdb7a, 59c9986, 9c3075f, 4655e93). Local install completed — opencode.json has model: mimo-v2.5-free, conductor explicit, 4 subagents inherited.
 - **V3.7.3**
   - System config: implementer model â†’ mimo-v2.5-free; global model â†’ mimo-v2.5-free
   - All orchestra-* agents: added `## Model` sections with primary + fallback chains
