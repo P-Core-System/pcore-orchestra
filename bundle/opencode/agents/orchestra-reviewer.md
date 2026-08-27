@@ -34,5 +34,5 @@ If `FIX_REQUIRED`, list numbered fixes for the conductor to pass back to impleme
 
 ## Model
 
-- **Primary:** `opencode/x-preview-f-free`
-- **Fallback:** x-preview-f-free → big-pickle → kimi-k2.5-free
+- **Primary:** `opencode/muse-spark-1.2-contributor-free`
+- **Fallback:** muse-spark-1.2-contributor-free → big-pickle → kimi-k2.5-free

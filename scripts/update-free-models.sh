@@ -511,7 +511,7 @@ for m in data.get('models', []):
   done
 
   if [[ $failed -ne 0 ]]; then
-    err "Some models failed probe — check primary model in opencode.json (prefer x-preview-f-free (ox-alpha) over x-preview-f-free for reliability)"
+    err "Some models failed probe — check primary model in opencode.json (prefer muse-spark-1.2-contributor-free (ox-alpha) over muse-spark-1.2-contributor-free for reliability)"
     set -e
     return 1
   fi

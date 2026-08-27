@@ -4,12 +4,12 @@ description: >-
   Enterprise SDLC Phase 18 — Full-stack implementation. Builds end-to-end features.
   Covers frontend, backend, and integration layers. Use proactively when this specialist's phase is active.
 model: composer-2.5
-opencode_model: opencode/x-preview-f-free
+opencode_model: opencode/muse-spark-1.2-contributor-free
 ---
 
 ## Models
 
-Default: `composer-2.5` (standard, not Fast) on Cursor; `opencode/x-preview-f-free` on OpenCode.
+Default: `composer-2.5` (standard, not Fast) on Cursor; `opencode/muse-spark-1.2-contributor-free` on OpenCode.
 
 For hard/long-horizon tasks where Composer 2.5 is stuck, escalate to `grok-4.6` standard on Cursor. On OpenCode, always use a free model and validate with `bash scripts/update-free-models.sh --refresh && bash scripts/update-free-models.sh --probe`.
 

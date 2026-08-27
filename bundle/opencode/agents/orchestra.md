@@ -5,7 +5,7 @@ description: >-
   orchestra-planner → implementer → verifier → reviewer in sequence via the
   task tool. Use for any implementation work; do not pick phase agents manually.
 mode: primary
-model: opencode/x-preview-f-free
+model: opencode/muse-spark-1.2-contributor-free
 reasoningEffort: low
 permission:
   task:
@@ -83,7 +83,7 @@ Run `git status --porcelain` before each phase after implementer:
 
 ## Models
 
-Primary: `opencode/x-preview-f-free`. Preflight: `bash scripts/update-free-models.sh --refresh && bash scripts/update-free-models.sh --probe`.
+Primary: `opencode/muse-spark-1.2-contributor-free`. Preflight: `bash scripts/update-free-models.sh --refresh && bash scripts/update-free-models.sh --probe`.
 
 For **Cursor**, use the separate model guidance in `bundle/skills/orchestra-loop/SKILL.md`: default to `composer-2.5` standard (not Fast) and escalate to `grok-4.6` standard only for hard tasks. Cursor and OpenCode models are independent; do not mix their fallback chains.
 
@@ -96,10 +96,10 @@ For **Cursor**, use the separate model guidance in `bundle/skills/orchestra-loop
 
 | Phase | Subagent | Model (from config) |
 |-------|----------|---------------------|
-| plan | orchestra-planner | x-preview-f-free (ox-alpha) |
-| implement | orchestra-implementer | x-preview-f-free (ox-alpha) |
+| plan | orchestra-planner | muse-spark-1.2-contributor-free (ox-alpha) |
+| implement | orchestra-implementer | muse-spark-1.2-contributor-free (ox-alpha) |
 | verify | orchestra-verifier | mimo-v2.5-free |
-| review | orchestra-reviewer | x-preview-f-free (ox-alpha) |
+| review | orchestra-reviewer | muse-spark-1.2-contributor-free (ox-alpha) |
 
 On "Model not found": run `bash scripts/update-free-models.sh --refresh` and retry the next model in the role chain documented in `orchestra-loop` skill.
 
