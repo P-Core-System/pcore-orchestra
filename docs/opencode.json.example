@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "opencode/x-preview-f-free",
+  "model": "opencode/muse-spark-1.2-contributor-free",
   "small_model": "opencode/mimo-v2.5-free",
   "default_agent": "orchestra",
   "compaction": {
@@ -92,7 +92,7 @@
     "orchestra": {
       "description": "Orchestra conductor — plan → implement → verify → review via task tool",
       "mode": "primary",
-      "model": "opencode/x-preview-f-free",
+      "model": "opencode/muse-spark-1.2-contributor-free",
       "reasoningEffort": "low",
       "textVerbosity": "low",
       "steps": 40,
@@ -110,7 +110,7 @@
     "orchestra-planner": {
       "description": "Internal orchestra phase 1 — plan only",
       "mode": "subagent",
-      "model": "opencode/x-preview-f-free",
+      "model": "opencode/muse-spark-1.2-contributor-free",
       "reasoningEffort": "low",
       "textVerbosity": "low",
       "steps": 8,
@@ -126,7 +126,7 @@
     "orchestra-implementer": {
       "description": "Internal orchestra phase 2 — implement",
       "mode": "subagent",
-      "model": "opencode/x-preview-f-free",
+      "model": "opencode/muse-spark-1.2-contributor-free",
       "reasoningEffort": "low",
       "textVerbosity": "low",
       "steps": 25,
@@ -158,7 +158,7 @@
     "orchestra-reviewer": {
       "description": "Internal orchestra phase 4 — review",
       "mode": "subagent",
-      "model": "opencode/x-preview-f-free",
+      "model": "opencode/muse-spark-1.2-contributor-free",
       "reasoningEffort": "low",
       "textVerbosity": "low",
       "steps": 5,
