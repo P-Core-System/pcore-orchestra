@@ -176,11 +176,11 @@ function writeCursorSandbox(cursorHome) {
 const DEAD_OR_UNRELIABLE_MODELS = new Set([
   "opencode/hy3-free",
   "opencode/mimo-v2.5-free",
-  "opencode/muse-spark-1.2-contributor-free",
+  "opencode/mimo-v2.5-free",
   "opencode/laguna-s-2.1-free",
   "opencode/deepseek-v4-flash-free",
 ]);
-const RELIABLE_HEAVY = "opencode/muse-spark-1.2-contributor-free";
+const RELIABLE_HEAVY = "opencode/mimo-v2.5-free";
 const RELIABLE_LIGHT = "opencode/mimo-v2.5-free";
 
 function patchUnreliableAgentModels(dest) {

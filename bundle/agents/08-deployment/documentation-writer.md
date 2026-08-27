@@ -4,7 +4,6 @@ description: >-
   Enterprise SDLC Phase 25 — Documentation generation. Updates all project docs. Use proactively when this specialist's phase is active.
 readonly: true
 model: composer-2.5
-opencode_model: opencode/mimo-v2.5-free
 ---
 
 ## Models

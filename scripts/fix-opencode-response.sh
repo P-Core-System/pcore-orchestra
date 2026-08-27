@@ -3,7 +3,7 @@
 #
 # Common causes (1.18.19 → 1.18.21 + pcore-orchestra):
 #   - Desktop sidecar out of sync with CLI (restart app)
-#   - Dead/silent free models (muse-spark-1.2-contributor-free, hy3-free) on default agents
+#   - Dead/silent free models (mimo-v2.5-free, hy3-free) on default agents
 #   - Remote MCP servers blocking session start (neon, n8n)
 #   - Orchestra conductor using Cursor Task syntax instead of OpenCode task tool
 #   - orchestra.md not installed (install only copied orchestra-*.md)
@@ -130,7 +130,7 @@ probe_opencode() {
 if [[ "$SKIP_PROBE" -eq 0 ]] && command -v opencode &>/dev/null; then
   echo ""
   echo "==> Quick response probe (CLI; desktop needs app restart after this)"
-  probe_opencode "opencode/muse-spark-1.2-contributor-free" || true
+  probe_opencode "opencode/mimo-v2.5-free" || true
   probe_opencode "orchestra" || true
 fi
 

@@ -5,7 +5,6 @@ description: >-
   task tool. Returns VERIFY_PASS or VERIFY_FAIL; does not fix code.
 mode: subagent
 hidden: true
-model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: allow

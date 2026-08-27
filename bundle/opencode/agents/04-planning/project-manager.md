@@ -5,7 +5,6 @@ description: >-
   breakdown. Creates actionable work items from requirements. Use
   proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/muse-spark-1.2-contributor-free
 permission:
   edit: deny
   bash: ask
@@ -13,7 +12,7 @@ permission:
 
 ## Models
 
-Default: `composer-2.5` (standard, not Fast) on Cursor; `opencode/muse-spark-1.2-contributor-free` on OpenCode.
+Default: `composer-2.5` (standard, not Fast) on Cursor; `opencode/mimo-v2.5-free` on OpenCode.
 
 For hard/long-horizon tasks where Composer 2.5 is stuck, escalate to `grok-4.6` standard on Cursor. On OpenCode, always use a free model and validate with `bash scripts/update-free-models.sh --refresh && bash scripts/update-free-models.sh --probe`.
 

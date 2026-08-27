@@ -82,9 +82,9 @@ bash scripts/update-free-models.sh --probe
 
 | Role | Primary | Notes |
 |------|---------|--------|
-| planner / implementer / reviewer / conductor | `muse-spark-1.2-contributor-free` (ox-alpha) | Reliable text on OpenCode Zen |
+| planner / implementer / reviewer / conductor | `mimo-v2.5-free` (ox-alpha) | Reliable text on OpenCode Zen |
 | verifier / small_model | `mimo-v2.5-free` | Fast checks |
-| Avoid as primary | `muse-spark-1.2-contributor-free`, `hy3-free`, `muse-spark-*` | Silent, timeout, or region-blocked |
+| Avoid as primary | `mimo-v2.5-free`, `hy3-free`, `muse-spark-*` | Silent, timeout, or region-blocked |
 
 ## Fix “no response”
 

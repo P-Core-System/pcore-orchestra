@@ -317,7 +317,7 @@ bash scripts/setup-opencode-optimal.sh --check      # audit current config
 
 | Profile | Planner/Verifier/Reviewer | Implementer | Est. cost/cycle |
 |---------|---------------------------|-------------|-----------------|
-| budget | muse-spark-1.2-contributor-free (ox-alpha) / verifier mimo-v2.5-free | same | ~$0.00–0.03 |
+| budget | mimo-v2.5-free (ox-alpha) / verifier mimo-v2.5-free | same | ~$0.00–0.03 |
 | balanced | deepseek-v4-flash | kimi-k2.5 | ~$0.03–0.11 |
 | premium | deepseek-v4-flash | claude-sonnet | ~$0.10–0.30 |
 
