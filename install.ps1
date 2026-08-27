@@ -1,4 +1,4 @@
-﻿# Install Orchestra bundle to ~/.cursor AND ~/.config/opencode (global)
+# Install Orchestra bundle to ~/.cursor AND ~/.config/opencode (global)
 # Usage:
 #   powershell -ExecutionPolicy Bypass -File install.ps1              # both
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -All         # same
@@ -238,7 +238,7 @@ function Install-OpenCode {
   Write-Host "  OpenCode skills:  $OpenCodeDir\skills\ (orchestra-loop + UI + Cloudflare)"
   Write-Host "  OpenCode state:   $OpenCodeDir\state\orchestra.json"
   Write-Host "  OpenCode autonomy:$OpenCodeDir\opencode.json (permission + agents; mcp preserved)"
-  Write-Host "  OpenCode CLI:     opencode --version — restart desktop app after upgrade"
+  Write-Host "  OpenCode CLI:     opencode --version � restart desktop app after upgrade"
 }
 
 ###############################################################################
@@ -271,14 +271,14 @@ Write-Host "============================================"
 Write-Host " Orchestra installed!"
 if ($Cursor) {
   Write-Host "  Cursor:   $CursorDir"
-  Write-Host "            Restart Cursor IDE → Settings → Hooks"
+  Write-Host "            Restart Cursor IDE ? Settings ? Hooks"
 }
 if ($OpenCode) {
   Write-Host "  OpenCode: $OpenCodeDir"
   Write-Host "            Restart OpenCode; prefer: opencode --auto"
 }
 if ($Cursor) {
-  Write-Host "  Autonomy: Settings → Agents → Approvals → Auto-review"
+  Write-Host "  Autonomy: Settings ? Agents ? Approvals ? Auto-review"
   Write-Host "            Docs: docs/autonomous-workflow.md"
 }
 

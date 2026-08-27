@@ -180,7 +180,7 @@ const DEAD_OR_UNRELIABLE_MODELS = new Set([
   "opencode/laguna-s-2.1-free",
   "opencode/deepseek-v4-flash-free",
 ]);
-const RELIABLE_HEAVY = "opencode/x-preview-f-free";
+const RELIABLE_HEAVY = "opencode/muse-spark-1.2-contributor-free";
 const RELIABLE_LIGHT = "opencode/mimo-v2.5-free";
 
 function patchUnreliableAgentModels(dest) {

@@ -1,5 +1,5 @@
 {
-  "model": "opencode/x-preview-f-free",
+  "model": "opencode/muse-spark-1.2-contributor-free",
   "small_model": "opencode/mimo-v2.5-free",
   "compaction": {
     "auto": true,
@@ -75,7 +75,7 @@
     "orchestra": {
       "description": "Orchestra conductor — plan → implement → verify → review via task tool",
       "mode": "primary",
-      "model": "opencode/x-preview-f-free",
+      "model": "opencode/muse-spark-1.2-contributor-free",
       "reasoningEffort": "low",
       "textVerbosity": "low",
       "steps": 24,
@@ -98,7 +98,7 @@
     "orchestra-planner": {
       "description": "Internal orchestra phase 1 — plan only",
       "mode": "subagent",
-      "model": "opencode/x-preview-f-free",
+      "model": "opencode/muse-spark-1.2-contributor-free",
       "reasoningEffort": "medium",
       "textVerbosity": "medium",
       "steps": 8,
@@ -119,7 +119,7 @@
     "orchestra-implementer": {
       "description": "Internal orchestra phase 2 — implement",
       "mode": "subagent",
-      "model": "opencode/x-preview-f-free",
+      "model": "opencode/muse-spark-1.2-contributor-free",
       "reasoningEffort": "medium",
       "textVerbosity": "medium",
       "steps": 20,
@@ -161,7 +161,7 @@
     "orchestra-reviewer": {
       "description": "Internal orchestra phase 4 — review",
       "mode": "subagent",
-      "model": "opencode/x-preview-f-free",
+      "model": "opencode/muse-spark-1.2-contributor-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 5,
@@ -183,7 +183,7 @@
   "provider": {
     "opencode": {
       "models": {
-        "x-preview-f-free": {
+        "muse-spark-1.2-contributor-free": {
           "variants": {
             "fast": {
               "reasoningEffort": "low",
@@ -194,7 +194,7 @@
             }
           }
         },
-        "x-preview-f-free (ox-alpha)": {
+        "muse-spark-1.2-contributor-free (ox-alpha)": {
           "variants": {
             "fast": {
               "reasoningEffort": "low",
