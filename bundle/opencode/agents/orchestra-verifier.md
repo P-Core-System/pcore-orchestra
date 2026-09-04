@@ -35,4 +35,4 @@ Use skill `verification-before-completion` when unsure.
 ## Model
 
 - **Primary:** `opencode/mimo-v2.5-free`
-- **Fallback:** hy3-free → mimo-v2.5-free
+- **Fallback:** ling-3.0-flash-fin-free → mimo-v2.5-free

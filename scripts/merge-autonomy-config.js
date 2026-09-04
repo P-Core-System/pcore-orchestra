@@ -174,13 +174,24 @@ function writeCursorSandbox(cursorHome) {
 }
 
 const DEAD_OR_UNRELIABLE_MODELS = new Set([
+  // Dead / removed from catalog
   "opencode/hy3-free",
-  "opencode/mimo-v2.5-free",
-  "opencode/mimo-v2.5-free",
+  "opencode/x-preview-f-free",
+  // Region-blocked (Myanmar and other locales)
+  "opencode/muse-spark-1.2-contributor-free",
+  "opencode/muse-spark-1.3-contributor-free",
+  "opencode/muse-spark-1.2",
+  // Timeout / server errors / not supported
   "opencode/laguna-s-2.1-free",
   "opencode/deepseek-v4-flash-free",
+  "opencode/nemotron-3-ultra-free",
+  "opencode/nemotron-3.5-lightning-free",
+  "opencode/north-mini-code-free",
+  "opencode/ling-3.0-flash-free",
 ]);
-const RELIABLE_HEAVY = "opencode/mimo-v2.5-free";
+/** Heaviest free model that works everywhere (local + server). */
+const RELIABLE_HEAVY = "opencode/ling-3.0-flash-fin-free";
+/** Lightest free model that works everywhere (local + server). */
 const RELIABLE_LIGHT = "opencode/mimo-v2.5-free";
 
 function patchUnreliableAgentModels(dest) {
