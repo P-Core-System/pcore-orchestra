@@ -12,7 +12,13 @@
     "max_bytes": 12288
   },
   "watcher": {
-    "ignore": ["node_modules/**", "dist/**", ".git/**", "build/**", "coverage/**"]
+    "ignore": [
+      "node_modules/**",
+      "dist/**",
+      ".git/**",
+      "build/**",
+      "coverage/**"
+    ]
   },
   "default_agent": "orchestra",
   "snapshot": false,
@@ -73,7 +79,7 @@
   },
   "agent": {
     "orchestra": {
-      "description": "Orchestra conductor — plan → implement → verify → review via task tool",
+      "description": "Orchestra conductor \u2014 plan \u2192 implement \u2192 verify \u2192 review via task tool",
       "mode": "primary",
       "model": "opencode/mimo-v2.5-free",
       "reasoningEffort": "low",
@@ -96,7 +102,7 @@
       }
     },
     "orchestra-planner": {
-      "description": "Internal orchestra phase 1 — plan only",
+      "description": "Internal orchestra phase 1 \u2014 plan only",
       "mode": "subagent",
       "reasoningEffort": "medium",
       "textVerbosity": "medium",
@@ -116,7 +122,7 @@
       }
     },
     "orchestra-implementer": {
-      "description": "Internal orchestra phase 2 — implement",
+      "description": "Internal orchestra phase 2 \u2014 implement",
       "mode": "subagent",
       "reasoningEffort": "medium",
       "textVerbosity": "medium",
@@ -136,7 +142,7 @@
       }
     },
     "orchestra-verifier": {
-      "description": "Internal orchestra phase 3 — verify",
+      "description": "Internal orchestra phase 3 \u2014 verify",
       "mode": "subagent",
       "reasoningEffort": "low",
       "textVerbosity": "low",
@@ -156,7 +162,7 @@
       }
     },
     "orchestra-reviewer": {
-      "description": "Internal orchestra phase 4 — review",
+      "description": "Internal orchestra phase 4 \u2014 review",
       "mode": "subagent",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
@@ -174,6 +180,32 @@
           "verification-before-completion": "allow"
         }
       }
+    },
+    "general": {
+      "description": "General-purpose agent for researching complex questions and executing multi-step tasks",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow"
+      }
+    },
+    "explore": {
+      "description": "Fast agent specialized for codebase exploration",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "low",
+      "textVerbosity": "low",
+      "permission": {
+        "edit": "deny",
+        "bash": "allow",
+        "websearch": "deny",
+        "webfetch": "deny"
+      }
     }
   },
   "provider": {
@@ -184,21 +216,6 @@
             "fast": {
               "reasoningEffort": "low",
               "textVerbosity": "low"
-            },
-            "thorough": {
-              "reasoningEffort": "high"
-            }
-          }
-        },
-        "mimo-v2.5-free (ox-alpha)": {
-          "variants": {
-            "fast": {
-              "reasoningEffort": "low",
-              "textVerbosity": "low"
-            },
-            "quality": {
-              "reasoningEffort": "medium",
-              "textVerbosity": "medium"
             }
           }
         }

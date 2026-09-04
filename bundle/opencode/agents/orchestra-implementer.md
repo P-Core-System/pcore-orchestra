@@ -53,4 +53,4 @@ IMPLEMENT_DONE
 ## Model
 
 - **Primary:** `opencode/mimo-v2.5-free`
-- **Fallback:** mimo-v2.5-free → big-pickle → kimi-k2.5-free
+- **Fallback:** mimo-v2.5-free → ling-3.0-flash-fin-free

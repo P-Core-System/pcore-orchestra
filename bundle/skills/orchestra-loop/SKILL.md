@@ -53,9 +53,9 @@ Run `bash scripts/update-free-models.sh --refresh` then `bash scripts/update-fre
 
 | Role | Primary model | Fallback chain |
 |------|--------------|----------------|
-| planner / implementer / reviewer / backend | `mimo-v2.5-free` (ox-alpha) | mimo-v2.5-free → big-pickle → kimi-k2.5-free |
-| verifier / small_model | `mimo-v2.5-free` | hy3-free → mimo-v2.5-free |
-| frontend | `mimo-v2.5-free` (ox-alpha) | mimo-v2.5-free → big-pickle (muse-spark region-blocked in some locales) |
+| planner / implementer / reviewer / backend | `mimo-v2.5-free` (ox-alpha) | mimo-v2.5-free → ling-3.0-flash-fin-free |
+| verifier / small_model | `mimo-v2.5-free` | mimo-v2.5-free → big-pickle |
+| frontend | `mimo-v2.5-free` (ox-alpha) | mimo-v2.5-free (muse-spark/nemotron region-blocked in some locales) |
 
 **Auto pools:** `--refresh` regenerates `~/.config/opencode/state/model-pools.json` (frontend/heavy/light) from the live Zen catalog; use `--pools` to print them. Static chains below are the offline fallback only.
 

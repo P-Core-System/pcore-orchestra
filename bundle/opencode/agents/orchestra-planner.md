@@ -65,5 +65,5 @@ You are the **orchestra planner** subagent. Invoked only by the **orchestra** co
 ## Model
 
 - **Primary:** `opencode/mimo-v2.5-free` (light pool)
-- **Fallback:** hy3-free → mimo-v2.5-free
+- **Fallback:** ling-3.0-flash-fin-free → mimo-v2.5-free
 - On "Model not found": `bash scripts/update-free-models.sh --refresh`
