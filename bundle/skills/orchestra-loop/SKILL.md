@@ -27,6 +27,34 @@ Same four phase agent names; **different spawn tool and chaining**.
 
 Full matrix: `docs/orchestra-cross-platform.md` · agent ref: `references/orchestra-spawn-matrix.md`
 
+## Auto-continue on max steps (CRITICAL)
+
+When a subagent returns WITHOUT its expected ending token, the conductor MUST auto-continue:
+
+| Phase | Expected ending token | Resume action |
+|-------|----------------------|---------------|
+| planner | `PLAN_READY` | Resume planner with `task_id` — pass incomplete plan so far |
+| implementer | `IMPLEMENT_DONE` | Resume implementer with `task_id` — pass what was implemented so far |
+| verifier | `VERIFY_PASS` or `VERIFY_FAIL` | Resume verifier with `task_id` — pass what was checked so far |
+| reviewer | `ORCHESTRA_COMPLETE` | Resume reviewer with `task_id` — pass what was reviewed so far |
+
+**Rules:**
+1. **Detect missing token** — if the subagent result does NOT contain the expected ending token, it hit max steps.
+2. **Resume, don't restart** — pass the `task_id` from the previous call to resume the same session.
+3. **Pass progress summary** — include what was completed so far in the resume prompt.
+4. **Max 5 resume attempts per phase** — after 5 resumes without the ending token, escalate to user with a summary.
+5. **NEVER stop the loop** — the conductor continues until: all 4 phases complete, OR 5 resumes fail, OR user explicitly says "stop".
+
+**How to resume (OpenCode):**
+```
+task(description="resume planner", prompt="Continue from where you stopped. Plan so far: [summary]. Complete the plan ending with PLAN_READY.", subagent_type="orchestra-planner", task_id="<previous_task_id>")
+```
+
+**How to resume (Cursor):**
+```
+Task(description="resume planner", prompt="Continue from where you stopped.", subagent_type="orchestra-planner", task_id="<previous_task_id>")
+```
+
 ## Conductor-first entry
 
 > **Do NOT pick `orchestra-planner`, `orchestra-implementer`, `orchestra-verifier`, or `orchestra-reviewer` as the user entry on OpenCode.** On Cursor, ambient hooks may launch the first phase directly; optional `orchestra` conductor uses **Task** + `subagent_type`. Hook matchers require exact `orchestra-*` names — do not rename them.
