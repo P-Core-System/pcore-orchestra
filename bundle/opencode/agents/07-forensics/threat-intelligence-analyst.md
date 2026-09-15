@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 0,6,9 — Threat intelligence collection, analysis, dissemination, threat actor profiling, TTP mapping, intelligence-driven defense.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 120
 permission:
   edit: deny
   bash: ask

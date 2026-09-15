@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 6,7 — Advanced threat simulation, real-world attack campaigns, multi-vector attacks, persistence mechanisms, data exfiltration simulation.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 150
 permission:
   edit: deny
   bash: ask

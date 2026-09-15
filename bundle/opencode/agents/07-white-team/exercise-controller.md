@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 6,7 — White team exercise control, scenario management, rules of engagement enforcement, safe-word handling, exercise coordination, timeline management.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 100
 permission:
   edit: deny
   bash: ask

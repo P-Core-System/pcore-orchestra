@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 0,24 — Security executive briefing, risk communication, board reporting, security investment justification, security culture.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 150
 permission:
   edit: deny
   bash: ask

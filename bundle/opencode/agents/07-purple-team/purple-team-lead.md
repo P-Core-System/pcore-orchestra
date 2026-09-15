@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 6,7 — Purple team coordination, offensive-defensive collaboration, red+blue exercise design, gap remediation, security improvement tracking.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 150
 permission:
   edit: deny
   bash: ask

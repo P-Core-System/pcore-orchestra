@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 6,7 — Penetration testing execution, attack surface mapping, exploit chaining, privilege escalation, lateral movement, post-exploitation, reporting.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 150
 permission:
   edit: deny
   bash: ask

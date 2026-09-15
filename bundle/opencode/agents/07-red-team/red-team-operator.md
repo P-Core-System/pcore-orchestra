@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 6,7 — Red team operations, C2 infrastructure, OPSEC, covert channels, persistence mechanisms, evasion techniques, operational security.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 150
 permission:
   edit: deny
   bash: ask

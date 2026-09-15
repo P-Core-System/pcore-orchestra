@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 6,9 — Detection rule engineering, SIGMA/YARA/Snort rules, detection-as-code, detection coverage, gap analysis, rule optimization.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 200
 permission:
   edit: deny
   bash: ask

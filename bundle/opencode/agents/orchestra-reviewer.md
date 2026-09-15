@@ -8,6 +8,7 @@ description: >-
   active.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 150
 permission:
   edit: deny
   bash: ask

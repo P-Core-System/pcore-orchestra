@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 6,7 — Safety oversight during exercises, collateral damage prevention, critical system protection, safety threshold monitoring.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 100
 permission:
   edit: deny
   bash: ask

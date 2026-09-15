@@ -6,6 +6,7 @@ description: >-
   principles. Use proactively when this specialist's phase is active.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 200
 permission:
   edit: deny
   bash: ask

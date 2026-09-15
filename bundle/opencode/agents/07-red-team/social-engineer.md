@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 6,7 — Social engineering assessment, phishing simulation, pretexting, physical security testing, human vulnerability assessment.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 200
 permission:
   edit: deny
   bash: ask

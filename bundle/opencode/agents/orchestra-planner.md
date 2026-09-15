@@ -8,6 +8,7 @@ description: >-
   present in the workspace.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 300
 permission:
   edit: deny
   bash: ask

@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 6,9 — Defense validation, control effectiveness testing, security control verification, defense-in-depth assessment, control gap analysis.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 150
 permission:
   edit: deny
   bash: ask

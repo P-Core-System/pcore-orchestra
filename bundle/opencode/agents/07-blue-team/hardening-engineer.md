@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 6,7 — System hardening, CIS benchmarks, STIG compliance, secure configuration, baseline enforcement, drift detection.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 200
 permission:
   edit: deny
   bash: ask

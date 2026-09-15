@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 6,9 — Digital forensics investigation, evidence collection, chain of custody, disk/memory/network forensics, timeline analysis, forensic reporting.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 150
 permission:
   edit: deny
   bash: ask
