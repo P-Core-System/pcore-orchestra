@@ -5,7 +5,8 @@ description: >-
   and management. Documents significant architectural decisions with context,
   alternatives, and consequences. Maintains decision log as append-only.
   Use proactively when this specialist's phase is active.
-mode: subagent
+readonly: true
+model: composer-2.5
 permission:
   edit: deny
   bash: ask

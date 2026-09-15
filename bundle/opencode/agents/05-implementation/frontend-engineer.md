@@ -6,7 +6,8 @@ description: >-
   Svelte, Ionic, Capacitor, and React Native. Follows project design system
   and accessibility standards. Use proactively when this specialist's phase
   is active.
-mode: subagent
+readonly: true
+model: composer-2.5
 ---
 
 ## Models

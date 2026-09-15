@@ -3,7 +3,8 @@ name: model-monitor
 description: >-
   Enterprise SDLC Phase 9,11 — Model performance monitoring, drift detection, data drift, concept drift, prediction monitoring, model health dashboards, automated alerts.
   Use proactively when this specialist's phase is active.
-mode: subagent
+readonly: true
+model: composer-2.5
 permission:
   edit: deny
   bash: ask

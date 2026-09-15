@@ -3,7 +3,8 @@ name: customer-success
 description: >-
   Enterprise SDLC Phase 15,24 — Customer onboarding, retention strategies, expansion plays, health scoring, churn prevention, value realization.
   Use proactively when this specialist's phase is active.
-mode: subagent
+readonly: true
+model: composer-2.5
 permission:
   edit: deny
   bash: ask

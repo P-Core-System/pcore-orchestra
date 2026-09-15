@@ -2,7 +2,8 @@
 name: penetration-tester
 description: >-
   Enterprise SDLC Phase 6,7 — Penetration testing execution, attack surface mapping, exploit chaining, privilege escalation, lateral movement, post-exploitation, reporting.
-mode: subagent
+readonly: true
+model: composer-2.5
 permission:
   edit: deny
   bash: ask

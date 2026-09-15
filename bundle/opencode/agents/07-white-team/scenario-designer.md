@@ -2,7 +2,8 @@
 name: scenario-designer
 description: >-
   Enterprise SDLC Phase 6,7 — Exercise scenario design, threat modeling for exercises, realistic attack paths, progressive difficulty, learning objectives.
-mode: subagent
+readonly: true
+model: composer-2.5
 permission:
   edit: deny
   bash: ask

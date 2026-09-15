@@ -3,7 +3,8 @@ name: inference-engineer
 description: >-
   Enterprise SDLC Phase 5,9,11 — Model serving infrastructure, inference optimization, quantization, pruning, ONNX conversion, TensorRT, batching strategies, latency optimization.
   Use proactively when this specialist's phase is active.
-mode: subagent
+readonly: true
+model: composer-2.5
 permission:
   edit: deny
   bash: ask

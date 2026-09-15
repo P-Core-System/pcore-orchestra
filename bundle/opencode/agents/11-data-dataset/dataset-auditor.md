@@ -3,7 +3,8 @@ name: dataset-auditor
 description: >-
   Enterprise SDLC Phase 5,6,11 — Dataset auditing, bias detection, legal compliance, licensing verification, provenance tracking, dataset risk assessment.
   Use proactively when this specialist's phase is active.
-mode: subagent
+readonly: true
+model: composer-2.5
 permission:
   edit: deny
   bash: ask

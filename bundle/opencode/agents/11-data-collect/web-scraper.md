@@ -3,7 +3,8 @@ name: web-scraper
 description: >-
   Enterprise SDLC Phase 0,5,11 — Web scraping design, crawler architecture, data extraction pipelines, anti-bot bypass, proxy rotation, rate limiting, HTML parsing, structured data extraction from unstructured web sources.
   Use proactively when this specialist's phase is active.
-mode: subagent
+readonly: true
+model: composer-2.5
 permission:
   edit: deny
   bash: ask
