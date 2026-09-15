@@ -3,8 +3,8 @@ name: synthetic-data-generator
 description: >-
   Enterprise SDLC Phase 5,11 — Synthetic data generation, data augmentation, GAN-based generation, LLM-based generation, privacy-preserving synthesis, data imbalance correction.
   Use proactively when this specialist's phase is active.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

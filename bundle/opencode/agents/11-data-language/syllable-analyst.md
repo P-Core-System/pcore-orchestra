@@ -3,8 +3,8 @@ name: syllable-analyst
 description: >-
   Enterprise SDLC Phase 5,11 — Syllable segmentation, syllable counting, stress pattern detection, phonetic transcription, syllable-based features for NLP.
   Use proactively when this specialist's phase is active.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

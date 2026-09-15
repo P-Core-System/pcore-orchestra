@@ -3,8 +3,8 @@ name: agent-selector
 description: >-
   Enterprise SDLC — Selects the right agents for a given task based on project type, phase, and task description. Filters from the 104-agent registry to recommend the optimal specialist team.
   Use proactively when this specialist's phase is active.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

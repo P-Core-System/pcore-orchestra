@@ -3,8 +3,8 @@ name: content-strategist
 description: >-
   Enterprise SDLC Phase 0,15,24 — Content planning, SEO strategy, messaging frameworks, editorial calendar, content governance, brand voice.
   Use proactively when this specialist's phase is active.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

@@ -5,8 +5,8 @@ description: >-
   breaking change detection. Ensures API backward compatibility and
   OpenAPI/GraphQL schema compliance.
   Use proactively when this specialist's phase is active.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

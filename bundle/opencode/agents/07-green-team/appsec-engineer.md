@@ -2,8 +2,8 @@
 name: appsec-engineer
 description: >-
   Enterprise SDLC Phase 2,5,6 — Application security engineering, secure design review, threat modeling, security requirements, security architecture.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

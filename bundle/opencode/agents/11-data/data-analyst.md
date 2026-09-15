@@ -3,8 +3,8 @@ name: data-analyst
 description: >-
   Enterprise SDLC Phase 0,10 — Analytics dashboards, KPI tracking, data visualization, business intelligence, A/B test analysis, metric definitions.
   Use proactively when this specialist's phase is active.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

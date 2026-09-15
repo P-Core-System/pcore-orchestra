@@ -3,8 +3,8 @@ name: innovation-lead
 description: >-
   Enterprise SDLC Phase 0,24 — Innovation pipeline, technology scouting, R&D strategy, patent landscape, emerging tech evaluation, innovation culture.
   Use proactively when this specialist's phase is active.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

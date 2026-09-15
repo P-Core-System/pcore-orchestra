@@ -4,8 +4,8 @@ description: >-
   Enterprise SDLC Phase 1-2 — Competitive analysis, user research, market
   sizing, trend analysis. Provides data-driven input for product decisions.
   Use proactively when this specialist's phase is active.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: allow

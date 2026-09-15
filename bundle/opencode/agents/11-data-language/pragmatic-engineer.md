@@ -3,8 +3,8 @@ name: pragmatic-engineer
 description: >-
   Enterprise SDLC Phase 5,11 — Pragmatic analysis, speech act detection, implicature analysis, politeness strategies, context-dependent meaning, intent detection.
   Use proactively when this specialist's phase is active.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

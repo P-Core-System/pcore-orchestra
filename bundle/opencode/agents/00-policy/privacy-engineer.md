@@ -3,8 +3,8 @@ name: privacy-engineer
 description: >-
   Enterprise SDLC Phase 0,5,24 — Privacy by design, data protection impact assessments, consent management, privacy policies, data subject rights, privacy-preserving techniques.
   Use proactively when this specialist's phase is active.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask
