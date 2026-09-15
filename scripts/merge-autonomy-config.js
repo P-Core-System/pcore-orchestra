@@ -212,7 +212,10 @@ function mergeOrchestraAgents(dest, patchAgents) {
   dest.agent = dest.agent || {};
   for (const [name, cfg] of Object.entries(patchAgents || {})) {
     if (name === "orchestra" || name.startsWith("orchestra-")) {
-      dest.agent[name] = cfg;
+      const existing = dest.agent[name] || {};
+      const bundleSteps = cfg.steps || 200;
+      const userSteps = existing.steps || 0;
+      dest.agent[name] = { ...cfg, steps: Math.max(bundleSteps, userSteps) };
     }
   }
 }
