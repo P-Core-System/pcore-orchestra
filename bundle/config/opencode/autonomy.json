@@ -84,7 +84,7 @@
       "model": "opencode/mimo-v2.5-free",
       "reasoningEffort": "low",
       "textVerbosity": "low",
-      "steps": 200,
+      "steps": 500,
       "permission": {
         "task": {
           "*": "deny",
@@ -106,7 +106,7 @@
       "mode": "subagent",
       "reasoningEffort": "medium",
       "textVerbosity": "medium",
-      "steps": 200,
+      "steps": 300,
       "hidden": true,
       "permission": {
         "edit": "deny",
@@ -126,7 +126,7 @@
       "mode": "subagent",
       "reasoningEffort": "medium",
       "textVerbosity": "medium",
-      "steps": 200,
+      "steps": 400,
       "hidden": true,
       "permission": {
         "edit": "allow",
@@ -166,7 +166,7 @@
       "mode": "subagent",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
-      "steps": 200,
+      "steps": 150,
       "hidden": true,
       "permission": {
         "edit": "deny",
@@ -192,7 +192,8 @@
         "bash": "allow",
         "websearch": "allow",
         "webfetch": "allow"
-      }
+      },
+      "steps": 300
     },
     "explore": {
       "description": "Fast agent specialized for codebase exploration",
@@ -205,7 +206,8 @@
         "bash": "allow",
         "websearch": "deny",
         "webfetch": "deny"
-      }
+      },
+      "steps": 100
     }
   },
   "provider": {
