@@ -36,6 +36,112 @@ The conductor NEVER stops the orchestra loop unless:
 
 Everything below supports this rule.
 
+## Dynamic step allocation (replaces fixed per-phase limits)
+
+The conductor manages a step budget and allocates dynamically per phase based on plan complexity and remaining work.
+
+### Step budget
+
+The conductor has a total budget of **500 steps** across ALL phases. Each phase gets a calculated allocation — not a fixed number.
+
+### Allocation formula
+
+Before each phase, calculate steps to allocate:
+
+```
+base_allocation = step_budget × phase_weight
+complexity_multiplier = 1.0 + (files_to_touch × 0.05) + (components_involved × 0.1)
+allocated_steps = min(base_allocation × complexity_multiplier, remaining_steps × 0.8)
+```
+
+**Phase weights (core loop):**
+| Phase | Weight | Base (of 500) |
+|-------|--------|---------------|
+| plan | 0.15 | 75 |
+| implement | 0.40 | 200 |
+| verify | 0.20 | 100 |
+| review | 0.10 | 50 |
+| reserve | 0.15 | 75 |
+
+**Phase weights (full delivery):**
+| Phase | Weight | Base (of 500) |
+|-------|--------|---------------|
+| plan | 0.10 | 50 |
+| product/ux | 0.10 | 50 |
+| architecture | 0.10 | 50 |
+| execute | 0.35 | 175 |
+| verify | 0.15 | 75 |
+| uat | 0.10 | 50 |
+| reserve | 0.10 | 50 |
+
+### How to track
+
+Save to `~/.config/opencode/state/orchestra-state.json`:
+
+```json
+{
+  "goal": "fix auth bug",
+  "step_budget": 500,
+  "steps_used": 0,
+  "phase_allocations": {},
+  "current_phase": "planner",
+  "completed_phases": [],
+  "phase_results": {},
+  "fix_loops": 0,
+  "resume_attempts": {"planner": 0, "implementer": 0, "verifier": 0, "reviewer": 0},
+  "status": "in_progress"
+}
+```
+
+### Allocation rules
+
+1. **Before planning**: allocate 15% (75 steps). Planner rarely needs more.
+2. **After plan**: recalculate based on plan complexity:
+   - Files to touch: count from plan "Files to touch" section
+   - Components involved: count distinct modules/packages
+   - If files > 10 or components > 3 → use full delivery weights
+3. **Before each phase**: 
+   - Calculate allocation using formula
+   - Cap at 80% of remaining steps (keep 20% reserve)
+   - Write allocation to state file
+   - Include allocation in task prompt: "You have [N] steps for this phase."
+4. **After phase completes**:
+   - Record actual steps used (from subagent response)
+   - Update state: steps_used += actual_steps
+   - If phase finished early (used < allocated): redistribute surplus to next phase
+5. **On resume**:
+   - If subagent hit max steps: allocate from reserve
+   - Max 3 resume attempts per phase before escalating
+6. **Budget exhausted**:
+   - If remaining steps < 50: skip non-essential phases (review, uat)
+   - If remaining steps < 20: output summary and stop
+
+### Task prompt template (dynamic)
+
+When spawning subagents, include the allocation:
+
+```
+STEP BUDGET: You have [N] steps for this [phase] phase. 
+Budget allocated based on plan complexity: [files] files, [components] components.
+Remaining budget after this phase: [remaining] steps.
+Use steps efficiently. If you finish early, stop — do not fill steps.
+```
+
+### Complexity estimation (from plan output)
+
+After planner returns, extract:
+- `files_count`: lines in "## Files to touch" section
+- `components_count`: distinct top-level directories/packages touched
+- `has_migration`: if any file is a DB migration (add 0.2 multiplier)
+- `has_ui`: if any file is a React/Vue component (add 0.1 multiplier)
+
+### Adaptive behavior
+
+- **Simple task** (< 3 files, 1 component): core loop, ~200 total steps
+- **Medium task** (3-8 files, 2 components): core loop, ~350 total steps  
+- **Complex task** (> 8 files, > 2 components): full delivery, ~450 total steps
+- **Critical fix** (production down): skip review/uat, allocate 70% to implement+verify
+
 ## Workflow Modes
 
 ### Core Loop (simple tasks — default)

@@ -8,7 +8,7 @@ description: >-
   active.
 mode: subagent
 model: opencode/mimo-v2.5-free
-steps: 150
+steps: 500
 permission:
   edit: deny
   bash: ask
@@ -108,6 +108,12 @@ Before outputting `ORCHESTRA_COMPLETE` or `FIX_REQUIRED`, verify:
 - [ ] Suggestions are genuinely optional (style, not correctness)
 - [ ] Verdict matches findings (Critical = FIX_REQUIRED, no Critical = ORCHESTRA_COMPLETE)
 - [ ] Lessons for memory are actionable (not vague)
+
+## Step budget awareness
+
+The conductor may pass a step budget. Respect it:
+- If low (< 30), check only critical items (progress-tracker sync, commit log)
+- Always output `ORCHESTRA_COMPLETE` even if running low
 
 ## Error-free rules
 
