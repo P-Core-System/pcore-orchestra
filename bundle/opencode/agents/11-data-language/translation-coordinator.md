@@ -3,7 +3,8 @@ name: translation-coordinator
 description: >-
   Enterprise SDLC Phase 0,11 — Translation pipeline design, bilingual data collection, translation quality assessment, localization workflow, machine translation evaluation.
   Use proactively when this specialist's phase is active.
-mode: subagent
+readonly: true
+model: composer-2.5
 permission:
   edit: deny
   bash: ask

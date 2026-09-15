@@ -5,7 +5,8 @@ description: >-
   interaction patterns, accessibility, responsive design. Creates design before
   implementation. Complements frontend-engineer who implements the design.
   Use proactively when this specialist's phase is active.
-mode: subagent
+readonly: true
+model: composer-2.5
 permission:
   edit: deny
   bash: ask

@@ -5,7 +5,8 @@ description: >-
   perspectives. Reviews impact of proposed changes on stakeholders. Never
   fabricates stakeholder approval — only reports actual stakeholder input.
   Use proactively when this specialist's phase is active.
-mode: subagent
+readonly: true
+model: composer-2.5
 permission:
   edit: deny
   bash: ask

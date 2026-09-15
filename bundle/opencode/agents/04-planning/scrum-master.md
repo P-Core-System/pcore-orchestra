@@ -5,7 +5,8 @@ description: >-
   removal, retrospective facilitation. Manages agile process, coordinates
   hybrid human-AI teams, tracks capacity and token budgets.
   Use proactively when this specialist's phase is active.
-mode: subagent
+readonly: true
+model: composer-2.5
 permission:
   edit: deny
   bash: ask

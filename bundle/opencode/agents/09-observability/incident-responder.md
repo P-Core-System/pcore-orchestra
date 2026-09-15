@@ -5,7 +5,8 @@ description: >-
   postmortem creation, and runbook generation. Manages production incidents
   and prevents recurrence.
   Use proactively when this specialist's phase is active.
-mode: subagent
+readonly: true
+model: composer-2.5
 permission:
   edit: deny
   bash: ask

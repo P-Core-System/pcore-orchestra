@@ -2,7 +2,8 @@
 name: red-team-operator
 description: >-
   Enterprise SDLC Phase 6,7 — Red team operations, C2 infrastructure, OPSEC, covert channels, persistence mechanisms, evasion techniques, operational security.
-mode: subagent
+readonly: true
+model: composer-2.5
 permission:
   edit: deny
   bash: ask

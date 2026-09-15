@@ -3,7 +3,8 @@ name: site-reliability-engineer
 description: >-
   Enterprise SDLC Phase 9 — SLO/SLI monitoring, error budgets, incident response automation, toil reduction, capacity planning, reliability reviews.
   Use proactively when this specialist's phase is active.
-mode: subagent
+readonly: true
+model: composer-2.5
 permission:
   edit: deny
   bash: ask

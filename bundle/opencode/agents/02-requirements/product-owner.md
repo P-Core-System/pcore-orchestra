@@ -5,7 +5,8 @@ description: >-
   scope decisions, acceptance criteria ownership. Distinct from product-manager
   who writes specifications; product-owner decides WHAT to build and WHY.
   Use proactively when this specialist's phase is active.
-mode: subagent
+readonly: true
+model: composer-2.5
 permission:
   edit: deny
   bash: ask

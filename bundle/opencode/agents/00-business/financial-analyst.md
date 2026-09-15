@@ -3,7 +3,8 @@ name: financial-analyst
 description: >-
   Enterprise SDLC Phase 0,10 — Budgeting, ROI analysis, cost-benefit analysis, financial modeling, unit economics, burn rate tracking.
   Use proactively when this specialist's phase is active.
-mode: subagent
+readonly: true
+model: composer-2.5
 permission:
   edit: deny
   bash: ask

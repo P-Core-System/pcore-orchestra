@@ -3,7 +3,8 @@ name: pos-tagger
 description: >-
   Enterprise SDLC Phase 5,11 — Part-of-speech tagging, tagset design, tagger training, POS disambiguation, tag accuracy evaluation, multilingual POS support.
   Use proactively when this specialist's phase is active.
-mode: subagent
+readonly: true
+model: composer-2.5
 permission:
   edit: deny
   bash: ask

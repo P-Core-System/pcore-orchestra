@@ -2,7 +2,8 @@
 name: blue-team-defender
 description: >-
   Enterprise SDLC Phase 6,9 — Defensive security operations, security monitoring, incident handling, vulnerability management, security hardening, compliance.
-mode: subagent
+readonly: true
+model: composer-2.5
 permission:
   edit: deny
   bash: ask

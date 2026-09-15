@@ -2,7 +2,8 @@
 name: threat-simulator
 description: >-
   Enterprise SDLC Phase 6,7 — Advanced threat simulation, real-world attack campaigns, multi-vector attacks, persistence mechanisms, data exfiltration simulation.
-mode: subagent
+readonly: true
+model: composer-2.5
 permission:
   edit: deny
   bash: ask

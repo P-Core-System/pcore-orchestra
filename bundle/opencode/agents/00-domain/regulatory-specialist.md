@@ -3,7 +3,8 @@ name: regulatory-specialist
 description: >-
   Enterprise SDLC Phase 0,5,11 — Regulatory compliance, industry regulations, compliance frameworks, audit preparation, regulatory change management.
   Use proactively when this specialist's phase is active.
-mode: subagent
+readonly: true
+model: composer-2.5
 permission:
   edit: deny
   bash: ask

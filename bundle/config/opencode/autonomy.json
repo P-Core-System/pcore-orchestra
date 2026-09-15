@@ -208,6 +208,2566 @@
         "webfetch": "deny"
       },
       "steps": 100
+    },
+    "business-strategist": {
+      "description": "Specialist agent: business-strategist",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 120,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "compliance-officer": {
+      "description": "Specialist agent: compliance-officer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "financial-analyst": {
+      "description": "Specialist agent: financial-analyst",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 120,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "legal-advisor": {
+      "description": "Specialist agent: legal-advisor",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "partnership-manager": {
+      "description": "Specialist agent: partnership-manager",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "domain-expert": {
+      "description": "Specialist agent: domain-expert",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "fintech-specialist": {
+      "description": "Specialist agent: fintech-specialist",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "healthcare-specialist": {
+      "description": "Specialist agent: healthcare-specialist",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "industry-analyst": {
+      "description": "Specialist agent: industry-analyst",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 120,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "regulatory-specialist": {
+      "description": "Specialist agent: regulatory-specialist",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "data-governance-officer": {
+      "description": "Specialist agent: data-governance-officer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "license-manager": {
+      "description": "Specialist agent: license-manager",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "policy-maker": {
+      "description": "Specialist agent: policy-maker",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "privacy-engineer": {
+      "description": "Specialist agent: privacy-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "terms-conditions-writer": {
+      "description": "Specialist agent: terms-conditions-writer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "kubernetes-engineer": {
+      "description": "Specialist agent: kubernetes-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "observability-engineer": {
+      "description": "Specialist agent: observability-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "security-architect": {
+      "description": "Specialist agent: security-architect",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "terraform-engineer": {
+      "description": "Specialist agent: terraform-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "agent-selector": {
+      "description": "Specialist agent: agent-selector",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "project-type-classifier": {
+      "description": "Specialist agent: project-type-classifier",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "workflow-orchestrator": {
+      "description": "Specialist agent: workflow-orchestrator",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "business-analyst": {
+      "description": "Specialist agent: business-analyst",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 120,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "market-researcher": {
+      "description": "Specialist agent: market-researcher",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 120,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "stakeholder-advocate": {
+      "description": "Specialist agent: stakeholder-advocate",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "product-manager": {
+      "description": "Specialist agent: product-manager",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "product-owner": {
+      "description": "Specialist agent: product-owner",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "adr-archivist": {
+      "description": "Specialist agent: adr-archivist",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "architect": {
+      "description": "Specialist agent: architect",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "tech-lead": {
+      "description": "Specialist agent: tech-lead",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "project-manager": {
+      "description": "Specialist agent: project-manager",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "scrum-master": {
+      "description": "Specialist agent: scrum-master",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "backend-engineer": {
+      "description": "Specialist agent: backend-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "database-engineer": {
+      "description": "Specialist agent: database-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "frontend-engineer": {
+      "description": "Specialist agent: frontend-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "full-stack-engineer": {
+      "description": "Specialist agent: full-stack-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "mobile-engineer": {
+      "description": "Specialist agent: mobile-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "ui-ux-designer": {
+      "description": "Specialist agent: ui-ux-designer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "accessibility-reviewer": {
+      "description": "Specialist agent: accessibility-reviewer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "api-contract-validator": {
+      "description": "Specialist agent: api-contract-validator",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "automation-engineer": {
+      "description": "Specialist agent: automation-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "chaos-engineer": {
+      "description": "Specialist agent: chaos-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "performance-engineer": {
+      "description": "Specialist agent: performance-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "qa-engineer": {
+      "description": "Specialist agent: qa-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "regression-tester": {
+      "description": "Specialist agent: regression-tester",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "test-architect": {
+      "description": "Specialist agent: test-architect",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "adversary-emulator": {
+      "description": "Specialist agent: adversary-emulator",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "covert-ops-planner": {
+      "description": "Specialist agent: covert-ops-planner",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "zero-knowledge-tester": {
+      "description": "Specialist agent: zero-knowledge-tester",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "blue-team-defender": {
+      "description": "Specialist agent: blue-team-defender",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "detection-engineer": {
+      "description": "Specialist agent: detection-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "hardening-engineer": {
+      "description": "Specialist agent: hardening-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "siem-analyst": {
+      "description": "Specialist agent: siem-analyst",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 120,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "threat-hunter": {
+      "description": "Specialist agent: threat-hunter",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "bug-bounty-coordinator": {
+      "description": "Specialist agent: bug-bounty-coordinator",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "digital-forensics": {
+      "description": "Specialist agent: digital-forensics",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "malware-reverse-engineer": {
+      "description": "Specialist agent: malware-reverse-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "threat-intelligence-analyst": {
+      "description": "Specialist agent: threat-intelligence-analyst",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 120,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "threat-simulator": {
+      "description": "Specialist agent: threat-simulator",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "insider-threat-simulator": {
+      "description": "Specialist agent: insider-threat-simulator",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "internal-pentester": {
+      "description": "Specialist agent: internal-pentester",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "shadow-it-auditor": {
+      "description": "Specialist agent: shadow-it-auditor",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "appsec-engineer": {
+      "description": "Specialist agent: appsec-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "devsecops-engineer": {
+      "description": "Specialist agent: devsecops-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "secure-code-reviewer": {
+      "description": "Specialist agent: secure-code-reviewer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "shift-left-engineer": {
+      "description": "Specialist agent: shift-left-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "security-executive-advisor": {
+      "description": "Specialist agent: security-executive-advisor",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "attack-simulator": {
+      "description": "Specialist agent: attack-simulator",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "defense-validator": {
+      "description": "Specialist agent: defense-validator",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "purple-team-lead": {
+      "description": "Specialist agent: purple-team-lead",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "exploit-developer": {
+      "description": "Specialist agent: exploit-developer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "malware-analyst": {
+      "description": "Specialist agent: malware-analyst",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 120,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "penetration-tester": {
+      "description": "Specialist agent: penetration-tester",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "red-team-operator": {
+      "description": "Specialist agent: red-team-operator",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "social-engineer": {
+      "description": "Specialist agent: social-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "vulnerability-researcher": {
+      "description": "Specialist agent: vulnerability-researcher",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 120,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "api-pentester": {
+      "description": "Specialist agent: api-pentester",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "cloud-pentester": {
+      "description": "Specialist agent: cloud-pentester",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "mobile-pentester": {
+      "description": "Specialist agent: mobile-pentester",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "network-pentester": {
+      "description": "Specialist agent: network-pentester",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "security-engineer": {
+      "description": "Specialist agent: security-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "security-performance-reviewer": {
+      "description": "Specialist agent: security-performance-reviewer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "web-app-pentester": {
+      "description": "Specialist agent: web-app-pentester",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "incident-commander": {
+      "description": "Specialist agent: incident-commander",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "exercise-controller": {
+      "description": "Specialist agent: exercise-controller",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "rule-enforcer": {
+      "description": "Specialist agent: rule-enforcer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "safety-officer": {
+      "description": "Specialist agent: safety-officer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "scenario-designer": {
+      "description": "Specialist agent: scenario-designer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "infrastructure-defender": {
+      "description": "Specialist agent: infrastructure-defender",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "cloud-engineer": {
+      "description": "Specialist agent: cloud-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "devops-engineer": {
+      "description": "Specialist agent: devops-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "documentation-writer": {
+      "description": "Specialist agent: documentation-writer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "infrastructure-engineer": {
+      "description": "Specialist agent: infrastructure-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "ops-manager": {
+      "description": "Specialist agent: ops-manager",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "platform-engineer": {
+      "description": "Specialist agent: platform-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "release-manager": {
+      "description": "Specialist agent: release-manager",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "site-reliability-engineer": {
+      "description": "Specialist agent: site-reliability-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "incident-responder": {
+      "description": "Specialist agent: incident-responder",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "observer": {
+      "description": "Specialist agent: observer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "sre": {
+      "description": "Specialist agent: sre",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "code-reviewer": {
+      "description": "Specialist agent: code-reviewer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "technical-debt-tracker": {
+      "description": "Specialist agent: technical-debt-tracker",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "ai-ethics-reviewer": {
+      "description": "Specialist agent: ai-ethics-reviewer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "ai-safety-engineer": {
+      "description": "Specialist agent: ai-safety-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "bias-auditor": {
+      "description": "Specialist agent: bias-auditor",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "explainability-engineer": {
+      "description": "Specialist agent: explainability-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "ml-ops-engineer": {
+      "description": "Specialist agent: ml-ops-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "model-monitor": {
+      "description": "Specialist agent: model-monitor",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "embedding-engineer": {
+      "description": "Specialist agent: embedding-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "fine-tuning-engineer": {
+      "description": "Specialist agent: fine-tuning-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "inference-engineer": {
+      "description": "Specialist agent: inference-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "model-evaluator": {
+      "description": "Specialist agent: model-evaluator",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "model-trainer": {
+      "description": "Specialist agent: model-trainer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "prompt-engineer": {
+      "description": "Specialist agent: prompt-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "vector-db-engineer": {
+      "description": "Specialist agent: vector-db-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "data-analyst": {
+      "description": "Specialist agent: data-analyst",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 120,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "data-engineer": {
+      "description": "Specialist agent: data-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "ml-engineer": {
+      "description": "Specialist agent: ml-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "api-collector": {
+      "description": "Specialist agent: api-collector",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "data-harvester": {
+      "description": "Specialist agent: data-harvester",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "survey-designer": {
+      "description": "Specialist agent: survey-designer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "telemetry-engineer": {
+      "description": "Specialist agent: telemetry-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "web-scraper": {
+      "description": "Specialist agent: web-scraper",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "data-annotator": {
+      "description": "Specialist agent: data-annotator",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "dataset-auditor": {
+      "description": "Specialist agent: dataset-auditor",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "dataset-curator": {
+      "description": "Specialist agent: dataset-curator",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "dataset-versioner": {
+      "description": "Specialist agent: dataset-versioner",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "synthetic-data-generator": {
+      "description": "Specialist agent: synthetic-data-generator",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "annotation-specialist": {
+      "description": "Specialist agent: annotation-specialist",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "corpus-builder": {
+      "description": "Specialist agent: corpus-builder",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "discourse-analyst": {
+      "description": "Specialist agent: discourse-analyst",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 120,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "linguistic-analyst": {
+      "description": "Specialist agent: linguistic-analyst",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 120,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "morphological-analyst": {
+      "description": "Specialist agent: morphological-analyst",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 120,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "nlp-engineer": {
+      "description": "Specialist agent: nlp-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "phonology-analyst": {
+      "description": "Specialist agent: phonology-analyst",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 120,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "pos-tagger": {
+      "description": "Specialist agent: pos-tagger",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "pragmatic-engineer": {
+      "description": "Specialist agent: pragmatic-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "semantic-engineer": {
+      "description": "Specialist agent: semantic-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "syllable-analyst": {
+      "description": "Specialist agent: syllable-analyst",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 120,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "syntactic-engineer": {
+      "description": "Specialist agent: syntactic-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "translation-coordinator": {
+      "description": "Specialist agent: translation-coordinator",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "data-cleaner": {
+      "description": "Specialist agent: data-cleaner",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "data-preprocessor": {
+      "description": "Specialist agent: data-preprocessor",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "data-quality-engineer": {
+      "description": "Specialist agent: data-quality-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "data-validator": {
+      "description": "Specialist agent: data-validator",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "feature-engineer": {
+      "description": "Specialist agent: feature-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "content-strategist": {
+      "description": "Specialist agent: content-strategist",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 120,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "developer-advocate": {
+      "description": "Specialist agent: developer-advocate",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "technical-writer": {
+      "description": "Specialist agent: technical-writer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "customer-success": {
+      "description": "Specialist agent: customer-success",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "support-engineer": {
+      "description": "Specialist agent: support-engineer",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 200,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "training-specialist": {
+      "description": "Specialist agent: training-specialist",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "innovation-lead": {
+      "description": "Specialist agent: innovation-lead",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 150,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "research-scientist": {
+      "description": "Specialist agent: research-scientist",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 100,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "technology-scout": {
+      "description": "Specialist agent: technology-scout",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": 120,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "orchestra-implementer-identity": {
+      "description": "Specialist agent: orchestra-implementer-identity",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": null,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "orchestra-planner-identity": {
+      "description": "Specialist agent: orchestra-planner-identity",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": null,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "orchestra-reviewer-identity": {
+      "description": "Specialist agent: orchestra-reviewer-identity",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": null,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "orchestra-spawn-matrix": {
+      "description": "Specialist agent: orchestra-spawn-matrix",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": null,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
+    },
+    "orchestra-verifier-identity": {
+      "description": "Specialist agent: orchestra-verifier-identity",
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.5-free",
+      "reasoningEffort": "medium",
+      "textVerbosity": "low",
+      "steps": null,
+      "hidden": true,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "task": "deny"
+      }
     }
   },
   "provider": {

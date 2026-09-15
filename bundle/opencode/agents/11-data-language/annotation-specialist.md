@@ -3,7 +3,8 @@ name: annotation-specialist
 description: >-
   Enterprise SDLC Phase 5,11 — Annotation task design, label schema creation, annotator training, inter-annotator agreement measurement, annotation quality control, annotation pipeline management.
   Use proactively when this specialist's phase is active.
-mode: subagent
+readonly: true
+model: composer-2.5
 permission:
   edit: deny
   bash: ask

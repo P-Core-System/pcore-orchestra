@@ -3,7 +3,8 @@ name: semantic-engineer
 description: >-
   Enterprise SDLC Phase 5,11 — Semantic analysis, word sense disambiguation, semantic similarity, semantic roles, ontology design, knowledge graph construction.
   Use proactively when this specialist's phase is active.
-mode: subagent
+readonly: true
+model: composer-2.5
 permission:
   edit: deny
   bash: ask

@@ -3,7 +3,8 @@ name: data-validator
 description: >-
   Enterprise SDLC Phase 5,9,11 — Data validation rules, schema validation, data contracts, data drift detection, freshness monitoring, anomaly detection in data.
   Use proactively when this specialist's phase is active.
-mode: subagent
+readonly: true
+model: composer-2.5
 permission:
   edit: deny
   bash: ask

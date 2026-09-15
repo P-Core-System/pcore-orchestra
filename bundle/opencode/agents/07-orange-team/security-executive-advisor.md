@@ -2,7 +2,8 @@
 name: security-executive-advisor
 description: >-
   Enterprise SDLC Phase 0,24 — Security executive briefing, risk communication, board reporting, security investment justification, security culture.
-mode: subagent
+readonly: true
+model: composer-2.5
 permission:
   edit: deny
   bash: ask
