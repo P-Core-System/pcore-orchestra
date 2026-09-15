@@ -3,8 +3,8 @@ name: dataset-versioner
 description: >-
   Enterprise SDLC Phase 5,11 — Dataset versioning, DVC/Git LFS, lineage tracking, reproducibility, diff tools, version comparison, rollback strategies.
   Use proactively when this specialist's phase is active.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

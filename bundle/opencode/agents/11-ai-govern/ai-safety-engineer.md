@@ -3,8 +3,8 @@ name: ai-safety-engineer
 description: >-
   Enterprise SDLC Phase 0,5,11 — AI safety testing, red teaming, adversarial robustness, jailbreak prevention, content filtering, safety guardrails, alignment verification.
   Use proactively when this specialist's phase is active.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

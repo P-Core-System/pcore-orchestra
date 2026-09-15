@@ -3,8 +3,8 @@ name: workflow-orchestrator
 description: >-
   Enterprise SDLC — Orchestrates the full agent workflow for a project. Manages phase transitions, agent spawning, parallel execution, quality gates, and escalation paths. Reads project-type-classifier output and coordinates all specialists.
   Use proactively when this specialist's phase is active.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

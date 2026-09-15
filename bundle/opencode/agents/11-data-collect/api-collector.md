@@ -3,8 +3,8 @@ name: api-collector
 description: >-
   Enterprise SDLC Phase 0,5,11 — REST/GraphQL/gRPC API data collection, OAuth/API key management, pagination handling, rate limit respect, response normalization, API documentation parsing.
   Use proactively when this specialist's phase is active.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

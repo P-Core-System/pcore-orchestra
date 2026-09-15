@@ -2,8 +2,8 @@
 name: siem-analyst
 description: >-
   Enterprise SDLC Phase 6,9 — SIEM rule design, log analysis, alert tuning, correlation rules, security dashboards, compliance reporting.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

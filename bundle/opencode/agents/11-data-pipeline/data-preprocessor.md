@@ -3,8 +3,8 @@ name: data-preprocessor
 description: >-
   Enterprise SDLC Phase 5,11 — Data preprocessing for ML, feature scaling, encoding categorical variables, text preprocessing, image preprocessing, data splitting strategies.
   Use proactively when this specialist's phase is active.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

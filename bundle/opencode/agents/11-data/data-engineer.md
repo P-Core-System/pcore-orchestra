@@ -3,8 +3,8 @@ name: data-engineer
 description: >-
   Enterprise SDLC Phase 0,5,9 — Data pipeline design, ETL/ELT, data warehouse architecture, data quality, streaming systems, data governance.
   Use proactively when this specialist's phase is active.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

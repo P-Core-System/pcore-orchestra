@@ -2,8 +2,8 @@
 name: attack-simulator
 description: >-
   Enterprise SDLC Phase 6,7 — Automated attack simulation, Atomic Red Team, MITRE ATT&CK mapping, attack path validation, breach and attack simulation.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

@@ -3,8 +3,8 @@ name: policy-maker
 description: >-
   Enterprise SDLC Phase 0,24 — Policy design, organizational policy creation, governance frameworks, policy enforcement mechanisms, policy versioning, policy compliance monitoring.
   Use proactively when this specialist's phase is active.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

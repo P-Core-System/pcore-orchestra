@@ -2,8 +2,8 @@
 name: devsecops-engineer
 description: >-
   Enterprise SDLC Phase 5,8 — DevSecOps pipeline integration, security automation, CI/CD security gates, infrastructure security, container security.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

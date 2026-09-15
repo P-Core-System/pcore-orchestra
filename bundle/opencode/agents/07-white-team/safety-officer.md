@@ -2,8 +2,8 @@
 name: safety-officer
 description: >-
   Enterprise SDLC Phase 6,7 — Safety oversight during exercises, collateral damage prevention, critical system protection, safety threshold monitoring.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

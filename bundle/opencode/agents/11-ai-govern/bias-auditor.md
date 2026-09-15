@@ -3,8 +3,8 @@ name: bias-auditor
 description: >-
   Enterprise SDLC Phase 5,6,11 — Bias detection, fairness metrics, bias mitigation strategies, protected attribute analysis, intersectional fairness, bias testing.
   Use proactively when this specialist's phase is active.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

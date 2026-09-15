@@ -3,8 +3,8 @@ name: nlp-engineer
 description: >-
   Enterprise SDLC Phase 5,11 — NLP pipeline design, text preprocessing, tokenization strategies, POS tagging, NER, sentiment analysis, text classification, information extraction.
   Use proactively when this specialist's phase is active.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

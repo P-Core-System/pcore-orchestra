@@ -3,8 +3,8 @@ name: discourse-analyst
 description: >-
   Enterprise SDLC Phase 5,11 — Discourse structure analysis, coreference resolution, discourse relations, topic segmentation, coherence analysis.
   Use proactively when this specialist's phase is active.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

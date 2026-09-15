@@ -3,8 +3,8 @@ name: linguistic-analyst
 description: >-
   Enterprise SDLC Phase 0,11 — Linguistic analysis, corpus linguistics, syntax analysis, semantic analysis, discourse analysis, language pattern identification, multilingual support.
   Use proactively when this specialist's phase is active.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

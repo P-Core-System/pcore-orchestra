@@ -3,8 +3,8 @@ name: data-cleaner
 description: >-
   Enterprise SDLC Phase 5,11 — Data cleaning pipelines, missing value handling, outlier detection, deduplication, data normalization, format standardization, data profiling.
   Use proactively when this specialist's phase is active.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

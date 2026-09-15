@@ -3,8 +3,8 @@ name: license-manager
 description: >-
   Enterprise SDLC Phase 0,5,24 — Software licensing, open-source license management, license compliance, license scanning, SBOM generation, attribution requirements.
   Use proactively when this specialist's phase is active.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

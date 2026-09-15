@@ -2,8 +2,8 @@
 name: hardening-engineer
 description: >-
   Enterprise SDLC Phase 6,7 — System hardening, CIS benchmarks, STIG compliance, secure configuration, baseline enforcement, drift detection.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

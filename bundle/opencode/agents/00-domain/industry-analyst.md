@@ -3,8 +3,8 @@ name: industry-analyst
 description: >-
   Enterprise SDLC Phase 0,15 — Industry analysis, market trends, competitive landscape, technology adoption curves, industry standards, best practices.
   Use proactively when this specialist's phase is active.
-readonly: true
-model: composer-2.5
+mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask
