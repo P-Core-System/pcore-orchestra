@@ -7,7 +7,7 @@ description: >-
   project. Use proactively when this specialist's phase is active.
 mode: subagent
 model: opencode/mimo-v2.5-free
-steps: 200
+steps: 500
 permission:
   edit: deny
   bash: ask
@@ -89,6 +89,13 @@ Before outputting `VERIFY_PASS` or `VERIFY_FAIL`, verify:
 - [ ] No checks were skipped without explanation
 - [ ] FAIL verdict includes specific, actionable blockers
 - [ ] PASS verdict includes any residual risks
+
+## Step budget awareness
+
+The conductor may pass a step budget in the task prompt. Respect this budget:
+- If low (< 50), run only critical checks (test + git status)
+- If high (> 100), run full verification checklist
+- Always output `VERIFY_PASS` or `VERIFY_FAIL` even if running low
 
 ## Error-free rules
 
