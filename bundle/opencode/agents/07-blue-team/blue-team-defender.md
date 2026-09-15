@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 6,9 — Defensive security operations, security monitoring, incident handling, vulnerability management, security hardening, compliance.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 150
 permission:
   edit: deny
   bash: ask

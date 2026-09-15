@@ -6,6 +6,7 @@ description: >-
   proactively when this specialist's phase is active.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 200
 ---
 
 ## Models

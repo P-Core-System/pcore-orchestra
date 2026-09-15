@@ -7,6 +7,7 @@ description: >-
   hooks. Follows target project context/*.md conventions when present.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 400
 ---
 
 ## Model

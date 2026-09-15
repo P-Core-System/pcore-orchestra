@@ -8,6 +8,7 @@ description: >-
   do not pick phase agents manually.
 mode: primary
 model: opencode/mimo-v2.5-free
+steps: 500
 reasoningEffort: low
 permission:
   task:

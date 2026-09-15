@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 6,7 — Rules of engagement enforcement, scope boundary monitoring, violation detection, legal compliance during exercises.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 100
 permission:
   edit: deny
   bash: ask

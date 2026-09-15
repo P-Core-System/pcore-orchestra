@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 6,7 — Advanced adversary emulation, APT group simulation, MITRE ATT&CK-based emulation, TTP replication, detection gap analysis.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 150
 permission:
   edit: deny
   bash: ask

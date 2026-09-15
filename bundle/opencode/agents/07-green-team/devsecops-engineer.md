@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 5,8 — DevSecOps pipeline integration, security automation, CI/CD security gates, infrastructure security, container security.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 200
 permission:
   edit: deny
   bash: ask

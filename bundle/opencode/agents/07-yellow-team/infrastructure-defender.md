@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 6,8 — Infrastructure security, network defense, firewall management, IDS/IPS tuning, DDoS protection, infrastructure hardening.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 100
 permission:
   edit: deny
   bash: ask

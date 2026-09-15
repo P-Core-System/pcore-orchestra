@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 6,7 — Covert operation planning, stealth techniques, long-term persistence, advanced OPSEC, multi-stage campaigns.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 100
 permission:
   edit: deny
   bash: ask

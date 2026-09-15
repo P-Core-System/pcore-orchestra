@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 6,9 — Incident command, crisis management, communication coordination, stakeholder management, post-incident review.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 150
 permission:
   edit: deny
   bash: ask

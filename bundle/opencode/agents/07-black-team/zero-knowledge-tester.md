@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 6,7 — Black team zero-knowledge testing, no-prior-knowledge assessment, blind penetration testing, realistic external attack simulation.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 150
 permission:
   edit: deny
   bash: ask

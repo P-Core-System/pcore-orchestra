@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 6,9 — SIEM rule design, log analysis, alert tuning, correlation rules, security dashboards, compliance reporting.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 120
 permission:
   edit: deny
   bash: ask

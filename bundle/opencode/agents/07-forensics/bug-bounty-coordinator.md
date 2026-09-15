@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 6,7 — Bug bounty program management, scope definition, reward structure, triage process, responsible disclosure, vulnerability intake.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 100
 permission:
   edit: deny
   bash: ask

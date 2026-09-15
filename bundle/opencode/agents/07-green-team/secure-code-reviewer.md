@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 6 — Security-focused code review, vulnerability detection, secure coding standards, code audit.
 mode: subagent
 model: opencode/mimo-v2.5-free
+steps: 150
 permission:
   edit: deny
   bash: ask
