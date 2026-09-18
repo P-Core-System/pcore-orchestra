@@ -11,6 +11,8 @@
 
 If `Task` rejects `subagent_type=orchestra-*` (enum / unknown agent), the parent **MUST** run conductor fallback: execute phases itself **or** spawn `generalPurpose` with instructions from `~/.cursor/agents/orchestra-*.md`. Do **not** stop the loop. Hooks still match `orchestra-*` names when custom agents are available.
 
+**Anti-stop:** While orchestra is active or user said continue-until-finish, do **not** pause for “Done / Next” menus — chain plan→implement→verify→review→handoff goals in the same run until the user goal is finished or user says stop.
+
 ## OpenCode
 
 - **Spawn:** `task` tool, agent=`orchestra-planner` (etc.)

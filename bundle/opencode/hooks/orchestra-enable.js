@@ -122,7 +122,9 @@ const COMMANDS = {
     startOrchestra(arg, state, "manual", { orchestraConfig: orchestraCfg || orchestraConfig });
     console.log("Orchestra loop started (manual).");
     console.log(`Goal: ${arg}`);
-    console.log("Next: launch orchestra-planner subagent (Task tool).");
+    console.log(
+      "Auto-continue: launch orchestra-planner via Task NOW (or conductor fallback if Task rejects orchestra-*). Do not wait for the user."
+    );
     printStatus(state);
   },
 
