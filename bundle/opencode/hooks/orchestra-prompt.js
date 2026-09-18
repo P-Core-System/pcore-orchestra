@@ -2,7 +2,7 @@
 "use strict";
 
 const { readStdinJson, emit } = require("./lib/io.js");
-const { loadState, saveState, startOrchestra, getSessionId, getSessionState, setSessionState } = require("./lib/state-manager.js");
+const { loadRootState, saveState, startOrchestra, getSessionId, getSessionState, setSessionState } = require("./lib/state-manager.js");
 const { extractPrompt, classifyPrompt } = require("./lib/prompt-classifier.js");
 const {
   detectContextInWorkspaces,
@@ -118,7 +118,7 @@ function handleBareResume(state, sessionId) {
 async function main() {
   const input = await readStdinJson();
   const sessionId = getSessionId();
-  const state = loadState(null, sessionId);
+  const state = loadRootState(null, sessionId);
   const prompt = extractPrompt(input);
 
   if (/\b(disable orchestra|orchestra off)\b/i.test(prompt)) {
