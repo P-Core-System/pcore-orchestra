@@ -27,6 +27,10 @@ Same four phase agent names; **different spawn tool and chaining**.
 
 Full matrix: `docs/orchestra-cross-platform.md` · agent ref: `references/orchestra-spawn-matrix.md`
 
+## Cursor Task limitation (conductor fallback)
+
+If Cursor `Task` rejects `subagent_type=orchestra-*` (enum / unknown agent), the parent **MUST** keep the loop alive: run phases itself **or** spawn `generalPurpose` loaded with instructions from `~/.cursor/agents/orchestra-*.md`. Do **not** stop the loop. Hooks still match those names when custom agents work.
+
 ## Conductor-first entry
 
 > **Do NOT pick `orchestra-planner`, `orchestra-implementer`, `orchestra-verifier`, or `orchestra-reviewer` as the user entry on OpenCode.** On Cursor, ambient hooks may launch the first phase directly; optional `orchestra` conductor uses **Task** + `subagent_type`. Hook matchers require exact `orchestra-*` names — do not rename them.

@@ -5,7 +5,11 @@
 - **Spawn:** `Task` tool, `subagent_type="orchestra-planner"` (etc.)
 - **Chain:** Hooks `subagentStop` advance phases when markers appear
 - **Entry:** Ambient parent agent OR `orchestra` conductor agent
-- **Do not use:** `generalPurpose`, wrong subagent_type names
+- **Do not use:** wrong `subagent_type` names when custom agents work
+
+### Cursor Task limitation (conductor fallback)
+
+If `Task` rejects `subagent_type=orchestra-*` (enum / unknown agent), the parent **MUST** run conductor fallback: execute phases itself **or** spawn `generalPurpose` with instructions from `~/.cursor/agents/orchestra-*.md`. Do **not** stop the loop. Hooks still match `orchestra-*` names when custom agents are available.
 
 ## OpenCode
 

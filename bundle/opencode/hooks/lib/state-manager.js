@@ -94,6 +94,9 @@ const DEFAULT_SESSION_STATE = {
   },
 };
 
+/** Alias for hooks/CLI that still import DEFAULT_STATE. */
+const DEFAULT_STATE = DEFAULT_SESSION_STATE;
+
 function cloneDefaults() {
   return {
     lifecycle: { events: [], phase_history: [] },
@@ -154,6 +157,29 @@ function createSessionState() {
   return { ...DEFAULT_SESSION_STATE, ...cloneDefaults() };
 }
 
+/** True when object is a sessions root `{ version, sessions }`. */
+function isRootState(obj) {
+  return !!(obj && typeof obj === "object" && obj.sessions && typeof obj.sessions === "object");
+}
+
+/**
+ * True when object looks like a flat session (has active/currentPhase/goal, no sessions).
+ * Used to overload saveState(session) vs saveState(root).
+ */
+function isSessionShaped(obj) {
+  if (!obj || typeof obj !== "object" || Array.isArray(obj)) return false;
+  if (obj.sessions) return false;
+  return "active" in obj || "currentPhase" in obj || "goal" in obj;
+}
+
+/** Resolve on-disk path; never path.join a non-string. */
+function resolveStatePath(rootDir) {
+  if (typeof rootDir === "string" && rootDir.length > 0) {
+    return path.join(rootDir, ".cursor", "hooks", "state", "orchestra.json");
+  }
+  return STATE_PATH;
+}
+
 /** Migrate legacy flat state to session-namespaced structure. */
 function migrateToSessions(raw) {
   // If already has sessions structure, return as-is
@@ -171,11 +197,31 @@ function migrateToSessions(raw) {
   return migrated;
 }
 
-function loadState(rootDir, sessionId) {
+function normalizeSession(s) {
+  if (!s.lifecycle) s.lifecycle = { events: [], phase_history: [] };
+  if (!s.lifecycle.events) s.lifecycle.events = [];
+  if (!s.lifecycle.phase_history) s.lifecycle.phase_history = [];
+  if (!s.heartbeat) s.heartbeat = { ...DEFAULT_SESSION_STATE.heartbeat };
+  if (!s.memory) s.memory = { ...DEFAULT_SESSION_STATE.memory };
+  if (!s.resumable) s.resumable = { ...DEFAULT_SESSION_STATE.resumable };
+  if (!s.project) s.project = { ...DEFAULT_SESSION_STATE.project };
+  if (!s.project.slug) s.project.slug = s.project.name || "";
+  if (!s.project.type) s.project.type = "software";
+  if (!s.project.lifecycleStage) s.project.lifecycleStage = "development";
+  if (!s.project.lifecycleStatus) s.project.lifecycleStatus = "active";
+  if (!s.versioning) s.versioning = { ...DEFAULT_SESSION_STATE.versioning };
+  if (!s.qualityGates) s.qualityGates = { ...DEFAULT_SESSION_STATE.qualityGates };
+  normalizePhaseFields(s);
+  return s;
+}
+
+/**
+ * Always returns `{ version, sessions }` root.
+ * Migrates flat disk format → sessions on read.
+ */
+function loadRootState(rootDir, sessionId) {
   const session = sessionId || getSessionId();
-  const statePath = rootDir
-    ? path.join(rootDir, ".cursor", "hooks", "state", "orchestra.json")
-    : STATE_PATH;
+  const statePath = resolveStatePath(rootDir);
 
   try {
     if (!fs.existsSync(statePath)) {
@@ -186,27 +232,12 @@ function loadState(rootDir, sessionId) {
     const raw = JSON.parse(fs.readFileSync(statePath, "utf8"));
     const migrated = migrateToSessions(raw);
 
-    // Ensure the requested session exists
     if (!migrated.sessions[session]) {
       migrated.sessions[session] = createSessionState();
     }
 
-    // Normalize all sessions
-    for (const [sid, s] of Object.entries(migrated.sessions)) {
-      if (!s.lifecycle) s.lifecycle = { events: [], phase_history: [] };
-      if (!s.lifecycle.events) s.lifecycle.events = [];
-      if (!s.lifecycle.phase_history) s.lifecycle.phase_history = [];
-      if (!s.heartbeat) s.heartbeat = { ...DEFAULT_SESSION_STATE.heartbeat };
-      if (!s.memory) s.memory = { ...DEFAULT_SESSION_STATE.memory };
-      if (!s.resumable) s.resumable = { ...DEFAULT_SESSION_STATE.resumable };
-      if (!s.project) s.project = { ...DEFAULT_SESSION_STATE.project };
-      if (!s.project.slug) s.project.slug = s.project.name || "";
-      if (!s.project.type) s.project.type = "software";
-      if (!s.project.lifecycleStage) s.project.lifecycleStage = "development";
-      if (!s.project.lifecycleStatus) s.project.lifecycleStatus = "active";
-      if (!s.versioning) s.versioning = { ...DEFAULT_SESSION_STATE.versioning };
-      if (!s.qualityGates) s.qualityGates = { ...DEFAULT_SESSION_STATE.qualityGates };
-      normalizePhaseFields(s);
+    for (const [, s] of Object.entries(migrated.sessions)) {
+      normalizeSession(s);
     }
 
     return migrated;
@@ -217,31 +248,75 @@ function loadState(rootDir, sessionId) {
   }
 }
 
-function saveState(rootDir, state, sessionId) {
-  const session = sessionId || getSessionId();
-  const statePath = rootDir
-    ? path.join(rootDir, ".cursor", "hooks", "state", "orchestra.json")
-    : STATE_PATH;
+/**
+ * Returns the **session** object (what hooks/CLI expect: `.active`, `.goal`, …).
+ * Signature: loadState() | loadState(rootDir) | loadState(rootDir, sessionId)
+ */
+function loadState(rootDir, sessionId) {
+  const root = loadRootState(rootDir, sessionId);
+  return getSessionState(root, sessionId || getSessionId());
+}
 
-  // Ensure sessions structure exists
-  if (!state.sessions) {
-    state.sessions = {};
-  }
-  if (!state.sessions[session]) {
-    state.sessions[session] = createSessionState();
+/**
+ * Overload-safe persist.
+ * - saveState(sessionOrRoot)
+ * - saveState(sessionOrRoot, sessionId)
+ * - saveState(null|rootDir, sessionOrRoot, sessionId?)
+ * Session-shaped payloads are merged into root.sessions[sid] then written as sessions root.
+ * Never path.join on a non-string.
+ */
+function saveState(a, b, c) {
+  let rootDir = null;
+  let payload;
+  let sessionId;
+
+  if (a === null || typeof a === "string") {
+    rootDir = a;
+    payload = b;
+    sessionId = typeof c === "string" ? c : undefined;
+  } else if (a && typeof a === "object") {
+    payload = a;
+    if (typeof b === "string") sessionId = b;
+  } else {
+    throw new TypeError("saveState: expected state object or (rootDir, state)");
   }
 
-  // Normalize the target session
-  normalizePhaseFields(state.sessions[session]);
+  if (!payload || typeof payload !== "object") {
+    throw new TypeError("saveState: state must be an object");
+  }
+
+  const sid = sessionId || getSessionId();
+  const statePath = resolveStatePath(rootDir);
+
+  let root;
+  if (isSessionShaped(payload)) {
+    root = loadRootState(rootDir, sid);
+    normalizePhaseFields(payload);
+    root.sessions[sid] = payload;
+  } else if (isRootState(payload)) {
+    root = payload;
+    if (!root.sessions[sid]) {
+      root.sessions[sid] = createSessionState();
+    }
+    normalizePhaseFields(root.sessions[sid]);
+  } else {
+    // Ambiguous plain object — treat as session fields
+    root = loadRootState(rootDir, sid);
+    const merged = deepMerge(createSessionState(), payload);
+    normalizePhaseFields(merged);
+    root.sessions[sid] = merged;
+  }
+
+  if (!root.version) root.version = 3;
 
   fs.mkdirSync(path.dirname(statePath), { recursive: true });
-  fs.writeFileSync(statePath, JSON.stringify(state, null, 2));
+  fs.writeFileSync(statePath, JSON.stringify(root, null, 2));
 }
 
 /** Get the current session's state from the full state object. */
 function getSessionState(state, sessionId) {
   const session = sessionId || getSessionId();
-  if (!state.sessions) return createSessionState();
+  if (!state || !state.sessions) return createSessionState();
   return state.sessions[session] || createSessionState();
 }
 
@@ -252,10 +327,25 @@ function setSessionState(state, sessionState, sessionId) {
   state.sessions[session] = sessionState;
 }
 
+/**
+ * Resolve root + session from either a sessions root or a flat session object.
+ * Mutates the caller's session object in place when session-shaped (tests/CLI).
+ */
+function resolveRootAndSession(state) {
+  const sessionId = getSessionId();
+  if (isRootState(state)) {
+    return { root: state, session: getSessionState(state, sessionId), sessionId };
+  }
+  if (state && typeof state === "object") {
+    return { root: loadRootState(null, sessionId), session: state, sessionId };
+  }
+  const root = loadRootState(null, sessionId);
+  return { root, session: getSessionState(root, sessionId), sessionId };
+}
+
 function startOrchestra(goal, state, source, options) {
   const { emitLifecycleEvent } = require("./lifecycle-recorder.js");
-  const sessionId = getSessionId();
-  const session = getSessionState(state, sessionId);
+  const { root, session, sessionId } = resolveRootAndSession(state);
 
   const orchestraConfig = options?.orchestraConfig || null;
   let route = normalizeLoopMode(options?.route || orchestraConfig?.route || LOOP_MODE_CORE);
@@ -305,13 +395,12 @@ function startOrchestra(goal, state, source, options) {
     loopMode: route,
     sessionId,
   });
-  setSessionState(state, session, sessionId);
-  saveState(null, state, sessionId);
+  setSessionState(root, session, sessionId);
+  saveState(null, root, sessionId);
 }
 
 function syncProjectIdentity(state, identity) {
-  const sessionId = getSessionId();
-  const session = getSessionState(state, sessionId);
+  const { root, session, sessionId } = resolveRootAndSession(state);
 
   if (!identity) return;
 
@@ -330,13 +419,12 @@ function syncProjectIdentity(state, identity) {
   session.versioning.current = identity.version.current || session.versioning.current;
   session.versioning.buildNumber = identity.version.build_number || session.versioning.buildNumber;
 
-  setSessionState(state, session, sessionId);
-  saveState(null, state, sessionId);
+  setSessionState(root, session, sessionId);
+  saveState(null, root, sessionId);
 }
 
 function syncIdentityToFile(state, identity, rootDir) {
-  const sessionId = getSessionId();
-  const session = getSessionState(state, sessionId);
+  const { root, session, sessionId } = resolveRootAndSession(state);
 
   if (!identity || !rootDir) return;
   const { PROJECT_YAML_NAME, PROJECT_JSON_NAME } = require("./constants.js");
@@ -352,22 +440,23 @@ function syncIdentityToFile(state, identity, rootDir) {
     session.project.identityFormat = "json";
   }
 
-  setSessionState(state, session, sessionId);
-  saveState(null, state, sessionId);
+  setSessionState(root, session, sessionId);
+  saveState(null, root, sessionId);
 }
 
 function resetProjectState(state) {
-  const sessionId = getSessionId();
-  const session = getSessionState(state, sessionId);
+  const { root, session, sessionId } = resolveRootAndSession(state);
   session.project = { ...DEFAULT_SESSION_STATE.project };
   session.versioning = { ...DEFAULT_SESSION_STATE.versioning };
-  setSessionState(state, session, sessionId);
-  saveState(null, state, sessionId);
+  setSessionState(root, session, sessionId);
+  saveState(null, root, sessionId);
 }
 
 module.exports = {
   STATE_PATH,
   DEFAULT_SESSION_STATE,
+  DEFAULT_STATE,
+  loadRootState,
   loadState,
   saveState,
   startOrchestra,
@@ -380,4 +469,6 @@ module.exports = {
   setSessionState,
   createSessionState,
   migrateToSessions,
+  isSessionShaped,
+  isRootState,
 };
