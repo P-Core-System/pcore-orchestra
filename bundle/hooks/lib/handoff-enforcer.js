@@ -20,7 +20,7 @@ function buildPhaseHandoff(state, nextAgentId) {
     HANDOFF_RULES,
     "",
     `Goal: ${state.goal || "(none)"}`,
-    `Next: ${spawnLine("cursor", nextAgentId)}.`,
+    `Auto-continue: ${spawnLine("cursor", nextAgentId)} immediately — do not wait for the user.`,
   ];
 
   const completed = state.memory?.phases_completed;

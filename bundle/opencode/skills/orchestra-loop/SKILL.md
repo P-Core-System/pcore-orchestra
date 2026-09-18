@@ -31,6 +31,16 @@ Full matrix: `docs/orchestra-cross-platform.md` · agent ref: `references/orches
 
 If Cursor `Task` rejects `subagent_type=orchestra-*` (enum / unknown agent), the parent **MUST** keep the loop alive: run phases itself **or** spawn `generalPurpose` loaded with instructions from `~/.cursor/agents/orchestra-*.md`. Do **not** stop the loop. Hooks still match those names when custom agents work.
 
+### Anti-stop (CRITICAL — Cursor conductor)
+
+When orchestra is **active**, or the user said **continue / until finish / do all / don't stop**:
+
+1. **Do not** end turns with “Done / Next (1)(2)(3)” choice menus that wait for the user.
+2. After `PLAN_READY` → immediately implement → commit → verify → review in the **same** run (conductor fallback).
+3. After `ORCHESTRA_COMPLETE`, if the plan **Handoff** / user goal still has unfinished work → `orchestra-enable.js start "<next goal>"` and run the next loop **immediately**.
+4. Only stop when: user goal is fully done, user says **stop**, or 5 resumes fail on one phase — then one short summary (no multi-option Next menu).
+5. Small-tasks “Done + Next” does **not** apply while orchestra is active or “continue until finish” is in effect.
+
 ## Conductor-first entry
 
 > **Do NOT pick `orchestra-planner`, `orchestra-implementer`, `orchestra-verifier`, or `orchestra-reviewer` as the user entry on OpenCode.** On Cursor, ambient hooks may launch the first phase directly; optional `orchestra` conductor uses **Task** + `subagent_type`. Hook matchers require exact `orchestra-*` names — do not rename them.
