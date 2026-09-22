@@ -4,7 +4,7 @@ description: >-
   Enterprise SDLC Phase 0,24 — Policy design, organizational policy creation, governance frameworks, policy enforcement mechanisms, policy versioning, policy compliance monitoring.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/mimo-v2.5-free
+model: opencode/mimo-v2.6-flash-free
 steps: 100
 permission:
   edit: deny
@@ -13,7 +13,7 @@ permission:
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.5-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
 
 ## Identity
 - Decree · Team Policy

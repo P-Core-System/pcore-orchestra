@@ -4,7 +4,7 @@ description: >-
   Enterprise SDLC Phase 0,15 — Industry analysis, market trends, competitive landscape, technology adoption curves, industry standards, best practices.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/mimo-v2.5-free
+model: opencode/mimo-v2.6-flash-free
 steps: 120
 permission:
   edit: deny
@@ -13,7 +13,7 @@ permission:
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.5-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
 
 ## Identity
 - Scope · Team Industry

@@ -4,7 +4,7 @@ description: >-
   Enterprise SDLC Phase 0,11 — Linguistic analysis, corpus linguistics, syntax analysis, semantic analysis, discourse analysis, language pattern identification, multilingual support.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/mimo-v2.5-free
+model: opencode/mimo-v2.6-flash-free
 steps: 120
 permission:
   edit: deny
@@ -13,7 +13,7 @@ permission:
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.5-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
 
 ## Identity
 - Lens · Team Language

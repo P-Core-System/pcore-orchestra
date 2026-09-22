@@ -1,7 +1,7 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "opencode/mimo-v2.5-free",
-  "small_model": "opencode/mimo-v2.5-free",
+  "model": "opencode/mimo-v2.6-flash-free",
+  "small_model": "opencode/mimo-v2.6-flash-free",
   "default_agent": "orchestra",
   "compaction": {
     "auto": true,
@@ -92,7 +92,7 @@
     "orchestra": {
       "description": "Orchestra conductor — plan → implement → verify → review via task tool",
       "mode": "primary",
-      "model": "opencode/mimo-v2.5-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "low",
       "textVerbosity": "low",
       "steps": 40,
@@ -171,7 +171,7 @@
   "provider": {
     "opencode": {
       "models": {
-        "mimo-v2.5-free": {
+        "mimo-v2.6-flash-free": {
           "variants": {
             "fast": {
               "reasoningEffort": "low",
@@ -182,7 +182,7 @@
             }
           }
         },
-        "mimo-v2.5-free (ox-alpha)": {
+        "mimo-v2.6-flash-free": {
           "variants": {
             "fast": {
               "reasoningEffort": "low",

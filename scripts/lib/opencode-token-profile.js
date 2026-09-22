@@ -163,18 +163,18 @@ function applyTokenProfile(dest, opts = {}) {
   dest.provider.opencode = dest.provider.opencode || {};
   dest.provider.opencode.models = {
     ...(dest.provider.opencode.models || {}),
-    "mimo-v2.5-free (ox-alpha)": {
+    "mimo-v2.6-flash-free": {
       variants: {
         fast: { reasoningEffort: "low", textVerbosity: "low" },
         quality: { reasoningEffort: "medium", textVerbosity: "medium" },
       },
-      ...(dest.provider.opencode.models?.["mimo-v2.5-free (ox-alpha)"] || {}),
+      ...(dest.provider.opencode.models?.["mimo-v2.6-flash-free"] || {}),
     },
-    "mimo-v2.5-free": {
+    "mimo-v2.6-flash-free": {
       variants: {
         fast: { reasoningEffort: "low", textVerbosity: "low" },
       },
-      ...(dest.provider.opencode.models?.["mimo-v2.5-free"] || {}),
+      ...(dest.provider.opencode.models?.["mimo-v2.6-flash-free"] || {}),
     },
   };
   changed.push("provider.variants");

@@ -192,7 +192,7 @@ const DEAD_OR_UNRELIABLE_MODELS = new Set([
 /** Heaviest free model that works everywhere (local + server). */
 const RELIABLE_HEAVY = "opencode/ling-3.0-flash-fin-free";
 /** Lightest free model that works everywhere (local + server). */
-const RELIABLE_LIGHT = "opencode/mimo-v2.5-free";
+const RELIABLE_LIGHT = "opencode/mimo-v2.6-flash-free";
 
 function patchUnreliableAgentModels(dest) {
   const agents = dest.agent || {};

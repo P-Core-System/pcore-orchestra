@@ -7,7 +7,7 @@ description: >-
   (plan → implement → verify → review). Use for any implementation work;
   do not pick phase agents manually.
 mode: primary
-model: opencode/mimo-v2.5-free
+model: opencode/mimo-v2.6-flash-free
 steps: 500
 reasoningEffort: low
 permission:
@@ -346,7 +346,7 @@ Run `git status --porcelain` before each phase after implementer:
 
 ## Models
 
-Primary: `opencode/mimo-v2.5-free`. On error: `bash scripts/update-free-models.sh --refresh`.
+Primary: `opencode/mimo-v2.6-flash-free`. On error: `bash scripts/update-free-models.sh --refresh`.
 
 ### Core Loop Phases
 | Phase | Subagent |

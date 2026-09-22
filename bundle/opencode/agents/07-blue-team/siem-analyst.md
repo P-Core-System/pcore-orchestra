@@ -3,7 +3,7 @@ name: siem-analyst
 description: >-
   Enterprise SDLC Phase 6,9 — SIEM rule design, log analysis, alert tuning, correlation rules, security dashboards, compliance reporting.
 mode: subagent
-model: opencode/mimo-v2.5-free
+model: opencode/mimo-v2.6-flash-free
 steps: 120
 permission:
   edit: deny
@@ -11,7 +11,7 @@ permission:
 ---
 
 ## Models
-Default: composer-2.5 on Cursor; opencode/mimo-v2.5-free on OpenCode.
+Default: composer-2.5 on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
 
 ## Identity
 - Monitor · Blue Team

@@ -6,7 +6,7 @@ description: >-
   features, even without /orchestra. Auto-chained by ambient orchestra
   hooks. Follows target project context/*.md conventions when present.
 mode: subagent
-model: opencode/mimo-v2.5-free
+model: opencode/mimo-v2.6-flash-free
 steps: 500
 ---
 

@@ -104,7 +104,7 @@ fi
 
 TMP="$(mktemp)"
 START="$(date +%s)"
-if timeout 90 opencode run --auto --format json -m opencode/mimo-v2.5-free "Reply exactly: OK" >"$TMP" 2>&1; then
+if timeout 90 opencode run --auto --format json -m opencode/mimo-v2.6-flash-free "Reply exactly: OK" >"$TMP" 2>&1; then
   ELAPSED=$(( $(date +%s) - START ))
   if grep -q '"type":"text"' "$TMP" && grep -q '"text":"OK"' "$TMP"; then
     INPUT="$(grep -oE '"input":[0-9]+' "$TMP" | tail -1 | cut -d: -f2)"
@@ -130,6 +130,6 @@ echo "==> Summary"
 echo "  • 'No response' is usually NOT network — opencode.ai reachable but slow."
 echo "  • Main local causes: stale background 'opencode run', default TUI format hiding text,"
 echo "    huge input context (~20k+ tokens), or desktop sidecar out of sync."
-echo "  • Reliable test: opencode run --auto --format json -m opencode/mimo-v2.5-free \"hello\""
+echo "  • Reliable test: opencode run --auto --format json -m opencode/mimo-v2.6-flash-free \"hello\""
 echo "  • Heal: bash scripts/fix-opencode-response.sh --disable-remote-mcp"
 echo "  • Plain 'opencode run' may only show '> orchestra · model' without printing OK — use --format json"

@@ -52,7 +52,7 @@ Usage:
   bash setup-opencode-optimal.sh --help           Show this help
 
 Profiles:
-  budget     Uses mimo-v2.5-free for all phases. ~$0.00-0.03/cycle
+  budget     Uses mimo-v2.6-flash-free for all phases. ~$0.00-0.03/cycle
   balanced   Flash for read-only, kimi-k2.5 for implementation. ~$0.03-0.11/cycle
   premium    Sonnet 5 for implementation, flash for others. ~$0.10-0.30/cycle
 
@@ -197,8 +197,8 @@ generate_config() {
     budget)
       config='{
   "$schema": "https://opencode.ai/config.json",
-  "model": "opencode/mimo-v2.5-free",
-  "small_model": "opencode/mimo-v2.5-free",
+  "model": "opencode/mimo-v2.6-flash-free",
+  "small_model": "opencode/mimo-v2.6-flash-free",
   "compaction": {
     "auto": true,
     "prune": true,
@@ -210,26 +210,26 @@ generate_config() {
   "snapshot": false,
   "agent": {
     "orchestra": {
-      "model": "opencode/mimo-v2.5-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "steps": 40,
       "permission": { "task": "allow", "bash": "allow", "edit": "deny", "websearch": "allow", "webfetch": "allow" }
     },
     "orchestra-planner": {
-      "model": "opencode/mimo-v2.5-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "steps": 6,
       "permission": { "edit": "deny", "bash": "allow", "websearch": "allow", "webfetch": "allow" }
     },
     "orchestra-implementer": {
-      "model": "opencode/mimo-v2.5-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "steps": 20
     },
     "orchestra-verifier": {
-      "model": "opencode/mimo-v2.5-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "steps": 8,
       "permission": { "edit": "deny", "bash": "allow", "websearch": "deny", "webfetch": "deny" }
     },
     "orchestra-reviewer": {
-      "model": "opencode/mimo-v2.5-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "steps": 4,
       "permission": { "edit": "deny", "bash": "allow", "websearch": "allow", "webfetch": "allow" }
     }
@@ -237,12 +237,12 @@ generate_config() {
   "provider": {
     "opencode": {
       "models": {
-        "mimo-v2.5-free": {
+        "mimo-v2.6-flash-free": {
           "variants": {
             "fast": { "reasoningEffort": "low", "textVerbosity": "low" }
           }
         },
-        "mimo-v2.5-free (ox-alpha)": {
+        "mimo-v2.6-flash-free": {
           "variants": {
             "fast": { "reasoningEffort": "low", "textVerbosity": "low" }
           }
@@ -253,7 +253,7 @@ generate_config() {
 }'
 
       echo -e "${GREEN}Budget profile:${NC}"
-      echo "  All phases: mimo-v2.5-free (ox-alpha) (free, reliable text output)"
+      echo "  All phases: mimo-v2.6-flash-free (free, reliable text output)"
       echo "  Cost per cycle: ~\$0.00-0.03"
       echo "  Limitation: rate-limited, may hit limits mid-loop"
       ;;
@@ -262,7 +262,7 @@ generate_config() {
       config='{
   "$schema": "https://opencode.ai/config.json",
   "model": "opencode/deepseek-v4-flash",
-  "small_model": "opencode/mimo-v2.5-free",
+  "small_model": "opencode/mimo-v2.6-flash-free",
   "compaction": {
     "auto": true,
     "prune": true,
@@ -318,7 +318,7 @@ generate_config() {
       config='{
   "$schema": "https://opencode.ai/config.json",
   "model": "opencode/claude-sonnet-5",
-  "small_model": "opencode/mimo-v2.5-free",
+  "small_model": "opencode/mimo-v2.6-flash-free",
   "compaction": {
     "auto": true,
     "prune": true,

@@ -4,7 +4,7 @@ description: >-
   Enterprise SDLC Phase 0,24 — Innovation pipeline, technology scouting, R&D strategy, patent landscape, emerging tech evaluation, innovation culture.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/mimo-v2.5-free
+model: opencode/mimo-v2.6-flash-free
 steps: 150
 permission:
   edit: deny
@@ -13,7 +13,7 @@ permission:
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.5-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
 
 ## Identity
 - Spark · Team Innovation
