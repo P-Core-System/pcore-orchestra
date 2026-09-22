@@ -181,7 +181,7 @@ install_opencode() {
   # installed files carry the current light/heavy free-pool assignment).
   echo "==> Free-model refresh + apply"
   if bash "$ROOT/scripts/update-free-models.sh" --refresh --apply; then
-    echo "  Free models: bundle config + agent frontmatter updated from live cache"
+    echo "  Free models: global model set; agent hardcodes stripped (inherit)"
   else
     echo "WARN free-model refresh/apply failed (offline first-run?) — keeping existing model IDs"
   fi
@@ -200,6 +200,28 @@ install_opencode() {
     dir_name=$(basename "$agent_dir")
     mkdir -p "$OPENCODE/agents/$dir_name"
     cp -rf "$agent_dir"* "$OPENCODE/agents/$dir_name/"
+  done
+
+  # Inherit: strip agent frontmatter model: after copy so subagents use global model
+  find "$OPENCODE/agents" -name '*.md' -print0 2>/dev/null | while IFS= read -r -d '' f; do
+    if grep -qE '^model:[[:space:]]*opencode/' "$f" 2>/dev/null; then
+      python3 - "$f" <<'PY'
+import re, sys
+path = sys.argv[1]
+text = open(path, encoding='utf-8').read()
+bom = ''
+if text.startswith('﻿'):
+    bom, text = '﻿', text[1:]
+m = re.match(r'^---\n(.*?)\n---\n(.*)$', text, re.S)
+if not m:
+    sys.exit(0)
+fm, rest = m.group(1), m.group(2)
+new_fm, n = re.subn(r'(?m)^model:[ \t]*opencode/[A-Za-z0-9_.-]+[ \t]*\n?', '', fm)
+if n:
+    new_fm = re.sub(r'\n{3,}', '\n\n', new_fm)
+    open(path, 'w', encoding='utf-8').write(bom + '---\n' + new_fm + '\n---\n' + rest)
+PY
+    fi
   done
 
   # Copy all OpenCode skills (orchestra-loop + Cloudflare)
