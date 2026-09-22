@@ -13,7 +13,7 @@ Orchestra routes model selection per platform and per agent role: Cursor uses `c
 
 1. Cursor agent frontmatter: `model: composer-2.5` for core agents; enterprise specialists (architect, tech-lead, security, performance) use `model: grok-4.6`
 2. OpenCode agent frontmatter: `model: opencode/<primary>` where primary is the light free-pool head assigned by `--apply` (all agents inherit the same weekly free primary; no hardcoded free IDs)
-3. OpenCode: `scripts/update-free-models.sh --refresh` fetches live Zen catalog → writes `model-pools.json` (frontend/heavy/light); `--apply` picks primary (light) + heavy fallback from cache/pools and atomically rewrites `bundle/config/opencode/autonomy.json`, `docs/opencode.json.example`, installed free-tier refs, and agent frontmatter `model:` lines — fails if cache empty; `--check` validates configured models exist in cache/pools; `--pools` prints pool contents; `--schedule` installs weekly refresh (systemd user timer `OnCalendar=weekly`, cron fallback)
+3. OpenCode: `scripts/update-free-models.sh --refresh` fetches live Zen catalog → writes `model-pools.json` (frontend/heavy/light); `--apply` picks primary (light) + heavy fallback from cache/pools and atomically rewrites `bundle/config/opencode/autonomy.json`, `docs/opencode.json.example`, installed free-tier refs, and agent frontmatter `model:` lines — fetches first if cache missing/empty; aborts only if fetch fails with no cache; `--check` validates configured models exist in cache/pools; `--pools` prints pool contents; `--schedule` installs weekly refresh (systemd user timer `OnCalendar=weekly`, cron fallback)
 4. `opencode-token-profile.js`: `REASONING` object maps each agent to `reasoningEffort`/`textVerbosity` (conductor/verifier low; planner/implementer/reviewer medium)
 5. `merge-autonomy-config.js`: prefers **cache-backed** model replacements — free-tier agent models absent from `state/free-models.json` are replaced with cache primary/heavy; the static deny-list is used only when the cache is absent (offline first-run). Custom/paid provider models are never touched
 6. OpenCode `opencode.json.example`: `model` / `small_model` / `provider.opencode.models` keys all track the `--apply` primary (light free pool head)
@@ -23,14 +23,14 @@ Orchestra routes model selection per platform and per agent role: Cursor uses `c
 
 ## Acceptance criteria
 
-- [ ] Cursor agents in `bundle/agents/orchestra-*.md` have `model: composer-2.5` or `grok-4.6`
-- [ ] OpenCode agents in `bundle/opencode/agents/orchestra-*.md` have `model: opencode/<light-free-pool-head>` (set by `--apply`; no hardcoded free IDs)
-- [ ] `bash scripts/update-free-models.sh --refresh && bash scripts/update-free-models.sh --check` → exits 0 (all configured models in pools)
-- [ ] `bash scripts/update-free-models.sh --apply` → rewrites autonomy.json + example + agent frontmatter from cache; fails when cache empty
-- [ ] `bash scripts/update-free-models.sh --pools` → prints frontend/heavy/light pool contents
-- [ ] `bash scripts/update-free-models.sh --schedule` → `systemctl --user list-timers` shows `pcore-free-models.timer` (or cron entry when systemd missing)
-- [ ] `node scripts/lib/opencode-token-profile.js` exports `REASONING` with correct per-agent values
-- [ ] `merge-autonomy-config.js` replaces dead free-tier models in user's `opencode.json` using cache pools (deny-list only when cache absent)
+- [x] Cursor agents in `bundle/agents/orchestra-*.md` have `model: composer-2.5` or `grok-4.6`
+- [x] OpenCode agents in `bundle/opencode/agents/orchestra-*.md` have `model: opencode/<light-free-pool-head>` (set by `--apply`; no hardcoded free IDs)
+- [x] `bash scripts/update-free-models.sh --refresh && bash scripts/update-free-models.sh --check` → exits 0 (all configured models in pools)
+- [x] `bash scripts/update-free-models.sh --apply` → rewrites autonomy.json + example + agent frontmatter from cache; fetches first if cache missing/empty; aborts only if fetch fails with no cache
+- [x] `bash scripts/update-free-models.sh --pools` → prints frontend/heavy/light pool contents
+- [x] `bash scripts/update-free-models.sh --schedule` → `systemctl --user list-timers` shows `pcore-free-models.timer` (or cron entry when systemd missing)
+- [x] `node scripts/lib/opencode-token-profile.js` exports `REASONING` with correct per-agent values
+- [x] `merge-autonomy-config.js` replaces dead free-tier models in user's `opencode.json` using cache pools (deny-list only when cache absent)
 
 ## Done when (verifiable)
 
@@ -60,5 +60,5 @@ Orchestra routes model selection per platform and per agent role: Cursor uses `c
 - Cursor `composer-2.5` / `grok-4.6` may be renamed (mitigated: `setup-cursor-model.sh` validates)
 - Region-blocked/dead free models (mitigated: cache membership is source of truth; `--check` fails on DEAD ids; deny-list only as offline fallback)
 - Desktop vs CLI sidecar mismatch for OpenCode (mitigated: `fix-opencode-response.sh` + health check `--heal`)
-- Offline first-run has no cache (mitigated: `--apply` fails loudly; install keeps existing IDs and warns; static deny-list covers merge)
+- Offline first-run has no cache (mitigated: `--apply` fetches first and aborts only if fetch fails with no cache; install keeps existing IDs and warns; static deny-list covers merge)
 - Frontmatter does not support env interpolation (mitigated: `--apply` rewrites literal `model:` lines weekly instead of templating)
