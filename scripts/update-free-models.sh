@@ -511,7 +511,7 @@ for m in data.get('models', []):
   done
 
   if [[ $failed -ne 0 ]]; then
-    err "Some models failed probe — check primary model in opencode.json (prefer mimo-v2.5-free (ox-alpha) over mimo-v2.5-free for reliability)"
+    err "Some models failed probe — check primary model in opencode.json (prefer mimo-v2.6-flash-free over mimo-v2.6-flash-free for reliability)"
     set -e
     return 1
   fi

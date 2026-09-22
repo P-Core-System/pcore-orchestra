@@ -290,7 +290,7 @@ bash scripts/setup-opencode-optimal.sh --check      # audit current config
 
 ```json
 {
-  "small_model": "opencode/mimo-v2.5-free",
+  "small_model": "opencode/mimo-v2.6-flash-free",
   "compaction": { "auto": true, "prune": true, "reserved": 8000 },
   "tool_output": { "max_lines": 400, "max_bytes": 16384 },
   "snapshot": false,
@@ -317,7 +317,7 @@ bash scripts/setup-opencode-optimal.sh --check      # audit current config
 
 | Profile | Planner/Verifier/Reviewer | Implementer | Est. cost/cycle |
 |---------|---------------------------|-------------|-----------------|
-| budget | mimo-v2.5-free (ox-alpha) / verifier mimo-v2.5-free | same | ~$0.00–0.03 |
+| budget | mimo-v2.6-flash-free / verifier mimo-v2.6-flash-free | same | ~$0.00–0.03 |
 | balanced | deepseek-v4-flash | kimi-k2.5 | ~$0.03–0.11 |
 | premium | deepseek-v4-flash | claude-sonnet | ~$0.10–0.30 |
 

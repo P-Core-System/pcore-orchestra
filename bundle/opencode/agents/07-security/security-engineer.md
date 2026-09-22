@@ -5,7 +5,7 @@ description: >-
   vulnerability scanning. Enforces OWASP Top 10 and secure-by-design
   principles. Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/mimo-v2.5-free
+model: opencode/mimo-v2.6-flash-free
 steps: 200
 permission:
   edit: deny
@@ -14,7 +14,7 @@ permission:
 
 ## Models
 
-Default: `grok-4.6` (standard, `effort: high`) on Cursor; `opencode/mimo-v2.5-free` on OpenCode.
+Default: `grok-4.6` (standard, `effort: high`) on Cursor; `opencode/mimo-v2.6-flash-free` on OpenCode.
 
 For cheaper/faster Cursor work where the task is routine, drop to `composer-2.5` standard (not Fast). On OpenCode, always use a free model and validate with `bash scripts/update-free-models.sh --refresh && bash scripts/update-free-models.sh --probe`.
 

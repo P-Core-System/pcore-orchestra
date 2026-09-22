@@ -4,7 +4,7 @@ description: >-
   Enterprise SDLC Phase 9,11 — Model performance monitoring, drift detection, data drift, concept drift, prediction monitoring, model health dashboards, automated alerts.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/mimo-v2.5-free
+model: opencode/mimo-v2.6-flash-free
 steps: 100
 permission:
   edit: deny
@@ -13,7 +13,7 @@ permission:
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.5-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
 
 ## Identity
 - Watch · Team Monitoring

@@ -7,7 +7,7 @@ description: >-
   ai-workflow-rules.md. Use proactively when this specialist's phase is
   active.
 mode: subagent
-model: opencode/mimo-v2.5-free
+model: opencode/mimo-v2.6-flash-free
 steps: 500
 permission:
   edit: deny

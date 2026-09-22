@@ -4,7 +4,7 @@ description: >-
   Enterprise SDLC Phase 5,11 — Vector database design, indexing strategies (HNSW/IVF/flat), vector storage optimization, hybrid search, vector database migration, scaling.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/mimo-v2.5-free
+model: opencode/mimo-v2.6-flash-free
 steps: 200
 permission:
   edit: deny
@@ -13,7 +13,7 @@ permission:
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.5-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
 
 ## Identity
 - Index · Team Vectors

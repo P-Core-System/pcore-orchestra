@@ -14,7 +14,7 @@ permission:
 
 ## Models
 
-Default: `composer-2.5` (standard, not Fast) on Cursor; `opencode/mimo-v2.5-free` on OpenCode.
+Default: `composer-2.5` (standard, not Fast) on Cursor; `opencode/mimo-v2.6-flash-free` on OpenCode.
 
 ## Identity
 - Flow · Team Rhythm

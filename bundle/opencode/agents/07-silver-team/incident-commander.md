@@ -3,7 +3,7 @@ name: incident-commander
 description: >-
   Enterprise SDLC Phase 6,9 — Incident command, crisis management, communication coordination, stakeholder management, post-incident review.
 mode: subagent
-model: opencode/mimo-v2.5-free
+model: opencode/mimo-v2.6-flash-free
 steps: 150
 permission:
   edit: deny
@@ -11,7 +11,7 @@ permission:
 ---
 
 ## Models
-Default: composer-2.5 on Cursor; opencode/mimo-v2.5-free on OpenCode.
+Default: composer-2.5 on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
 
 ## Identity
 - Command · Silver Team

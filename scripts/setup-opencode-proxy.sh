@@ -46,9 +46,9 @@ Usage:
   bash setup-opencode-proxy.sh --help       Show this help
 
 Free Zen models (as of August 2026):
-  mimo-v2.5-free, mimo-v2.5-free, big-pickle,
-  kimi-k2.5-free, mimo-v2.5-free (ox-alpha), mimo-v2.5-free,
-  hy3-free, mimo-v2.5-free, qwen3.6-plus-free, minimax-m3-free
+  mimo-v2.6-flash-free, mimo-v2.6-flash-free, big-pickle,
+  kimi-k2.5-free, mimo-v2.6-flash-free, mimo-v2.6-flash-free,
+  hy3-free, mimo-v2.6-flash-free, qwen3.6-plus-free, minimax-m3-free
 
 Multi-key rotation tools:
   opencode-go-multi-auth  — Go + Zen multi-key proxy (recommended)
@@ -146,14 +146,14 @@ configure_free() {
 
   echo ""
   echo "  Free Zen models available:"
-  echo "    mimo-v2.5-free              (strong general coding)"
-  echo "    mimo-v2.5-free (frontend/UI)"
+  echo "    mimo-v2.6-flash-free              (strong general coding)"
+  echo "    mimo-v2.6-flash-free (frontend/UI)"
   echo "    big-pickle                    (balanced)"
   echo "    kimi-k2.5-free                (strong reasoning)"
-  echo "    mimo-v2.5-free (ox-alpha)         (balanced)"
-  echo "    mimo-v2.5-free   (fast, lightweight)"
+  echo "    mimo-v2.6-flash-free         (balanced)"
+  echo "    mimo-v2.6-flash-free   (fast, lightweight)"
   echo "    hy3-free                      (fast)"
-  echo "    mimo-v2.5-free                (fast)"
+  echo "    mimo-v2.6-flash-free                (fast)"
   echo "    qwen3.6-plus-free             (strong reasoning)"
   echo "    minimax-m3-free               (balanced)"
   echo ""
@@ -192,14 +192,14 @@ configure_free() {
         "baseURL": "https://opencode.ai/zen/v1"
       },
       "models": {
-        "mimo-v2.5-free": {},
-        "mimo-v2.5-free": {},
+        "mimo-v2.6-flash-free": {},
+        "mimo-v2.6-flash-free": {},
         "big-pickle": {},
         "kimi-k2.5-free": {},
-        "mimo-v2.5-free (ox-alpha)": {},
-        "mimo-v2.5-free": {},
+        "mimo-v2.6-flash-free": {},
+        "mimo-v2.6-flash-free": {},
         "hy3-free": {},
-        "mimo-v2.5-free": {},
+        "mimo-v2.6-flash-free": {},
         "qwen3.6-plus-free": {},
         "minimax-m3-free": {}
       }
@@ -276,12 +276,12 @@ configure_multi_key() {
   echo '    "name": "OpenCode Zen (multi-auth)",'
   echo '    "options": { "baseURL": "http://localhost:18905/zen" },'
   echo '    "models": {'
-  echo "      "mimo-v2.5-free": {},'
-  echo '      "mimo-v2.5-free": {},'
+  echo "      "mimo-v2.6-flash-free": {},'
+  echo '      "mimo-v2.6-flash-free": {},'
   echo '      "big-pickle": {},'
   echo '      "kimi-k2.5-free": {},'
-  echo '      "mimo-v2.5-free (ox-alpha)": {},'
-  echo '      "mimo-v2.5-free": {}'
+  echo '      "mimo-v2.6-flash-free": {},'
+  echo '      "mimo-v2.6-flash-free": {}'
   echo "    }"
   echo "  }"
   echo ""

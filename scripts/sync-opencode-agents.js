@@ -98,7 +98,7 @@ function toOpenCodeMarkdown(raw) {
   const readonly = fields.readonly === true;
 
   const opencodeModel = fields.opencode_model || (
-    readonly ? "opencode/mimo-v2.5-free" : "opencode/mimo-v2.5-free"
+    readonly ? "opencode/mimo-v2.6-flash-free" : "opencode/mimo-v2.6-flash-free"
   );
   let front = `---\nname: ${name}\ndescription: >-\n${foldDescription(description)}\nmode: subagent\nmodel: ${opencodeModel}\n`;
   if (readonly) {
