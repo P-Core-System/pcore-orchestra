@@ -5,7 +5,6 @@ description: >-
   services. Runs during release and operations phases. Use proactively
   when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 200
 permission:
   edit: deny

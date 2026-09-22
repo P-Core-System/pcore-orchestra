@@ -3,7 +3,6 @@ name: exercise-controller
 description: >-
   Enterprise SDLC Phase 6,7 — White team exercise control, scenario management, rules of engagement enforcement, safe-word handling, exercise coordination, timeline management.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 100
 permission:
   edit: deny

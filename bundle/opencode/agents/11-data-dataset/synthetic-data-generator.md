@@ -4,7 +4,6 @@ description: >-
   Enterprise SDLC Phase 5,11 — Synthetic data generation, data augmentation, GAN-based generation, LLM-based generation, privacy-preserving synthesis, data imbalance correction.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 100
 permission:
   edit: deny

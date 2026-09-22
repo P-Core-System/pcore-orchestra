@@ -4,7 +4,6 @@ description: >-
   Enterprise SDLC Phase 0-1 — Business model canvas, value proposition design, competitive strategy, go-to-market planning. Transforms ideas into viable business models.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 120
 permission:
   edit: deny

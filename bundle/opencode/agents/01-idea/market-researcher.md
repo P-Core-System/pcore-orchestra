@@ -5,7 +5,6 @@ description: >-
   sizing, trend analysis. Provides data-driven input for product decisions.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 120
 permission:
   edit: deny

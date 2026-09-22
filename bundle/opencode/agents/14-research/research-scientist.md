@@ -4,7 +4,6 @@ description: >-
   Enterprise SDLC Phase 0,5 — Research design, experimentation, proof of concept, literature review, hypothesis testing, statistical analysis.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 100
 permission:
   edit: deny

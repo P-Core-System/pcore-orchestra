@@ -48,18 +48,19 @@ When orchestra is **active**, or the user said **continue / until finish / do al
 ## Models & preflight
 
 Model IDs are **assigned dynamically** — no hardcoded free-model IDs here.
+Agents **inherit** the main/global `model` (and `small_model`) from `opencode.json`.
+Per-agent `model:` frontmatter is stripped by `--apply`.
 
 | Role | Primary model | Fallback chain |
 |------|--------------|----------------|
-| planner / implementer / reviewer / backend | light free pool head (set by `--apply`) | primary → heavy free pool head |
-| verifier / small_model | light free pool head (set by `--apply`) | primary → next light free model |
-| frontend | light free pool head (set by `--apply`) | frontend pool head when available |
+| all agents (inherit) | global `model` (set by `--apply` from probe-ordered light pool) | global `small_model` / heavy free pool head |
+| frontend variants | same global model | frontend pool head only if explicitly set in config |
 
 **Before use:** run `bash scripts/update-free-models.sh --refresh` then `bash scripts/update-free-models.sh --probe` to validate configured models respond (not just listed).
 
-**Auto pools:** `--refresh` regenerates `~/.config/opencode/state/model-pools.json` (frontend/heavy/light) from the live Zen catalog; use `--pools` to print them, `--apply` to rewrite configs/agent frontmatter from the pools, `--schedule` to install the weekly refresh timer.
+**Auto pools:** `--refresh` regenerates `~/.config/opencode/state/model-pools.json` ordered by `probes.json` reachability/stability; `--pools` prints them; `--apply` rewrites **global** model only and strips agent hardcodes; `--schedule` installs the weekly refresh timer.
 
-**On model error:** run `--refresh --apply` to re-fetch and re-assign, then retry with the heavy fallback from `--pools`.
+**On model error:** run `--refresh --probe --apply` to re-fetch, re-probe, and re-assign the global model, then retry.
 
 ## Ambient mode (default ON)
 

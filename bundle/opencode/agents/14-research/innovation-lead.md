@@ -4,7 +4,6 @@ description: >-
   Enterprise SDLC Phase 0,24 — Innovation pipeline, technology scouting, R&D strategy, patent landscape, emerging tech evaluation, innovation culture.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 150
 permission:
   edit: deny

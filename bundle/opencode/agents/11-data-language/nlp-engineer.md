@@ -4,7 +4,6 @@ description: >-
   Enterprise SDLC Phase 5,11 — NLP pipeline design, text preprocessing, tokenization strategies, POS tagging, NER, sentiment analysis, text classification, information extraction.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 200
 permission:
   edit: deny

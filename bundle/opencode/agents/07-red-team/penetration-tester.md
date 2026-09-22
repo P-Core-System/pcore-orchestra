@@ -3,7 +3,6 @@ name: penetration-tester
 description: >-
   Enterprise SDLC Phase 6,7 — Penetration testing execution, attack surface mapping, exploit chaining, privilege escalation, lateral movement, post-exploitation, reporting.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 150
 permission:
   edit: deny

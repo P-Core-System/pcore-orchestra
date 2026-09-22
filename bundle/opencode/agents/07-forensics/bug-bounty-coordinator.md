@@ -3,7 +3,6 @@ name: bug-bounty-coordinator
 description: >-
   Enterprise SDLC Phase 6,7 — Bug bounty program management, scope definition, reward structure, triage process, responsible disclosure, vulnerability intake.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 100
 permission:
   edit: deny

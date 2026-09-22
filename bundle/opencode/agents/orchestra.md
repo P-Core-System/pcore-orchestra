@@ -7,7 +7,6 @@ description: >-
   (plan → implement → verify → review). Use for any implementation work;
   do not pick phase agents manually.
 mode: primary
-model: opencode/ling-3.0-flash-fin-free
 steps: 500
 reasoningEffort: low
 permission:
@@ -346,7 +345,11 @@ Run `git status --porcelain` before each phase after implementer:
 
 ## Models
 
-Primary: `opencode/mimo-v2.6-flash-free`. On error: `bash scripts/update-free-models.sh --refresh`.
+Primary: inherit global `model` from `opencode.json` (currently probe-selected; check `~/.config/opencode/opencode.json`). Do not hardcode free-model IDs in agent frontmatter. On error: `bash scripts/update-free-models.sh --refresh --probe --apply`.
+
+### Model Selection Rationale
+
+Models are chosen at the **config layer only** from `model-pools.json` ordered by live `probes.json` reachability + `stability_score` — not name keywords. Agents have **no** per-agent `model:` override; they inherit the main model. Primary = first reachable light model by stability; heavy/`small_model` = next stable reachable fallback (e.g. `nemotron-3-ultra-free` 1M only if probe-reachable).
 
 ### Core Loop Phases
 | Phase | Subagent |

@@ -3,7 +3,6 @@ name: appsec-engineer
 description: >-
   Enterprise SDLC Phase 2,5,6 — Application security engineering, secure design review, threat modeling, security requirements, security architecture.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 200
 permission:
   edit: deny

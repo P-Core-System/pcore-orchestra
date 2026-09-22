@@ -4,7 +4,6 @@ description: >-
   Enterprise SDLC Phase 0,5,11 — AI ethics review, fairness assessment, transparency requirements, accountability frameworks, AI principles alignment, stakeholder impact analysis.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 150
 permission:
   edit: deny

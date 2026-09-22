@@ -6,7 +6,6 @@ description: >-
   hybrid human-AI teams, tracks capacity and token budgets.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 100
 permission:
   edit: deny

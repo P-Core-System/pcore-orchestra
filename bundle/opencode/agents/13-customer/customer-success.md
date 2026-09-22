@@ -4,7 +4,6 @@ description: >-
   Enterprise SDLC Phase 15,24 — Customer onboarding, retention strategies, expansion plays, health scoring, churn prevention, value realization.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 100
 permission:
   edit: deny

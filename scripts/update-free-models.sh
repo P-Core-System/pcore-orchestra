@@ -11,10 +11,12 @@
 #   --refresh: refetch then check.
 #   --pools: print auto-generated pools from cache (regenerate if stale/missing).
 #   --apply: pick primary (light free) + heavy fallback DYNAMICALLY from
-#     state/free-models.json + state/model-pools.json (no hardcoded IDs) and
-#     atomically rewrite bundle/config/opencode/autonomy.json,
-#     docs/opencode.json.example, installed opencode.json free-tier refs, and
-#     agent frontmatter `model:` lines. Fetches first if cache empty; aborts only if fetch fails with no cache.
+#     state/free-models.json + state/model-pools.json ordered by probes.json
+#     reachability/stability (no hardcoded IDs) and atomically rewrite ONLY
+#     global model/small_model in bundle/config/opencode/autonomy.json,
+#     docs/opencode.json.example, and installed opencode.json. Agents inherit
+#     the main model — per-agent model keys and frontmatter lines are stripped,
+#     not rewritten. Fetches first if cache empty; aborts only if fetch fails with no cache.
 #   --schedule: install weekly refresh+apply (systemd user timer; cron fallback).
 #   Flags combine: `--refresh --apply` = fetch, assign, rewrite, check.
 set -euo pipefail
@@ -49,6 +51,7 @@ EXAMPLE_CONFIG="${REPO_ROOT}/docs/opencode.json.example"
 KNOWN_DEAD=(
   "deepseek-v4-flash-free"
   "mimo-v2.5-free"
+  "ling-3.0-flash-fin-free"
 )
 KNOWN_DEAD_CSV="$(IFS=,; echo "${KNOWN_DEAD[*]}")"
 
@@ -149,7 +152,7 @@ for mid in cache.get('models', []):
 # Sort: verified-reachable models first within each pool, then by context
 def reachable_first(entry):
     mid = entry['id']
-    return (0 if is_reachable(mid) else 1, entry['context'])
+    return (0 if is_reachable(mid) else 1, -(probes.get(mid, {}).get('stability_score', 0)), entry['context'])
 
 pools['frontend'].sort(key=reachable_first)
 pools['heavy'].sort(key=reachable_first)
@@ -266,6 +269,21 @@ for m in sorted(models):
   fi
 }
 
+# ── Probe reachability check for a model ──
+check_probe_reachability() {
+  local model_id="$1"
+  [[ ! -f "$PROBES_FILE" ]] && { echo "UNKNOWN"; return; }
+  python3 -c "
+import json
+try:
+    with open('$PROBES_FILE') as f: probes = json.load(f)
+    entry = probes.get('$model_id', {})
+    print('REACHABLE' if entry.get('reachable') is True else 'UNREACHABLE' if entry.get('reachable') is False else 'UNKNOWN')
+except Exception:
+    print('UNKNOWN')
+" 2>/dev/null || echo "UNKNOWN"
+}
+
 # ── Validate models against cache ───────────────────────────────────
 validate_models() {
   local label="$1"
@@ -280,20 +298,39 @@ validate_models() {
   echo -e "\n${CYAN}── $label ──${NC}"
 
   local has_dead=0
+  local has_unreachable=0
   while IFS= read -r model_id; do
     [[ -z "$model_id" ]] && continue
     if echo "$free_models" | grep -qxF "$model_id"; then
-      ok "$model_id: PASS"
+      local reach_status
+      reach_status=$(check_probe_reachability "$model_id")
+      if [[ "$reach_status" == "UNREACHABLE" ]]; then
+        err "$model_id: UNREACHABLE (in free list but probes say unreachable — region-blocked/timeout)"
+        has_unreachable=1
+      elif [[ "$reach_status" == "UNKNOWN" ]]; then
+        warn "$model_id: PASS (no probe data)"
+      else
+        ok "$model_id: PASS"
+      fi
     else
       err "$model_id: DEAD (not in free model list)"
       has_dead=1
     fi
   done < <(extract_models "$config_file")
 
-  return $has_dead
+  if [[ $has_unreachable -ne 0 ]]; then
+    err "UNREACHABLE models detected — run --refresh --probe --apply to reassign global model"
+  fi
+
+  if [[ $has_dead -ne 0 || $has_unreachable -ne 0 ]]; then
+    return 1
+  else
+    return 0
+  fi
 }
 
-# ── Check OpenCode agent markdowns for non-free models ─────────────
+# ── Check OpenCode agent markdowns for hardcoded models ────────────
+# Agents must inherit global model — frontmatter model: lines are discouraged.
 extract_agent_models() {
   grep -RohE '^model:\s*opencode/[A-Za-z0-9_.-]+' "${REPO_ROOT}/bundle/opencode/agents" 2>/dev/null \
     | sed -E 's/^model:\s*opencode\///' | sort -u
@@ -302,22 +339,23 @@ extract_agent_models() {
 check_opencode_agents() {
   local free_models="$1"
   echo -e "\n${CYAN}── OpenCode agents (${REPO_ROOT}/bundle/opencode/agents) ──${NC}"
-  local has_dead=0
+  local has_hardcode=0
   local found=0
   while IFS= read -r model_id; do
     [[ -z "$model_id" ]] && continue
     found=1
     if echo "$free_models" | grep -qxF "$model_id"; then
-      ok "$model_id: PASS"
+      warn "$model_id: hardcoded in frontmatter (prefer inherit — strip with --apply)"
+      has_hardcode=1
     else
-      err "$model_id: DEAD (not in free model list)"
-      has_dead=1
+      err "$model_id: DEAD + hardcoded (not in free model list; agents should inherit)"
+      has_hardcode=1
     fi
   done < <(extract_agent_models)
   if [[ $found -eq 0 ]]; then
-    warn "No opencode models found in agent frontmatter"
+    ok "No per-agent model hardcodes (agents inherit global model)"
   fi
-  return $has_dead
+  return $has_hardcode
 }
 
 # ── Pool-aware check: verify each configured model is in some pool ──
@@ -579,8 +617,8 @@ pick_models() {
   python3 - "$CACHE_FILE" "$POOLS_FILE" "$KNOWN_DEAD_CSV" "$PROBES_FILE" <<'PY'
 import json, sys
 
-cache_file, pools_file, dead_file, probes_file = sys.argv[1:5]
-dead = set(open(dead_file).read().split(',')) if dead_file else set()
+cache_file, pools_file, dead_csv, probes_file = sys.argv[1:5]
+dead = set(x for x in dead_csv.split(',') if x) if dead_csv else set()
 
 with open(cache_file) as f:
     cache = json.load(f)
@@ -609,20 +647,28 @@ light = pool_ids('light')
 heavy_pool = pool_ids('heavy')
 frontend = pool_ids('frontend')
 
-# Primary: first light model verified reachable by probes; fallback to light[0] offline.
+# Reachability + stability check
 def is_reachable(mid):
     return probes.get(mid, {}).get('reachable', False)
+def stability_score(mid):
+    return probes.get(mid, {}).get('stability_score', 0)
 
-reachable_light = [m for m in light if is_reachable(m)]
+# Primary: first reachable light model sorted by stability_score
+reachable_light = sorted([m for m in light if is_reachable(m)], key=stability_score, reverse=True)
 primary = reachable_light[0] if reachable_light else (light[0] if light else models[0])
 
-# Heavy fallback: first reachable heavy, else first heavy, else first frontend, else any cached.
-reachable_heavy = [m for m in heavy_pool if is_reachable(m) and m != primary]
+# Heavy fallback: reachable, not primary, sorted by stability_score.
+# Prefer probe-reachable high-ctx models (e.g. nemotron-3-ultra) only when live.
+reachable_heavy = sorted([m for m in heavy_pool if is_reachable(m) and m != primary], key=stability_score, reverse=True)
+reachable_other = sorted(
+    [m for m in (frontend + models) if m != primary and is_reachable(m)],
+    key=stability_score,
+    reverse=True,
+)
 heavy = (
     next((x for x in reachable_heavy), None)
-    or next((x for x in heavy_pool if x != primary), None)
-    or next((x for x in frontend if x != primary), None)
-    or next((x for x in models if x != primary), None)
+    or next((x for x in reachable_other), None)
+    or next((x for x in heavy_pool if x != primary and is_reachable(x)), None)
     or primary
 )
 print(primary)
@@ -687,11 +733,15 @@ def apply_owned_config(path):
     with open(path, encoding='utf-8') as f:
         cfg = json.load(f)
     for key in ('model', 'small_model'):
-        if cfg.get(key):
-            cfg[key] = primary_ref
+        cfg[key] = primary_ref
+    # Agents inherit the main model — never pin per-agent free IDs.
+    stripped_agents = 0
     for entry in (cfg.get('agent') or {}).values():
-        if isinstance(entry, dict) and entry.get('model'):
-            entry['model'] = primary_ref
+        if isinstance(entry, dict) and 'model' in entry:
+            del entry['model']
+            stripped_agents += 1
+    if stripped_agents:
+        print('  stripped %d agent model keys (inherit global)' % stripped_agents)
     provider = (cfg.get('provider') or {}).get('opencode') or {}
     models_dict = provider.get('models')
     if isinstance(models_dict, dict) and models_dict:
@@ -715,37 +765,33 @@ for rel in ('bundle/config/opencode/autonomy.json', 'docs/opencode.json.example'
     if apply_owned_config(target):
         print('  updated', rel)
 
-# 2) Installed opencode.json — merge-safe: only built-in opencode/* free-tier
-#    refs track the weekly primary; custom providers / paid models untouched.
+# 2) Installed opencode.json — set global model only; strip agent model keys
+#    so agents inherit. Custom providers / paid models untouched.
 if os.path.isfile(system_config):
     with open(system_config, encoding='utf-8') as f:
         cfg = json.load(f)
-    swapped = [0]
-
-    def maybe_swap(value):
-        if (
-            isinstance(value, str)
-            and value.startswith('opencode/')
-            and bare(value).endswith('-free')
-        ):
-            swapped[0] += 1
-            return primary_ref
-        return value
-
+    changed = False
     for key in ('model', 'small_model'):
-        if key in cfg:
-            cfg[key] = maybe_swap(cfg[key])
+        if cfg.get(key) != primary_ref:
+            cfg[key] = primary_ref
+            changed = True
+    stripped = 0
     for entry in (cfg.get('agent') or {}).values():
         if isinstance(entry, dict) and 'model' in entry:
-            entry['model'] = maybe_swap(entry['model'])
-    if swapped[0]:
+            # Only strip free-tier / opencode/* refs; leave deliberate paid overrides
+            val = entry['model']
+            if isinstance(val, str) and (val.startswith('opencode/') or bare(val).endswith('-free')):
+                del entry['model']
+                stripped += 1
+                changed = True
+    if changed:
         atomic_write(system_config, json.dumps(cfg, indent=2) + '\n')
-        print('  updated installed opencode.json (%d free-tier model refs)' % swapped[0])
+        print('  updated installed opencode.json (global=%s, stripped %d agent models)' % (primary_ref, stripped))
 
-# 3) Agent frontmatter — only files that already carry a model: line
+# 3) Agent frontmatter — STRIP hardcoded model: lines (inherit global)
 #    (BOM-prefixed files are rewritten with the BOM preserved)
 updated = 0
-pattern = re.compile(r'(?m)^model:[ \t]*opencode/[A-Za-z0-9_.-]+[ \t]*$')
+pattern = re.compile(r'(?m)^model:[ \t]*opencode/[A-Za-z0-9_.-]+[ \t]*\n?')
 for md in glob.glob(os.path.join(repo, 'bundle', 'opencode', 'agents', '**', '*.md'), recursive=True):
     try:
         with open(md, encoding='utf-8') as f:
@@ -753,18 +799,19 @@ for md in glob.glob(os.path.join(repo, 'bundle', 'opencode', 'agents', '**', '*.
     except OSError:
         continue
     bom = ''
-    if text.startswith('\ufeff'):
-        bom, text = '\ufeff', text[1:]
+    if text.startswith('﻿'):
+        bom, text = '﻿', text[1:]
     match = re.match(r'^---\n(.*?)\n---\n(.*)$', text, re.S)
     if not match:
         continue
     frontmatter, rest = match.group(1), match.group(2)
-    new_frontmatter, count = pattern.subn('model: ' + primary_ref, frontmatter)
+    new_frontmatter, count = pattern.subn('', frontmatter)
     if count:
+        new_frontmatter = re.sub(r'\n{3,}', '\n\n', new_frontmatter)
         atomic_write(md, bom + '---\n' + new_frontmatter + '\n---\n' + rest)
         updated += 1
 if updated:
-    print('  updated %d agent frontmatter model: lines' % updated)
+    print('  stripped %d agent frontmatter model: lines (inherit global)' % updated)
 
 print('  primary: %s (light free pool)' % primary_ref)
 print('  heavy fallback: %s' % heavy_ref)
@@ -820,9 +867,9 @@ Usage:
   bash update-free-models.sh            Check configured models against cache
   bash update-free-models.sh --check    Same as above (default)
   bash update-free-models.sh --refresh  Re-fetch model list then check
-  bash update-free-models.sh --apply    Pick primary+heavy from cache pools and
-                                        rewrite autonomy.json, opencode.json.example,
-                                        installed free-tier refs, agent frontmatter
+  bash update-free-models.sh --apply    Pick primary+heavy from probe-ordered pools;
+                                        set GLOBAL model only; strip agent model
+                                        hardcodes so agents inherit the main model
   bash update-free-models.sh --refresh --apply   Weekly job: fetch, assign, check
   bash update-free-models.sh --schedule Install weekly refresh+apply (systemd
                                         user timer; cron fallback when missing)
@@ -832,11 +879,11 @@ Usage:
   bash update-free-models.sh --help     Show this help
 
 Checks both ~/.config/opencode/opencode.json and docs/opencode.json.example
-for dead model IDs and STALE-POOL warnings. Exit code 1 if any DEAD models found.
+for dead/unreachable model IDs and STALE-POOL warnings. Exit code 1 if any found.
 
-Model IDs are assigned DYNAMICALLY from ~/.config/opencode/state/free-models.json
-+ model-pools.json (light pool head = primary, heavy pool head = fallback) —
-no hardcoded IDs. Pools regenerate on every --refresh.
+Model IDs are assigned DYNAMICALLY from free-models.json + model-pools.json
+ordered by probes.json reachability/stability — no hardcoded agent IDs.
+Agents inherit top-level model/small_model. Pools regenerate on every --refresh.
 
 Weekly schedule: scripts/systemd/pcore-free-models.{service,timer}
 (OnCalendar=weekly), installed via --schedule; cron fallback documented in README.

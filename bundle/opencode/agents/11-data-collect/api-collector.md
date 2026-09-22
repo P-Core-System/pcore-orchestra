@@ -4,7 +4,6 @@ description: >-
   Enterprise SDLC Phase 0,5,11 — REST/GraphQL/gRPC API data collection, OAuth/API key management, pagination handling, rate limit respect, response normalization, API documentation parsing.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 100
 permission:
   edit: deny

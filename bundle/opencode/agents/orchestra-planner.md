@@ -7,7 +7,6 @@ description: >-
   by ambient orchestra hooks. Reads Six-File Context (context/*.md) when
   present in the workspace.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 500
 permission:
   edit: deny

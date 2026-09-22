@@ -4,7 +4,6 @@ description: >-
   Enterprise SDLC — Selects the right agents for a given task based on project type, phase, and task description. Filters from the 104-agent registry to recommend the optimal specialist team.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 100
 permission:
   edit: deny

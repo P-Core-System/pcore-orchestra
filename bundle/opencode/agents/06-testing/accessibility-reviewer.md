@@ -4,7 +4,6 @@ description: >-
   Enterprise SDLC Phase 24 — Accessibility audit. Ensures WCAG 2.1+ AA
   compliance. Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 150
 permission:
   edit: deny
