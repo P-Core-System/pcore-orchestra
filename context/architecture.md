@@ -53,7 +53,7 @@
 | `bundle/config/cursor/` | CLI autonomy patch + `permissions.json` + `sandbox.json` |
 | `bundle/config/opencode/autonomy.json` | OpenCode permission/agent profile (install merges; preserves `mcp`) |
 | `scripts/merge-autonomy-config.js` | Install-time merge for Cursor + OpenCode autonomy (cache-backed free-model replacement; static deny-list offline fallback) |
-| `scripts/update-free-models.sh` | Free-model catalog ops: `--refresh` (fetch+generate pools), `--check` (DEAD/UNREACHABLE/STALE validation), `--apply` (global model only from probe-ordered pools; strips agent frontmatter hardcodes in **bundle + installed** `~/.config/opencode/agents` for inherit), `--pools`, `--probe` (persist reachability/stability to probes.json), `--schedule` (weekly timer/cron) |
+| `scripts/update-free-models.sh` | Free-model catalog ops: `--refresh` (fetch+generate pools), `--check` (DEAD/UNREACHABLE/STALE validation), `--apply` (global model only — primary = highest-stability probe-reachable free model via `KNOWN_FREE` + probes; strips agent frontmatter hardcodes in **bundle + installed** `~/.config/opencode/agents` for inherit), `--pools`, `--probe` (persist reachability/stability to probes.json), `--schedule` (weekly timer/cron) |
 | `scripts/systemd/pcore-free-models.{service,timer}` | Weekly user timer (`OnCalendar=weekly`) invoking `--refresh --apply`; unit template uses `@REPO_ROOT@` substituted by `--schedule`; cron fallback when systemd missing |
 | `bundle/opencode/agents/` | OpenCode mirrors (core + enterprise) |
 | `templates/context/specs/` | Unit spec blanks (methodology Part 3) |
@@ -107,6 +107,12 @@ plan → implement → verify → review
 ```
 
 Agents: `orchestra-planner` → `orchestra-implementer` → `orchestra-verifier` → `orchestra-reviewer`.
+
+**Project-type specialist inserts (core loop):** for medium/complex `PROJECT SCOPE`, the core spine stays fixed but the conductor inserts the project type's missing specialists — requirements/design (product-owner, product-manager, architect, ui-ux-designer per `project.yaml` `type`) + planning (project-manager) before implement; type's engineer pairs implementer; type's tester pairs verifier; type's reviewer pairs reviewer. Each insert ends with its own token (`DESIGN_SPEC_COMPLETE`, `TASK_BREAKDOWN_COMPLETE`). Routing table lives in `bundle/opencode/agents/orchestra.md` and `bundle/agents/orchestra.md`.
+
+### Corporate tier (large org / multi-team)
+
+Escalated via scope signals (`project.type: enterprise`, `team.members` > 4, multi-service, program/portfolio). Conductor wires the coordination + governance agents: `agent-selector` (team roster) → `project-type-classifier` (pipeline template) → `workflow-orchestrator` (multi-track plan) → per-track Full Delivery loops each with its own `scrum-master` + `project-manager`, then a governance committee (`business-strategist`, `product-owner`, `product-manager`, `stakeholder-advocate` at design; `compliance-officer`, `legal-advisor`, `security-executive-advisor` at release), closed out by `release-manager`, `ops-manager`, `documentation-writer`, `sre`/`observer`, `incident-responder`. Tokens: `TEAM_SELECTED`, `PROJECT_CLASSIFIED`, `WORKFLOW_PLAN_READY`, `GOVERNANCE_PASS`, `CORPORATE_RELEASE_COMPLETE`.
 
 ### Enterprise SDLC (opt-in)
 

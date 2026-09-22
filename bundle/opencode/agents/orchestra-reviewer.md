@@ -10,7 +10,7 @@ mode: subagent
 steps: 500
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Model
@@ -73,7 +73,7 @@ FIX_REQUIRED — return to implementer with numbered fixes
 ## Token efficiency (~8k budget)
 
 - Review **committed** diff only (`git log --oneline`, `git show --stat HEAD`) — do not re-read full files or re-run tests.
-- No web search; findings as `file:line` one-liners.
+- Web search **only** to verify a flagged version/API claim (latest stable vs pinned, or a suspected-deprecated API) — one query max; findings as `file:line` one-liners.
 - Verdict + numbered fixes only — no essays on FIX_REQUIRED.
 - See `docs/token-optimization.md` for review-phase policy.
 

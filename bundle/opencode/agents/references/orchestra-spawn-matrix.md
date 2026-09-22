@@ -1,4 +1,4 @@
-﻿# Orchestra spawn matrix (Cursor + OpenCode)
+# Orchestra spawn matrix (Cursor + OpenCode)
 
 ## Cursor IDE
 

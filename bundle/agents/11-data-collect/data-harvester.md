@@ -1,4 +1,4 @@
-﻿---
+---
 name: data-harvester
 description: >-
   Enterprise SDLC Phase 0,5,11 — Multi-source data harvesting, data lake population, ETL from heterogeneous sources, batch and streaming ingestion, data format conversion.
@@ -7,12 +7,12 @@ readonly: true
 model: composer-2.5
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Gather · Team Data Lake

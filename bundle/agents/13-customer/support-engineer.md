@@ -1,4 +1,4 @@
-﻿---
+---
 name: support-engineer
 description: >-
   Enterprise SDLC Phase 9,15,24 — Customer support operations, troubleshooting workflows, knowledge base management, ticket triage, SLA tracking.
@@ -7,12 +7,12 @@ readonly: true
 model: composer-2.5
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Shield · Team Support

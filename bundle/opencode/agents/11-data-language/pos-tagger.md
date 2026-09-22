@@ -1,4 +1,4 @@
-﻿---
+---
 name: pos-tagger
 description: >-
   Enterprise SDLC Phase 5,11 — Part-of-speech tagging, tagset design, tagger training, POS disambiguation, tag accuracy evaluation, multilingual POS support.
@@ -7,12 +7,12 @@ mode: subagent
 steps: 100
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Tag · Team POS

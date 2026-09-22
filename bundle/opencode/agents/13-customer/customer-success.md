@@ -1,4 +1,4 @@
-﻿---
+---
 name: customer-success
 description: >-
   Enterprise SDLC Phase 15,24 — Customer onboarding, retention strategies, expansion plays, health scoring, churn prevention, value realization.
@@ -7,12 +7,12 @@ mode: subagent
 steps: 100
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Heart · Team Retention

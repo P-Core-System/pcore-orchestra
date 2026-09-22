@@ -96,12 +96,13 @@ function toOpenCodeMarkdown(raw) {
   const name = fields.name || "unnamed";
   const description = ensureProactive(fields.description || "");
   const readonly = fields.readonly === true;
+  const steps = parseInt(fields.steps, 10) || 200;
 
-  // Agents inherit the main/global model — do not emit per-agent model:
-  let front = `---\nname: ${name}\ndescription: >-\n${foldDescription(description)}\nmode: subagent\n`;
-  if (readonly) {
-    front += `permission:\n  edit: deny\n  bash: ask\n`;
-  }
+  // Agents inherit the main/global model — do not emit per-agent model.
+  // Preserve invested OpenCode-only settings (steps, no-ask bash, search) so
+  // re-running the sync never clobbers them back to ask/stale budgets.
+  let front = `---\nname: ${name}\ndescription: >-\n${foldDescription(description)}\nmode: subagent\nsteps: ${steps}\n`;
+  front += `permission:\n  edit: ${readonly ? "deny" : "allow"}\n  bash: allow\n  websearch: allow\n  webfetch: allow\n`;
   front += `---\n\n`;
   return front + body;
 }

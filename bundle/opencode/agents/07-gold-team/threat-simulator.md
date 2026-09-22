@@ -1,4 +1,4 @@
-﻿---
+---
 name: threat-simulator
 description: >-
   Enterprise SDLC Phase 6,7 — Advanced threat simulation, real-world attack campaigns, multi-vector attacks, persistence mechanisms, data exfiltration simulation.
@@ -6,11 +6,11 @@ mode: subagent
 steps: 150
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
-Default: composer-2.5 on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Simulate · Gold Team

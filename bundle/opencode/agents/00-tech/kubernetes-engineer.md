@@ -1,4 +1,4 @@
-﻿---
+---
 name: kubernetes-engineer
 description: >-
   Enterprise SDLC Phase 5,8,9 — Kubernetes cluster design, pod scheduling, service mesh, Helm charts, Kustomize, resource management, cluster autoscaling.
@@ -7,12 +7,12 @@ mode: subagent
 steps: 200
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Orch · Team K8s

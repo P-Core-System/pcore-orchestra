@@ -195,7 +195,7 @@ Web tools are among the most expensive per call (latency + 2k–8k tokens per re
 | Security CVE / breaking change verification | Internal architecture questions |
 | Official docs for unfamiliar dependency | Six-file context answers the question |
 
-**Default for orchestra core loop:** codebase first. Web only when plan explicitly requires external docs.
+**Default for orchestra core loop:** codebase first; **web allowed for any phase** to confirm docs, APIs, error messages, and dependency versions. Targeted searches are encouraged; exploratory "search all and more" is not.
 
 ### 4.2 Search discipline
 
@@ -203,7 +203,8 @@ Web tools are among the most expensive per call (latency + 2k–8k tokens per re
 2. **Prefer official docs** — add `site:docs.vendor.com` or version in query
 3. **Fetch selectively** — WebSearch snippets often enough; WebFetch only for one canonical URL
 4. **Compress before context** — extract 3–7 bullet facts; discard HTML/nav boilerplate
-5. **Deny by phase** — OpenCode `websearch: deny` on planner/reviewer (see `setup-opencode-optimal.sh`)
+5. **Latest stable discipline** — verify dependency versions via registry search (`npm view`, PyPI JSON, GitHub releases); never ship alpha/beta/rc without explicit user request or existing pin
+6. **Never deny by phase** — `websearch`/`webfetch` stay `allow` for all agents (read-only agents use targeted queries only)
 
 ### 4.3 Fetch vs search
 
@@ -290,7 +291,7 @@ bash scripts/setup-opencode-optimal.sh --check      # audit current config
 
 ```json
 {
-  "small_model": "opencode/mimo-v2.6-flash-free",
+  "small_model": "opencode/big-pickle",
   "compaction": { "auto": true, "prune": true, "reserved": 8000 },
   "tool_output": { "max_lines": 400, "max_bytes": 16384 },
   "snapshot": false,
@@ -309,7 +310,7 @@ bash scripts/setup-opencode-optimal.sh --check      # audit current config
 | `tool_output` | Cap tool result size (300 lines / 12 KB); **requires OpenCode ≥ 1.19.0** |
 | `snapshot: false` | Large repos — avoid full-tree snapshots |
 | `agent.*.steps` | Hard cap on tool loops per phase |
-| `permission.websearch: deny` | Block expensive web on read-only agents |
+| `permission.websearch: allow` | Search stays enabled on all agents (read-only agents self-limit to targeted queries) |
 
 `bash install.sh` runs `ensure-opencode-latest.sh` (npm/bun `opencode-ai@latest`). Restart the **OpenCode desktop app** after upgrade. Pre-release: `OPENCODE_CHANNEL=beta bash install.sh`.
 
@@ -317,7 +318,7 @@ bash scripts/setup-opencode-optimal.sh --check      # audit current config
 
 | Profile | Planner/Verifier/Reviewer | Implementer | Est. cost/cycle |
 |---------|---------------------------|-------------|-----------------|
-| budget | mimo-v2.6-flash-free / verifier mimo-v2.6-flash-free | same | ~$0.00–0.03 |
+| budget | big-pickle / verifier big-pickle | same (inherit global) | ~$0.00–0.03 |
 | balanced | deepseek-v4-flash | kimi-k2.5 | ~$0.03–0.11 |
 | premium | deepseek-v4-flash | claude-sonnet | ~$0.10–0.30 |
 

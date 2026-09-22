@@ -58,9 +58,10 @@ Set **Auto-review** in Cursor Settings after install, then reload.
 
 | Knob | Location | Purpose |
 |------|----------|---------|
-| Global permissions | `opencode.json` → `permission` | Allow with `.env` / force-push denies; `doom_loop: ask`. |
+| Global permissions | `opencode.json` → `permission` | Allow with `.env` / force-push denies; `doom_loop: deny` (blocks identical tool+args repeated 3× — stops grep/read/find loops). |
 | Orchestra agents | `agent.*` + markdown | Readonly: `edit: deny`, `bash: allow`. |
-| Session auto | `opencode --auto` | Approves remaining `ask`; **deny still binds**. |
+| No-ask mode | `permission.external_directory.*: allow` | Folder/tool access never prompts — **no asks remain** (all `permission` values are `allow` or `deny`); `opencode --auto` redundant. |
+| Command guard | `permission.bash.*` | `bash: *: allow` (no prompt) with 13 hard denies: force-push / `reset --hard` / `clean -fdx` / `rm -rf /~/*` / `sudo rm -rf` / `mkfs` / `dd` to `/dev` / `shred` / fork bomb. |
 
 Example: `docs/opencode.json.example` (from `bundle/config/opencode/autonomy.json`).
 

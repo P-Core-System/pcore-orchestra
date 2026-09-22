@@ -83,14 +83,15 @@ bash scripts/update-free-models.sh --schedule  # weekly refresh+apply timer
 ```
 
 Model IDs are **dynamic** (no hardcoded free-model IDs): `--apply` picks the
-light free-pool head as primary and the heavy free-pool head as fallback from
+highest-stability probe-reachable free model (all pools; falls back to light
+pool head) as primary and the top reachable heavy/free model as fallback from
 `~/.config/opencode/state/{free-models,model-pools,probes}.json`, then rewrites
 `autonomy.json`, `docs/opencode.json.example`, installed free-tier refs, and
 agent frontmatter.
 
 | Role | Primary | Notes |
 |------|---------|--------|
-| all agents (inherit global) | global `model` (probe-ordered light free pool head via `--apply`) | Inspect installed `opencode.json` top-level `model` / `small_model` |
+| all agents (inherit global) | global `model` (stability-ordered primary via `--apply`) | Inspect installed `opencode.json` top-level `model` / `small_model` |
 | verifier / small_model | global `small_model` (same inherit) | Fast checks |
 | heavy fallback | heavy free pool head (set by `--apply` into `small_model` when distinct) | Used when primary errors |
 | Avoid as primary | any ID that `--check` marks DEAD | Not in live free cache (dead/region-blocked) |

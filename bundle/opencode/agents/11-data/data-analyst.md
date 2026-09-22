@@ -1,4 +1,4 @@
-﻿---
+---
 name: data-analyst
 description: >-
   Enterprise SDLC Phase 0,10 — Analytics dashboards, KPI tracking, data visualization, business intelligence, A/B test analysis, metric definitions.
@@ -7,12 +7,12 @@ mode: subagent
 steps: 120
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Insight · Team Metrics

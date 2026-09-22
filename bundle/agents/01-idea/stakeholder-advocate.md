@@ -1,4 +1,4 @@
-﻿---
+---
 name: stakeholder-advocate
 description: >-
   Enterprise SDLC Phase 2-3 — Represents business, operations, and customer
@@ -9,12 +9,12 @@ readonly: true
 model: composer-2.5
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
 
-Default: `composer-2.5` (standard, not Fast) on Cursor; `opencode/mimo-v2.6-flash-free` on OpenCode.
+Default: `composer-2.5` (standard, not Fast) on Cursor; `dynamic free primary (inherit global model)` on OpenCode.
 
 For hard/long-horizon tasks where Composer 2.5 is stuck, escalate to `grok-4.6` standard on Cursor. On OpenCode, always use a free model and validate with `bash scripts/update-free-models.sh --refresh && bash scripts/update-free-models.sh --probe`.
 

@@ -1,4 +1,4 @@
-﻿---
+---
 name: bias-auditor
 description: >-
   Enterprise SDLC Phase 5,6,11 — Bias detection, fairness metrics, bias mitigation strategies, protected attribute analysis, intersectional fairness, bias testing.
@@ -7,12 +7,12 @@ mode: subagent
 steps: 150
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Scale · Team Fairness

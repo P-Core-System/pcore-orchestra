@@ -9,7 +9,7 @@ model: grok-4.6
 
 ## Models
 
-Default: `grok-4.6` (standard, `effort: high`) on Cursor; `opencode/mimo-v2.6-flash-free` on OpenCode.
+Default: `grok-4.6` (standard, `effort: high`) on Cursor; `dynamic free primary (inherit global model)` on OpenCode.
 
 For cheaper/faster Cursor work where the task is routine, drop to `composer-2.5` standard (not Fast). On OpenCode, always use a free model and validate with `bash scripts/update-free-models.sh --refresh && bash scripts/update-free-models.sh --probe`.
 

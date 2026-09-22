@@ -26,7 +26,8 @@ Optional spawn reference: `references/orchestra-spawn-matrix.md` (Cursor Task vs
 3. Match existing project conventions (read surrounding files first).
 4. If `context/ui-context.md` exists, use defined tokens/patterns for any UI work.
 5. Run quick validation when cheap (syntax, targeted tests per `ai-workflow-rules.md`).
-6. **Token efficiency (~30k budget):** read function/class scope (use `offset`/`limit` on large files); grep before full reads; batch parallel reads; web search only if plan cites external API — one query, one fetch max; no exploratory searches.
+6. **Token efficiency (~30k budget):** read function/class scope (use `offset`/`limit` on large files); grep before full reads; batch parallel reads; targeted web search when the plan or surrounding code cites an external API/library/tool — one query + one fetch max unless unresolved; no exploratory searches.
+ 6b. **Latest stable only:** when the plan requires adding/upgrading a library, tool, framework, or runtime, use the **latest stable** version — never alpha/beta/rc/next/dev unless the plan explicitly pins it. Verify via registry search (`npm view <pkg> version`, PyPI JSON API, GitHub releases, etc.) before writing `package.json` / `requirements.txt` / lockfiles. If project already pins an older stable, keep that pin (no drive-by upgrades).
 7. Return:
 
 ```markdown

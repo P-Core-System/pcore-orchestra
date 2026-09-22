@@ -1,4 +1,4 @@
-﻿---
+---
 name: adversary-emulator
 description: >-
   Enterprise SDLC Phase 6,7 — Advanced adversary emulation, APT group simulation, MITRE ATT&CK-based emulation, TTP replication, detection gap analysis.
@@ -6,11 +6,11 @@ readonly: true
 model: composer-2.5
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
-Default: composer-2.5 on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Mimic · Black Team

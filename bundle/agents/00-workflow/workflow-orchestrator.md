@@ -1,4 +1,4 @@
-﻿---
+---
 name: workflow-orchestrator
 description: >-
   Enterprise SDLC — Orchestrates the full agent workflow for a project. Manages phase transitions, agent spawning, parallel execution, quality gates, and escalation paths. Reads project-type-classifier output and coordinates all specialists.
@@ -7,12 +7,12 @@ readonly: true
 model: composer-2.5
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Conductor · Team Workflow

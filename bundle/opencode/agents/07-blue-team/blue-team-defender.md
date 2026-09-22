@@ -1,4 +1,4 @@
-﻿---
+---
 name: blue-team-defender
 description: >-
   Enterprise SDLC Phase 6,9 — Defensive security operations, security monitoring, incident handling, vulnerability management, security hardening, compliance.
@@ -6,11 +6,11 @@ mode: subagent
 steps: 150
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
-Default: composer-2.5 on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Shield · Blue Team

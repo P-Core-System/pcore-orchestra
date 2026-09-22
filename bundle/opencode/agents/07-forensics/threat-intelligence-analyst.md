@@ -1,4 +1,4 @@
-﻿---
+---
 name: threat-intelligence-analyst
 description: >-
   Enterprise SDLC Phase 0,6,9 — Threat intelligence collection, analysis, dissemination, threat actor profiling, TTP mapping, intelligence-driven defense.
@@ -6,11 +6,11 @@ mode: subagent
 steps: 120
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
-Default: composer-2.5 on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Intel · Threat Intel

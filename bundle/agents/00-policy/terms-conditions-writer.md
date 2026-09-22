@@ -1,4 +1,4 @@
-﻿---
+---
 name: terms-conditions-writer
 description: >-
   Enterprise SDLC Phase 0,24 — Terms of Service design, Terms & Conditions drafting, user agreements, EULA creation, license agreements, contract templates.
@@ -7,12 +7,12 @@ readonly: true
 model: composer-2.5
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Contract · Team Terms

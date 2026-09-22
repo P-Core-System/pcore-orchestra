@@ -283,13 +283,15 @@ Documented OpenCode controls (set in `opencode.json` or agent frontmatter):
 ```json
 {
   "permission": {
-    "doom_loop": "ask"
+    "doom_loop": "deny"
   }
 }
 ```
 
 - **`steps`**: hard cap on agentic iterations per agent (then forced summary)
-- **`doom_loop`**: same tool+args repeated 3× → ask (default) or deny
+- **`doom_loop`**: same tool+args repeated 3× → **deny** (hard-stop tool loops on grep/read/find/bash)
+- **`external_directory.*: allow`**: no folder-access prompts — full no-ask mode; keep `*.env`, `.ssh`, force-push denies intact
+- **`bash.*`**: `*: allow` (commands run without prompting) with hard denies for force-push / `reset --hard` / `clean -fdx` / `rm -rf /~/*` / `sudo rm -rf` / `mkfs` / `dd` to `/dev` / `shred` / fork bomb
 - Restrict Task allowlist to `orchestra-*` / enterprise specialists you trust
 - Prefer Plan primary for analysis-first; Build only after PLAN_READY
 

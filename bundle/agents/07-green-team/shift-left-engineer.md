@@ -1,4 +1,4 @@
-﻿---
+---
 name: shift-left-engineer
 description: >-
   Enterprise SDLC Phase 0,2,5 — Shift-left security, early security integration, security requirements in design, developer security training, security champions.
@@ -6,11 +6,11 @@ readonly: true
 model: composer-2.5
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
-Default: composer-2.5 on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Early · Green Team

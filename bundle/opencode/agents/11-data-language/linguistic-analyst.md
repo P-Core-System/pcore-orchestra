@@ -1,4 +1,4 @@
-﻿---
+---
 name: linguistic-analyst
 description: >-
   Enterprise SDLC Phase 0,11 — Linguistic analysis, corpus linguistics, syntax analysis, semantic analysis, discourse analysis, language pattern identification, multilingual support.
@@ -7,12 +7,12 @@ mode: subagent
 steps: 120
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Lens · Team Language

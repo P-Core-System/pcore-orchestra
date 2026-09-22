@@ -1,4 +1,4 @@
-﻿---
+---
 name: fintech-specialist
 description: >-
   Enterprise SDLC Phase 0,5,11 — Financial technology domain, PCI-DSS compliance, payment processing, financial regulations, risk modeling, fraud detection.
@@ -7,12 +7,12 @@ readonly: true
 model: composer-2.5
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Ledger · Team Fintech

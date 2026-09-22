@@ -1,4 +1,4 @@
-﻿---
+---
 name: incident-responder
 description: >-
   Enterprise SDLC Phase 28 — Incident triage, root cause analysis (RCA),
@@ -9,12 +9,12 @@ mode: subagent
 steps: 150
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
 
-Default: `composer-2.5` (standard, not Fast) on Cursor; `opencode/mimo-v2.6-flash-free` on OpenCode.
+Default: `composer-2.5` (standard, not Fast) on Cursor; `dynamic free primary (inherit global model)` on OpenCode.
 
 ## Identity
 - Sentinel · Team Shield
