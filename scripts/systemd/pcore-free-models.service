@@ -1,0 +1,10 @@
+[Unit]
+Description=P-Core Orchestra — refresh + apply OpenCode free models
+Documentation=https://github.com/P-Core-System/pcore-orchestra
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=@REPO_ROOT@
+ExecStart=/bin/bash @REPO_ROOT@/scripts/update-free-models.sh --refresh --apply

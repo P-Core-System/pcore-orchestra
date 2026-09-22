@@ -4,7 +4,7 @@ description: >-
   Enterprise SDLC Phase 9,15 — API documentation, user guides, tutorials, knowledge base, developer onboarding, changelog management.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/mimo-v2.6-flash-free
+model: opencode/ling-3.0-flash-fin-free
 steps: 100
 permission:
   edit: deny

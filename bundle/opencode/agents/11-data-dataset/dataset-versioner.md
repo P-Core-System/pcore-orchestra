@@ -4,7 +4,7 @@ description: >-
   Enterprise SDLC Phase 5,11 — Dataset versioning, DVC/Git LFS, lineage tracking, reproducibility, diff tools, version comparison, rollback strategies.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/mimo-v2.6-flash-free
+model: opencode/ling-3.0-flash-fin-free
 steps: 100
 permission:
   edit: deny

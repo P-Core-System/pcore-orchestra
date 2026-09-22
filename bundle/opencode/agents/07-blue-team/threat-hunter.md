@@ -3,7 +3,7 @@ name: threat-hunter
 description: >-
   Enterprise SDLC Phase 6,9 — Proactive threat hunting, hypothesis-driven investigation, anomaly detection, threat landscape analysis, IOC/IOA development.
 mode: subagent
-model: opencode/mimo-v2.6-flash-free
+model: opencode/ling-3.0-flash-fin-free
 steps: 150
 permission:
   edit: deny

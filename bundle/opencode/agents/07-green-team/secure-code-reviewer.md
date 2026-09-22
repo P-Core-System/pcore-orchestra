@@ -3,7 +3,7 @@ name: secure-code-reviewer
 description: >-
   Enterprise SDLC Phase 6 — Security-focused code review, vulnerability detection, secure coding standards, code audit.
 mode: subagent
-model: opencode/mimo-v2.6-flash-free
+model: opencode/ling-3.0-flash-fin-free
 steps: 150
 permission:
   edit: deny

@@ -77,14 +77,23 @@ Preflight:
 
 ```bash
 bash scripts/update-free-models.sh --refresh
+bash scripts/update-free-models.sh --apply     # assign primary+heavy from live pools
 bash scripts/update-free-models.sh --probe
+bash scripts/update-free-models.sh --schedule  # weekly refresh+apply timer
 ```
+
+Model IDs are **dynamic** (no hardcoded free-model IDs): `--apply` picks the
+light free-pool head as primary and the heavy free-pool head as fallback from
+`~/.config/opencode/state/{free-models,model-pools}.json`, then rewrites
+`autonomy.json`, `docs/opencode.json.example`, installed free-tier refs, and
+agent frontmatter.
 
 | Role | Primary | Notes |
 |------|---------|--------|
-| planner / implementer / reviewer / conductor | `mimo-v2.6-flash-free` (ox-alpha) | Reliable text on OpenCode Zen |
-| verifier / small_model | `mimo-v2.6-flash-free` | Fast checks |
-| Avoid as primary | `mimo-v2.6-flash-free`, `hy3-free`, `muse-spark-*` | Silent, timeout, or region-blocked |
+| planner / implementer / reviewer / conductor | light free pool head (set by `--apply`) | Inspect via `--pools` or installed `opencode.json` |
+| verifier / small_model | same light free primary | Fast checks |
+| heavy fallback | heavy free pool head (set by `--apply`) | Used when replacing dead refs during merge |
+| Avoid as primary | any ID that `--check` marks DEAD | Not in live free cache (dead/region-blocked) |
 
 ## Fix “no response”
 

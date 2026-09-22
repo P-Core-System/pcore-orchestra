@@ -7,7 +7,7 @@ description: >-
   (plan → implement → verify → review). Use for any implementation work;
   do not pick phase agents manually.
 mode: primary
-model: opencode/mimo-v2.6-flash-free
+model: opencode/ling-3.0-flash-fin-free
 steps: 500
 reasoningEffort: low
 permission:

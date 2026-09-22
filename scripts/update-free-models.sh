@@ -10,6 +10,13 @@
 #     Offline -> use stale cache with warning.
 #   --refresh: refetch then check.
 #   --pools: print auto-generated pools from cache (regenerate if stale/missing).
+#   --apply: pick primary (light free) + heavy fallback DYNAMICALLY from
+#     state/free-models.json + state/model-pools.json (no hardcoded IDs) and
+#     atomically rewrite bundle/config/opencode/autonomy.json,
+#     docs/opencode.json.example, installed opencode.json free-tier refs, and
+#     agent frontmatter `model:` lines. Fails if cache is empty.
+#   --schedule: install weekly refresh+apply (systemd user timer; cron fallback).
+#   Flags combine: `--refresh --apply` = fetch, assign, rewrite, check.
 set -euo pipefail
 
 # ── Colors ──────────────────────────────────────────────────────────
@@ -33,9 +40,10 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SYSTEM_CONFIG="${HOME}/.config/opencode/opencode.json"
 EXAMPLE_CONFIG="${REPO_ROOT}/docs/opencode.json.example"
 
-# ── Known-dead models ───────────────────────────────────────────────
+# ── Static deny-list (offline fallback only) ────────────────────────
 # Listed by the API but rejected at runtime — filtered out of BOTH the
-# flat free-models cache and the generated pools below.
+# flat free-models cache and the generated pools below. When the live
+# cache is present it is the source of truth (see --apply / merge).
 KNOWN_DEAD=(
   "deepseek-v4-flash-free"
   "laguna-s-2.1-free"
@@ -398,22 +406,6 @@ for m in data.get('models', []):
   fi
 }
 
-# ── Refresh mode ────────────────────────────────────────────────────
-run_refresh() {
-  echo -e "${CYAN}Refreshing free model list...${NC}"
-  if fetch_free_models; then
-    run_check
-  else
-    err "Failed to fetch models from $REMOTE_URL"
-    if [[ -f "$CACHE_FILE" ]]; then
-      warn "Using stale cache"
-      run_check
-    else
-      return 1
-    fi
-  fi
-}
-
 # ── Pools mode ──────────────────────────────────────────────────────
 run_pools() {
   if [[ ! -f "$POOLS_FILE" ]]; then
@@ -520,15 +512,247 @@ for m in data.get('models', []):
   return 0
 }
 
+# ── Pick primary (light free) + heavy fallback from live cache ──────
+# Prints two bare model IDs (primary, heavy) on separate lines.
+# No hardcoded IDs: pool order from model-pools.json, membership from
+# free-models.json. Exits 1 if no usable model remains after filtering.
+pick_models() {
+  python3 - "$CACHE_FILE" "$POOLS_FILE" "$KNOWN_DEAD_CSV" <<'PY'
+import json, sys
+
+cache_file, pools_file = sys.argv[1], sys.argv[2]
+dead = set(sys.argv[3].split(',')) if len(sys.argv) > 3 and sys.argv[3] else set()
+
+with open(cache_file) as f:
+    cache = json.load(f)
+models = [m for m in cache.get('models', []) if m not in dead]
+if not models:
+    sys.exit(1)
+
+pools = {}
+try:
+    with open(pools_file) as f:
+        pools = json.load(f).get('pools', {})
+except Exception:
+    pass
+
+def pool_ids(name):
+    return [e.get('id') for e in pools.get(name, []) if e.get('id') in models]
+
+light = pool_ids('light')
+heavy_pool = pool_ids('heavy')
+frontend = pool_ids('frontend')
+
+# Primary: lightest free model (pool order), else first cached free model.
+primary = light[0] if light else models[0]
+# Heavy fallback: heavy pool head, then frontend, then any other cached model.
+heavy = (
+    next((x for x in heavy_pool if x != primary), None)
+    or next((x for x in frontend if x != primary), None)
+    or next((x for x in models if x != primary), None)
+    or primary
+)
+print(primary)
+print(heavy)
+PY
+}
+
+# ── Apply mode: dynamic free-pool assignment into bundle + install ──
+run_apply() {
+  if [[ ! -f "$CACHE_FILE" ]] || ! python3 -c \
+      "import json,sys; sys.exit(0 if json.load(open(sys.argv[1])).get('models') else 1)" \
+      "$CACHE_FILE" 2>/dev/null; then
+    warn "Free-model cache missing or empty — fetching first"
+    fetch_free_models || {
+      err "Cannot fetch free models and no cache exists (offline first-run). Aborting --apply."
+      return 1
+    }
+  fi
+  [[ -f "$POOLS_FILE" ]] || write_pools || warn "Pool generation failed (continuing with flat cache)"
+
+  local picked primary heavy
+  if ! picked=$(pick_models); then
+    err "No usable free model in cache after deny-list filter — run --refresh"
+    return 1
+  fi
+  primary=$(printf '%s\n' "$picked" | sed -n 1p)
+  heavy=$(printf '%s\n' "$picked" | sed -n 2p)
+  if [[ -z "$primary" ]]; then
+    err "Failed to pick primary free model from cache"
+    return 1
+  fi
+
+  echo -e "${CYAN}Applying dynamic model assignment...${NC}"
+  python3 - "$REPO_ROOT" "$primary" "$heavy" "$SYSTEM_CONFIG" <<'PY'
+import glob, json, os, re, sys, tempfile
+
+repo, primary, heavy, system_config = sys.argv[1:5]
+primary_ref = 'opencode/' + primary
+heavy_ref = 'opencode/' + heavy
+
+def atomic_write(path, data):
+    """Write data to path atomically (tmp in same dir + os.replace)."""
+    directory = os.path.dirname(path) or '.'
+    fd, tmp = tempfile.mkstemp(dir=directory, prefix='.tmp-apply-')
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            f.write(data)
+        if os.path.exists(path):
+            os.chmod(tmp, os.stat(path).st_mode & 0o777)
+        os.replace(tmp, path)
+    except Exception:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+        raise
+
+def apply_owned_config(path):
+    """Rewrite model refs in repo-owned JSON config (autonomy / example)."""
+    if not os.path.isfile(path):
+        return False
+    with open(path, encoding='utf-8') as f:
+        cfg = json.load(f)
+    for key in ('model', 'small_model'):
+        if cfg.get(key):
+            cfg[key] = primary_ref
+    for entry in (cfg.get('agent') or {}).values():
+        if isinstance(entry, dict) and entry.get('model'):
+            entry['model'] = primary_ref
+    provider = (cfg.get('provider') or {}).get('opencode') or {}
+    models_dict = provider.get('models')
+    if isinstance(models_dict, dict) and models_dict:
+        variants = None
+        for value in models_dict.values():
+            if isinstance(value, dict) and 'variants' in value:
+                variants = value
+                break
+        if variants is None:
+            variants = {'variants': {'fast': {'reasoningEffort': 'low', 'textVerbosity': 'low'}}}
+        provider['models'] = {primary: variants}
+    atomic_write(path, json.dumps(cfg, indent=2) + '\n')
+    return True
+
+def bare(model_id):
+    return model_id.split('/')[-1] if isinstance(model_id, str) else ''
+
+# 1) Repo-owned configs
+for rel in ('bundle/config/opencode/autonomy.json', 'docs/opencode.json.example'):
+    target = os.path.join(repo, rel)
+    if apply_owned_config(target):
+        print('  updated', rel)
+
+# 2) Installed opencode.json — merge-safe: only built-in opencode/* free-tier
+#    refs track the weekly primary; custom providers / paid models untouched.
+if os.path.isfile(system_config):
+    with open(system_config, encoding='utf-8') as f:
+        cfg = json.load(f)
+    swapped = [0]
+
+    def maybe_swap(value):
+        if (
+            isinstance(value, str)
+            and value.startswith('opencode/')
+            and bare(value).endswith('-free')
+        ):
+            swapped[0] += 1
+            return primary_ref
+        return value
+
+    for key in ('model', 'small_model'):
+        if key in cfg:
+            cfg[key] = maybe_swap(cfg[key])
+    for entry in (cfg.get('agent') or {}).values():
+        if isinstance(entry, dict) and 'model' in entry:
+            entry['model'] = maybe_swap(entry['model'])
+    if swapped[0]:
+        atomic_write(system_config, json.dumps(cfg, indent=2) + '\n')
+        print('  updated installed opencode.json (%d free-tier model refs)' % swapped[0])
+
+# 3) Agent frontmatter — only files that already carry a model: line
+#    (BOM-prefixed files are rewritten with the BOM preserved)
+updated = 0
+pattern = re.compile(r'(?m)^model:[ \t]*opencode/[A-Za-z0-9_.-]+[ \t]*$')
+for md in glob.glob(os.path.join(repo, 'bundle', 'opencode', 'agents', '**', '*.md'), recursive=True):
+    try:
+        with open(md, encoding='utf-8') as f:
+            text = f.read()
+    except OSError:
+        continue
+    bom = ''
+    if text.startswith('\ufeff'):
+        bom, text = '\ufeff', text[1:]
+    match = re.match(r'^---\n(.*?)\n---\n(.*)$', text, re.S)
+    if not match:
+        continue
+    frontmatter, rest = match.group(1), match.group(2)
+    new_frontmatter, count = pattern.subn('model: ' + primary_ref, frontmatter)
+    if count:
+        atomic_write(md, bom + '---\n' + new_frontmatter + '\n---\n' + rest)
+        updated += 1
+if updated:
+    print('  updated %d agent frontmatter model: lines' % updated)
+
+print('  primary: %s (light free pool)' % primary_ref)
+print('  heavy fallback: %s' % heavy_ref)
+PY
+  ok "Applied dynamic free-model assignment"
+  return 0
+}
+
+# ── Schedule mode: weekly refresh+apply (systemd timer; cron fallback) ──
+install_cron_fallback() {
+  local log_dir="$HOME/.cache"
+  mkdir -p "$log_dir"
+  local line
+  line="17 4 * * 1 /bin/bash \"$REPO_ROOT/scripts/update-free-models.sh\" --refresh --apply >> \"$log_dir/pcore-free-models.log\" 2>&1"
+  if ! command -v crontab &>/dev/null; then
+    err "Neither systemd user nor crontab available — add manually: $line"
+    return 1
+  fi
+  {
+    crontab -l 2>/dev/null | grep -vF 'update-free-models.sh' || true
+    echo "$line"
+  } | crontab -
+  ok "cron fallback installed (Mon 04:17): update-free-models.sh --refresh --apply"
+}
+
+run_schedule() {
+  local unit_dir="$HOME/.config/systemd/user"
+  local service_src="$SCRIPT_DIR/systemd/pcore-free-models.service"
+  local timer_src="$SCRIPT_DIR/systemd/pcore-free-models.timer"
+
+  if command -v systemctl &>/dev/null && [[ -f "$service_src" && -f "$timer_src" ]] \
+      && systemctl --user daemon-reload &>/dev/null; then
+    mkdir -p "$unit_dir"
+    sed "s|@REPO_ROOT@|$REPO_ROOT|g" "$service_src" > "$unit_dir/pcore-free-models.service"
+    cp -f "$timer_src" "$unit_dir/pcore-free-models.timer"
+    systemctl --user daemon-reload
+    systemctl --user enable --now pcore-free-models.timer
+    ok "systemd user timer installed: pcore-free-models.timer (weekly)"
+    systemctl --user list-timers pcore-free-models.timer --no-pager 2>/dev/null || true
+    return 0
+  fi
+
+  warn "systemd user units unavailable — installing cron fallback"
+  install_cron_fallback
+}
+
 # ── Help ────────────────────────────────────────────────────────────
 show_help() {
   cat <<'EOF'
-update-free-models.sh — Validate and refresh free model list for OpenCode
+update-free-models.sh — Validate, refresh, and apply free models for OpenCode
 
 Usage:
   bash update-free-models.sh            Check configured models against cache
   bash update-free-models.sh --check    Same as above (default)
   bash update-free-models.sh --refresh  Re-fetch model list then check
+  bash update-free-models.sh --apply    Pick primary+heavy from cache pools and
+                                        rewrite autonomy.json, opencode.json.example,
+                                        installed free-tier refs, agent frontmatter
+  bash update-free-models.sh --refresh --apply   Weekly job: fetch, assign, check
+  bash update-free-models.sh --schedule Install weekly refresh+apply (systemd
+                                        user timer; cron fallback when missing)
   bash update-free-models.sh --pools    Print auto-generated model pools
   bash update-free-models.sh --probe    Live ping every cached free model via opencode run
   bash update-free-models.sh --help     Show this help
@@ -536,16 +760,64 @@ Usage:
 Checks both ~/.config/opencode/opencode.json and docs/opencode.json.example
 for dead model IDs and STALE-POOL warnings. Exit code 1 if any DEAD models found.
 
-Pools are auto-generated on every --refresh into ~/.config/opencode/state/model-pools.json.
+Model IDs are assigned DYNAMICALLY from ~/.config/opencode/state/free-models.json
++ model-pools.json (light pool head = primary, heavy pool head = fallback) —
+no hardcoded IDs. Pools regenerate on every --refresh.
+
+Weekly schedule: scripts/systemd/pcore-free-models.{service,timer}
+(OnCalendar=weekly), installed via --schedule; cron fallback documented in README.
 EOF
 }
 
 # ── Main ────────────────────────────────────────────────────────────
-case "${1:-}" in
-  --help|-h) show_help ;;
-  --refresh) run_refresh ;;
-  --pools) run_pools ;;
-  --probe) run_probe ;;
-  --check|"") run_check ;;
-  *) err "Unknown option: $1"; show_help; exit 1 ;;
-esac
+RUN_REFRESH=0
+RUN_APPLY=0
+RUN_CHECK=0
+SPECIAL=""
+
+if [[ $# -eq 0 ]]; then
+  RUN_CHECK=1
+fi
+
+for arg in "$@"; do
+  case "$arg" in
+    --help|-h) SPECIAL="help" ;;
+    --refresh) RUN_REFRESH=1; RUN_CHECK=1 ;;
+    --apply)   RUN_APPLY=1; RUN_CHECK=1 ;;
+    --check)   RUN_CHECK=1 ;;
+    --pools)   SPECIAL="pools" ;;
+    --probe)   SPECIAL="probe" ;;
+    --schedule) SPECIAL="schedule" ;;
+    *) err "Unknown option: $arg"; show_help; exit 1 ;;
+  esac
+done
+
+if [[ -n "$SPECIAL" ]]; then
+  case "$SPECIAL" in
+    help) show_help ;;
+    pools) run_pools ;;
+    probe) run_probe ;;
+    schedule) run_schedule ;;
+  esac
+  exit $?
+fi
+
+if [[ "$RUN_REFRESH" -eq 1 ]]; then
+  echo -e "${CYAN}Refreshing free model list...${NC}"
+  if ! fetch_free_models; then
+    if [[ -f "$CACHE_FILE" ]]; then
+      warn "Fetch failed — using stale cache"
+    else
+      err "Failed to fetch models from $REMOTE_URL and no cache exists"
+      exit 1
+    fi
+  fi
+fi
+
+if [[ "$RUN_APPLY" -eq 1 ]]; then
+  run_apply || exit 1
+fi
+
+if [[ "$RUN_CHECK" -eq 1 ]]; then
+  run_check || exit 1
+fi

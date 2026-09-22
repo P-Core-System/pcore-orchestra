@@ -3,7 +3,7 @@ name: shift-left-engineer
 description: >-
   Enterprise SDLC Phase 0,2,5 — Shift-left security, early security integration, security requirements in design, developer security training, security champions.
 mode: subagent
-model: opencode/mimo-v2.6-flash-free
+model: opencode/ling-3.0-flash-fin-free
 steps: 200
 permission:
   edit: deny

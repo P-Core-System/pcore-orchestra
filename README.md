@@ -91,10 +91,10 @@ Orchestra auto-detects `project.yaml` in any workspace and injects its identity 
 | **Stall Detection** | Identical failures 2x → strategy change → 3rd → escalate |
 | **Human Checkpoints** | Auth/payments/security/scope-creep require human review |
 | **Token Budgets** | planner:10k, implementer:30k, verifier:15k, reviewer:8k |
-| **Model Routing** | Cursor: `composer-2.5` default, `grok-4.6` for hard tasks; OpenCode: free models only |
+| **Model Routing** | Cursor: `composer-2.5` default, `grok-4.6` for hard tasks; OpenCode: free models only, dynamically assigned weekly (`--apply`) |
 | **6 Hooks** | Session, prompt, stop, heartbeat, lifecycle, subagent-stop |
 | **Six-File Context** | Stable grounding across sessions (JavaScript Mastery methodology) |
-| **Free Model Support** | OpenCode Zen free models + multi-key rotation |
+| **Free Model Support** | OpenCode Zen free models + multi-key rotation + weekly dynamic refresh (`--schedule`) |
 | **Works With** | Cursor IDE, OpenCode CLI, any Node.js project |
 
 ---
@@ -190,10 +190,10 @@ bash scripts/init-context.sh /path/to/your-app --bridge   # with project bridge
 
 | Agent | Max Tokens | Cursor (default) | OpenCode (free) |
 |-------|------------|------------------|-----------------|
-| Planner | 10,000 | `composer-2.5` | `mimo-v2.5-free` |
-| Implementer | 30,000 | `composer-2.5` (or `grok-4.6` for hard tasks) | `mimo-v2.5-free` (ox-alpha) |
-| Verifier | 15,000 | `composer-2.5` | `mimo-v2.5-free` |
-| Reviewer | 8,000 | `composer-2.5` | `mimo-v2.5-free` |
+| Planner | 10,000 | `composer-2.5` | light free pool head (dynamic) |
+| Implementer | 30,000 | `composer-2.5` (or `grok-4.6` for hard tasks) | light free pool head (dynamic) |
+| Verifier | 15,000 | `composer-2.5` | light free pool head (dynamic) |
+| Reviewer | 8,000 | `composer-2.5` | light free pool head (dynamic) |
 
 **Total per cycle:** ~63k tokens max.
 
@@ -226,9 +226,20 @@ bash scripts/setup-cursor-byok.sh --litellm # GPT-5.5 proxy
 
 ### OpenCode: Free Models
 ```bash
-bash scripts/setup-opencode-proxy.sh --free       # free Zen models
+bash scripts/setup-opencode-proxy.sh --free       # free Zen models (from live cache)
 bash scripts/setup-opencode-proxy.sh --multi-key  # rotation guide
 bash scripts/update-free-models.sh --check        # validate all agents stay on the free tier
+bash scripts/update-free-models.sh --refresh --apply  # dynamic primary+heavy from live pools
+bash scripts/update-free-models.sh --pools        # print frontend/heavy/light pools
+bash scripts/update-free-models.sh --schedule     # weekly refresh+apply (systemd timer; cron fallback)
+```
+
+Weekly automation: `scripts/systemd/pcore-free-models.timer` (`OnCalendar=weekly`)
+runs `--refresh --apply` via `pcore-free-models.service`. Installed by
+`install.sh --opencode` or `--schedule`. **Cron fallback** (when systemd is missing):
+
+```cron
+17 4 * * 1 /bin/bash <repo>/scripts/update-free-models.sh --refresh --apply >> ~/.cache/pcore-free-models.log 2>&1
 ```
 
 ### Plan-Signal Watcher

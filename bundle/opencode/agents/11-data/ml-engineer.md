@@ -4,7 +4,7 @@ description: >-
   Enterprise SDLC Phase 0,5,9 — ML model training, deployment, monitoring, MLOps, feature engineering, experiment tracking, model serving.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/mimo-v2.6-flash-free
+model: opencode/ling-3.0-flash-fin-free
 steps: 200
 permission:
   edit: deny

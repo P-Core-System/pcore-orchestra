@@ -4,7 +4,7 @@ description: >-
   Enterprise SDLC Phase 0,24 — Terms of Service design, Terms & Conditions drafting, user agreements, EULA creation, license agreements, contract templates.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/mimo-v2.6-flash-free
+model: opencode/ling-3.0-flash-fin-free
 steps: 100
 permission:
   edit: deny
