@@ -41,12 +41,14 @@ SYSTEM_CONFIG="${HOME}/.config/opencode/opencode.json"
 EXAMPLE_CONFIG="${REPO_ROOT}/docs/opencode.json.example"
 
 # ── Static deny-list (offline fallback only) ────────────────────────
-# Listed by the API but rejected at runtime — filtered out of BOTH the
-# flat free-models cache and the generated pools below. When the live
-# cache is present it is the source of truth (see --apply / merge).
+# Listed by the API but rejected at runtime (or superseded) — filtered
+# out of BOTH the flat free-models cache and the generated pools below.
+# When the live cache is present it is the source of truth (see --apply
+# / merge).
 KNOWN_DEAD=(
   "deepseek-v4-flash-free"
   "laguna-s-2.1-free"
+  "mimo-v2.5-free"
 )
 KNOWN_DEAD_CSV="$(IFS=,; echo "${KNOWN_DEAD[*]}")"
 
