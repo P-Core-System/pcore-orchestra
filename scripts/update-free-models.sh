@@ -332,13 +332,22 @@ validate_models() {
 # ── Check OpenCode agent markdowns for hardcoded models ────────────
 # Agents must inherit global model — frontmatter model: lines are discouraged.
 extract_agent_models() {
-  grep -RohE '^model:\s*opencode/[A-Za-z0-9_.-]+' "${REPO_ROOT}/bundle/opencode/agents" 2>/dev/null \
-    | sed -E 's/^model:\s*opencode\///' | sort -u
+  local roots=(
+    "${REPO_ROOT}/bundle/opencode/agents"
+    "${HOME}/.config/opencode/agents"
+  )
+  local out=""
+  for root in "${roots[@]}"; do
+    [[ -d "$root" ]] || continue
+    out+=$(grep -RohE '^model:\s*opencode/[A-Za-z0-9_.-]+' "$root" 2>/dev/null || true)
+    out+=$'\n'
+  done
+  printf '%s\n' "$out" | sed -E 's/^model:\s*opencode\///' | grep -v '^$' | sort -u
 }
 
 check_opencode_agents() {
   local free_models="$1"
-  echo -e "\n${CYAN}── OpenCode agents (${REPO_ROOT}/bundle/opencode/agents) ──${NC}"
+  echo -e "\n${CYAN}── OpenCode agents (bundle + installed) ──${NC}"
   local has_hardcode=0
   local found=0
   while IFS= read -r model_id; do
@@ -789,27 +798,34 @@ if os.path.isfile(system_config):
         print('  updated installed opencode.json (global=%s, stripped %d agent models)' % (primary_ref, stripped))
 
 # 3) Agent frontmatter — STRIP hardcoded model: lines (inherit global)
-#    (BOM-prefixed files are rewritten with the BOM preserved)
+#    Bundle + installed ~/.config/opencode/agents (frontmatter overrides global)
 updated = 0
 pattern = re.compile(r'(?m)^model:[ \t]*opencode/[A-Za-z0-9_.-]+[ \t]*\n?')
-for md in glob.glob(os.path.join(repo, 'bundle', 'opencode', 'agents', '**', '*.md'), recursive=True):
-    try:
-        with open(md, encoding='utf-8') as f:
-            text = f.read()
-    except OSError:
+agent_roots = [
+    os.path.join(repo, 'bundle', 'opencode', 'agents'),
+    os.path.join(os.path.expanduser('~'), '.config', 'opencode', 'agents'),
+]
+for agent_root in agent_roots:
+    if not os.path.isdir(agent_root):
         continue
-    bom = ''
-    if text.startswith('﻿'):
-        bom, text = '﻿', text[1:]
-    match = re.match(r'^---\n(.*?)\n---\n(.*)$', text, re.S)
-    if not match:
-        continue
-    frontmatter, rest = match.group(1), match.group(2)
-    new_frontmatter, count = pattern.subn('', frontmatter)
-    if count:
-        new_frontmatter = re.sub(r'\n{3,}', '\n\n', new_frontmatter)
-        atomic_write(md, bom + '---\n' + new_frontmatter + '\n---\n' + rest)
-        updated += 1
+    for md in glob.glob(os.path.join(agent_root, '**', '*.md'), recursive=True):
+        try:
+            with open(md, encoding='utf-8') as f:
+                text = f.read()
+        except OSError:
+            continue
+        bom = ''
+        if text.startswith('﻿'):
+            bom, text = '﻿', text[1:]
+        match = re.match(r'^---\n(.*?)\n---\n(.*)$', text, re.S)
+        if not match:
+            continue
+        frontmatter, rest = match.group(1), match.group(2)
+        new_frontmatter, count = pattern.subn('', frontmatter)
+        if count:
+            new_frontmatter = re.sub(r'\n{3,}', '\n\n', new_frontmatter)
+            atomic_write(md, bom + '---\n' + new_frontmatter + '\n---\n' + rest)
+            updated += 1
 if updated:
     print('  stripped %d agent frontmatter model: lines (inherit global)' % updated)
 

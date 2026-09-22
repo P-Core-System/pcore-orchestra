@@ -53,7 +53,7 @@
 | `bundle/config/cursor/` | CLI autonomy patch + `permissions.json` + `sandbox.json` |
 | `bundle/config/opencode/autonomy.json` | OpenCode permission/agent profile (install merges; preserves `mcp`) |
 | `scripts/merge-autonomy-config.js` | Install-time merge for Cursor + OpenCode autonomy (cache-backed free-model replacement; static deny-list offline fallback) |
-| `scripts/update-free-models.sh` | Free-model catalog ops: `--refresh` (fetch+generate pools), `--check` (DEAD/UNREACHABLE/STALE validation), `--apply` (global model only from probe-ordered pools; strips agent hardcodes for inherit), `--pools`, `--probe` (persist reachability/stability to probes.json), `--schedule` (weekly timer/cron) |
+| `scripts/update-free-models.sh` | Free-model catalog ops: `--refresh` (fetch+generate pools), `--check` (DEAD/UNREACHABLE/STALE validation), `--apply` (global model only from probe-ordered pools; strips agent frontmatter hardcodes in **bundle + installed** `~/.config/opencode/agents` for inherit), `--pools`, `--probe` (persist reachability/stability to probes.json), `--schedule` (weekly timer/cron) |
 | `scripts/systemd/pcore-free-models.{service,timer}` | Weekly user timer (`OnCalendar=weekly`) invoking `--refresh --apply`; unit template uses `@REPO_ROOT@` substituted by `--schedule`; cron fallback when systemd missing |
 | `bundle/opencode/agents/` | OpenCode mirrors (core + enterprise) |
 | `templates/context/specs/` | Unit spec blanks (methodology Part 3) |

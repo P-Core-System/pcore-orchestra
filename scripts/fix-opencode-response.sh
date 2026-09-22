@@ -56,6 +56,28 @@ cp -f "$ROOT/bundle/opencode/agents/orchestra.md" "$OPENCODE/agents/"
 cp -f "$ROOT/bundle/opencode/agents/orchestra-"*.md "$OPENCODE/agents/"
 mkdir -p "$OPENCODE/agents/references"
 cp -f "$ROOT/bundle/agents/references/orchestra-spawn-matrix.md" "$OPENCODE/agents/references/" 2>/dev/null || true
+# Strip agent frontmatter model: overrides so agents inherit global model
+# (covers models left by older installs / partial copies)
+find "$OPENCODE/agents" -name '*.md' -print0 2>/dev/null | while IFS= read -r -d '' f; do
+  if grep -qE '^model:[[:space:]]*opencode/' "$f" 2>/dev/null; then
+    python3 - "$f" <<'PY'
+import re, sys
+path = sys.argv[1]
+text = open(path, encoding='utf-8').read()
+bom = ''
+if text.startswith('﻿'):
+    bom, text = '﻿', text[1:]
+m = re.match(r'^---\n(.*?)\n---\n(.*)$', text, re.S)
+if not m:
+    sys.exit(0)
+fm, rest = m.group(1), m.group(2)
+new_fm, n = re.subn(r'(?m)^model:[ \t]*opencode/[A-Za-z0-9_.-]+[ \t]*\n?', '', fm)
+if n:
+    new_fm = re.sub(r'\n{3,}', '\n\n', new_fm)
+    open(path, 'w', encoding='utf-8').write(bom + '---\n' + new_fm + '\n---\n' + rest)
+PY
+  fi
+done
 
 # 2. Sync orchestra-loop skill
 mkdir -p "$OPENCODE/skills/orchestra-loop"

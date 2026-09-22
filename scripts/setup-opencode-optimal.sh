@@ -210,26 +210,21 @@ generate_config() {
   "snapshot": false,
   "agent": {
     "orchestra": {
-      "model": "opencode/mimo-v2.6-flash-free",
       "steps": 40,
       "permission": { "task": "allow", "bash": "allow", "edit": "deny", "websearch": "allow", "webfetch": "allow" }
     },
     "orchestra-planner": {
-      "model": "opencode/mimo-v2.6-flash-free",
       "steps": 6,
       "permission": { "edit": "deny", "bash": "allow", "websearch": "allow", "webfetch": "allow" }
     },
     "orchestra-implementer": {
-      "model": "opencode/mimo-v2.6-flash-free",
       "steps": 20
     },
     "orchestra-verifier": {
-      "model": "opencode/mimo-v2.6-flash-free",
       "steps": 8,
       "permission": { "edit": "deny", "bash": "allow", "websearch": "deny", "webfetch": "deny" }
     },
     "orchestra-reviewer": {
-      "model": "opencode/mimo-v2.6-flash-free",
       "steps": 4,
       "permission": { "edit": "deny", "bash": "allow", "websearch": "allow", "webfetch": "allow" }
     }
@@ -241,11 +236,6 @@ generate_config() {
           "variants": {
             "fast": { "reasoningEffort": "low", "textVerbosity": "low" }
           }
-        },
-        "mimo-v2.6-flash-free": {
-          "variants": {
-            "fast": { "reasoningEffort": "low", "textVerbosity": "low" }
-          }
         }
       }
     }
@@ -253,7 +243,7 @@ generate_config() {
 }'
 
       echo -e "${GREEN}Budget profile:${NC}"
-      echo "  All phases: mimo-v2.6-flash-free (free, reliable text output)"
+      echo "  Global model: free pool head (agents inherit)"
       echo "  Cost per cycle: ~\$0.00-0.03"
       echo "  Limitation: rate-limited, may hit limits mid-loop"
       ;;

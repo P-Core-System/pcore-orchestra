@@ -97,10 +97,8 @@ function toOpenCodeMarkdown(raw) {
   const description = ensureProactive(fields.description || "");
   const readonly = fields.readonly === true;
 
-  const opencodeModel = fields.opencode_model || (
-    readonly ? "opencode/mimo-v2.6-flash-free" : "opencode/mimo-v2.6-flash-free"
-  );
-  let front = `---\nname: ${name}\ndescription: >-\n${foldDescription(description)}\nmode: subagent\nmodel: ${opencodeModel}\n`;
+  // Agents inherit the main/global model — do not emit per-agent model:
+  let front = `---\nname: ${name}\ndescription: >-\n${foldDescription(description)}\nmode: subagent\n`;
   if (readonly) {
     front += `permission:\n  edit: deny\n  bash: ask\n`;
   }
