@@ -14,7 +14,7 @@
 #     state/free-models.json + state/model-pools.json (no hardcoded IDs) and
 #     atomically rewrite bundle/config/opencode/autonomy.json,
 #     docs/opencode.json.example, installed opencode.json free-tier refs, and
-#     agent frontmatter `model:` lines. Fails if cache is empty.
+#     agent frontmatter `model:` lines. Fetches first if cache empty; aborts only if fetch fails with no cache.
 #   --schedule: install weekly refresh+apply (systemd user timer; cron fallback).
 #   Flags combine: `--refresh --apply` = fetch, assign, rewrite, check.
 set -euo pipefail
