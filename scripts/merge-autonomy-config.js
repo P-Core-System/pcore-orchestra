@@ -182,17 +182,12 @@ const DEAD_OR_UNRELIABLE_MODELS = new Set([
   "opencode/muse-spark-1.3-contributor-free",
   "opencode/muse-spark-1.2",
   // Timeout / server errors / not supported
-  "opencode/laguna-s-2.1-free",
   "opencode/deepseek-v4-flash-free",
   "opencode/nemotron-3-ultra-free",
   "opencode/nemotron-3.5-lightning-free",
   "opencode/north-mini-code-free",
   "opencode/ling-3.0-flash-free",
 ]);
-/** Heaviest free model fallback (offline only — cache preferred when present). */
-const RELIABLE_HEAVY = "opencode/ling-3.0-flash-fin-free";
-/** Lightest free model fallback (offline only — cache preferred when present). */
-const RELIABLE_LIGHT = "opencode/mimo-v2.6-flash-free";
 
 /**
  * Load the live free-model cache + pools for an OpenCode home.
@@ -202,23 +197,37 @@ const RELIABLE_LIGHT = "opencode/mimo-v2.6-flash-free";
 function loadFreeModelCache(opencodeHome) {
   const cacheFile = path.join(opencodeHome, "state", "free-models.json");
   const poolsFile = path.join(opencodeHome, "state", "model-pools.json");
+  const probesFile = path.join(opencodeHome, "state", "probes.json");
   const cache = readJson(cacheFile);
   if (!cache || !Array.isArray(cache.models) || cache.models.length === 0) {
     return null;
   }
   const poolsData = readJson(poolsFile, {});
   const pools = (poolsData && poolsData.pools) || {};
-  return { models: cache.models, modelSet: new Set(cache.models), pools };
+  const probes = readJson(probesFile) || {};
+  return { models: cache.models, modelSet: new Set(cache.models), pools, probes };
 }
 
-/** Pick primary (light free) + heavy fallback from cache pools — no hardcoded IDs. */
+/** Pick primary (light free) + heavy fallback from cache pools — no hardcoded IDs.
+ * Verified-reachable models (per probes.json) are preferred over unverified ones.
+ */
 function pickCacheModels(cache) {
   const inModels = (id) => cache.modelSet.has(id);
   const light = ((cache.pools.light || []).map((e) => e.id) || []).filter(inModels);
   const heavy = ((cache.pools.heavy || []).map((e) => e.id) || []).filter(inModels);
   const frontend = ((cache.pools.frontend || []).map((e) => e.id) || []).filter(inModels);
-  const primary = light[0] || cache.models[0];
+
+  const probes = cache.probes || {};
+  function isReachable(id) {
+    return probes[id] && probes[id].reachable === true;
+  }
+
+  const reachableLight = light.filter(isReachable);
+  const primary = reachableLight[0] || light[0] || cache.models[0];
+
+  const reachableHeavy = heavy.filter((id) => isReachable(id) && id !== primary);
   const heavyId =
+    reachableHeavy[0] ||
     heavy.find((id) => id !== primary) ||
     frontend.find((id) => id !== primary) ||
     cache.models.find((id) => id !== primary) ||
@@ -258,12 +267,30 @@ function patchUnreliableAgentModels(dest, opencodeHome) {
     if (!shouldReplace) continue;
     if (cache) {
       cfg.model = name.includes("verifier") || name === "explore" ? primary : heavy;
-    } else if (name.includes("verifier") || name === "explore") {
-      cfg.model = RELIABLE_LIGHT;
     } else {
-      cfg.model = RELIABLE_HEAVY;
+      // Offline fallback: pick from installed free-tier model refs
+      const offlinePick = pickOfflineModels(dest);
+      cfg.model = name.includes("verifier") || name === "explore"
+        ? offlinePick.primary
+        : offlinePick.heavy;
     }
   }
+}
+
+/** Offline fallback: pick primary/heavy from installed config model refs. */
+function pickOfflineModels(dest) {
+  const models = new Set();
+  const agent = dest.agent || {};
+  for (const cfg of Object.values(agent)) {
+    if (cfg && cfg.model && String(cfg.model).startsWith("opencode/")) {
+      models.add(cfg.model.split("/").pop());
+    }
+  }
+  const primary = models.has("mimo-v2.6-flash-free")
+    ? "opencode/mimo-v2.6-flash-free"
+    : models.size > 0 ? `opencode/${[...models][0]}` : "opencode/mimo-v2.6-flash-free";
+  const heavy = primary;
+  return { primary, heavy };
 }
 
 function mergeOrchestraAgents(dest, patchAgents) {

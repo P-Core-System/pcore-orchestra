@@ -34,6 +34,7 @@ err()  { echo -e "${RED}✗${NC} $*"; }
 CACHE_DIR="${HOME}/.config/opencode/state"
 CACHE_FILE="${CACHE_DIR}/free-models.json"
 POOLS_FILE="${CACHE_DIR}/model-pools.json"
+PROBES_FILE="${CACHE_DIR}/probes.json"
 REMOTE_URL="https://opencode.ai/zen/v1/models"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -47,10 +48,19 @@ EXAMPLE_CONFIG="${REPO_ROOT}/docs/opencode.json.example"
 # / merge).
 KNOWN_DEAD=(
   "deepseek-v4-flash-free"
-  "laguna-s-2.1-free"
   "mimo-v2.5-free"
 )
 KNOWN_DEAD_CSV="$(IFS=,; echo "${KNOWN_DEAD[*]}")"
+
+# ── Load probe reachability data ────────────────────────────
+# Returns a JSON string of {modelId: {reachable, timestamp, error?}} or "{}"
+load_probes() {
+  if [[ -f "$PROBES_FILE" ]]; then
+    python3 -c "import json; print(json.dumps(json.load(open('$PROBES_FILE'))))" 2>/dev/null || echo "{}"
+  else
+    echo "{}"
+  fi
+}
 
 # ── Write pools JSON from the free-models cache + live context data ─
 write_pools() {
@@ -60,6 +70,8 @@ write_pools() {
   fi
 
   mkdir -p "$CACHE_DIR"
+  local probes_json
+  probes_json=$(load_probes)
 
   python3 -c "
 import json, os, sys, datetime
@@ -67,6 +79,11 @@ import json, os, sys, datetime
 cache_file = sys.argv[1]
 pools_file = sys.argv[2]
 known_dead = set(sys.argv[3].split(',')) if len(sys.argv) > 3 and sys.argv[3] else set()
+probes = json.loads(sys.argv[4]) if len(sys.argv) > 4 and sys.argv[4] else {}
+
+def is_reachable(mid):
+    p = probes.get(mid, {})
+    return p.get('reachable', False)
 
 with open(cache_file) as f:
     cache = json.load(f)
@@ -129,10 +146,14 @@ for mid in cache.get('models', []):
     if in_light:
         pools['light'].append(entry)
 
-# Sort: frontend/heavy by context desc; light by context asc (smaller = faster)
-pools['frontend'].sort(key=lambda x: x['context'], reverse=True)
-pools['heavy'].sort(key=lambda x: x['context'], reverse=True)
-pools['light'].sort(key=lambda x: x['context'])
+# Sort: verified-reachable models first within each pool, then by context
+def reachable_first(entry):
+    mid = entry['id']
+    return (0 if is_reachable(mid) else 1, entry['context'])
+
+pools['frontend'].sort(key=reachable_first)
+pools['heavy'].sort(key=reachable_first)
+pools['light'].sort(key=reachable_first)
 
 result = {
     'updated': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
@@ -147,7 +168,7 @@ os.replace(tmp_pools, pools_file)
 
 for name, items in pools.items():
     print('  %s: %d models' % (name, len(items)))
-" "$CACHE_FILE" "$POOLS_FILE" "$KNOWN_DEAD_CSV"
+" "$CACHE_FILE" "$POOLS_FILE" "$KNOWN_DEAD_CSV" "$probes_json"
 }
 
 # ── Fetch free models ───────────────────────────────────────────────
@@ -447,6 +468,7 @@ for name in ('frontend', 'heavy', 'light'):
 }
 
 # ── Probe mode: live ping each free model ───────────────────────────
+# Results persisted to PROBES_FILE as {modelId: {reachable, timestamp, error?}}.
 run_probe() {
   set +e
   if [[ ! -f "$CACHE_FILE" ]]; then
@@ -455,16 +477,18 @@ run_probe() {
   fi
 
   if ! command -v opencode &>/dev/null; then
-    err "opencode CLI not found — install OpenCode first"
-    set -e
-    return 1
+    warn "opencode CLI not found — skipping probe; writing empty probes.json (pools will use name-keyword ordering)"
+    mkdir -p "$CACHE_DIR"
+    echo '{}' > "$PROBES_FILE"
+    return 0
   fi
 
   echo -e "${CYAN}Probing free models (opencode run, 60s timeout each)...${NC}"
   echo ""
 
   local failed=0
-  local mid tmp
+  local mid tmp probe_jsonl
+  probe_jsonl=$(mktemp)
   mapfile -t _probe_models < <(python3 -c "
 import json
 with open('$CACHE_FILE') as f:
@@ -477,40 +501,73 @@ for m in data.get('models', []):
     [[ -z "$mid" ]] && continue
     echo -e "${CYAN}── opencode/$mid ──${NC}"
     tmp=$(mktemp)
+    local reachable=0 reach_error=""
     if timeout 60 opencode run -m "opencode/$mid" --format json "Reply with exactly: OK" >"$tmp" 2>&1; then
       if grep -q '"type":"text"' "$tmp" && grep -q 'OK' "$tmp"; then
         ok "$mid: PASS (text response)"
+        reachable=1
       elif grep -q 'RegionError\|not available in your country' "$tmp"; then
         warn "$mid: REGION (blocked in this locale)"
+        reach_error="region-blocked"
         failed=1
       elif grep -q '"type":"error"' "$tmp"; then
         err "$mid: ERROR ($(grep -o '"message":"[^"]*"' "$tmp" | head -1 | cut -d'"' -f4))"
+        reach_error="error"
         failed=1
       else
         warn "$mid: NO_RESPONSE (no text in output — reasoning model may need variant fast or higher steps)"
+        reach_error="no-response"
         failed=1
       fi
     else
       if grep -q 'RegionError\|not available in your country' "$tmp" 2>/dev/null; then
         warn "$mid: REGION (blocked in this locale)"
+        reach_error="region-blocked"
+        failed=1
       elif grep -q '"type":"error"' "$tmp" 2>/dev/null; then
         err "$mid: ERROR ($(grep -o '"message":"[^"]*"' "$tmp" | head -1 | cut -d'"' -f4))"
+        reach_error="error"
+        failed=1
       else
         err "$mid: TIMEOUT or CLI failure"
+        reach_error="timeout"
+        failed=1
       fi
-      failed=1
     fi
     rm -f "$tmp"
+    # Append JSONL entry
+    python3 -c "
+import json, sys
+print(json.dumps({'id': '$mid', 'reachable': $reachable, 'timestamp': '$(date -u +%Y-%m-%dT%H:%M:%SZ)', 'error': '$reach_error'}))
+" >> "$probe_jsonl" 2>/dev/null || true
     echo ""
   done
 
+  # Consolidate JSONL into probes.json
+  mkdir -p "$CACHE_DIR"
+  python3 -c "
+import json, sys
+results = {}
+try:
+    with open('$probe_jsonl') as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                e = json.loads(line)
+                results[e['id']] = {'reachable': e['reachable'], 'timestamp': e['timestamp'], 'error': e.get('error', '')}
+except Exception:
+    pass
+with open('$PROBES_FILE', 'w') as f:
+    json.dump(results, f, indent=2)
+print('Wrote probe results to $PROBES_FILE')
+"
+  rm -f "$probe_jsonl"
+
   if [[ $failed -ne 0 ]]; then
-    err "Some models failed probe — check primary model in opencode.json (prefer mimo-v2.6-flash-free over mimo-v2.6-flash-free for reliability)"
-    set -e
-    return 1
+    warn "Some models failed probe — probes.json written with partial results; pools sorted by verified reachability"
+  else
+    ok "All probed models responded"
   fi
-  ok "All probed models responded"
-  set -e
   return 0
 }
 
@@ -519,11 +576,11 @@ for m in data.get('models', []):
 # No hardcoded IDs: pool order from model-pools.json, membership from
 # free-models.json. Exits 1 if no usable model remains after filtering.
 pick_models() {
-  python3 - "$CACHE_FILE" "$POOLS_FILE" "$KNOWN_DEAD_CSV" <<'PY'
+  python3 - "$CACHE_FILE" "$POOLS_FILE" "$KNOWN_DEAD_CSV" "$PROBES_FILE" <<'PY'
 import json, sys
 
-cache_file, pools_file = sys.argv[1], sys.argv[2]
-dead = set(sys.argv[3].split(',')) if len(sys.argv) > 3 and sys.argv[3] else set()
+cache_file, pools_file, dead_file, probes_file = sys.argv[1:5]
+dead = set(open(dead_file).read().split(',')) if dead_file else set()
 
 with open(cache_file) as f:
     cache = json.load(f)
@@ -538,6 +595,13 @@ try:
 except Exception:
     pass
 
+probes = {}
+try:
+    with open(probes_file) as f:
+        probes = json.load(f)
+except Exception:
+    pass
+
 def pool_ids(name):
     return [e.get('id') for e in pools.get(name, []) if e.get('id') in models]
 
@@ -545,11 +609,18 @@ light = pool_ids('light')
 heavy_pool = pool_ids('heavy')
 frontend = pool_ids('frontend')
 
-# Primary: lightest free model (pool order), else first cached free model.
-primary = light[0] if light else models[0]
-# Heavy fallback: heavy pool head, then frontend, then any other cached model.
+# Primary: first light model verified reachable by probes; fallback to light[0] offline.
+def is_reachable(mid):
+    return probes.get(mid, {}).get('reachable', False)
+
+reachable_light = [m for m in light if is_reachable(m)]
+primary = reachable_light[0] if reachable_light else (light[0] if light else models[0])
+
+# Heavy fallback: first reachable heavy, else first heavy, else first frontend, else any cached.
+reachable_heavy = [m for m in heavy_pool if is_reachable(m) and m != primary]
 heavy = (
-    next((x for x in heavy_pool if x != primary), None)
+    next((x for x in reachable_heavy), None)
+    or next((x for x in heavy_pool if x != primary), None)
     or next((x for x in frontend if x != primary), None)
     or next((x for x in models if x != primary), None)
     or primary
@@ -756,7 +827,8 @@ Usage:
   bash update-free-models.sh --schedule Install weekly refresh+apply (systemd
                                         user timer; cron fallback when missing)
   bash update-free-models.sh --pools    Print auto-generated model pools
-  bash update-free-models.sh --probe    Live ping every cached free model via opencode run
+  bash update-free-models.sh --probe    Live ping every cached free model via opencode run;
+                                         results persisted to probes.json for pool ordering
   bash update-free-models.sh --help     Show this help
 
 Checks both ~/.config/opencode/opencode.json and docs/opencode.json.example

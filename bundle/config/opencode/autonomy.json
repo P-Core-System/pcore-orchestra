@@ -1,6 +1,6 @@
 {
-  "model": "opencode/ling-3.0-flash-fin-free",
-  "small_model": "opencode/ling-3.0-flash-fin-free",
+  "model": "opencode/mimo-v2.6-flash-free",
+  "small_model": "opencode/mimo-v2.6-flash-free",
   "compaction": {
     "auto": true,
     "prune": true,
@@ -81,7 +81,7 @@
     "orchestra": {
       "description": "Orchestra conductor \u2014 plan \u2192 implement \u2192 verify \u2192 review via task tool",
       "mode": "primary",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "low",
       "textVerbosity": "low",
       "steps": 500,
@@ -184,7 +184,7 @@
     "general": {
       "description": "General-purpose agent for researching complex questions and executing multi-step tasks",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "permission": {
@@ -198,7 +198,7 @@
     "explore": {
       "description": "Fast agent specialized for codebase exploration",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "low",
       "textVerbosity": "low",
       "permission": {
@@ -212,7 +212,7 @@
     "business-strategist": {
       "description": "Specialist agent: business-strategist",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 120,
@@ -228,7 +228,7 @@
     "compliance-officer": {
       "description": "Specialist agent: compliance-officer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -244,7 +244,7 @@
     "financial-analyst": {
       "description": "Specialist agent: financial-analyst",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 120,
@@ -260,7 +260,7 @@
     "legal-advisor": {
       "description": "Specialist agent: legal-advisor",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -276,7 +276,7 @@
     "partnership-manager": {
       "description": "Specialist agent: partnership-manager",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -292,7 +292,7 @@
     "domain-expert": {
       "description": "Specialist agent: domain-expert",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -308,7 +308,7 @@
     "fintech-specialist": {
       "description": "Specialist agent: fintech-specialist",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -324,7 +324,7 @@
     "healthcare-specialist": {
       "description": "Specialist agent: healthcare-specialist",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -340,7 +340,7 @@
     "industry-analyst": {
       "description": "Specialist agent: industry-analyst",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 120,
@@ -356,7 +356,7 @@
     "regulatory-specialist": {
       "description": "Specialist agent: regulatory-specialist",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -372,7 +372,7 @@
     "data-governance-officer": {
       "description": "Specialist agent: data-governance-officer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -388,7 +388,7 @@
     "license-manager": {
       "description": "Specialist agent: license-manager",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -404,7 +404,7 @@
     "policy-maker": {
       "description": "Specialist agent: policy-maker",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -420,7 +420,7 @@
     "privacy-engineer": {
       "description": "Specialist agent: privacy-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -436,7 +436,7 @@
     "terms-conditions-writer": {
       "description": "Specialist agent: terms-conditions-writer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -452,7 +452,7 @@
     "kubernetes-engineer": {
       "description": "Specialist agent: kubernetes-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -468,7 +468,7 @@
     "observability-engineer": {
       "description": "Specialist agent: observability-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -484,7 +484,7 @@
     "security-architect": {
       "description": "Specialist agent: security-architect",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -500,7 +500,7 @@
     "terraform-engineer": {
       "description": "Specialist agent: terraform-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -516,7 +516,7 @@
     "agent-selector": {
       "description": "Specialist agent: agent-selector",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -532,7 +532,7 @@
     "project-type-classifier": {
       "description": "Specialist agent: project-type-classifier",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -548,7 +548,7 @@
     "workflow-orchestrator": {
       "description": "Specialist agent: workflow-orchestrator",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -564,7 +564,7 @@
     "business-analyst": {
       "description": "Specialist agent: business-analyst",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 120,
@@ -580,7 +580,7 @@
     "market-researcher": {
       "description": "Specialist agent: market-researcher",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 120,
@@ -596,7 +596,7 @@
     "stakeholder-advocate": {
       "description": "Specialist agent: stakeholder-advocate",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -612,7 +612,7 @@
     "product-manager": {
       "description": "Specialist agent: product-manager",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -628,7 +628,7 @@
     "product-owner": {
       "description": "Specialist agent: product-owner",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -644,7 +644,7 @@
     "adr-archivist": {
       "description": "Specialist agent: adr-archivist",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -660,7 +660,7 @@
     "architect": {
       "description": "Specialist agent: architect",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -676,7 +676,7 @@
     "tech-lead": {
       "description": "Specialist agent: tech-lead",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -692,7 +692,7 @@
     "project-manager": {
       "description": "Specialist agent: project-manager",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -708,7 +708,7 @@
     "scrum-master": {
       "description": "Specialist agent: scrum-master",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -724,7 +724,7 @@
     "backend-engineer": {
       "description": "Specialist agent: backend-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -740,7 +740,7 @@
     "database-engineer": {
       "description": "Specialist agent: database-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -756,7 +756,7 @@
     "frontend-engineer": {
       "description": "Specialist agent: frontend-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -772,7 +772,7 @@
     "full-stack-engineer": {
       "description": "Specialist agent: full-stack-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -788,7 +788,7 @@
     "mobile-engineer": {
       "description": "Specialist agent: mobile-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -804,7 +804,7 @@
     "ui-ux-designer": {
       "description": "Specialist agent: ui-ux-designer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -820,7 +820,7 @@
     "accessibility-reviewer": {
       "description": "Specialist agent: accessibility-reviewer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -836,7 +836,7 @@
     "api-contract-validator": {
       "description": "Specialist agent: api-contract-validator",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -852,7 +852,7 @@
     "automation-engineer": {
       "description": "Specialist agent: automation-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -868,7 +868,7 @@
     "chaos-engineer": {
       "description": "Specialist agent: chaos-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -884,7 +884,7 @@
     "performance-engineer": {
       "description": "Specialist agent: performance-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -900,7 +900,7 @@
     "qa-engineer": {
       "description": "Specialist agent: qa-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -916,7 +916,7 @@
     "regression-tester": {
       "description": "Specialist agent: regression-tester",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -932,7 +932,7 @@
     "test-architect": {
       "description": "Specialist agent: test-architect",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -948,7 +948,7 @@
     "adversary-emulator": {
       "description": "Specialist agent: adversary-emulator",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -964,7 +964,7 @@
     "covert-ops-planner": {
       "description": "Specialist agent: covert-ops-planner",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -980,7 +980,7 @@
     "zero-knowledge-tester": {
       "description": "Specialist agent: zero-knowledge-tester",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -996,7 +996,7 @@
     "blue-team-defender": {
       "description": "Specialist agent: blue-team-defender",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1012,7 +1012,7 @@
     "detection-engineer": {
       "description": "Specialist agent: detection-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -1028,7 +1028,7 @@
     "hardening-engineer": {
       "description": "Specialist agent: hardening-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -1044,7 +1044,7 @@
     "siem-analyst": {
       "description": "Specialist agent: siem-analyst",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 120,
@@ -1060,7 +1060,7 @@
     "threat-hunter": {
       "description": "Specialist agent: threat-hunter",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1076,7 +1076,7 @@
     "bug-bounty-coordinator": {
       "description": "Specialist agent: bug-bounty-coordinator",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -1092,7 +1092,7 @@
     "digital-forensics": {
       "description": "Specialist agent: digital-forensics",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1108,7 +1108,7 @@
     "malware-reverse-engineer": {
       "description": "Specialist agent: malware-reverse-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -1124,7 +1124,7 @@
     "threat-intelligence-analyst": {
       "description": "Specialist agent: threat-intelligence-analyst",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 120,
@@ -1140,7 +1140,7 @@
     "threat-simulator": {
       "description": "Specialist agent: threat-simulator",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1156,7 +1156,7 @@
     "insider-threat-simulator": {
       "description": "Specialist agent: insider-threat-simulator",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1172,7 +1172,7 @@
     "internal-pentester": {
       "description": "Specialist agent: internal-pentester",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1188,7 +1188,7 @@
     "shadow-it-auditor": {
       "description": "Specialist agent: shadow-it-auditor",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1204,7 +1204,7 @@
     "appsec-engineer": {
       "description": "Specialist agent: appsec-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -1220,7 +1220,7 @@
     "devsecops-engineer": {
       "description": "Specialist agent: devsecops-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -1236,7 +1236,7 @@
     "secure-code-reviewer": {
       "description": "Specialist agent: secure-code-reviewer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1252,7 +1252,7 @@
     "shift-left-engineer": {
       "description": "Specialist agent: shift-left-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -1268,7 +1268,7 @@
     "security-executive-advisor": {
       "description": "Specialist agent: security-executive-advisor",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1284,7 +1284,7 @@
     "attack-simulator": {
       "description": "Specialist agent: attack-simulator",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -1300,7 +1300,7 @@
     "defense-validator": {
       "description": "Specialist agent: defense-validator",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1316,7 +1316,7 @@
     "purple-team-lead": {
       "description": "Specialist agent: purple-team-lead",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1332,7 +1332,7 @@
     "exploit-developer": {
       "description": "Specialist agent: exploit-developer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -1348,7 +1348,7 @@
     "malware-analyst": {
       "description": "Specialist agent: malware-analyst",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 120,
@@ -1364,7 +1364,7 @@
     "penetration-tester": {
       "description": "Specialist agent: penetration-tester",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1380,7 +1380,7 @@
     "red-team-operator": {
       "description": "Specialist agent: red-team-operator",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1396,7 +1396,7 @@
     "social-engineer": {
       "description": "Specialist agent: social-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -1412,7 +1412,7 @@
     "vulnerability-researcher": {
       "description": "Specialist agent: vulnerability-researcher",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 120,
@@ -1428,7 +1428,7 @@
     "api-pentester": {
       "description": "Specialist agent: api-pentester",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1444,7 +1444,7 @@
     "cloud-pentester": {
       "description": "Specialist agent: cloud-pentester",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1460,7 +1460,7 @@
     "mobile-pentester": {
       "description": "Specialist agent: mobile-pentester",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1476,7 +1476,7 @@
     "network-pentester": {
       "description": "Specialist agent: network-pentester",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1492,7 +1492,7 @@
     "security-engineer": {
       "description": "Specialist agent: security-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -1508,7 +1508,7 @@
     "security-performance-reviewer": {
       "description": "Specialist agent: security-performance-reviewer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1524,7 +1524,7 @@
     "web-app-pentester": {
       "description": "Specialist agent: web-app-pentester",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1540,7 +1540,7 @@
     "incident-commander": {
       "description": "Specialist agent: incident-commander",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1556,7 +1556,7 @@
     "exercise-controller": {
       "description": "Specialist agent: exercise-controller",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -1572,7 +1572,7 @@
     "rule-enforcer": {
       "description": "Specialist agent: rule-enforcer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -1588,7 +1588,7 @@
     "safety-officer": {
       "description": "Specialist agent: safety-officer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -1604,7 +1604,7 @@
     "scenario-designer": {
       "description": "Specialist agent: scenario-designer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -1620,7 +1620,7 @@
     "infrastructure-defender": {
       "description": "Specialist agent: infrastructure-defender",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -1636,7 +1636,7 @@
     "cloud-engineer": {
       "description": "Specialist agent: cloud-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -1652,7 +1652,7 @@
     "devops-engineer": {
       "description": "Specialist agent: devops-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -1668,7 +1668,7 @@
     "documentation-writer": {
       "description": "Specialist agent: documentation-writer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -1684,7 +1684,7 @@
     "infrastructure-engineer": {
       "description": "Specialist agent: infrastructure-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -1700,7 +1700,7 @@
     "ops-manager": {
       "description": "Specialist agent: ops-manager",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1716,7 +1716,7 @@
     "platform-engineer": {
       "description": "Specialist agent: platform-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -1732,7 +1732,7 @@
     "release-manager": {
       "description": "Specialist agent: release-manager",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1748,7 +1748,7 @@
     "site-reliability-engineer": {
       "description": "Specialist agent: site-reliability-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -1764,7 +1764,7 @@
     "incident-responder": {
       "description": "Specialist agent: incident-responder",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1780,7 +1780,7 @@
     "observer": {
       "description": "Specialist agent: observer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -1796,7 +1796,7 @@
     "sre": {
       "description": "Specialist agent: sre",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -1812,7 +1812,7 @@
     "code-reviewer": {
       "description": "Specialist agent: code-reviewer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1828,7 +1828,7 @@
     "technical-debt-tracker": {
       "description": "Specialist agent: technical-debt-tracker",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -1844,7 +1844,7 @@
     "ai-ethics-reviewer": {
       "description": "Specialist agent: ai-ethics-reviewer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1860,7 +1860,7 @@
     "ai-safety-engineer": {
       "description": "Specialist agent: ai-safety-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -1876,7 +1876,7 @@
     "bias-auditor": {
       "description": "Specialist agent: bias-auditor",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -1892,7 +1892,7 @@
     "explainability-engineer": {
       "description": "Specialist agent: explainability-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -1908,7 +1908,7 @@
     "ml-ops-engineer": {
       "description": "Specialist agent: ml-ops-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -1924,7 +1924,7 @@
     "model-monitor": {
       "description": "Specialist agent: model-monitor",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -1940,7 +1940,7 @@
     "embedding-engineer": {
       "description": "Specialist agent: embedding-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -1956,7 +1956,7 @@
     "fine-tuning-engineer": {
       "description": "Specialist agent: fine-tuning-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -1972,7 +1972,7 @@
     "inference-engineer": {
       "description": "Specialist agent: inference-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -1988,7 +1988,7 @@
     "model-evaluator": {
       "description": "Specialist agent: model-evaluator",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -2004,7 +2004,7 @@
     "model-trainer": {
       "description": "Specialist agent: model-trainer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -2020,7 +2020,7 @@
     "prompt-engineer": {
       "description": "Specialist agent: prompt-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -2036,7 +2036,7 @@
     "vector-db-engineer": {
       "description": "Specialist agent: vector-db-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -2052,7 +2052,7 @@
     "data-analyst": {
       "description": "Specialist agent: data-analyst",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 120,
@@ -2068,7 +2068,7 @@
     "data-engineer": {
       "description": "Specialist agent: data-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -2084,7 +2084,7 @@
     "ml-engineer": {
       "description": "Specialist agent: ml-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -2100,7 +2100,7 @@
     "api-collector": {
       "description": "Specialist agent: api-collector",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -2116,7 +2116,7 @@
     "data-harvester": {
       "description": "Specialist agent: data-harvester",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -2132,7 +2132,7 @@
     "survey-designer": {
       "description": "Specialist agent: survey-designer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -2148,7 +2148,7 @@
     "telemetry-engineer": {
       "description": "Specialist agent: telemetry-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -2164,7 +2164,7 @@
     "web-scraper": {
       "description": "Specialist agent: web-scraper",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -2180,7 +2180,7 @@
     "data-annotator": {
       "description": "Specialist agent: data-annotator",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -2196,7 +2196,7 @@
     "dataset-auditor": {
       "description": "Specialist agent: dataset-auditor",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -2212,7 +2212,7 @@
     "dataset-curator": {
       "description": "Specialist agent: dataset-curator",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -2228,7 +2228,7 @@
     "dataset-versioner": {
       "description": "Specialist agent: dataset-versioner",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -2244,7 +2244,7 @@
     "synthetic-data-generator": {
       "description": "Specialist agent: synthetic-data-generator",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -2260,7 +2260,7 @@
     "annotation-specialist": {
       "description": "Specialist agent: annotation-specialist",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -2276,7 +2276,7 @@
     "corpus-builder": {
       "description": "Specialist agent: corpus-builder",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -2292,7 +2292,7 @@
     "discourse-analyst": {
       "description": "Specialist agent: discourse-analyst",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 120,
@@ -2308,7 +2308,7 @@
     "linguistic-analyst": {
       "description": "Specialist agent: linguistic-analyst",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 120,
@@ -2324,7 +2324,7 @@
     "morphological-analyst": {
       "description": "Specialist agent: morphological-analyst",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 120,
@@ -2340,7 +2340,7 @@
     "nlp-engineer": {
       "description": "Specialist agent: nlp-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -2356,7 +2356,7 @@
     "phonology-analyst": {
       "description": "Specialist agent: phonology-analyst",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 120,
@@ -2372,7 +2372,7 @@
     "pos-tagger": {
       "description": "Specialist agent: pos-tagger",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -2388,7 +2388,7 @@
     "pragmatic-engineer": {
       "description": "Specialist agent: pragmatic-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -2404,7 +2404,7 @@
     "semantic-engineer": {
       "description": "Specialist agent: semantic-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -2420,7 +2420,7 @@
     "syllable-analyst": {
       "description": "Specialist agent: syllable-analyst",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 120,
@@ -2436,7 +2436,7 @@
     "syntactic-engineer": {
       "description": "Specialist agent: syntactic-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -2452,7 +2452,7 @@
     "translation-coordinator": {
       "description": "Specialist agent: translation-coordinator",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -2468,7 +2468,7 @@
     "data-cleaner": {
       "description": "Specialist agent: data-cleaner",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -2484,7 +2484,7 @@
     "data-preprocessor": {
       "description": "Specialist agent: data-preprocessor",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -2500,7 +2500,7 @@
     "data-quality-engineer": {
       "description": "Specialist agent: data-quality-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -2516,7 +2516,7 @@
     "data-validator": {
       "description": "Specialist agent: data-validator",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -2532,7 +2532,7 @@
     "feature-engineer": {
       "description": "Specialist agent: feature-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -2548,7 +2548,7 @@
     "content-strategist": {
       "description": "Specialist agent: content-strategist",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 120,
@@ -2564,7 +2564,7 @@
     "developer-advocate": {
       "description": "Specialist agent: developer-advocate",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -2580,7 +2580,7 @@
     "technical-writer": {
       "description": "Specialist agent: technical-writer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -2596,7 +2596,7 @@
     "customer-success": {
       "description": "Specialist agent: customer-success",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -2612,7 +2612,7 @@
     "support-engineer": {
       "description": "Specialist agent: support-engineer",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 200,
@@ -2628,7 +2628,7 @@
     "training-specialist": {
       "description": "Specialist agent: training-specialist",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -2644,7 +2644,7 @@
     "innovation-lead": {
       "description": "Specialist agent: innovation-lead",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 150,
@@ -2660,7 +2660,7 @@
     "research-scientist": {
       "description": "Specialist agent: research-scientist",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 100,
@@ -2676,7 +2676,7 @@
     "technology-scout": {
       "description": "Specialist agent: technology-scout",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 120,
@@ -2692,7 +2692,7 @@
     "orchestra-implementer-identity": {
       "description": "Specialist agent: orchestra-implementer-identity",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 500,
@@ -2708,7 +2708,7 @@
     "orchestra-planner-identity": {
       "description": "Specialist agent: orchestra-planner-identity",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 500,
@@ -2724,7 +2724,7 @@
     "orchestra-reviewer-identity": {
       "description": "Specialist agent: orchestra-reviewer-identity",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 500,
@@ -2740,7 +2740,7 @@
     "orchestra-spawn-matrix": {
       "description": "Specialist agent: orchestra-spawn-matrix",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 500,
@@ -2756,7 +2756,7 @@
     "orchestra-verifier-identity": {
       "description": "Specialist agent: orchestra-verifier-identity",
       "mode": "subagent",
-      "model": "opencode/ling-3.0-flash-fin-free",
+      "model": "opencode/mimo-v2.6-flash-free",
       "reasoningEffort": "medium",
       "textVerbosity": "low",
       "steps": 500,
@@ -2773,7 +2773,7 @@
   "provider": {
     "opencode": {
       "models": {
-        "ling-3.0-flash-fin-free": {
+        "mimo-v2.6-flash-free": {
           "variants": {
             "fast": {
               "reasoningEffort": "low",

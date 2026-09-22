@@ -53,7 +53,7 @@
 | `bundle/config/cursor/` | CLI autonomy patch + `permissions.json` + `sandbox.json` |
 | `bundle/config/opencode/autonomy.json` | OpenCode permission/agent profile (install merges; preserves `mcp`) |
 | `scripts/merge-autonomy-config.js` | Install-time merge for Cursor + OpenCode autonomy (cache-backed free-model replacement; static deny-list offline fallback) |
-| `scripts/update-free-models.sh` | Free-model catalog ops: `--refresh` (fetch+generate pools), `--check` (DEAD/STALE validation), `--apply` (dynamic primary/heavy assignment into autonomy.json + example + installed free-tier refs + agent frontmatter), `--pools`, `--probe`, `--schedule` (weekly timer/cron) |
+| `scripts/update-free-models.sh` | Free-model catalog ops: `--refresh` (fetch+generate pools), `--check` (DEAD/STALE validation), `--apply` (dynamic primary/heavy assignment from probe-ordered pools), `--pools`, `--probe` (persist reachability to probes.json), `--schedule` (weekly timer/cron) |
 | `scripts/systemd/pcore-free-models.{service,timer}` | Weekly user timer (`OnCalendar=weekly`) invoking `--refresh --apply`; unit template uses `@REPO_ROOT@` substituted by `--schedule`; cron fallback when systemd missing |
 | `bundle/opencode/agents/` | OpenCode mirrors (core + enterprise) |
 | `templates/context/specs/` | Unit spec blanks (methodology Part 3) |
@@ -77,6 +77,7 @@
 | Installed bundle | `~/.cursor/hooks`, `agents`, `skills`, `rules` | Copied from `bundle/` on install |
 | Free-model cache | `~/.config/opencode/state/free-models.json` | Live Zen free catalog (written by `--refresh`; source of truth for `--apply` + merge) |
 | Free-model pools | `~/.config/opencode/state/model-pools.json` | frontend/heavy/light pools (regenerated each `--refresh`; `--apply` picks light head = primary, heavy head = fallback) |
+| Probe results | `~/.config/opencode/state/probes.json` | Model reachability probe results (`{modelId: {reachable, timestamp, error?}}`); feeds pool ordering and primary selection |
 | Target project context | `<project>/context/*.md` | Created by `init-context` or manually |
 | Target entry point | `<project>/AGENTS.md` | Points agents to six files |
 | Project identity | `<project>/project.yaml` | Universal project identity, version, lifecycle, team, stack, environments |
