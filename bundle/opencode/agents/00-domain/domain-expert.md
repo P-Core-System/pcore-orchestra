@@ -4,7 +4,6 @@ description: >-
   Enterprise SDLC Phase 0,5,11 — Domain knowledge application, subject matter expertise, domain modeling, domain-specific requirements, business rule validation.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 100
 permission:
   edit: deny

@@ -4,7 +4,6 @@ description: >-
   Enterprise SDLC Phase 5,11 — Data annotation workflows, labeling tools, active learning for annotation, annotation quality metrics, annotator management, annotation cost optimization.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 100
 permission:
   edit: deny

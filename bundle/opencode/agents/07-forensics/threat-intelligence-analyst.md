@@ -3,7 +3,6 @@ name: threat-intelligence-analyst
 description: >-
   Enterprise SDLC Phase 0,6,9 — Threat intelligence collection, analysis, dissemination, threat actor profiling, TTP mapping, intelligence-driven defense.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 120
 permission:
   edit: deny

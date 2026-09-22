@@ -4,7 +4,6 @@ description: >-
   Enterprise SDLC Phase 0,11 — Translation pipeline design, bilingual data collection, translation quality assessment, localization workflow, machine translation evaluation.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 100
 permission:
   edit: deny

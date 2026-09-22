@@ -4,7 +4,6 @@ description: >-
   Enterprise SDLC Phase 5,11 — Data preprocessing for ML, feature scaling, encoding categorical variables, text preprocessing, image preprocessing, data splitting strategies.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 100
 permission:
   edit: deny

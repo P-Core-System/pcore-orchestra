@@ -4,7 +4,6 @@ description: >-
   Enterprise SDLC Phase 0,5,11 — Healthcare domain expertise, HIPAA compliance, clinical data, EHR integration, medical terminology, healthcare workflows.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 100
 permission:
   edit: deny

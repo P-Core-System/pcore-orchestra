@@ -6,7 +6,6 @@ description: >-
   ai-workflow-rules.md verification checklist when present in the target
   project. Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 500
 permission:
   edit: deny

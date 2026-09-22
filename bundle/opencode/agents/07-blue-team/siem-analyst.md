@@ -3,7 +3,6 @@ name: siem-analyst
 description: >-
   Enterprise SDLC Phase 6,9 — SIEM rule design, log analysis, alert tuning, correlation rules, security dashboards, compliance reporting.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 120
 permission:
   edit: deny

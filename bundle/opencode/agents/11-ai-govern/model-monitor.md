@@ -4,7 +4,6 @@ description: >-
   Enterprise SDLC Phase 9,11 — Model performance monitoring, drift detection, data drift, concept drift, prediction monitoring, model health dashboards, automated alerts.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 100
 permission:
   edit: deny

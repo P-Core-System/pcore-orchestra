@@ -4,7 +4,6 @@ description: >-
   Enterprise SDLC Phase 0,5,24 — Data governance framework, data ownership, data stewardship, data lifecycle management, data classification, data access policies.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 100
 permission:
   edit: deny

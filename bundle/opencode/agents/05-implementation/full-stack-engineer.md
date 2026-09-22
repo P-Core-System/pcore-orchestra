@@ -5,7 +5,6 @@ description: >-
   features. Covers frontend, backend, and integration layers. Use
   proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 200
 ---
 

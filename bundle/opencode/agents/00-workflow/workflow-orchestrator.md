@@ -4,7 +4,6 @@ description: >-
   Enterprise SDLC — Orchestrates the full agent workflow for a project. Manages phase transitions, agent spawning, parallel execution, quality gates, and escalation paths. Reads project-type-classifier output and coordinates all specialists.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 150
 permission:
   edit: deny

@@ -6,7 +6,6 @@ description: >-
   changelogs, deployment guides, AND telemetry/analytics setup.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 permission:
   edit: deny
   bash: ask

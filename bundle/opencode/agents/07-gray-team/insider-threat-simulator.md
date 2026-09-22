@@ -3,7 +3,6 @@ name: insider-threat-simulator
 description: >-
   Enterprise SDLC Phase 6,7 — Insider threat simulation, malicious insider scenarios, privilege abuse, data exfiltration, collusion testing, detection validation.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 150
 permission:
   edit: deny

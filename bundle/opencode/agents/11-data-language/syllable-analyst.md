@@ -4,7 +4,6 @@ description: >-
   Enterprise SDLC Phase 5,11 — Syllable segmentation, syllable counting, stress pattern detection, phonetic transcription, syllable-based features for NLP.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 120
 permission:
   edit: deny

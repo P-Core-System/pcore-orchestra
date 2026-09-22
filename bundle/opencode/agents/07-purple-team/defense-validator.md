@@ -3,7 +3,6 @@ name: defense-validator
 description: >-
   Enterprise SDLC Phase 6,9 — Defense validation, control effectiveness testing, security control verification, defense-in-depth assessment, control gap analysis.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 150
 permission:
   edit: deny

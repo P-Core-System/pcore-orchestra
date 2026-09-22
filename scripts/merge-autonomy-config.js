@@ -181,6 +181,7 @@ const DEAD_OR_UNRELIABLE_MODELS = new Set([
   "opencode/muse-spark-1.2-contributor-free",
   "opencode/muse-spark-1.3-contributor-free",
   "opencode/muse-spark-1.2",
+  "opencode/ling-3.0-flash-fin-free",
   // Timeout / server errors / not supported
   "opencode/deepseek-v4-flash-free",
   "opencode/nemotron-3-ultra-free",
@@ -221,16 +222,22 @@ function pickCacheModels(cache) {
   function isReachable(id) {
     return probes[id] && probes[id].reachable === true;
   }
+  function stabilityScore(id) {
+    return (probes[id] && probes[id].stability_score) || 0;
+  }
 
-  const reachableLight = light.filter(isReachable);
+  const reachableLight = light.filter(isReachable).sort((a, b) => stabilityScore(b) - stabilityScore(a));
   const primary = reachableLight[0] || light[0] || cache.models[0];
 
-  const reachableHeavy = heavy.filter((id) => isReachable(id) && id !== primary);
+  const reachableHeavy = heavy.filter((id) => isReachable(id) && id !== primary).sort((a, b) => stabilityScore(b) - stabilityScore(a));
+  // Prefer probe-reachable models only; high-ctx heavy (e.g. nemotron-3-ultra) only when live
+  const reachableOther = [frontend, cache.models]
+    .flat()
+    .filter((id) => id !== primary && isReachable(id))
+    .sort((a, b) => stabilityScore(b) - stabilityScore(a));
   const heavyId =
     reachableHeavy[0] ||
-    heavy.find((id) => id !== primary) ||
-    frontend.find((id) => id !== primary) ||
-    cache.models.find((id) => id !== primary) ||
+    reachableOther[0] ||
     primary;
   return { primary: `opencode/${primary}`, heavy: `opencode/${heavyId}` };
 }
@@ -242,43 +249,45 @@ function bareModel(model) {
 }
 
 /**
- * Replace dead/unreliable agent models.
- * Cache-backed when state/free-models.json exists (membership = source of
- * truth; free-tier ids missing from the live catalog get replaced). Static
- * deny-list is consulted only when the cache is absent (offline first-run).
+ * Strip free-tier per-agent model IDs so agents inherit the main/global model.
+ * Cache-backed: free-tier refs absent from live catalog OR probes-unreachable
+ * are deleted (inherit). Static deny-list only when cache is absent.
+ * Custom/paid non-opencode models are never touched.
  */
 function patchUnreliableAgentModels(dest, opencodeHome) {
   const agents = dest.agent || {};
   const cache = loadFreeModelCache(opencodeHome);
-  const { primary, heavy } = cache ? pickCacheModels(cache) : {};
 
-  for (const [name, cfg] of Object.entries(agents)) {
+  for (const [, cfg] of Object.entries(agents)) {
     if (!cfg || typeof cfg !== "object" || !cfg.model) continue;
-    let shouldReplace = false;
+    const bare = bareModel(cfg.model);
+    const isOpencodeFree =
+      String(cfg.model).startsWith("opencode/") || String(bare).endsWith("-free");
+    if (!isOpencodeFree) continue; // leave paid/custom alone
 
+    let shouldInherit = false;
     if (cache) {
-      const bare = bareModel(cfg.model);
-      // Only manage free-tier refs; leave custom/paid provider models alone.
-      shouldReplace = String(bare).endsWith("-free") && !cache.modelSet.has(bare);
+      const inModelSet = cache.modelSet.has(bare);
+      const isReachable =
+        cache.probes && cache.probes[bare]
+          ? cache.probes[bare].reachable === true
+          : true; // no probe data → keep only if still in catalog
+      shouldInherit = !inModelSet || !isReachable;
     } else {
-      shouldReplace = DEAD_OR_UNRELIABLE_MODELS.has(cfg.model);
+      shouldInherit = DEAD_OR_UNRELIABLE_MODELS.has(cfg.model);
     }
 
-    if (!shouldReplace) continue;
-    if (cache) {
-      cfg.model = name.includes("verifier") || name === "explore" ? primary : heavy;
-    } else {
-      // Offline fallback: pick from installed free-tier model refs
-      const offlinePick = pickOfflineModels(dest);
-      cfg.model = name.includes("verifier") || name === "explore"
-        ? offlinePick.primary
-        : offlinePick.heavy;
+    // Always prefer inherit for free-tier agent models (no per-agent pin).
+    if (shouldInherit || String(cfg.model).startsWith("opencode/")) {
+      delete cfg.model;
     }
   }
 }
 
-/** Offline fallback: pick primary/heavy from installed config model refs. */
+/** Offline fallback: prefer installed global model; else any free-tier agent ref. */
 function pickOfflineModels(dest) {
+  if (dest.model) return { primary: dest.model, heavy: dest.small_model || dest.model };
+  if (dest.small_model) return { primary: dest.small_model, heavy: dest.small_model };
   const models = new Set();
   const agent = dest.agent || {};
   for (const cfg of Object.values(agent)) {
@@ -286,11 +295,9 @@ function pickOfflineModels(dest) {
       models.add(cfg.model.split("/").pop());
     }
   }
-  const primary = models.has("mimo-v2.6-flash-free")
-    ? "opencode/mimo-v2.6-flash-free"
-    : models.size > 0 ? `opencode/${[...models][0]}` : "opencode/mimo-v2.6-flash-free";
-  const heavy = primary;
-  return { primary, heavy };
+  const primary =
+    models.size > 0 ? `opencode/${[...models][0]}` : undefined;
+  return { primary, heavy: primary };
 }
 
 function mergeOrchestraAgents(dest, patchAgents) {
@@ -300,7 +307,12 @@ function mergeOrchestraAgents(dest, patchAgents) {
       const existing = dest.agent[name] || {};
       const bundleSteps = cfg.steps || 200;
       const userSteps = existing.steps || 0;
-      dest.agent[name] = { ...cfg, steps: Math.max(bundleSteps, userSteps) };
+      const { model: _ignoreModel, ...rest } = cfg || {};
+      dest.agent[name] = { ...rest, steps: Math.max(bundleSteps, userSteps) };
+      // Inherit: never pin conductor/phase agent models from the bundle
+      if (dest.agent[name].model && String(dest.agent[name].model).startsWith("opencode/")) {
+        delete dest.agent[name].model;
+      }
     }
   }
 }

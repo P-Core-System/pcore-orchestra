@@ -4,7 +4,6 @@ description: >-
   Enterprise SDLC Phase 5,8,9 — Kubernetes cluster design, pod scheduling, service mesh, Helm charts, Kustomize, resource management, cluster autoscaling.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 200
 permission:
   edit: deny

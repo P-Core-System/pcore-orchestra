@@ -4,7 +4,6 @@ description: >-
   Enterprise SDLC Phase 0,11 — Linguistic analysis, corpus linguistics, syntax analysis, semantic analysis, discourse analysis, language pattern identification, multilingual support.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 120
 permission:
   edit: deny

@@ -4,7 +4,6 @@ description: >-
   Enterprise SDLC Phase 0,5,11 — Prompt design, chain-of-thought prompting, few-shot examples, prompt optimization, prompt testing, system prompt architecture, prompt versioning.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 200
 permission:
   edit: deny

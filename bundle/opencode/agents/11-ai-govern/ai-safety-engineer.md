@@ -4,7 +4,6 @@ description: >-
   Enterprise SDLC Phase 0,5,11 — AI safety testing, red teaming, adversarial robustness, jailbreak prevention, content filtering, safety guardrails, alignment verification.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 200
 permission:
   edit: deny

@@ -4,7 +4,6 @@ description: >-
   Enterprise SDLC Phase 5,11 — Semantic analysis, word sense disambiguation, semantic similarity, semantic roles, ontology design, knowledge graph construction.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 200
 permission:
   edit: deny

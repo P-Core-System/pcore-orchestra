@@ -6,7 +6,6 @@ description: >-
   who writes specifications; product-owner decides WHAT to build and WHY.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/ling-3.0-flash-fin-free
 steps: 150
 permission:
   edit: deny
