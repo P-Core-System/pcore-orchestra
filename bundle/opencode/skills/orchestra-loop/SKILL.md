@@ -47,17 +47,19 @@ When orchestra is **active**, or the user said **continue / until finish / do al
 
 ## Models & preflight
 
+Model IDs are **assigned dynamically** — no hardcoded free-model IDs here.
+
 | Role | Primary model | Fallback chain |
 |------|--------------|----------------|
-| planner / implementer / reviewer / backend | mimo-v2.6-flash-free | mimo-v2.6-flash-free → ling-3.0-flash-fin-free |
-| verifier / small_model | mimo-v2.6-flash-free | mimo-v2.6-flash-free → big-pickle |
-| frontend | mimo-v2.6-flash-free | mimo-v2.6-flash-free (muse-spark/nemotron region-blocked in some locales) |
+| planner / implementer / reviewer / backend | light free pool head (set by `--apply`) | primary → heavy free pool head |
+| verifier / small_model | light free pool head (set by `--apply`) | primary → next light free model |
+| frontend | light free pool head (set by `--apply`) | frontend pool head when available |
 
 **Before use:** run `bash scripts/update-free-models.sh --refresh` then `bash scripts/update-free-models.sh --probe` to validate configured models respond (not just listed).
 
-**Auto pools:** `--refresh` regenerates `~/.config/opencode/state/model-pools.json` (frontend/heavy/light) from the live Zen catalog; use `--pools` to print them. Static chains below are the offline fallback only.
+**Auto pools:** `--refresh` regenerates `~/.config/opencode/state/model-pools.json` (frontend/heavy/light) from the live Zen catalog; use `--pools` to print them, `--apply` to rewrite configs/agent frontmatter from the pools, `--schedule` to install the weekly refresh timer.
 
-**On model error:** run `--refresh` to re-fetch the model list, then retry the next model in that role's fallback chain.
+**On model error:** run `--refresh --apply` to re-fetch and re-assign, then retry with the heavy fallback from `--pools`.
 
 ## Ambient mode (default ON)
 

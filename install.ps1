@@ -161,6 +161,19 @@ function Install-OpenCode {
     & (Join-Path $Root "scripts\ensure-opencode-latest.ps1")
   }
 
+  # Free-model refresh + dynamic apply (before agent copy + autonomy merge so
+  # installed files carry the current light/heavy free-pool assignment).
+  Write-Host "==> Free-model refresh + apply"
+  $bashCmd = Get-Command bash -ErrorAction SilentlyContinue
+  if ($bashCmd) {
+    & bash (Join-Path $Root "scripts\update-free-models.sh") --refresh --apply
+    if ($LASTEXITCODE -ne 0) {
+      Write-Host "WARN free-model refresh/apply failed (offline first-run?) - keeping existing model IDs"
+    }
+  } else {
+    Write-Host "WARN bash not found - skipping free-model refresh (run update-free-models.sh from Git Bash)"
+  }
+
   @(
     (Join-Path $OpenCodeDir "hooks\state"),
     (Join-Path $OpenCodeDir "hooks\lib"),
@@ -231,6 +244,17 @@ function Install-OpenCode {
 
   # Autonomy: merge permission/agent into opencode.json (preserves mcp secrets)
   node (Join-Path $Root "scripts\merge-autonomy-config.js") --opencode --opencode-home $OpenCodeDir
+
+  # Weekly free-model schedule (Windows has no systemd — schtasks Monday 04:17)
+  if ($bashCmd) {
+    $scriptPath = (Join-Path $Root "scripts\update-free-models.sh").Replace('\', '/')
+    schtasks /Create /F /SC WEEKLY /D MON /ST 04:17 /TN "pcore-free-models" /TR "bash `"$scriptPath`" --refresh --apply" 2>&1 | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+      Write-Host "  Free-model schedule: schtasks pcore-free-models (Mon 04:17)"
+    } else {
+      Write-Host "WARN schtasks failed - schedule manually: bash $scriptPath --refresh --apply (weekly)"
+    }
+  }
 
   Write-Host "  OpenCode agents:  $OpenCodeDir\agents\orchestra-*.md"
   Write-Host "  OpenCode hooks:   $OpenCodeDir\hooks\"

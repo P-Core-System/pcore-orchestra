@@ -3,7 +3,7 @@ name: infrastructure-defender
 description: >-
   Enterprise SDLC Phase 6,8 — Infrastructure security, network defense, firewall management, IDS/IPS tuning, DDoS protection, infrastructure hardening.
 mode: subagent
-model: opencode/mimo-v2.6-flash-free
+model: opencode/ling-3.0-flash-fin-free
 steps: 100
 permission:
   edit: deny

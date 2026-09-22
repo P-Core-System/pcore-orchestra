@@ -4,7 +4,7 @@ description: >-
   Enterprise SDLC Phase 0,10 — Budgeting, ROI analysis, cost-benefit analysis, financial modeling, unit economics, burn rate tracking.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/mimo-v2.6-flash-free
+model: opencode/ling-3.0-flash-fin-free
 steps: 120
 permission:
   edit: deny

@@ -46,9 +46,9 @@ Usage:
   bash setup-opencode-proxy.sh --help       Show this help
 
 Free Zen models (as of August 2026):
-  mimo-v2.6-flash-free, mimo-v2.6-flash-free, big-pickle,
-  kimi-k2.5-free, mimo-v2.6-flash-free, mimo-v2.6-flash-free,
-  hy3-free, mimo-v2.6-flash-free, qwen3.6-plus-free, minimax-m3-free
+  Live catalog only — no static list. Run:
+    bash scripts/update-free-models.sh --refresh --pools
+  to print the current free-model pools (frontend/heavy/light).
 
 Multi-key rotation tools:
   opencode-go-multi-auth  — Go + Zen multi-key proxy (recommended)
@@ -144,18 +144,14 @@ configure_free() {
 
   detect_opencode || return 1
 
+  local free_cache="${OPENCODE_CONFIG_DIR}/state/free-models.json"
   echo ""
-  echo "  Free Zen models available:"
-  echo "    mimo-v2.6-flash-free              (strong general coding)"
-  echo "    mimo-v2.6-flash-free (frontend/UI)"
-  echo "    big-pickle                    (balanced)"
-  echo "    kimi-k2.5-free                (strong reasoning)"
-  echo "    mimo-v2.6-flash-free         (balanced)"
-  echo "    mimo-v2.6-flash-free   (fast, lightweight)"
-  echo "    hy3-free                      (fast)"
-  echo "    mimo-v2.6-flash-free                (fast)"
-  echo "    qwen3.6-plus-free             (strong reasoning)"
-  echo "    minimax-m3-free               (balanced)"
+  echo "  Free Zen models available (live catalog):"
+  if [[ -f "$free_cache" ]] && command -v python3 &>/dev/null; then
+    python3 -c "import json,sys; ms=json.load(open(sys.argv[1])).get('models', []); [print('    '+m) for m in ms] or print('    (cache empty — run update-free-models.sh --refresh)')" "$free_cache"
+  else
+    echo "    (no cache — run: bash scripts/update-free-models.sh --refresh)"
+  fi
   echo ""
   echo -e "${YELLOW}⚠ Free models may use data for training. Not for sensitive code.${NC}"
   echo ""
@@ -181,32 +177,34 @@ configure_free() {
 
   mkdir -p "$OPENCODE_CONFIG_DIR"
 
-  cat > "$OPENCODE_CONFIG" <<'FREECONFIG'
-{
-  "$schema": "https://opencode.ai/config.json",
-  "provider": {
-    "opencode-free-zen": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "OpenCode Zen Free",
-      "options": {
-        "baseURL": "https://opencode.ai/zen/v1"
-      },
-      "models": {
-        "mimo-v2.6-flash-free": {},
-        "mimo-v2.6-flash-free": {},
-        "big-pickle": {},
-        "kimi-k2.5-free": {},
-        "mimo-v2.6-flash-free": {},
-        "mimo-v2.6-flash-free": {},
-        "hy3-free": {},
-        "mimo-v2.6-flash-free": {},
-        "qwen3.6-plus-free": {},
-        "minimax-m3-free": {}
-      }
-    }
-  }
+  if [[ ! -f "$free_cache" ]]; then
+    err "No free-models cache at $free_cache"
+    info "Run: bash scripts/update-free-models.sh --refresh  (then re-run --free)"
+    return 1
+  fi
+
+  python3 - "$OPENCODE_CONFIG" "$free_cache" <<'PYFREE'
+import json, sys
+
+out, cache_file = sys.argv[1], sys.argv[2]
+models = json.load(open(cache_file)).get("models", [])
+if not models:
+    sys.exit("free-models cache empty — run update-free-models.sh --refresh first")
+cfg = {
+    "$schema": "https://opencode.ai/config.json",
+    "provider": {
+        "opencode-free-zen": {
+            "npm": "@ai-sdk/openai-compatible",
+            "name": "OpenCode Zen Free",
+            "options": {"baseURL": "https://opencode.ai/zen/v1"},
+            "models": {m: {} for m in models},
+        }
+    },
 }
-FREECONFIG
+with open(out, "w") as f:
+    json.dump(cfg, f, indent=2)
+    f.write("\n")
+PYFREE
 
   ok "Free model config written to $OPENCODE_CONFIG"
 
@@ -216,11 +214,13 @@ FREECONFIG
   echo "  1. Ensure you have an OpenCode API key:"
   echo "     opencode auth login"
   echo ""
-  echo "  2. Test a free model:"
-  echo "     opencode run --model opencode-free-zen/north-mini-code-free 'write hello world'"
+  echo "  2. Test the weekly primary (light free pool head):"
+  echo "     bash scripts/update-free-models.sh --pools   # see current primary"
+  echo "     opencode run --model opencode-free-zen/<model-from-pools> 'write hello world'"
   echo ""
-  echo "  3. For orchestration, use north-mini-code-free or minimax-m2.5-free"
-  echo "     as they handle multi-step tasks better."
+  echo "  3. Keep models fresh weekly:"
+  echo "     bash scripts/update-free-models.sh --refresh --apply"
+  echo "     bash scripts/update-free-models.sh --schedule   # systemd/cron timer"
   echo ""
   echo "  4. For production work, consider upgrading to OpenCode Go ($10/mo)"
   echo "     for zero-retention, stronger models."
@@ -276,12 +276,12 @@ configure_multi_key() {
   echo '    "name": "OpenCode Zen (multi-auth)",'
   echo '    "options": { "baseURL": "http://localhost:18905/zen" },'
   echo '    "models": {'
-  echo "      "mimo-v2.6-flash-free": {},'
-  echo '      "mimo-v2.6-flash-free": {},'
-  echo '      "big-pickle": {},'
-  echo '      "kimi-k2.5-free": {},'
-  echo '      "mimo-v2.6-flash-free": {},'
-  echo '      "mimo-v2.6-flash-free": {}'
+  local multi_cache="${OPENCODE_CONFIG_DIR}/state/free-models.json"
+  if [[ -f "$multi_cache" ]] && command -v python3 &>/dev/null; then
+    python3 -c "import json,sys; ms=json.load(open(sys.argv[1])).get('models', []); [print('      \"%s\": {},' % m) for m in ms[:6]]" "$multi_cache"
+  else
+    echo '      "<free-model-id>": {},   # run update-free-models.sh --refresh for the live list'
+  fi
   echo "    }"
   echo "  }"
   echo ""

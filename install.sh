@@ -41,6 +41,8 @@ Options:
 
 OpenCode: upgrades CLI via scripts/ensure-opencode-latest.sh unless skipped.
           Set OPENCODE_CHANNEL=beta|dev for pre-release builds.
+          Runs free-model refresh + --apply once, then installs the weekly
+          schedule (systemd user timer; cron fallback if systemd missing).
           Restart the OpenCode desktop app after install (sidecar sync).
 
 No flags = --all. Restart IDE/editor after install.
@@ -175,6 +177,15 @@ install_opencode() {
     }
   fi
 
+  # Free-model refresh + dynamic apply (before agent copy + autonomy merge so
+  # installed files carry the current light/heavy free-pool assignment).
+  echo "==> Free-model refresh + apply"
+  if bash "$ROOT/scripts/update-free-models.sh" --refresh --apply; then
+    echo "  Free models: bundle config + agent frontmatter updated from live cache"
+  else
+    echo "WARN free-model refresh/apply failed (offline first-run?) — keeping existing model IDs"
+  fi
+
   mkdir -p "$OPENCODE/agents" "$OPENCODE/skills" "$OPENCODE/state" "$OPENCODE/hooks"
 
   # Copy OpenCode agents (conductor + core + enterprise category dirs)
@@ -229,6 +240,14 @@ install_opencode() {
 
   # Autonomy: merge permission/agent into opencode.json (preserves mcp secrets)
   node "$ROOT/scripts/merge-autonomy-config.js" --opencode --opencode-home "$OPENCODE"
+
+  # Weekly free-model schedule: systemd user timer; cron fallback if missing
+  if bash "$ROOT/scripts/update-free-models.sh" --schedule; then
+    echo "  Free-model schedule: weekly refresh+apply installed"
+  else
+    echo "WARN could not install weekly free-model schedule — add manually:"
+    echo "      17 4 * * 1 bash $ROOT/scripts/update-free-models.sh --refresh --apply"
+  fi
 
   echo "  OpenCode agents:  $OPENCODE/agents/ (core + enterprise)"
   echo "  OpenCode skills:  $OPENCODE/skills/ (orchestra-loop + intake/verify + UI + Cloudflare)"
@@ -373,6 +392,7 @@ if [[ "$INSTALL_OPENCODE" -eq 1 ]]; then
   echo "  OpenCode global: $OPENCODE"
   echo "  OpenCode tip:    opencode --auto  (session auto-approve; denies still bind)"
   echo "  OpenCode test:   node $OPENCODE/hooks/orchestra-health-opencode.js"
+  echo "  Free models:     bash scripts/update-free-models.sh --refresh --apply (weekly via systemd/cron)"
 fi
 echo "  Repo scoping:    ~/.local/bin/setup-repo-scoping.sh (run on any repo)"
 echo "  Maintenance:    ~/.local/bin/opencode-maintenance.sh --apply (clean DB/logs)"

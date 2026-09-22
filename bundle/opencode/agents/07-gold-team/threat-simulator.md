@@ -3,7 +3,7 @@ name: threat-simulator
 description: >-
   Enterprise SDLC Phase 6,7 — Advanced threat simulation, real-world attack campaigns, multi-vector attacks, persistence mechanisms, data exfiltration simulation.
 mode: subagent
-model: opencode/mimo-v2.6-flash-free
+model: opencode/ling-3.0-flash-fin-free
 steps: 150
 permission:
   edit: deny

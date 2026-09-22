@@ -3,7 +3,7 @@ name: security-executive-advisor
 description: >-
   Enterprise SDLC Phase 0,24 — Security executive briefing, risk communication, board reporting, security investment justification, security culture.
 mode: subagent
-model: opencode/mimo-v2.6-flash-free
+model: opencode/ling-3.0-flash-fin-free
 steps: 150
 permission:
   edit: deny

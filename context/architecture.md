@@ -10,6 +10,7 @@
 | Persistent state | JSON file | `~/.cursor/hooks/state/orchestra.json` |
 | Project context | Markdown six files | `context/*.md` in target repos |
 | Install | Bash + PowerShell | `install.sh`, `install.ps1`, `scripts/init-context.*`, `scripts/merge-autonomy-config.js` |
+| Free-model ops | Bash + systemd/cron | `scripts/update-free-models.sh` (`--refresh`/`--apply`/`--check`/`--schedule`), `scripts/systemd/pcore-free-models.{service,timer}` (weekly OnCalendar; cron fallback) |
 | Repo scoping | `.ignore` + `.cursorignore` + `.gitignore` | Cross-tool ignore files prevent scanning `node_modules/`, `vendor/`, `venv/`, caches |
 | Scoping scripts | Bash | `scripts/setup-repo-scoping.sh` (auto-detect single vs monorepo), `scripts/opencode-maintenance.sh` (DB/log housekeeping) |
 
@@ -51,7 +52,9 @@
 | `bundle/skills/{ui-ux-pro-max,brand,design-system,ui-styling}/` | Vendored UI skills (real assets; MIT — see `THIRD_PARTY.md`) |
 | `bundle/config/cursor/` | CLI autonomy patch + `permissions.json` + `sandbox.json` |
 | `bundle/config/opencode/autonomy.json` | OpenCode permission/agent profile (install merges; preserves `mcp`) |
-| `scripts/merge-autonomy-config.js` | Install-time merge for Cursor + OpenCode autonomy |
+| `scripts/merge-autonomy-config.js` | Install-time merge for Cursor + OpenCode autonomy (cache-backed free-model replacement; static deny-list offline fallback) |
+| `scripts/update-free-models.sh` | Free-model catalog ops: `--refresh` (fetch+generate pools), `--check` (DEAD/STALE validation), `--apply` (dynamic primary/heavy assignment into autonomy.json + example + installed free-tier refs + agent frontmatter), `--pools`, `--probe`, `--schedule` (weekly timer/cron) |
+| `scripts/systemd/pcore-free-models.{service,timer}` | Weekly user timer (`OnCalendar=weekly`) invoking `--refresh --apply`; unit template uses `@REPO_ROOT@` substituted by `--schedule`; cron fallback when systemd missing |
 | `bundle/opencode/agents/` | OpenCode mirrors (core + enterprise) |
 | `templates/context/specs/` | Unit spec blanks (methodology Part 3) |
 | `project-bridge/` | Repo-local delegation only — no duplicate logic |
@@ -72,6 +75,8 @@
 | Daily planner | `~/.cursor/hooks/state/orchestra-daily.json` | Daily journal, progress reports, metrics |
 | Version/release | `~/.cursor/hooks/state/orchestra-version.json` | Semver, changelog, release notes |
 | Installed bundle | `~/.cursor/hooks`, `agents`, `skills`, `rules` | Copied from `bundle/` on install |
+| Free-model cache | `~/.config/opencode/state/free-models.json` | Live Zen free catalog (written by `--refresh`; source of truth for `--apply` + merge) |
+| Free-model pools | `~/.config/opencode/state/model-pools.json` | frontend/heavy/light pools (regenerated each `--refresh`; `--apply` picks light head = primary, heavy head = fallback) |
 | Target project context | `<project>/context/*.md` | Created by `init-context` or manually |
 | Target entry point | `<project>/AGENTS.md` | Points agents to six files |
 | Project identity | `<project>/project.yaml` | Universal project identity, version, lifecycle, team, stack, environments |

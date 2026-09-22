@@ -3,7 +3,7 @@ name: rule-enforcer
 description: >-
   Enterprise SDLC Phase 6,7 — Rules of engagement enforcement, scope boundary monitoring, violation detection, legal compliance during exercises.
 mode: subagent
-model: opencode/mimo-v2.6-flash-free
+model: opencode/ling-3.0-flash-fin-free
 steps: 100
 permission:
   edit: deny

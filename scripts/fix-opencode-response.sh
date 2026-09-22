@@ -3,7 +3,7 @@
 #
 # Common causes (1.18.19 → 1.18.21 + pcore-orchestra):
 #   - Desktop sidecar out of sync with CLI (restart app)
-#   - Dead/silent free models (mimo-v2.6-flash-free, hy3-free) on default agents
+#   - Dead/silent free models on default agents (see update-free-models.sh --check)
 #   - Remote MCP servers blocking session start (neon, n8n)
 #   - Orchestra conductor using Cursor Task syntax instead of OpenCode task tool
 #   - orchestra.md not installed (install only copied orchestra-*.md)

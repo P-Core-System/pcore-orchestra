@@ -189,18 +189,76 @@ const DEAD_OR_UNRELIABLE_MODELS = new Set([
   "opencode/north-mini-code-free",
   "opencode/ling-3.0-flash-free",
 ]);
-/** Heaviest free model that works everywhere (local + server). */
+/** Heaviest free model fallback (offline only — cache preferred when present). */
 const RELIABLE_HEAVY = "opencode/ling-3.0-flash-fin-free";
-/** Lightest free model that works everywhere (local + server). */
+/** Lightest free model fallback (offline only — cache preferred when present). */
 const RELIABLE_LIGHT = "opencode/mimo-v2.6-flash-free";
 
-function patchUnreliableAgentModels(dest) {
+/**
+ * Load the live free-model cache + pools for an OpenCode home.
+ * Returns null when absent/empty (offline first-run) so callers can fall
+ * back to the static deny-list above.
+ */
+function loadFreeModelCache(opencodeHome) {
+  const cacheFile = path.join(opencodeHome, "state", "free-models.json");
+  const poolsFile = path.join(opencodeHome, "state", "model-pools.json");
+  const cache = readJson(cacheFile);
+  if (!cache || !Array.isArray(cache.models) || cache.models.length === 0) {
+    return null;
+  }
+  const poolsData = readJson(poolsFile, {});
+  const pools = (poolsData && poolsData.pools) || {};
+  return { models: cache.models, modelSet: new Set(cache.models), pools };
+}
+
+/** Pick primary (light free) + heavy fallback from cache pools — no hardcoded IDs. */
+function pickCacheModels(cache) {
+  const inModels = (id) => cache.modelSet.has(id);
+  const light = ((cache.pools.light || []).map((e) => e.id) || []).filter(inModels);
+  const heavy = ((cache.pools.heavy || []).map((e) => e.id) || []).filter(inModels);
+  const frontend = ((cache.pools.frontend || []).map((e) => e.id) || []).filter(inModels);
+  const primary = light[0] || cache.models[0];
+  const heavyId =
+    heavy.find((id) => id !== primary) ||
+    frontend.find((id) => id !== primary) ||
+    cache.models.find((id) => id !== primary) ||
+    primary;
+  return { primary: `opencode/${primary}`, heavy: `opencode/${heavyId}` };
+}
+
+function bareModel(model) {
+  return typeof model === "string" && model.includes("/")
+    ? model.slice(model.lastIndexOf("/") + 1)
+    : model;
+}
+
+/**
+ * Replace dead/unreliable agent models.
+ * Cache-backed when state/free-models.json exists (membership = source of
+ * truth; free-tier ids missing from the live catalog get replaced). Static
+ * deny-list is consulted only when the cache is absent (offline first-run).
+ */
+function patchUnreliableAgentModels(dest, opencodeHome) {
   const agents = dest.agent || {};
+  const cache = loadFreeModelCache(opencodeHome);
+  const { primary, heavy } = cache ? pickCacheModels(cache) : {};
+
   for (const [name, cfg] of Object.entries(agents)) {
-    if (!cfg || typeof cfg !== "object") continue;
-    const model = cfg.model;
-    if (!model || !DEAD_OR_UNRELIABLE_MODELS.has(model)) continue;
-    if (name.includes("verifier") || name === "explore") {
+    if (!cfg || typeof cfg !== "object" || !cfg.model) continue;
+    let shouldReplace = false;
+
+    if (cache) {
+      const bare = bareModel(cfg.model);
+      // Only manage free-tier refs; leave custom/paid provider models alone.
+      shouldReplace = String(bare).endsWith("-free") && !cache.modelSet.has(bare);
+    } else {
+      shouldReplace = DEAD_OR_UNRELIABLE_MODELS.has(cfg.model);
+    }
+
+    if (!shouldReplace) continue;
+    if (cache) {
+      cfg.model = name.includes("verifier") || name === "explore" ? primary : heavy;
+    } else if (name.includes("verifier") || name === "explore") {
       cfg.model = RELIABLE_LIGHT;
     } else {
       cfg.model = RELIABLE_HEAVY;
@@ -241,7 +299,7 @@ function mergeOpenCodeAutonomy(opencodeHome) {
   if (patch.snapshot !== undefined) dest.snapshot = patch.snapshot;
   dest.permission = { ...(dest.permission || {}), ...(patch.permission || {}) };
   mergeOrchestraAgents(dest, patch.agent);
-  patchUnreliableAgentModels(dest);
+  patchUnreliableAgentModels(dest, opencodeHome);
 
   // Replace broad instruction globs (do not union — union kept **/templates/** forever)
   if (patch.instructions) {

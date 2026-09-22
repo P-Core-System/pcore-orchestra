@@ -67,6 +67,9 @@ bash scripts/setup-cursor-model.sh
 # Validate OpenCode free models (config + all agent frontmatter)
 bash scripts/update-free-models.sh --check
 bash scripts/update-free-models.sh --refresh  # refetch list first
+bash scripts/update-free-models.sh --refresh --apply  # dynamic primary+heavy from live pools
+bash scripts/update-free-models.sh --pools    # print frontend/heavy/light pools
+bash scripts/update-free-models.sh --schedule # weekly timer (systemd; cron fallback)
 
 # Autonomy merge only (no full bundle copy)
 node scripts/merge-autonomy-config.js --all

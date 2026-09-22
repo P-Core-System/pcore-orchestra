@@ -4,7 +4,7 @@ description: >-
   Enterprise SDLC Phase 5,11 — Model explainability, SHAP/LIME integration, feature importance, model interpretability, explanation generation, audit trails.
   Use proactively when this specialist's phase is active.
 mode: subagent
-model: opencode/mimo-v2.6-flash-free
+model: opencode/ling-3.0-flash-fin-free
 steps: 200
 permission:
   edit: deny
