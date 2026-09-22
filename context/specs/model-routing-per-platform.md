@@ -2,7 +2,7 @@
 
 ## Goal
 
-Orchestra routes model selection per platform and per agent role: Cursor uses `composer-2.5` (daily) → `grok-4.6` (hard tasks); OpenCode uses free models only with **dynamic** assignment — `scripts/update-free-models.sh --apply` picks the light free-pool head as primary and the heavy free-pool head as fallback from the live cache (no hardcoded free-model IDs), refreshed weekly via systemd timer / cron.
+Orchestra routes model selection per platform and per agent role: Cursor uses `composer-2.5` (daily) → `grok-4.6` (hard tasks); OpenCode uses free models only with **dynamic** assignment — `scripts/update-free-models.sh --apply` picks the highest-stability probe-reachable free model (any pool; light-pool head fallback) as primary and a reachable heavy/free model as fallback from the live cache (no hardcoded free-model IDs; curated `KNOWN_FREE` covers stealth-free models like `big-pickle` whose id lacks "free" and whose Zen pricing is empty), refreshed weekly via systemd timer / cron.
 
 ## Context
 
@@ -13,10 +13,10 @@ Orchestra routes model selection per platform and per agent role: Cursor uses `c
 
 1. Cursor agent frontmatter: `model: composer-2.5` for core agents; enterprise specialists (architect, tech-lead, security, performance) use `model: grok-4.6`
 2. OpenCode agent frontmatter: **no** `model:` hardcodes — agents inherit top-level `model`/`small_model` (set by `--apply` from probe-ordered free pools; no hardcoded free IDs)
-3. OpenCode: `scripts/update-free-models.sh --refresh` fetches live Zen catalog → writes `model-pools.json` ordered by `probes.json`; `--apply` picks primary (light) + heavy fallback and rewrites **only** global `model`/`small_model` in `bundle/config/opencode/autonomy.json`, `docs/opencode.json.example`, and installed `opencode.json`, and **strips** agent frontmatter/`agent.*.model` hardcodes — fetches first if cache missing/empty; aborts only if fetch fails with no cache; `--check` validates configured models exist in cache/pools and flags UNREACHABLE via probes; `--pools` prints pool contents; `--schedule` installs weekly refresh (systemd user timer `OnCalendar=weekly`, cron fallback)
+3. OpenCode: `scripts/update-free-models.sh --refresh` fetches live Zen catalog → writes `model-pools.json` ordered by `probes.json`; `--apply` picks primary (highest-stability reachable) + heavy fallback and rewrites **only** global `model`/`small_model` in `bundle/config/opencode/autonomy.json`, `docs/opencode.json.example`, and installed `opencode.json`, and **strips** agent frontmatter/`agent.*.model` hardcodes — fetches first if cache missing/empty; aborts only if fetch fails with no cache; `--check` validates configured models exist in cache/pools and flags UNREACHABLE via probes; `--pools` prints pool contents; `--schedule` installs weekly refresh (systemd user timer `OnCalendar=weekly`, cron fallback)
 4. `opencode-token-profile.js`: `REASONING` object maps each agent to `reasoningEffort`/`textVerbosity` (conductor/verifier low; planner/implementer/reviewer medium)
 5. `merge-autonomy-config.js`: free-tier **per-agent** `model` keys are **deleted** (inherit global); static deny-list only when the cache is absent (offline first-run). Custom/paid provider models are never touched. Probe-unreachable free IDs in cache are also stripped from agents
-6. OpenCode `opencode.json.example`: top-level `model` / `small_model` / `provider.opencode.models` track the `--apply` primary (probe-ordered light free pool head); agent blocks have no `model` key
+6. OpenCode `opencode.json.example`: top-level `model` / `small_model` / `provider.opencode.models` track the `--apply` primary (highest-stability probe-ordered free model); agent blocks have no `model` key
 7. Conductor-first routing: `orchestra` conductor is `default_agent` with `mode: primary`, `reasoningEffort: low`; phase agents are `hidden: true`
 8. Docs: `README.md` feature table + token optimization table reflect model routing; `docs/orchestra-cross-platform.md` Models section current (dynamic, no hardcoded free IDs)
 9. `install.sh` / `install.ps1` on the OpenCode path run `--refresh --apply` once (non-fatal offline) then install the weekly schedule (systemd/cron on Linux, schtasks on Windows)

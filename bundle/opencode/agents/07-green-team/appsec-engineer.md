@@ -1,4 +1,4 @@
-﻿---
+---
 name: appsec-engineer
 description: >-
   Enterprise SDLC Phase 2,5,6 — Application security engineering, secure design review, threat modeling, security requirements, security architecture.
@@ -6,11 +6,11 @@ mode: subagent
 steps: 200
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
-Default: composer-2.5 on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Guardian · Green Team

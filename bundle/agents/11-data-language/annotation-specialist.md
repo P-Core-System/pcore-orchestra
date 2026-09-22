@@ -1,4 +1,4 @@
-﻿---
+---
 name: annotation-specialist
 description: >-
   Enterprise SDLC Phase 5,11 — Annotation task design, label schema creation, annotator training, inter-annotator agreement measurement, annotation quality control, annotation pipeline management.
@@ -7,12 +7,12 @@ readonly: true
 model: composer-2.5
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Label · Team Annotation

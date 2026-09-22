@@ -1,4 +1,4 @@
-﻿---
+---
 name: translation-coordinator
 description: >-
   Enterprise SDLC Phase 0,11 — Translation pipeline design, bilingual data collection, translation quality assessment, localization workflow, machine translation evaluation.
@@ -7,12 +7,12 @@ mode: subagent
 steps: 100
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Bridge · Team Multilingual

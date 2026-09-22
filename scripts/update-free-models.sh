@@ -10,7 +10,8 @@
 #     Offline -> use stale cache with warning.
 #   --refresh: refetch then check.
 #   --pools: print auto-generated pools from cache (regenerate if stale/missing).
-#   --apply: pick primary (light free) + heavy fallback DYNAMICALLY from
+#   --apply: pick primary (highest-stability probe-reachable free model, all
+#     pools) + heavy fallback DYNAMICALLY from
 #     state/free-models.json + state/model-pools.json ordered by probes.json
 #     reachability/stability (no hardcoded IDs) and atomically rewrite ONLY
 #     global model/small_model in bundle/config/opencode/autonomy.json,
@@ -55,6 +56,14 @@ KNOWN_DEAD=(
 )
 KNOWN_DEAD_CSV="$(IFS=,; echo "${KNOWN_DEAD[*]}")"
 
+# Free on Zen docs but no "free" in id and empty pricing in /v1/models.
+# Docs: Big Pickle is Free/Free/Free (stealth free-for-limited-time).
+KNOWN_FREE=(
+  "big-pickle"
+)
+KNOWN_FREE_CSV="$(IFS=,; echo "${KNOWN_FREE[*]}")"
+# Free/curated models also classified into the light pool (by id, not name keyword).
+
 # ── Load probe reachability data ────────────────────────────
 # Returns a JSON string of {modelId: {reachable, timestamp, error?}} or "{}"
 load_probes() {
@@ -81,7 +90,8 @@ import json, os, sys, datetime
 
 cache_file = sys.argv[1]
 pools_file = sys.argv[2]
-known_dead = set(sys.argv[3].split(',')) if len(sys.argv) > 3 and sys.argv[3] else set()
+known_dead = set(x for x in sys.argv[3].split(',') if x) if len(sys.argv) > 3 and sys.argv[3] else set()
+known_free = set(x for x in sys.argv[5].split(',') if x) if len(sys.argv) > 5 and sys.argv[5] else set()
 probes = json.loads(sys.argv[4]) if len(sys.argv) > 4 and sys.argv[4] else {}
 
 def is_reachable(mid):
@@ -106,9 +116,10 @@ try:
         inp = pricing.get('input', 1)
         out = pricing.get('output', 1)
         try:
-            is_free = (float(inp) == 0 and float(out) == 0) or 'free' in mid.lower()
+            zero_price = float(inp) == 0 and float(out) == 0
         except (ValueError, TypeError):
-            is_free = 'free' in mid.lower()
+            zero_price = False
+        is_free = zero_price or 'free' in mid.lower() or mid in known_free
         if is_free:
             ctx = 0
             for key in ('context_window', 'context_length'):
@@ -138,7 +149,7 @@ for mid in cache.get('models', []):
 
     in_frontend = any(k in lower for k in ('spark', 'muse', 'design', 'ui', 'vision'))
     in_heavy = ctx >= 400000 or any(k in lower for k in ('pro', 'max', 'ultra', 'preview', 'coder', 'kimi', 'glm', 'minimax'))
-    in_light = any(k in lower for k in ('flash', 'lightning', 'mini', 'nano', 'fast', 'lite', 'hy3'))
+    in_light = (mid in known_free) or any(k in lower for k in ('flash', 'lightning', 'mini', 'nano', 'fast', 'lite', 'hy3'))
 
     entry = {'id': mid, 'provider': 'opencode', 'context': ctx}
 
@@ -171,7 +182,7 @@ os.replace(tmp_pools, pools_file)
 
 for name, items in pools.items():
     print('  %s: %d models' % (name, len(items)))
-" "$CACHE_FILE" "$POOLS_FILE" "$KNOWN_DEAD_CSV" "$probes_json"
+" "$CACHE_FILE" "$POOLS_FILE" "$KNOWN_DEAD_CSV" "$probes_json" "$KNOWN_FREE_CSV"
 }
 
 # ── Fetch free models ───────────────────────────────────────────────
@@ -185,7 +196,8 @@ fetch_free_models() {
     if command -v python3 &>/dev/null; then
       python3 -c "
 import json, sys
-known_dead = set('$KNOWN_DEAD_CSV'.split(','))
+known_dead = set('$KNOWN_DEAD_CSV'.split(',')) if '$KNOWN_DEAD_CSV' else set()
+known_free = set(x for x in '$KNOWN_FREE_CSV'.split(',') if x)
 with open('$tmp') as f:
     data = json.load(f)
 models = data if isinstance(data, list) else data.get('data', [])
@@ -196,18 +208,25 @@ for m in models:
     inp = pricing.get('input', 1)
     out = pricing.get('output', 1)
     try:
-        is_free = (float(inp) == 0 and float(out) == 0) or 'free' in mid.lower()
+        zero_price = float(inp) == 0 and float(out) == 0
     except (ValueError, TypeError):
-        is_free = 'free' in mid.lower()
+        zero_price = False
+    is_free = zero_price or 'free' in mid.lower() or mid in known_free
     if is_free and mid not in known_dead:
         free.append(mid)
 print(json.dumps({'models': sorted(free), 'fetched': '$(date -u +%Y-%m-%dT%H:%M:%SZ)'}, indent=2))
 " > "${CACHE_FILE}.tmp"
     elif command -v jq &>/dev/null; then
-      jq --arg known_dead "$KNOWN_DEAD_CSV" '[.data[]? // .[]? | select(
-        ((.pricing.input // "1") | tonumber == 0 and (.pricing.output // "1") | tonumber == 0)
-        or (.id | ascii_downcase | test("free"))
-      ) | select((.id // empty as $mid | $known_dead | split(",") | index($mid)) | not) | .id] | {models: (sort_by(.) | .[]), fetched: (now | todate)}' "$tmp" > "${CACHE_FILE}.tmp" 2>/dev/null || {
+      jq --arg known_dead "$KNOWN_DEAD_CSV" --arg known_free "$KNOWN_FREE_CSV" '
+        ($known_dead | split(",")) as $dead |
+        ($known_free | split(",")) as $free_extra |
+        [.data[]? // .[]? | select(
+          ((.pricing.input // "1") | tonumber? // 1) == 0 and ((.pricing.output // "1") | tonumber? // 1) == 0
+          or (.id | ascii_downcase | test("free"))
+          or ((.id // "") as $mid | $free_extra | index($mid))
+        ) | select((.id // empty as $mid | $dead | index($mid)) | not) | .id]
+        | {models: (sort_by(.) | .[]), fetched: (now | todate)}
+      ' "$tmp" > "${CACHE_FILE}.tmp" 2>/dev/null || {
         err "jq parse failed"
         rm -f "$tmp" "${CACHE_FILE}.tmp"
         return 1
@@ -662,9 +681,12 @@ def is_reachable(mid):
 def stability_score(mid):
     return probes.get(mid, {}).get('stability_score', 0)
 
-# Primary: first reachable light model sorted by stability_score
-reachable_light = sorted([m for m in light if is_reachable(m)], key=stability_score, reverse=True)
-primary = reachable_light[0] if reachable_light else (light[0] if light else models[0])
+# Primary: highest-stability probe-reachable free model (any pool, not just light).
+# Falls back to light pool head, then first free model.
+reachable_all = sorted(models, key=lambda m: (0 if is_reachable(m) else 1, -stability_score(m), 0 if m in light else 1))
+primary = reachable_all[0] if reachable_all else models[0]
+if not is_reachable(primary) and light:
+    primary = light[0]
 
 # Heavy fallback: reachable, not primary, sorted by stability_score.
 # Prefer probe-reachable high-ctx models (e.g. nemotron-3-ultra) only when live.

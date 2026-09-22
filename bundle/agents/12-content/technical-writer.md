@@ -1,4 +1,4 @@
-﻿---
+---
 name: technical-writer
 description: >-
   Enterprise SDLC Phase 9,15 — API documentation, user guides, tutorials, knowledge base, developer onboarding, changelog management.
@@ -7,12 +7,12 @@ readonly: true
 model: composer-2.5
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Clarity · Team Docs

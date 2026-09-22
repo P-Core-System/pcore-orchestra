@@ -1,4 +1,4 @@
-﻿---
+---
 name: telemetry-engineer
 description: >-
   Enterprise SDLC Phase 0,5,9 — Product telemetry design, event tracking, analytics pipelines, user behavior analytics, privacy-compliant data collection, funnel analysis.
@@ -7,12 +7,12 @@ mode: subagent
 steps: 200
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Signal · Team Analytics

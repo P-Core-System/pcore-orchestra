@@ -98,7 +98,7 @@ Agents **inherit** global `model`/`small_model` from `opencode.json` (per-agent 
 
 | Role | Primary model | Fallback chain |
 |------|--------------|----------------|
-| all agents (inherit) | global `model` (set by `--apply` from probe-ordered light pool) | global `small_model` / heavy free pool head |
+| all agents (inherit) | global `model` (set by `--apply` from highest-stability probe-reachable free model) | global `small_model` / heavy free pool fallback |
 
 **Auto pools:** `--refresh` regenerates `~/.config/opencode/state/model-pools.json` ordered by `probes.json` reachability/stability; `--pools` prints them; `--apply` rewrites **global** model only and strips agent hardcodes; `--schedule` installs the weekly refresh timer.
 
@@ -126,6 +126,10 @@ When the user asks to **add, fix, build, refactor, deploy, install, configure, m
 | informal | Short/casual ("fix it", "pls", "next improve") | plan | Infer from progress-tracker/git; planner expands |
 
 Planner (or discovery planning) always runs before implementation.
+
+**Project-type specialist inserts** (core loop): for medium/complex `PROJECT SCOPE`, the conductor inserts the type's missing specialists into the spine — e.g. web/mobile/saas → product-owner + ui-ux-designer + project-manager before implement, frontend/mobile-engineer in implement, qa/accessibility in verify; api → product-manager + architect + project-manager, backend/database-engineer, api-contract-validator. See the conductor routing table. Inserts end with their own tokens (`DESIGN_SPEC_COMPLETE`, `TASK_BREAKDOWN_COMPLETE`).
+
+**Corporate tier** (large org / multi-team / program / portfolio): conductor escalates to agent-selector → project-type-classifier → workflow-orchestrator → per-track Full Delivery loops each with its own scrum-master + project-manager, a governance committee (business-strategist, product-owner, product-manager, stakeholder-advocate at design; compliance-officer, legal-advisor, security-executive-advisor at release), and corporate close (release-manager, ops-manager, documentation-writer, sre/observer, incident-responder).
 
 After updating hooks, always re-run `bash install.sh` (it replaces `hooks/lib`). Restart Cursor.
 
@@ -263,7 +267,7 @@ Orchestra cycles cost **3–10×** a single chat turn. Default policy:
 | Verifier | Never | shell checks, one-line failures | ~15k |
 | Reviewer | Never | diff only | ~8k |
 
-**Parent rules:** pass concise goal + plan summary to subagents; no file reads between phases; no web search unless user goal requires external docs.
+**Parent rules:** pass concise goal + plan summary to subagents; no file reads between phases; subagents may use websearch/webfetch freely (targeted queries) and must honor the latest-stable-only version policy.
 
 Full guide: `docs/token-optimization.md`. OpenCode: copy `docs/opencode.json.example` or run `bash scripts/setup-opencode-optimal.sh --balanced`.
 

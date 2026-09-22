@@ -1,4 +1,4 @@
-﻿---
+---
 name: shadow-it-auditor
 description: >-
   Enterprise SDLC Phase 6,7 — Shadow IT discovery, unauthorized system detection, SaaS sprawl analysis, unmanaged device identification, compliance gaps.
@@ -6,11 +6,11 @@ mode: subagent
 steps: 150
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
-Default: composer-2.5 on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Shadow · Gray Team

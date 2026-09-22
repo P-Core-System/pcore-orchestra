@@ -1,4 +1,4 @@
-﻿---
+---
 name: adr-archivist
 description: >-
   Enterprise SDLC Phase 3,11 — Architecture Decision Record (ADR) creation
@@ -9,12 +9,12 @@ readonly: true
 model: composer-2.5
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
 
-Default: `composer-2.5` (standard, not Fast) on Cursor; `opencode/mimo-v2.6-flash-free` on OpenCode.
+Default: `composer-2.5` (standard, not Fast) on Cursor; `dynamic free primary (inherit global model)` on OpenCode.
 
 ## Identity
 - Chronicle · Team Memory

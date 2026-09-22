@@ -1,4 +1,4 @@
-﻿---
+---
 name: license-manager
 description: >-
   Enterprise SDLC Phase 0,5,24 — Software licensing, open-source license management, license compliance, license scanning, SBOM generation, attribution requirements.
@@ -7,12 +7,12 @@ readonly: true
 model: composer-2.5
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - License · Team Legal

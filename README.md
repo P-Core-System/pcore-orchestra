@@ -190,10 +190,10 @@ bash scripts/init-context.sh /path/to/your-app --bridge   # with project bridge
 
 | Agent | Max Tokens | Cursor (default) | OpenCode (free) |
 |-------|------------|------------------|-----------------|
-| Planner | 10,000 | `composer-2.5` | light free pool head (dynamic) |
-| Implementer | 30,000 | `composer-2.5` (or `grok-4.6` for hard tasks) | light free pool head (dynamic) |
-| Verifier | 15,000 | `composer-2.5` | light free pool head (dynamic) |
-| Reviewer | 8,000 | `composer-2.5` | light free pool head (dynamic) |
+| Planner | 10,000 | `composer-2.5` | free primary (stability-ordered via `--apply`) |
+| Implementer | 30,000 | `composer-2.5` (or `grok-4.6` for hard tasks) | free primary (stability-ordered via `--apply`) |
+| Verifier | 15,000 | `composer-2.5` | free primary (stability-ordered via `--apply`) |
+| Reviewer | 8,000 | `composer-2.5` | free primary (stability-ordered via `--apply`) |
 
 **Total per cycle:** ~63k tokens max.
 

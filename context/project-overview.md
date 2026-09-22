@@ -30,6 +30,8 @@ Cursor Orchestra is a portable, ambient multi-agent workflow for Cursor IDE. It 
 - Phase state in `~/.cursor/hooks/state/orchestra.json`.
 - Subagent chaining via `subagentStop` hook follow-up messages.
 - Max iteration guard (default 8).
+- **Project-type specialist routing**: medium/complex core loops auto-insert the type's missing specialists (product-owner, product-manager, ui-ux-designer, project-manager, architect, type engineers/testers/reviewers) into the plan→implement→verify→review spine based on `project.yaml` `type`.
+- **Corporate tier**: large org / multi-team / program / portfolio signals escalate to coordination + governance agents (agent-selector, project-type-classifier, workflow-orchestrator, per-track scrum-master/project-manager, governance committee, corporate close).
 
 ### Context integration
 

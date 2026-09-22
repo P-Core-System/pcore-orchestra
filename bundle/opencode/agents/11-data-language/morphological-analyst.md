@@ -1,4 +1,4 @@
-﻿---
+---
 name: morphological-analyst
 description: >-
   Enterprise SDLC Phase 5,11 — Morphological analysis, stem extraction, lemmatization, inflection patterns, derivational morphology, morphological segmentation.
@@ -7,12 +7,12 @@ mode: subagent
 steps: 120
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Root · Team Morphology

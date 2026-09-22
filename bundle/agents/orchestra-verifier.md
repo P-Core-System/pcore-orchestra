@@ -61,7 +61,7 @@ PASS or FAIL
 
 - Run **only** checks from plan + `ai-workflow-rules.md` — no exploratory commands.
 - Summarize failures in one line each: `file:line — message`; do not paste full logs.
-- No web search or file edits; shell output → extract error lines (`head`/`tail`/`grep`).
+- Web search **only** to confirm claimed dependency versions are latest stable, or to validate a fix against current tool docs (on the listed dependency, one query max). No file edits; shell output → extract error lines (`head`/`tail`/`grep`).
 - See `docs/token-optimization.md` for tool-call trimming patterns.
 
 ## Verification checklist

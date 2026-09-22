@@ -226,8 +226,16 @@ function pickCacheModels(cache) {
     return (probes[id] && probes[id].stability_score) || 0;
   }
 
-  const reachableLight = light.filter(isReachable).sort((a, b) => stabilityScore(b) - stabilityScore(a));
-  const primary = reachableLight[0] || light[0] || cache.models[0];
+  // Primary: highest-stability probe-reachable free model (any pool), not light-only.
+  const reachableAll = cache.models
+    .filter((id) => !DEAD_OR_UNRELIABLE_MODELS.has(`opencode/${id}`))
+    .filter(isReachable)
+    .sort((a, b) => stabilityScore(b) - stabilityScore(a) || (light.includes(a) ? -1 : 1) - (light.includes(b) ? -1 : 1));
+  const primary =
+    reachableAll[0] ||
+    reachableLight[0] ||
+    light[0] ||
+    cache.models[0];
 
   const reachableHeavy = heavy.filter((id) => isReachable(id) && id !== primary).sort((a, b) => stabilityScore(b) - stabilityScore(a));
   // Prefer probe-reachable models only; high-ctx heavy (e.g. nemotron-3-ultra) only when live

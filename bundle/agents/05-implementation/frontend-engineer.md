@@ -1,4 +1,4 @@
-﻿---
+---
 name: frontend-engineer
 description: >-
   Enterprise SDLC Phase 18 — Frontend implementation. Builds UI components,
@@ -12,7 +12,7 @@ model: composer-2.5
 
 ## Models
 
-Default: `composer-2.5` (standard, not Fast) on Cursor; `opencode/mimo-v2.6-flash-free` on OpenCode.
+Default: `composer-2.5` (standard, not Fast) on Cursor; `dynamic free primary (inherit global model)` on OpenCode.
 
 For hard/long-horizon tasks where Composer 2.5 is stuck, escalate to `grok-4.6` standard on Cursor. On OpenCode, always use a free model and validate with `bash scripts/update-free-models.sh --refresh && bash scripts/update-free-models.sh --probe`.
 

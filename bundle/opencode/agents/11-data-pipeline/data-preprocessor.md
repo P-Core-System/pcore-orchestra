@@ -1,4 +1,4 @@
-﻿---
+---
 name: data-preprocessor
 description: >-
   Enterprise SDLC Phase 5,11 — Data preprocessing for ML, feature scaling, encoding categorical variables, text preprocessing, image preprocessing, data splitting strategies.
@@ -7,12 +7,12 @@ mode: subagent
 steps: 100
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Prepare · Team ML Data

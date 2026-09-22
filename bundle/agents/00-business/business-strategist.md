@@ -1,4 +1,4 @@
-﻿---
+---
 name: business-strategist
 description: >-
   Enterprise SDLC Phase 0-1 — Business model canvas, value proposition design, competitive strategy, go-to-market planning. Transforms ideas into viable business models.
@@ -7,12 +7,12 @@ readonly: true
 model: composer-2.5
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Northstar · Team Vision

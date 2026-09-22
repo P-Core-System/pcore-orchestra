@@ -1,4 +1,4 @@
-﻿---
+---
 name: api-collector
 description: >-
   Enterprise SDLC Phase 0,5,11 — REST/GraphQL/gRPC API data collection, OAuth/API key management, pagination handling, rate limit respect, response normalization, API documentation parsing.
@@ -7,12 +7,12 @@ readonly: true
 model: composer-2.5
 permission:
   edit: deny
-  bash: ask
+  bash: allow
 ---
 
 ## Models
 
-Default: composer-2.5 (standard, not Fast) on Cursor; opencode/mimo-v2.6-flash-free on OpenCode.
+Default: composer-2.5 (standard, not Fast) on Cursor; dynamic free primary (inherit global model) on OpenCode.
 
 ## Identity
 - Connector · Team Integration

@@ -1,7 +1,7 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "opencode/mimo-v2.6-flash-free",
-  "small_model": "opencode/mimo-v2.6-flash-free",
+  "model": "opencode/big-pickle",
+  "small_model": "opencode/big-pickle",
   "default_agent": "orchestra",
   "compaction": {
     "auto": true,
@@ -43,7 +43,7 @@
   ],
   "permission": {
     "*": "allow",
-    "doom_loop": "ask",
+    "doom_loop": "deny",
     "read": {
       "*": "allow",
       "*.env": "deny",
@@ -63,10 +63,18 @@
       "git push -f *": "deny",
       "git reset --hard *": "deny",
       "rm -rf / *": "deny",
-      "rm -rf ~ *": "deny"
+      "rm -rf ~ *": "deny",
+      "git clean -fdx *": "deny",
+      "rm -rf /*": "deny",
+      "rm -rf ~/*": "deny",
+      "sudo rm -rf *": "deny",
+      "mkfs.*": "deny",
+      "dd if=* of=/dev/*": "deny",
+      "shred *": "deny",
+      ":(){ :|:& };:": "deny"
     },
     "external_directory": {
-      "*": "ask",
+      "*": "allow",
       "~/.cursor/hooks/**": "allow",
       "~/.cursor/skills/**": "allow",
       "~/.agents/skills/**": "allow",
@@ -94,11 +102,53 @@
       "mode": "primary",
       "reasoningEffort": "low",
       "textVerbosity": "low",
-      "steps": 40,
+      "steps": 500,
       "permission": {
         "task": {
           "*": "deny",
-          "orchestra-*": "allow"
+          "orchestra-*": "allow",
+          "agent-selector*": "allow",
+          "project-type-classifier*": "allow",
+          "workflow-orchestrator*": "allow",
+          "product-owner*": "allow",
+          "product-manager*": "allow",
+          "project-manager*": "allow",
+          "scrum-master*": "allow",
+          "stakeholder-advocate*": "allow",
+          "business-strategist*": "allow",
+          "business-analyst*": "allow",
+          "architect*": "allow",
+          "tech-lead*": "allow",
+          "adr-archivist*": "allow",
+          "ui-ux-designer*": "allow",
+          "backend-engineer*": "allow",
+          "frontend-engineer*": "allow",
+          "mobile-engineer*": "allow",
+          "full-stack-engineer*": "allow",
+          "database-engineer*": "allow",
+          "ml-engineer*": "allow",
+          "data-engineer*": "allow",
+          "devops-engineer*": "allow",
+          "platform-engineer*": "allow",
+          "qa-engineer*": "allow",
+          "automation-engineer*": "allow",
+          "regression-tester*": "allow",
+          "api-contract-validator*": "allow",
+          "accessibility-reviewer*": "allow",
+          "performance-engineer*": "allow",
+          "model-evaluator*": "allow",
+          "code-reviewer*": "allow",
+          "technical-debt-tracker*": "allow",
+          "compliance-officer*": "allow",
+          "legal-advisor*": "allow",
+          "security-executive-advisor*": "allow",
+          "release-manager*": "allow",
+          "ops-manager*": "allow",
+          "documentation-writer*": "allow",
+          "sre*": "allow",
+          "observer*": "allow",
+          "incident-responder*": "allow",
+          "security-performance-reviewer*": "allow"
         },
         "bash": "allow",
         "edit": "deny",
@@ -111,7 +161,7 @@
       "mode": "subagent",
       "reasoningEffort": "low",
       "textVerbosity": "low",
-      "steps": 8,
+      "steps": 500,
       "hidden": true,
       "permission": {
         "edit": "deny",
@@ -126,12 +176,12 @@
       "mode": "subagent",
       "reasoningEffort": "low",
       "textVerbosity": "low",
-      "steps": 25,
+      "steps": 500,
       "hidden": true,
       "permission": {
         "edit": "allow",
         "bash": "allow",
-        "websearch": "deny",
+        "websearch": "allow",
         "webfetch": "allow",
         "task": "deny"
       }
@@ -141,13 +191,13 @@
       "mode": "subagent",
       "reasoningEffort": "low",
       "textVerbosity": "low",
-      "steps": 10,
+      "steps": 500,
       "hidden": true,
       "permission": {
         "edit": "deny",
         "bash": "allow",
-        "websearch": "deny",
-        "webfetch": "deny",
+        "websearch": "allow",
+        "webfetch": "allow",
         "task": "deny"
       }
     },
@@ -156,7 +206,7 @@
       "mode": "subagent",
       "reasoningEffort": "low",
       "textVerbosity": "low",
-      "steps": 5,
+      "steps": 500,
       "hidden": true,
       "permission": {
         "edit": "deny",
@@ -170,7 +220,7 @@
   "provider": {
     "opencode": {
       "models": {
-        "mimo-v2.6-flash-free": {
+        "big-pickle": {
           "variants": {
             "fast": {
               "reasoningEffort": "low",
