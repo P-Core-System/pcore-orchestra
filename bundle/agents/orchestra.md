@@ -166,71 +166,27 @@ Complete the phase ending with [EXPECTED_TOKEN].
 
 ## State persistence (prevents restart-from-scratch)
 
-Save progress to `~/.config/opencode/state/orchestra-state.json` after EVERY phase and resume.
+Each loop = an isolated, atomic run keyed by (workspace + session + task); a shared index lists live sessions/tasks.
 
-### State file format
-```json
-{
-  "goal": "fix Bible engine",
-  "started_at": "2026-09-12T10:00:00Z",
-  "workflow_mode": "core",
-  "current_phase": "implementer",
-  "completed_phases": ["planner"],
-  "phase_results": {
-    "planner": {"task_id": "abc123", "summary": "Plan ready..."}
-  },
-  "fix_loops": 0,
-  "resume_attempts": {"planner": 0, "implementer": 0, "verifier": 0, "reviewer": 0},
-  "status": "in_progress"
-}
-```
+- begin: `bash scripts/conductor-state.sh begin --goal "<goal>" --phase plan`
+- save:  `bash scripts/conductor-state.sh save --phase implementer --summary "<done>" --status in_progress`
+- resume: `bash scripts/conductor-state.sh resume --session "$OPENCODE_SESSION_ID"`
+- status: `bash scripts/conductor-state.sh who`
+- done:  `bash scripts/conductor-state.sh complete --summary "reviewer passed"`
+- escalate: `bash scripts/conductor-state.sh fail --reason "<summary>"`
 
-### State rules
-1. **After every phase**: save task_id + summary to state file
-2. **After every resume**: increment resume_attempts counter, save updated summary
-3. **On session start**: read state file → if status=in_progress → RESUME from current_phase
-4. **On completion**: set status=completed, clear state
-5. **On escalate**: set status=needs_human, save failure summary
-
-### How to save state
-```bash
-cat > ~/.config/opencode/state/orchestra-state.json << 'EOF'
-{
-  "goal": "<goal>",
-  "workflow_mode": "core",
-  "current_phase": "<phase>",
-  "completed_phases": [...],
-  "phase_results": {...},
-  "resume_attempts": {...},
-  "status": "in_progress"
-}
-EOF
-```
-
-### How to read state
-```bash
-cat ~/.config/opencode/state/orchestra-state.json
-```
-
-### How to resume from state
-```python
-# Read state file
-# If status == "in_progress":
-#   task(description="resume <phase>", prompt="Continue: <summary>", subagent_type="orchestra-<phase>", task_id="<saved_task_id>")
-# If status == "completed" or {}:
-#   Start fresh loop
-```
+Rules: begin at loop start (`--reuse` keeps same task file across resumes); save task_id+summary after every phase & resume (increment resumeAttempts); resume via who/resume, never restart; complete on ORCHESTRA_COMPLETE, fail on needs_human. Concurrent loops in other workspaces/sessions never overwrite this run. Legacy `~/.config/opencode/state/orchestra-state.json` auto-migrates once on first begin — stop writing it.
 
 ## Loop — Core Mode (strict order — one task at a time)
 
 1. **task** → `orchestra-planner` → must end with `PLAN_READY`
-   - Save state: task_id + plan summary
+   - Save via: `bash scripts/conductor-state.sh save --phase plan --summary "<plan summary>" --status in_progress`
    - If plan reveals substantial scope → suggest switching to Full Delivery
 2. **Design/planning insert (project-type routing):** if PROJECT SCOPE is medium/complex, spawn the type's design insert (product-manager/product-owner/architect/ui-ux-designer per routing table) then project-manager task breakdown. Each → its token.
 3. **task** → `orchestra-implementer` (+ type's engineer partner spawned for the domain slice) → must end with `IMPLEMENT_DONE` (committed)
-   - Save state: task_id + what was implemented
+   - Save via: `bash scripts/conductor-state.sh save --phase implement --summary "<implemented>" --status in_progress`
 4. **task** → `orchestra-verifier` (+ type's tester partner) → `VERIFY_PASS` or `VERIFY_FAIL`
-   - Save state: task_id + verification results
+   - Save via: `bash scripts/conductor-state.sh save --phase verify --summary "<verification>" --status in_progress`
 5. **task** → `orchestra-reviewer` (+ type's reviewer partner) → `ORCHESTRA_COMPLETE`
    - Clear state (all done)
 

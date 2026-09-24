@@ -32,6 +32,7 @@
 | 13 | Project Bridge | `project-bridge/*` | Integration |
 | 14 | Install System | `install.sh` / `install.ps1` | Distribution |
 | 15 | OpenCode Integration | `bundle/opencode/*` | Multi-Platform |
+| 16 | Conductor Run State | `conductor-state.js` + `scripts/conductor-state.sh` | Persistence |
 
 ---
 
@@ -266,13 +267,14 @@ beforeSubmitPrompt → classification + auto-start
 
 ## Module Map
 
-`bundle/hooks/lib/` contains 11 single-responsibility modules:
+`bundle/hooks/lib/` contains 12 single-responsibility modules:
 
 | Module | Lines | Responsibility | Exports |
 |--------|-------|----------------|---------|
 | `io.js` | 24 | stdin/stdout JSON | `readStdinJson()`, `emit(obj)` |
 | `constants.js` | 41 | All numeric constants | 20 named constants (see below) |
 | `state-manager.js` | 109 | State CRUD, deep merge | `loadState()`, `saveState()`, `startOrchestra()` |
+| `conductor-state.js` | — | Per-run conductor run state, atomic + isolation-keyed, registry + CLI | `beginRun()`, `saveRun()`, `listRuns()`, `heartbeat()`, `completeRun()`, `failRun()`, `gcRuns()` |
 | `prompt-classifier.js` | 93 | Prompt extraction + classification | `extractPrompt()`, `classifyPrompt()`, 5 RegExps |
 | `phase-engine.js` | 53 | Phase chain + transitions | `PHASE_CHAIN`, `PHASE_AGENT_MAP`, `getAgentForPhase()`, `reviewerNeedsFix()` |
 | `lifecycle-recorder.js` | 51 | Events + timers | `emitLifecycleEvent()`, `startPhaseTimer()`, `endPhaseTimer()` |
@@ -323,6 +325,10 @@ function loadState() {
 ```
 
 Ensures V1→V2 backward compatibility. Missing fields get defaults without migration scripts.
+
+### `conductor-state.js` — Atomic Run Isolation
+
+Each orchestra loop writes an isolated atomic run `<baseDir>/<ws>/<sid>/<tid>.json` (`baseDir = PCORE_CONDUCTOR_STATE_DIR || ~/.config/opencode/hooks/state/conductor-runs`), keyed by (workspace slug + session id + 12-hex task id), plus a shared `index.json` registry of live sessions/tasks. `beginRun()` is idempotent — a live run on the same key resumes and preserves `startedAt`; every write is tmp+rename with 3-retry backoff; `isStale`/`findStale`/`gcRuns` handle stall detection and cleanup; `migrateLegacy()` folds the old flat `~/.config/opencode/state/orchestra-state.json` in exactly once. Driven by `scripts/conductor-state.sh` (`begin / save / heartbeat / list / who / resume / complete / fail / gc`).
 
 ### `checkpoint-manager.js` — Crash Recovery
 

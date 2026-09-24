@@ -8,6 +8,11 @@
 - Windows-safe paths: use `path.join`, support `USERPROFILE` and `HOME`.
 - Fail silently for hooks: `.catch(() => emit({}))` — never break Cursor on hook errors.
 
+### Run-state persistence (invariant)
+
+- All conductor run state MUST go through `bundle/hooks/lib/conductor-state.js` (and its `bundle/opencode/hooks/lib/conductor-state.js` mirror): atomic tmp+rename writes, isolation-keyed by (workspace + session + task), shared registry at `conductor-runs/index.json`.
+- NEVER write run state via raw heredoc to shared flat files (e.g. `~/.config/opencode/state/orchestra-state.json`) — concurrent loops/workspaces would clobber each other. Use the CLI: `scripts/conductor-state.sh begin/save/who/resume/complete/fail/gc`.
+
 ## Agent markdown
 
 - YAML frontmatter: `name`, `description`, optional `readonly: true` for planner.
