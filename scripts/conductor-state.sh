@@ -37,8 +37,8 @@ Usage: bash scripts/conductor-state.sh <command> [flags]
   begin --goal G [--phase P] [--task T] [--reuse]
   save  [--phase P] [--task T] [--summary S] [--status S]
   heartbeat [--task T]
-  list  [--workspace W] [--status S]
-  who   [--workspace W]
+  list  [--workspace W] [--status S]   (no --status = all runs)
+  who   [--workspace W]                (live runs: active/in_progress)
   resume [--session S] [--workspace W]
   complete [--task T] [--summary S]
   fail  --reason R [--task T]
@@ -156,7 +156,7 @@ switch (env.PCORE_CMD) {
     break;
   }
   case "who": {
-    const runs = c.listRuns({ workspace: env.PCORE_WS, status: "active" });
+    const runs = c.listLiveRuns({ workspace: env.PCORE_WS });
     out({ json: runs, text: runs.map((r) => `${r.sessionId} ${keyOf(r)} ${r.phase}`).join("\n") || "no live runs" });
     break;
   }

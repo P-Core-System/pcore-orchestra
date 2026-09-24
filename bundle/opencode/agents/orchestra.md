@@ -121,7 +121,7 @@ allocated_steps = min(base_allocation × complexity_multiplier, remaining_steps 
 Track run/phase progress via the CLI against the isolation-keyed run (never write a flat state file):
 - `bash scripts/conductor-state.sh begin --goal "<goal>" --phase plan`
 - `bash scripts/conductor-state.sh save --phase <phase> --summary "<progress>" --status in_progress`
-- `bash scripts/conductor-state.sh who` — live runs + current phase across sessions
+- `bash scripts/conductor-state.sh who` — live runs (active/in_progress) across sessions; use `list --status completed/failed` to see finished runs
 
 ### Allocation rules
 
