@@ -206,7 +206,7 @@ Every phase transition recorded to state. Last 200 events retained. Phase durati
 
 If the workspace has `context/project-overview.md` (Six-File Context Methodology), hooks inject read order at session start. Subagents read present `context/*.md` files before acting.
 
-For product UI: use skills `ui-ux-pro-max`, `brand`, `design-system`, `ui-styling`; persist tokens into `context/ui-context.md` (see template Skills section).
+For product UI: use skills `ui-ux-pro-max`, `brand`, `design-system`, `ui-styling`, `web-design-master`; persist tokens into `context/ui-context.md` (see template Skills section).
 
 Bootstrap in any project:
 

@@ -69,6 +69,7 @@ Use these installed skills when designing or implementing UI. They complement
 | `brand` | Logo, voice, color/type identity, brand guideline sync |
 | `design-system` | Tokens, component specs, Tailwind integration; hierarchical pages via `design-system/MASTER.md` when needed |
 | `ui-styling` | Tailwind/shadcn theming, responsive utilities, canvas fonts |
+| `web-design-master` | Page/section/layout design, color systems, typography scale, accessibility, design QA review |
 
 **Persist → this file:** When a skill (or `--persist` / design-system output) produces tokens,
 colors, typography, or component conventions, write the durable choices into

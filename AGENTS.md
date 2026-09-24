@@ -33,7 +33,7 @@ Update `context/progress-tracker.md` after each meaningful implementation change
 | `bundle/` | Source payload installed to `~/.cursor/` and `~/.config/opencode/` |
 | `bundle/hooks/` | Node hook scripts (session, prompt, subagent, stop) — Cursor only |
 | `bundle/agents/` | Cursor orchestra subagent definitions |
-| `bundle/skills/` | Cursor skills — orchestra-loop + intake/verify + UI (ui-ux-pro-max, brand, design-system, ui-styling) + Cloudflare skills |
+| `bundle/skills/` | Cursor skills — orchestra-loop + intake/verify + UI (ui-ux-pro-max, brand, design-system, ui-styling, web-design-master) + Cloudflare skills |
 | `bundle/skills-cursor/` | Cursor built-in skills (babysit, canvas, loop, review, shell, sdk, etc.) |
 | `bundle/rules/orchestra-loop.mdc` | Cursor always-on rule |
 | `bundle/opencode/` | OpenCode agents, skills, health check, state |
@@ -102,7 +102,7 @@ OpenCode uses a skill-driven approach instead of hooks:
 - **Spawn:** OpenCode **`task`** tool + agent name (not Cursor **`Task`** + `subagent_type`)
 - **Skills** at `~/.config/opencode/skills/` — orchestra-loop + UI skills + Cloudflare
 - **State** at `~/.config/opencode/hooks/state/orchestra.json`
-- **External discovery** via symlinks under `~/.agents/skills/` (orchestra-loop, prompt-intake, verification-before-completion, ui-ux-pro-max, brand, design-system, ui-styling)
+- **External discovery** via symlinks under `~/.agents/skills/` (orchestra-loop, prompt-intake, verification-before-completion, ui-ux-pro-max, brand, design-system, ui-styling, web-design-master)
 
 Cross-platform spawn matrix: `docs/orchestra-cross-platform.md`
 

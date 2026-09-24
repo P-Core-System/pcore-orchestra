@@ -99,7 +99,7 @@ function Install-Cursor {
   New-Item -ItemType Directory -Force -Path $AgentsSkills | Out-Null
   foreach ($linkSkill in @(
     "orchestra-loop", "prompt-intake", "verification-before-completion",
-    "ui-ux-pro-max", "brand", "design-system", "ui-styling"
+    "ui-ux-pro-max", "brand", "design-system", "ui-styling", "web-design-master"
   )) {
     $srcSkill = Join-Path (Join-Path $CursorDir "skills") $linkSkill
     $skillLink = Join-Path $AgentsSkills $linkSkill
@@ -148,7 +148,7 @@ console.log("  Merged hooks.json ->", destPath);
   Write-Host "  Cursor skills:   $CursorDir\skills\ (orchestra-loop + UI + Cloudflare)"
   Write-Host "  Cursor built-in: $CursorDir\skills-cursor\ (17 skills)"
   Write-Host "  Cursor autonomy: $CursorDir\cli-config.json + permissions.json + sandbox.json"
-  Write-Host "  Agents skills:   $AgentsSkills\{orchestra-loop,prompt-intake,verification-before-completion,ui-ux-pro-max,brand,design-system,ui-styling}"
+  Write-Host "  Agents skills:   $AgentsSkills\{orchestra-loop,prompt-intake,verification-before-completion,ui-ux-pro-max,brand,design-system,ui-styling,web-design-master}"
 }
 
 ###############################################################################
@@ -229,7 +229,7 @@ function Install-OpenCode {
   New-Item -ItemType Directory -Force -Path $AgentsSkills | Out-Null
   foreach ($linkSkill in @(
     "orchestra-loop", "prompt-intake", "verification-before-completion",
-    "ui-ux-pro-max", "brand", "design-system", "ui-styling"
+    "ui-ux-pro-max", "brand", "design-system", "ui-styling", "web-design-master"
   )) {
     $srcSkill = Join-Path (Join-Path $OpenCodeDir "skills") $linkSkill
     $skillLink = Join-Path $AgentsSkills $linkSkill
@@ -262,7 +262,7 @@ function Install-OpenCode {
   Write-Host "  OpenCode skills:  $OpenCodeDir\skills\ (orchestra-loop + UI + Cloudflare)"
   Write-Host "  OpenCode state:   $OpenCodeDir\state\orchestra.json"
   Write-Host "  OpenCode autonomy:$OpenCodeDir\opencode.json (permission + agents; mcp preserved)"
-  Write-Host "  OpenCode CLI:     opencode --version — restart desktop app after upgrade"
+  Write-Host "  OpenCode CLI:     opencode --version ï¿½ restart desktop app after upgrade"
 }
 
 ###############################################################################
