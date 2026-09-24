@@ -146,7 +146,7 @@ MERGE
   # Link skills for external discovery (Agent Skills compat path)
   mkdir -p "$AGENTS_SKILLS"
   for link_skill in orchestra-loop prompt-intake verification-before-completion \
-      ui-ux-pro-max brand design-system ui-styling; do
+      ui-ux-pro-max brand design-system ui-styling web-design-master; do
     if [[ -d "$CURSOR/skills/$link_skill" ]]; then
       rm -rf "$AGENTS_SKILLS/$link_skill"
       ln -sf "$CURSOR/skills/$link_skill" "$AGENTS_SKILLS/$link_skill" 2>/dev/null || \
@@ -162,7 +162,7 @@ MERGE
   echo "  Cursor skills:    $CURSOR/skills/ (orchestra-loop + intake/verify + UI + Cloudflare)"
   echo "  Cursor built-in:  $CURSOR/skills-cursor/ (17 skills)"
   echo "  Cursor autonomy:  $CURSOR/cli-config.json + permissions.json + sandbox.json"
-  echo "  Agents skills:    $AGENTS_SKILLS/{orchestra-loop,prompt-intake,verification-before-completion,ui-ux-pro-max,brand,design-system,ui-styling}"
+  echo "  Agents skills:    $AGENTS_SKILLS/{orchestra-loop,prompt-intake,verification-before-completion,ui-ux-pro-max,brand,design-system,ui-styling,web-design-master}"
 }
 
 ###############################################################################
@@ -252,7 +252,7 @@ PY
   # Link to external skills directory
   mkdir -p "$AGENTS_SKILLS"
   for link_skill in orchestra-loop prompt-intake verification-before-completion \
-      ui-ux-pro-max brand design-system ui-styling; do
+      ui-ux-pro-max brand design-system ui-styling web-design-master; do
     if [[ -d "$OPENCODE/skills/$link_skill" ]]; then
       rm -rf "$AGENTS_SKILLS/$link_skill"
       ln -sf "$OPENCODE/skills/$link_skill" "$AGENTS_SKILLS/$link_skill" 2>/dev/null || \
