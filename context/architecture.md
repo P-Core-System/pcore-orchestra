@@ -22,6 +22,7 @@
 | `bundle/hooks/lib/constants.js` | Named constants (no magic numbers) |
 | `bundle/hooks/lib/io.js` | stdin/stdout helpers (`readStdinJson`, `emit`) |
 | `bundle/hooks/lib/state-manager.js` | State CRUD (`loadState`, `saveState`, `startOrchestra`) |
+| `bundle/hooks/lib/conductor-state.js` | Per-run conductor state (atomic, isolation-keyed by workspace+session+task) + registry + CLI |
 | `bundle/hooks/lib/prompt-classifier.js` | Prompt extraction and classification |
 | `bundle/hooks/lib/phase-engine.js` | Phase chain definition and transitions |
 | `bundle/hooks/lib/lifecycle-recorder.js` | Lifecycle events and phase timers |
@@ -66,6 +67,8 @@
 | Data | Location | Notes |
 |------|----------|-------|
 | Orchestra state | `~/.cursor/hooks/state/orchestra.json` | V3: full SDLC state, project management, versioning; session-namespaced keyed by session ID with `migrateToSessions()` |
+| Conductor runs | `~/.config/opencode/hooks/state/conductor-runs/<ws>/<sid>/<tid>.json` | One atomic JSON per orchestra run; keyed by workspace (slug) + session + 12-hex task id (`conductor-state.js`) |
+| Conductor run index | `~/.config/opencode/hooks/state/conductor-runs/index.json` | `{ version, updated_at, runs: { "<ws>/<sid>/<tid>": {...} } }` registry of live sessions/tasks for `who`/`resume`/stall detection |
 | Long-term memory | `~/.cursor/hooks/state/orchestra-memory.json` | Persistent across sessions, capped at 100 goals |
 | Token usage | `~/.cursor/hooks/state/orchestra-tokens.json` | Per-run estimates, aggregates, improvement tips |
 | Plan artifact | `<project>/.cursor/orchestra-plan.md` | Approved plan for implement→verify→review (gitignored) |

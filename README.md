@@ -142,7 +142,9 @@ User: "fix the login bug"
 ├── agents/                   # 4 subagent definitions
 ├── skills/orchestra-loop/    # orchestration skill
 ├── hooks/                    # health check
-└── state/orchestra.json      # runtime state
+└── state/
+    ├── orchestra.json        # runtime state
+    └── conductor-runs/       # per-run conductor state + registry (begin/save/who/resume)
 ```
 
 ### Per-project (with context/)
