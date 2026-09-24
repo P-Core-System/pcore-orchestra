@@ -112,6 +112,25 @@ try {
   const tmpResidue = walk(base).filter((f) => f.indexOf(".tmp.") !== -1);
   check("no .tmp.* residue", tmpResidue.length === 0, JSON.stringify(tmpResidue));
 
+  // ---- 7. live (active/in_progress) vs status-filtered listing ----
+  const lp = c.beginRun({ goal: "live", phase: "plan", sessionId: "sess-live", workspace: "/tmp/wsL" });
+  lp.run.status = "in_progress";
+  c.saveRun(lp.run);
+  const liveKeys = c.listLiveRuns({ workspace: "/tmp/wsL" }).map((r) => r.sessionId);
+  const inProgKeys = c.listRuns({ workspace: "/tmp/wsL", status: "in_progress" }).map((r) => r.sessionId);
+  check("in_progress run stays live (listLiveRuns) and in list --status in_progress",
+    liveKeys.includes("sess-live") && inProgKeys.includes("sess-live"),
+    `live=${JSON.stringify(liveKeys)} in_progress=${JSON.stringify(inProgKeys)}`);
+  check("activeSessionIds includes in_progress run",
+    c.activeSessionIds({ workspace: "/tmp/wsL" }).includes("sess-live"),
+    JSON.stringify(c.activeSessionIds({ workspace: "/tmp/wsL" })));
+  c.completeRun(lp.run, "done");
+  const liveAfter = c.listLiveRuns({ workspace: "/tmp/wsL" }).map((r) => r.sessionId);
+  const doneKeys = c.listRuns({ workspace: "/tmp/wsL", status: "completed" }).map((r) => r.sessionId);
+  check("completed run absent from live but present in list --status completed",
+    !liveAfter.includes("sess-live") && doneKeys.includes("sess-live"),
+    `live=${JSON.stringify(liveAfter)} completed=${JSON.stringify(doneKeys)}`);
+
   // every run file parses
   let allParse = true;
   for (const f of walk(base).filter((f) => f.endsWith(".json"))) {

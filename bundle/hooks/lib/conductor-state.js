@@ -226,7 +226,21 @@ function heartbeat(run) {
   return run;
 }
 
-/** List index entries, optionally filtered by workspace + status. */
+/**
+ * True for a status that counts as a live run. `active` and `in_progress` are
+ * live; a missing/undefined status also counts live (matches how beginRun sets
+ * `active`). completed/failed/stalled are not live but remain queryable via an
+ * explicit status filter.
+ */
+function isLiveStatus(status) {
+  return status === undefined || status === null || status === "active" || status === "in_progress";
+}
+
+/**
+ * List index entries, optionally filtered by workspace + status. Without an
+ * explicit `status` all runs are returned regardless of status; with a
+ * `status` only runs matching that exact status are returned.
+ */
 function listRuns(filters) {
   filters = filters || {};
   const index = loadIndex();
@@ -238,9 +252,16 @@ function listRuns(filters) {
   });
 }
 
-/** Distinct live (active) session ids, optionally scoped to a workspace. */
+/** List only live (active/in_progress) runs, optionally scoped to a workspace. */
+function listLiveRuns(filters) {
+  filters = filters || {};
+  return listRuns({ workspace: filters.workspace }).filter((entry) => isLiveStatus(entry.status));
+}
+
+/** Distinct live session ids (active/in_progress), optionally scoped to a workspace. */
 function activeSessionIds(filters) {
-  return [...new Set(listRuns({ ...filters, status: "active" }).map((r) => r.sessionId))];
+  filters = filters || {};
+  return [...new Set(listLiveRuns(filters).map((r) => r.sessionId))];
 }
 
 /** Find a run for a session (prefers the live/active one). */
@@ -330,6 +351,8 @@ module.exports = {
   beginRun,
   heartbeat,
   listRuns,
+  listLiveRuns,
+  isLiveStatus,
   activeSessionIds,
   getRunBySession,
   isStale,

@@ -171,7 +171,7 @@ Each loop = an isolated, atomic run keyed by (workspace + session + task); a sha
 - begin: `bash scripts/conductor-state.sh begin --goal "<goal>" --phase plan`
 - save:  `bash scripts/conductor-state.sh save --phase implementer --summary "<done>" --status in_progress`
 - resume: `bash scripts/conductor-state.sh resume --session "$OPENCODE_SESSION_ID"`
-- status: `bash scripts/conductor-state.sh who`
+- status: `bash scripts/conductor-state.sh who`   # live runs (active/in_progress); use list --status completed/failed to see finished runs
 - done:  `bash scripts/conductor-state.sh complete --summary "reviewer passed"`
 - escalate: `bash scripts/conductor-state.sh fail --reason "<summary>"`
 
