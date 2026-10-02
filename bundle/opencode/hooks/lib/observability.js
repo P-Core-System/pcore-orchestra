@@ -1,8 +1,8 @@
 "use strict";
 
-const fs = require("node:fs");
 const path = require("node:path");
 const { MAX_METRICS_POINTS, MAX_SLOS, MAX_INCIDENTS } = require("./constants.js");
+const { writeJson, readJsonSafe, resolveStatePath } = require("./safe-write.js");
 
 const METRICS_PATH = path.join(__dirname, "..", "state", "orchestra-metrics.json");
 
@@ -14,21 +14,15 @@ const DEFAULT_METRICS_STATE = {
 };
 
 function loadMetricsState() {
-  try {
-    if (!fs.existsSync(METRICS_PATH)) return { ...DEFAULT_METRICS_STATE, metrics: [], slos: [], incidents: [] };
-    const raw = JSON.parse(fs.readFileSync(METRICS_PATH, "utf8"));
-    return { ...DEFAULT_METRICS_STATE, ...raw };
-  } catch {
-    return { ...DEFAULT_METRICS_STATE, metrics: [], slos: [], incidents: [] };
-  }
+  const raw = readJsonSafe(resolveStatePath(METRICS_PATH), { metrics: [], slos: [], incidents: [] });
+  return { ...DEFAULT_METRICS_STATE, ...raw };
 }
 
 function saveMetricsState(ms) {
-  fs.mkdirSync(path.dirname(METRICS_PATH), { recursive: true });
   if (ms.metrics.length > MAX_METRICS_POINTS) ms.metrics = ms.metrics.slice(-MAX_METRICS_POINTS);
   if (ms.slos.length > MAX_SLOS) ms.slos = ms.slos.slice(-MAX_SLOS);
   if (ms.incidents.length > MAX_INCIDENTS) ms.incidents = ms.incidents.slice(-MAX_INCIDENTS);
-  fs.writeFileSync(METRICS_PATH, JSON.stringify(ms, null, 2));
+  writeJson(resolveStatePath(METRICS_PATH), ms);
 }
 
 function recordMetric(ms, { name, value, unit, labels }) {

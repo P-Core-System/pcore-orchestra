@@ -1,12 +1,12 @@
 "use strict";
 
-const fs = require("node:fs");
 const path = require("node:path");
 const {
   TOKEN_HISTORY_MAX_RUNS,
   TOKEN_TIPS_MAX,
   TOKEN_CONTEXT_RUNS,
 } = require("./constants.js");
+const { writeJson, readJsonSafe, resolveStatePath } = require("./safe-write.js");
 
 const TOKENS_PATH = path.join(__dirname, "..", "state", "orchestra-tokens.json");
 
@@ -133,12 +133,7 @@ function extractReportedUsage(input) {
 function loadTokenState(sessionId) {
   const session = sessionId || getSessionId();
   try {
-    if (!fs.existsSync(TOKENS_PATH)) {
-      const empty = { version: 1, sessions: {} };
-      empty.sessions[session] = { ...DEFAULT_SESSION_TOKENS };
-      return empty;
-    }
-    const raw = JSON.parse(fs.readFileSync(TOKENS_PATH, "utf8"));
+    const raw = readJsonSafe(resolveStatePath(TOKENS_PATH), { version: 1, sessions: {} });
     const migrated = migrateToSessions(raw);
 
     if (!migrated.sessions[session]) {
@@ -231,19 +226,8 @@ function getAggregatedTokenState(tokenState) {
 
 function saveTokenState(ts, sessionId) {
   const session = sessionId || getSessionId();
-  fs.mkdirSync(path.dirname(TOKENS_PATH), { recursive: true });
-
-  let fullState;
-  try {
-    if (fs.existsSync(TOKENS_PATH)) {
-      fullState = JSON.parse(fs.readFileSync(TOKENS_PATH, "utf8"));
-      fullState = migrateToSessions(fullState);
-    } else {
-      fullState = { version: 1, sessions: {} };
-    }
-  } catch {
-    fullState = { version: 1, sessions: {} };
-  }
+  const tokensPath = resolveStatePath(TOKENS_PATH);
+  const fullState = migrateToSessions(readJsonSafe(tokensPath, { version: 1, sessions: {} }));
 
   if (!fullState.sessions) fullState.sessions = {};
   if (!fullState.sessions[session]) {
@@ -256,7 +240,7 @@ function saveTokenState(ts, sessionId) {
   target.tips = (ts.tips || []).slice(-TOKEN_TIPS_MAX);
   target.last_summary = ts.last_summary || null;
 
-  fs.writeFileSync(TOKENS_PATH, JSON.stringify(fullState, null, 2));
+  writeJson(tokensPath, fullState);
 }
 
 function initRunTokens(state) {

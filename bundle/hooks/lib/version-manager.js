@@ -1,9 +1,9 @@
 "use strict";
 
-const fs = require("node:fs");
 const path = require("node:path");
 const { INITIAL_VERSION, INITIAL_BUILD, MAX_RELEASES, MAX_CHANGELOG_ENTRIES } = require("./constants.js");
 const { loadProjectIdentity, saveProjectIdentity, recordVersionBump } = require("./project-identity.js");
+const { writeJson, readJsonSafe, resolveStatePath, atomicWrite } = require("./safe-write.js");
 
 const VERSION_PATH = path.join(__dirname, "..", "state", "orchestra-version.json");
 
@@ -70,12 +70,7 @@ function migrateToSessions(raw) {
 function loadVersionState(sessionId) {
   const session = sessionId || getSessionId();
   try {
-    if (!fs.existsSync(VERSION_PATH)) {
-      const fresh = { version: 1, sessions: {} };
-      fresh.sessions[session] = { ...DEFAULT_SESSION_VERSION };
-      return fresh;
-    }
-    const raw = JSON.parse(fs.readFileSync(VERSION_PATH, "utf8"));
+    const raw = readJsonSafe(resolveStatePath(VERSION_PATH), { version: 1, sessions: {} });
     const migrated = migrateToSessions(raw);
     if (!migrated.sessions[session]) {
       migrated.sessions[session] = { ...DEFAULT_SESSION_VERSION };
@@ -88,42 +83,10 @@ function loadVersionState(sessionId) {
   }
 }
 
-/** Atomic write with temp file + rename, with 3-retry backoff. */
-function atomicWrite(filePath, data, retries = 3) {
-  const tempPath = filePath + ".tmp." + process.pid + "." + Date.now().toString(36);
-  let lastError;
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-      fs.writeFileSync(tempPath, JSON.stringify(data, null, 2));
-      fs.renameSync(tempPath, filePath);
-      return true;
-    } catch (err) {
-      lastError = err;
-      if (attempt < retries) {
-        const delay = Math.min(50 * attempt, 200);
-        require("node:timers/promises").setTimeout(delay);
-      }
-      try { fs.unlinkSync(tempPath); } catch {}
-    }
-  }
-  throw lastError;
-}
-
 function saveVersionState(vs, sessionId) {
   const session = sessionId || getSessionId();
-
-  let fullState;
-  try {
-    if (fs.existsSync(VERSION_PATH)) {
-      fullState = JSON.parse(fs.readFileSync(VERSION_PATH, "utf8"));
-      fullState = migrateToSessions(fullState);
-    } else {
-      fullState = { version: 1, sessions: {} };
-    }
-  } catch {
-    fullState = { version: 1, sessions: {} };
-  }
+  const versionPath = resolveStatePath(VERSION_PATH);
+  const fullState = migrateToSessions(readJsonSafe(versionPath, { version: 1, sessions: {} }));
 
   if (!fullState.sessions) fullState.sessions = {};
   if (!fullState.sessions[session]) {
@@ -147,7 +110,7 @@ function saveVersionState(vs, sessionId) {
   target.sessionId = session;
   target.lastUpdated = new Date().toISOString();
 
-  atomicWrite(VERSION_PATH, fullState);
+  writeJson(versionPath, fullState);
 }
 
 function parseSemver(version) {

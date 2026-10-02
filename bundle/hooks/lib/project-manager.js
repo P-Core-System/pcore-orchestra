@@ -1,6 +1,5 @@
 "use strict";
 
-const fs = require("node:fs");
 const path = require("node:path");
 const {
   MAX_EPICS,
@@ -13,6 +12,7 @@ const {
   MAX_RETROSPECTIVES,
 } = require("./constants.js");
 const { loadProjectIdentity, saveProjectIdentity, buildIdentitySummary } = require("./project-identity.js");
+const { writeJson, readJsonSafe, resolveStatePath } = require("./safe-write.js");
 
 const PROJECT_PATH = path.join(__dirname, "..", "state", "orchestra-project.json");
 
@@ -81,13 +81,7 @@ function ringCap(arr, max) {
 function loadProjectState(identityRootDir, sessionId) {
   const session = sessionId || getSessionId();
   try {
-    if (!fs.existsSync(PROJECT_PATH)) {
-      const fresh = { version: 1, sessions: {} };
-      fresh.sessions[session] = { ...DEFAULT_SESSION_PROJECT };
-      if (identityRootDir) syncIdentity(fresh.sessions[session], identityRootDir);
-      return fresh;
-    }
-    const raw = JSON.parse(fs.readFileSync(PROJECT_PATH, "utf8"));
+    const raw = readJsonSafe(resolveStatePath(PROJECT_PATH), { version: 1, sessions: {} });
     const migrated = migrateToSessions(raw);
     if (!migrated.sessions[session]) {
       migrated.sessions[session] = { ...DEFAULT_SESSION_PROJECT };
@@ -120,19 +114,8 @@ function syncIdentity(ps, identityRootDir) {
 
 function saveProjectState(ps, sessionId) {
   const session = sessionId || getSessionId();
-  fs.mkdirSync(path.dirname(PROJECT_PATH), { recursive: true });
-
-  let fullState;
-  try {
-    if (fs.existsSync(PROJECT_PATH)) {
-      fullState = JSON.parse(fs.readFileSync(PROJECT_PATH, "utf8"));
-      fullState = migrateToSessions(fullState);
-    } else {
-      fullState = { version: 1, sessions: {} };
-    }
-  } catch {
-    fullState = { version: 1, sessions: {} };
-  }
+  const projectPath = resolveStatePath(PROJECT_PATH);
+  const fullState = migrateToSessions(readJsonSafe(projectPath, { version: 1, sessions: {} }));
 
   if (!fullState.sessions) fullState.sessions = {};
   if (!fullState.sessions[session]) {
@@ -157,7 +140,7 @@ function saveProjectState(ps, sessionId) {
   target.sessionId = session;
   target.lastUpdated = new Date().toISOString();
 
-  fs.writeFileSync(PROJECT_PATH, JSON.stringify(fullState, null, 2));
+  writeJson(projectPath, fullState);
 }
 
 function generateId() {

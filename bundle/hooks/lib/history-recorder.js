@@ -1,20 +1,15 @@
 "use strict";
 
-const fs = require("node:fs");
 const path = require("node:path");
 const { HISTORY_MAX_RUNS } = require("./constants.js");
+const { writeJson, readJsonSafe, resolveStatePath } = require("./safe-write.js");
 
 const HISTORY_PATH = path.join(__dirname, "..", "state", "orchestra-history.json");
 
 function recordOrchestrationRun(state, outcome) {
-  let history = [];
-  try {
-    if (fs.existsSync(HISTORY_PATH)) {
-      history = JSON.parse(fs.readFileSync(HISTORY_PATH, "utf8"));
-    }
-  } catch {
-    history = [];
-  }
+  const historyPath = resolveStatePath(HISTORY_PATH);
+  let history = readJsonSafe(historyPath, []);
+  if (!Array.isArray(history)) history = [];
 
   const duration = state.started_at
     ? Date.now() - new Date(state.started_at).getTime()
@@ -41,17 +36,12 @@ function recordOrchestrationRun(state, outcome) {
     history = history.slice(-HISTORY_MAX_RUNS);
   }
 
-  fs.mkdirSync(path.dirname(HISTORY_PATH), { recursive: true });
-  fs.writeFileSync(HISTORY_PATH, JSON.stringify(history, null, 2));
+  writeJson(historyPath, history);
 }
 
 function loadOrchestrationHistory() {
-  try {
-    if (!fs.existsSync(HISTORY_PATH)) return [];
-    return JSON.parse(fs.readFileSync(HISTORY_PATH, "utf8"));
-  } catch {
-    return [];
-  }
+  const history = readJsonSafe(resolveStatePath(HISTORY_PATH), []);
+  return Array.isArray(history) ? history : [];
 }
 
 module.exports = {
