@@ -20,7 +20,7 @@ const { passGate, failGate, skipGate } = require("./lib/quality-gate.js");
 const { addTechDebt, generateProjectSummary, loadProjectState, saveProjectState } = require("./lib/project-manager.js");
 const { loadDailyState, saveDailyState, getOrCreateTodayEntry, generateDailySummary } = require("./lib/daily-planner.js");
 const { recordPhaseTokens, finalizeRunTokens } = require("./lib/token-tracker.js");
-const { buildPhaseHandoff } = require("./lib/handoff-enforcer.js");
+const { buildPhaseHandoff, buildHandoffEnforcement } = require("./lib/handoff-enforcer.js");
 const { runEvidenceChecks, applyEvidenceToGates } = require("./lib/evidence-runner.js");
 const { saveCheckpoint } = require("./lib/checkpoint-manager.js");
 const { savePlanArtifact, buildPlanHandoffLine } = require("./lib/plan-artifact.js");
@@ -268,10 +268,12 @@ function handlePhaseComplete(state, chain) {
   saveState(state);
 
   let evidenceBlock = "";
+  let evidenceRecords = [];
   if (nextPhase === "verify") {
     try {
-      const { report } = runEvidenceChecks(state);
+      const { report, records } = runEvidenceChecks(state);
       evidenceBlock = report;
+      evidenceRecords = records || [];
       if (!state.memory) state.memory = { ...DEFAULT_STATE.memory };
       state.memory.evidence_preflight = report;
       saveState(state);
@@ -296,13 +298,22 @@ function handlePhaseComplete(state, chain) {
   const categoryLabel = nextInfo ? nextInfo.category.toUpperCase() : "CORE";
   const modeLabel = state.loopMode === LOOP_MODE_ENTERPRISE ? "Enterprise SDLC" : "Core loop";
 
+  // Build work-item context from state.memory
+  const workItemContext = {
+    ticketId: state.memory?.ticketId,
+    acCount: state.memory?.acCount,
+  };
+
+  // Enrich handoff with evidence digest, work-item context, and phase outcome
+  const enrichedHandoff = buildHandoffEnforcement(state, evidenceRecords, workItemContext);
+
   emit({
     followup_message: [
       `${modeLabel} — ${categoryLabel} Phase: **${phaseLabel}**`,
       `Launch **${nextAgentId}** (${nextAgentDisplay}) subagent to continue.`,
       `Goal: ${state.goal}`,
       `Phase ${phases.findIndex((p) => p.id === nextPhase) + 1} of ${phases.length}`,
-      buildPhaseHandoff(state, nextAgentId),
+      enrichedHandoff,
       commitGateBlock || null,
       evidenceBlock || null,
     ].filter(Boolean).join("\n\n"),

@@ -46,6 +46,60 @@ function buildPhaseHandoff(state, nextAgentId) {
   return lines.join("\n");
 }
 
+/**
+ * Build enriched handoff with evidence digest, work-item context, and phase outcome.
+ * @param {object} state - orchestra state
+ * @param {Array} evidenceRecords - evidence records from applyEvidenceToGates
+ * @param {object} workItemContext - work item context (ticketId, acCount)
+ * @returns {string} enriched handoff, truncated to MAX_HANDOFF_CHARS with marker
+ */
+function buildHandoffEnforcement(state, evidenceRecords, workItemContext) {
+  const lines = [];
+
+  // Evidence digest: gate names + pass/fail summary
+  if (evidenceRecords && evidenceRecords.length > 0) {
+    const digest = evidenceRecords
+      .map((r) => `${r.gate}:${r.ok ? "PASS" : "FAIL"}`)
+      .join(" ");
+    lines.push(`Evidence: ${digest}`);
+  }
+
+  // Work-item context: ticket ID + AC count
+  const ticketId =
+    (state.memory && state.memory.ticketId) ||
+    workItemContext?.ticketId ||
+    (state.goal ? state.goal.slice(0, 50) : "(no goal)");
+  const acCount = workItemContext?.acCount;
+  let workItemLine = `Work item: ${ticketId}`;
+  if (typeof acCount === "number" && acCount > 0) {
+    workItemLine += ` (AC: ${acCount})`;
+  }
+  lines.push(workItemLine);
+
+  // Phase outcome summary from state.last_outcome
+  const outcome = state.last_outcome;
+  if (outcome) {
+    const parts = [];
+    if (outcome.phase) parts.push(`phase=${outcome.phase}`);
+    if (outcome.decision) parts.push(`decision=${outcome.decision}`);
+    if (outcome.reason) parts.push(`reason=${outcome.reason}`);
+    if (outcome.token) parts.push(`token=${outcome.token}`);
+    if (parts.length > 0) {
+      lines.push(`Last outcome: ${parts.join(", ")}`);
+    }
+  }
+
+  // Truncate to MAX_HANDOFF_CHARS with marker
+  const result = lines.join("\n");
+  if (result.length <= MAX_HANDOFF_CHARS) {
+    return result;
+  }
+
+  const truncated = result.slice(0, MAX_HANDOFF_CHARS - 20);
+  const overflow = result.length - MAX_HANDOFF_CHARS + 20;
+  return `${truncated}... [+${overflow} chars]`;
+}
+
 function validateHandoffCompact(text) {
   if (!text || typeof text !== "string") return { ok: true, chars: 0 };
   const chars = text.length;
@@ -69,6 +123,7 @@ module.exports = {
   MAX_HANDOFF_CHARS,
   HANDOFF_RULES,
   buildPhaseHandoff,
+  buildHandoffEnforcement,
   validateHandoffCompact,
   handoffWarningBlock,
 };
