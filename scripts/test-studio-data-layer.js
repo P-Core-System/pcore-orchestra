@@ -203,5 +203,56 @@ if (fs.existsSync(historyPath)) {
   assert(content.includes("'.pcore'") && content.includes("'state'") && content.includes("'orchestra-history.json'"), 'Worktree orchestra-history path components');
 }
 
+// Test 14: workItems.ts module
+console.log('\nTest 14: workItems.ts data layer');
+const workItemsPath = path.join(studioLibDir, 'workItems.ts');
+assert(fs.existsSync(workItemsPath), 'workItems.ts exists');
+
+if (fs.existsSync(workItemsPath)) {
+  const content = fs.readFileSync(workItemsPath, 'utf8');
+  assert(content.includes('export const TICKET_STATES'), 'TICKET_STATES exported');
+  assert(content.includes('TRIAGE') && content.includes('COMPLETED'), 'All 10 states in TICKET_STATES');
+  assert(content.includes('export function deriveWorkItems'), 'deriveWorkItems exported');
+  assert(content.includes('export function buildBoardColumns'), 'buildBoardColumns exported');
+  assert(content.includes('export function getBoardData'), 'getBoardData exported');
+  assert(content.includes('export function getStateColor'), 'getStateColor exported');
+  assert(content.includes('export function getStateOrder'), 'getStateOrder exported');
+  // Verify exactly 10 states in TICKET_STATES array (before first interface/type after it)
+  const ticketStatesSection = content.split('export const TICKET_STATES')[1]?.split('export ')[0] || '';
+  const stateNames = ticketStatesSection.match(/'(TRIAGE|READY|PLANNED|IN_PROGRESS|VERIFYING|REVIEW_PENDING|COMPLETED|NEEDS_HUMAN|CANCELLED|FAILED)'/g) || [];
+  assert(stateNames.length === 10, `TICKET_STATES has exactly 10 states (found ${stateNames.length})`);
+}
+
+// Test 15: WorkItem components
+console.log('\nTest 15: WorkItem components');
+const workItemBoardPath = path.join(studioComponentsDir, 'WorkItemBoard.tsx');
+const workItemColumnPath = path.join(studioComponentsDir, 'WorkItemColumn.tsx');
+const workItemCardPath = path.join(studioComponentsDir, 'WorkItemCard.tsx');
+
+assert(fs.existsSync(workItemBoardPath), 'WorkItemBoard.tsx exists');
+assert(fs.existsSync(workItemColumnPath), 'WorkItemColumn.tsx exists');
+assert(fs.existsSync(workItemCardPath), 'WorkItemCard.tsx exists');
+
+if (fs.existsSync(workItemBoardPath)) {
+  const content = fs.readFileSync(workItemBoardPath, 'utf8');
+  assert(content.includes('export function WorkItemBoard'), 'WorkItemBoard exported');
+  assert(content.includes('buildBoardColumns'), 'Uses buildBoardColumns');
+  assert(content.includes('TICKET_STATES'), 'Uses TICKET_STATES');
+  assert(content.includes('workspace') && content.includes('session'), 'Has workspace/session filter dropdowns');
+}
+
+if (fs.existsSync(workItemColumnPath)) {
+  const content = fs.readFileSync(workItemColumnPath, 'utf8');
+  assert(content.includes('export function WorkItemColumn'), 'WorkItemColumn exported');
+  assert(content.includes('WorkItemCard'), 'Uses WorkItemCard');
+}
+
+if (fs.existsSync(workItemCardPath)) {
+  const content = fs.readFileSync(workItemCardPath, 'utf8');
+  assert(content.includes('export function WorkItemCard'), 'WorkItemCard exported');
+  assert(content.includes('ticketId') && content.includes('title'), 'Displays ticketId and title');
+  assert(content.includes('agent') && content.includes('createdAt'), 'Displays agent and timestamps');
+}
+
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);
 process.exit(failed > 0 ? 1 : 0);
