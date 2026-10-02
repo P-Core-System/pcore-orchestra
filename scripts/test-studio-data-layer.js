@@ -254,5 +254,61 @@ if (fs.existsSync(workItemCardPath)) {
   assert(content.includes('agent') && content.includes('createdAt'), 'Displays agent and timestamps');
 }
 
+// Test 16: useRunPolling hook
+console.log('\nTest 16: useRunPolling hook');
+const useRunPollingPath = path.join(studioHooksDir, 'useRunPolling.ts');
+assert(fs.existsSync(useRunPollingPath), 'useRunPolling.ts exists');
+
+if (fs.existsSync(useRunPollingPath)) {
+  const content = fs.readFileSync(useRunPollingPath, 'utf8');
+  assert(content.includes('export function useRunPolling'), 'useRunPolling exported');
+  assert(content.includes('listRuns') && content.includes('loadRun'), 'Uses conductorRuns functions');
+  assert(content.includes('useState') && content.includes('useEffect'), 'Uses React hooks');
+  assert(content.includes('intervalMs') && content.includes('setInterval'), 'Implements polling');
+  assert(content.includes('refresh') && content.includes('selectRun'), 'Returns refresh and selectRun');
+  assert(content.includes('StateDirInfo') || content.includes('stateDirs'), 'Returns stateDirs');
+}
+
+// Test 17: RunList component
+console.log('\nTest 17: RunList component');
+const runListPath = path.join(studioComponentsDir, 'RunList.tsx');
+assert(fs.existsSync(runListPath), 'RunList.tsx exists');
+
+if (fs.existsSync(runListPath)) {
+  const content = fs.readFileSync(runListPath, 'utf8');
+  assert(content.includes('export function RunList'), 'RunList exported');
+  assert(content.includes('runs') && content.includes('onSelect'), 'Accepts runs and onSelect props');
+  assert(content.includes('rounded-full') && content.includes('status'), 'Shows status indicators');
+  assert(content.includes('goal') && content.includes('truncate'), 'Truncates goal text');
+  assert(content.includes('formatDuration') || content.includes('duration'), 'Formats duration');
+}
+
+// Test 18: RunDetail component
+console.log('\nTest 18: RunDetail component');
+const runDetailPath = path.join(studioComponentsDir, 'RunDetail.tsx');
+assert(fs.existsSync(runDetailPath), 'RunDetail.tsx exists');
+
+if (fs.existsSync(runDetailPath)) {
+  const content = fs.readFileSync(runDetailPath, 'utf8');
+  assert(content.includes('export function RunDetail'), 'RunDetail exported');
+  assert(content.includes('phases') && content.includes('gates'), 'Shows phases and gates');
+  assert(content.includes('evidence') && content.includes('handoff'), 'Shows evidence and handoff');
+  assert(content.includes('tokens') && content.includes('byAgent'), 'Shows token breakdown');
+  assert(content.includes('formatTime') || content.includes('toLocaleString'), 'Formats timestamps');
+}
+
+// Test 19: RunViewer component
+console.log('\nTest 19: RunViewer component');
+const runViewerPath = path.join(studioComponentsDir, 'RunViewer.tsx');
+assert(fs.existsSync(runViewerPath), 'RunViewer.tsx exists');
+
+if (fs.existsSync(runViewerPath)) {
+  const content = fs.readFileSync(runViewerPath, 'utf8');
+  assert(content.includes('export function RunViewer'), 'RunViewer exported');
+  assert(content.includes('useRunPolling'), 'Uses useRunPolling hook');
+  assert(content.includes('RunList') && content.includes('RunDetail'), 'Composes RunList and RunDetail');
+  assert(content.includes('stateDirs') && content.includes('selectedStateDir'), 'Has state dir selector');
+}
+
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);
 process.exit(failed > 0 ? 1 : 0);
