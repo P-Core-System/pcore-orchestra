@@ -100,4 +100,48 @@ module.exports = {
   handoffBlock,
   ambientContextBlock,
   toolsMatrixMarkdown,
+  canRunInParallel,
 };
+
+/**
+ * Check if two phases can run in parallel based on registry independence metadata.
+ * Two phases are independent if they don't share any files, gates, or state keys.
+ * @param {object} phaseA - First phase definition
+ * @param {object} phaseB - Second phase definition
+ * @param {object} registry - Agent registry from bundle/agent-registry.json
+ * @returns {boolean} true if phases can run in parallel
+ */
+function canRunInParallel(phaseA, phaseB, registry) {
+  if (!phaseA || !phaseB || !registry) return false;
+  
+  const agentA = registry.agentDetails?.find(a => a.id === phaseA.agent);
+  const agentB = registry.agentDetails?.find(a => a.id === phaseB.agent);
+  
+  if (!agentA?.independence || !agentB?.independence) return false;
+  
+  const indA = agentA.independence;
+  const indB = agentB.independence;
+  
+  // Use phase-specific files/gates/stateKeys if provided, else fall back to agent metadata
+  const filesA = new Set(phaseA.files || indA.files || []);
+  const filesB = new Set(phaseB.files || indB.files || []);
+  for (const f of filesA) {
+    if (filesB.has(f)) return false;
+  }
+  
+  // Check gate overlap
+  const gatesA = new Set(phaseA.gates || indA.gates || []);
+  const gatesB = new Set(phaseB.gates || indB.gates || []);
+  for (const g of gatesA) {
+    if (gatesB.has(g)) return false;
+  }
+  
+  // Check state key overlap
+  const stateA = new Set(phaseA.stateKeys || indA.stateKeys || []);
+  const stateB = new Set(phaseB.stateKeys || indB.stateKeys || []);
+  for (const k of stateA) {
+    if (stateB.has(k)) return false;
+  }
+  
+  return true;
+}

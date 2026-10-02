@@ -84,6 +84,294 @@ function scanAgentDir(dir) {
 function buildRegistry(roster) {
   const cursor = scanAgentDir(AGENT_DIRS[0]);
   const opencode = scanAgentDir(AGENT_DIRS[1]);
+  
+  // Independence metadata: files, gates, stateKeys each agent touches
+  const INDEPENDENCE_MAP = {
+    "orchestra-planner": {
+      files: ["context/architecture.md", "context/project-overview.md", "context/progress-tracker.md", ".cursor/orchestra-plan.md"],
+      gates: [],
+      stateKeys: ["goal", "memory", "orchestraConfig"],
+    },
+    "orchestra-implementer": {
+      files: ["**/*.js", "**/*.ts", "**/*.py", "**/*.md"],
+      gates: [],
+      stateKeys: ["files_changed", "memory"],
+    },
+    "orchestra-verifier": {
+      files: [],
+      gates: ["build", "tests", "lint", "security", "docs-updated"],
+      stateKeys: ["qualityGates", "evidence_records"],
+    },
+    "orchestra-reviewer": {
+      files: [],
+      gates: ["reviewer-approval", "docs-updated", "memory-updated"],
+      stateKeys: ["qualityGates", "review_decision"],
+    },
+    "business-analyst": {
+      files: ["context/project-overview.md", "context/requirements.md"],
+      gates: [],
+      stateKeys: ["requirements", "memory"],
+    },
+    "product-manager": {
+      files: ["context/requirements.md", "context/user-stories.md"],
+      gates: [],
+      stateKeys: ["stories", "memory"],
+    },
+    "architect": {
+      files: ["context/architecture.md", "context/tech-selection.md"],
+      gates: [],
+      stateKeys: ["architecture", "memory"],
+    },
+    "tech-lead": {
+      files: ["context/folder-structure.md", "context/coding-standards.md"],
+      gates: [],
+      stateKeys: ["tech_decisions", "memory"],
+    },
+    "project-manager": {
+      files: ["context/sprint-plan.md", "context/task-breakdown.md"],
+      gates: [],
+      stateKeys: ["tasks", "memory"],
+    },
+    "backend-engineer": {
+      files: ["src/**/*.js", "src/**/*.ts", "src/**/*.py"],
+      gates: ["build", "tests"],
+      stateKeys: ["files_changed", "memory"],
+    },
+    "frontend-engineer": {
+      files: ["src/**/*.tsx", "src/**/*.jsx", "src/**/*.css", "src/**/*.html"],
+      gates: ["build", "tests", "lint"],
+      stateKeys: ["files_changed", "memory"],
+    },
+    "full-stack-engineer": {
+      files: ["src/**/*"],
+      gates: ["build", "tests", "lint"],
+      stateKeys: ["files_changed", "memory"],
+    },
+    "database-engineer": {
+      files: ["migrations/**", "src/**/*.sql", "prisma/**"],
+      gates: ["build", "tests"],
+      stateKeys: ["files_changed", "memory"],
+    },
+    "qa-engineer": {
+      files: ["tests/**", "e2e/**"],
+      gates: ["tests", "lint"],
+      stateKeys: ["test_results", "memory"],
+    },
+    "automation-engineer": {
+      files: ["e2e/**", "scripts/**", ".github/**"],
+      gates: ["tests", "lint"],
+      stateKeys: ["test_results", "memory"],
+    },
+    "security-engineer": {
+      files: ["**/*.js", "**/*.ts", "**/*.py", "**/*.sh"],
+      gates: ["security"],
+      stateKeys: ["security_findings", "memory"],
+    },
+    "accessibility-reviewer": {
+      files: ["src/**/*.tsx", "src/**/*.jsx", "src/**/*.html", "src/**/*.css"],
+      gates: [],
+      stateKeys: ["a11y_findings", "memory"],
+    },
+    "documentation-writer": {
+      files: ["docs/**", "context/**", "README.md", "CHANGELOG.md"],
+      gates: ["docs-updated"],
+      stateKeys: ["docs_updated", "memory"],
+    },
+    "release-manager": {
+      files: ["CHANGELOG.md", "package.json", ".github/**"],
+      gates: ["version-updated", "changelog-updated", "release-notes-updated"],
+      stateKeys: ["release_info", "memory"],
+    },
+    "devops-engineer": {
+      files: ["docker/**", "k8s/**", "terraform/**", ".github/**", "scripts/**"],
+      gates: ["build", "lint"],
+      stateKeys: ["infra_changes", "memory"],
+    },
+    "sre": {
+      files: ["monitoring/**", "alerting/**", "scripts/**"],
+      gates: [],
+      stateKeys: ["slo_data", "memory"],
+    },
+    "observer": {
+      files: ["monitoring/**", "dashboards/**"],
+      gates: [],
+      stateKeys: ["metrics", "memory"],
+    },
+    "code-reviewer": {
+      files: ["**/*.js", "**/*.ts", "**/*.py", "**/*.md"],
+      gates: ["reviewer-approval"],
+      stateKeys: ["review_comments", "memory"],
+    },
+    "performance-engineer": {
+      files: ["src/**/*", "benchmarks/**"],
+      gates: [],
+      stateKeys: ["perf_data", "memory"],
+    },
+    "platform-engineer": {
+      files: ["k8s/**", "terraform/**", "docker/**"],
+      gates: [],
+      stateKeys: ["platform_changes", "memory"],
+    },
+    "cloud-engineer": {
+      files: ["cloud/**", "terraform/**", "scripts/**"],
+      gates: [],
+      stateKeys: ["cloud_resources", "memory"],
+    },
+    "infrastructure-engineer": {
+      files: ["terraform/**", "ansible/**", "scripts/**"],
+      gates: [],
+      stateKeys: ["infra_changes", "memory"],
+    },
+    "agent-selector": {
+      files: [],
+      gates: [],
+      stateKeys: ["team_roster", "memory"],
+    },
+    "workflow-orchestrator": {
+      files: ["context/workflow-plan.md"],
+      gates: [],
+      stateKeys: ["workflow_plan", "memory"],
+    },
+    "project-type-classifier": {
+      files: ["project.yaml"],
+      gates: [],
+      stateKeys: ["project_type", "memory"],
+    },
+    "business-strategist": {
+      files: ["context/business-strategy.md"],
+      gates: [],
+      stateKeys: ["strategy", "memory"],
+    },
+    "stakeholder-advocate": {
+      files: ["context/stakeholder-input.md"],
+      gates: [],
+      stateKeys: ["stakeholder_feedback", "memory"],
+    },
+    "compliance-officer": {
+      files: ["context/compliance.md"],
+      gates: [],
+      stateKeys: ["compliance_checks", "memory"],
+    },
+    "legal-advisor": {
+      files: ["context/legal-review.md"],
+      gates: [],
+      stateKeys: ["legal_opinion", "memory"],
+    },
+    "security-executive-advisor": {
+      files: ["context/security-policy.md"],
+      gates: [],
+      stateKeys: ["security_policy", "memory"],
+    },
+    "ops-manager": {
+      files: ["context/ops-runbook.md"],
+      gates: [],
+      stateKeys: ["ops_plan", "memory"],
+    },
+    "incident-responder": {
+      files: ["context/incident-response.md"],
+      gates: [],
+      stateKeys: ["incident_log", "memory"],
+    },
+    "data-engineer": {
+      files: ["data/**", "sql/**", "pipelines/**"],
+      gates: ["build", "tests"],
+      stateKeys: ["data_models", "memory"],
+    },
+    "ui-ux-designer": {
+      files: ["design/**", "src/**/*.css", "src/**/*.scss", "context/ui-context.md"],
+      gates: [],
+      stateKeys: ["design_specs", "memory"],
+    },
+    "scrum-master": {
+      files: ["context/sprint-plan.md", "context/retrospective.md"],
+      gates: [],
+      stateKeys: ["sprint_data", "memory"],
+    },
+    "ai-ethics-reviewer": {
+      files: ["context/ai-ethics.md"],
+      gates: [],
+      stateKeys: ["ethics_review", "memory"],
+    },
+    "ai-safety-engineer": {
+      files: ["context/ai-safety.md"],
+      gates: [],
+      stateKeys: ["safety_checks", "memory"],
+    },
+    "annotation-specialist": {
+      files: ["data/**/annotations/**"],
+      gates: [],
+      stateKeys: ["annotations", "memory"],
+    },
+    "api-collector": {
+      files: ["api/**", "openapi/**"],
+      gates: [],
+      stateKeys: ["api_specs", "memory"],
+    },
+    "api-contract-validator": {
+      files: ["api/**", "contracts/**"],
+      gates: ["tests"],
+      stateKeys: ["validation_results", "memory"],
+    },
+    "api-pentester": {
+      files: ["api/**"],
+      gates: ["security"],
+      stateKeys: ["pentest_findings", "memory"],
+    },
+    "appsec-engineer": {
+      files: ["src/**/*"],
+      gates: ["security"],
+      stateKeys: ["security_findings", "memory"],
+    },
+    "attack-simulator": {
+      files: ["src/**/*"],
+      gates: ["security"],
+      stateKeys: ["attack_results", "memory"],
+    },
+    "bias-auditor": {
+      files: ["models/**", "data/**"],
+      gates: [],
+      stateKeys: ["bias_report", "memory"],
+    },
+    "blue-team-defender": {
+      files: ["security/**", "monitoring/**"],
+      gates: ["security"],
+      stateKeys: ["defense_results", "memory"],
+    },
+    "bug-bounty-coordinator": {
+      files: ["security/**", "bug-bounty/**"],
+      gates: [],
+      stateKeys: ["bounty_reports", "memory"],
+    },
+    "chaos-engineer": {
+      files: ["chaos/**", "scripts/**"],
+      gates: [],
+      stateKeys: ["chaos_results", "memory"],
+    },
+    "cloud-pentester": {
+      files: ["cloud/**", "terraform/**"],
+      gates: ["security"],
+      stateKeys: ["pentest_findings", "memory"],
+    },
+    "adr-archivist": {
+      files: ["docs/adr/**"],
+      gates: ["docs-updated"],
+      stateKeys: ["adrs", "memory"],
+    },
+    "adversary-emulator": {
+      files: ["security/**"],
+      gates: ["security"],
+      stateKeys: ["emulation_results", "memory"],
+    },
+  };
+  
+  // Build detailed agent entries with independence metadata
+  const agentDetails = cursor.map((name) => {
+    return {
+      id: name,
+      independence: INDEPENDENCE_MAP[name] || { files: [], gates: [], stateKeys: [] },
+    };
+  });
+  
   return {
     version: 1,
     generator: "scripts/gen-agent-registry.js",
@@ -101,6 +389,7 @@ function buildRegistry(roster) {
       opencodeAgents: opencode.length,
     },
     agents: cursor,
+    agentDetails,
   };
 }
 

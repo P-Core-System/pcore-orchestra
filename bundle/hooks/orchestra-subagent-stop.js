@@ -36,6 +36,13 @@ const {
   cleanupRunWorktree,
   getWorktreePath,
 } = require("./lib/worktree-manager.js");
+const { canRunInParallel } = require("./lib/orchestra-spawn-matrix.js");
+
+// Load agent registry for independence checks
+let agentRegistry = null;
+try {
+  agentRegistry = require("../agent-registry.json");
+} catch {}
 
 // Phase 2 domain event log — lazy + guarded so a missing/broken domain module
 // can never take the host hook down (fail-open by design).
@@ -100,6 +107,52 @@ function getAgentDisplayName(agentId) {
     "orchestra-reviewer": "Orchestra Reviewer",
   };
   return display[agentId] || agentId;
+}
+
+/** Check if next phase can run in parallel with any pending phases. */
+function checkParallelPhases(state, nextPhase, nextAgentId) {
+  if (!agentRegistry || !canRunInParallel) return false;
+  
+  const phases = getPhasesForMode(state.loopMode, state);
+  const currentIdx = phases.findIndex(p => p.id === nextPhase);
+  if (currentIdx === -1 || currentIdx >= phases.length - 1) return false;
+  
+  // Check if any subsequent phase can run in parallel
+  for (let i = currentIdx + 1; i < phases.length; i++) {
+    const futurePhase = phases[i];
+    const futureAgentId = getAgentForPhase(futurePhase.id);
+    
+    const phaseA = {
+      id: nextPhase,
+      agent: nextAgentId,
+    };
+    const phaseB = {
+      id: futurePhase.id,
+      agent: futureAgentId,
+    };
+    
+    if (canRunInParallel(phaseA, phaseB, agentRegistry)) {
+      return { phase: futurePhase, agentId: futureAgentId };
+    }
+  }
+  return false;
+}
+
+/** Emit concurrent spawn message for parallel phases. */
+function emitConcurrentSpawn(state, nextPhase, nextAgentId, parallelPhase) {
+  const nextAgentDisplay = getAgentDisplayName(nextAgentId);
+  const parallelAgentDisplay = getAgentDisplayName(parallelPhase.agentId);
+  const phases = getPhasesForMode(state.loopMode, state);
+  
+  emit({
+    followup_message: [
+      `**Parallel phase execution detected** — phases can run concurrently.`,
+      `Launch **${nextAgentId}** (${nextAgentDisplay}) for phase **${nextPhase}**.`,
+      `Simultaneously launch **${parallelPhase.agentId}** (${parallelAgentDisplay}) for phase **${parallelPhase.phase.id}**.`,
+      `Goal: ${state.goal}`,
+      `Phase ${phases.findIndex(p => p.id === nextPhase) + 1} of ${phases.length} + Phase ${phases.findIndex(p => p.id === parallelPhase.phase.id) + 1} of ${phases.length}`,
+    ].filter(Boolean).join("\n\n"),
+  });
 }
 
 function handleFixRequired(state) {
@@ -364,6 +417,13 @@ function handlePhaseComplete(state, chain) {
 
   // Enrich handoff with evidence digest, work-item context, and phase outcome
   const enrichedHandoff = buildHandoffEnforcement(state, evidenceRecords, workItemContext);
+
+  // Check for parallel phase execution
+  const parallelPhase = checkParallelPhases(state, nextPhase, nextAgentId);
+  if (parallelPhase) {
+    emitConcurrentSpawn(state, nextPhase, nextAgentId, parallelPhase);
+    return true;
+  }
 
   emit({
     followup_message: [
