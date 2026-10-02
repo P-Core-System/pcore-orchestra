@@ -28,6 +28,9 @@
  *
  * Fail-open: a missing, empty, corrupt or junk log yields `[]` and NEVER
  * throws — a queue that cannot be read must never block the review loop.
+ *
+ * Worktree isolation: when `worktreePath` is provided, events are read from
+ * `worktreePath/.pcore/state/domain-events.json` instead of the global state dir.
  */
 
 const store = require("./store.js");
@@ -71,12 +74,13 @@ function toEntry(e) {
 
 /**
  * Open human-review items, oldest first.
+ * @param {string} [worktreePath] optional worktree path for isolation
  * @returns {Array<{ticketId:string|null, phase:string|null, reason:string|null, since:string|null}>}
  */
-function pendingReview() {
+function pendingReview(worktreePath) {
   let events;
   try {
-    events = store.loadEvents();
+    events = store.loadEvents(worktreePath);
   } catch {
     return [];
   }

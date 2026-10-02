@@ -113,6 +113,9 @@ function verdict(gate, ok, details) {
 }
 
 function detectWorkspaceRoot(state) {
+  if (state?.worktreePath) {
+    return state.worktreePath;
+  }
   if (state?.project?.identityFile) {
     return path.dirname(state.project.identityFile);
   }
@@ -744,4 +747,5 @@ module.exports = {
   verdictFields,
   recordRunDiffBase,
   resolveDocsBase,
+  detectWorkspaceRoot,
 };
