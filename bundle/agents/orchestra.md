@@ -12,6 +12,7 @@ model: composer-2.5
 reasoningEffort: low
 permission:
   task:
+    # BEGIN GENERATED: task allowlist (scripts/gen-agent-registry.js)
     "*": deny
     "orchestra-*": allow
     "agent-selector*": allow
@@ -56,6 +57,121 @@ permission:
     "observer*": allow
     "incident-responder*": allow
     "security-performance-reviewer*": allow
+    "adversary-emulator*": allow
+    "ai-ethics-reviewer*": allow
+    "ai-safety-engineer*": allow
+    "annotation-specialist*": allow
+    "api-collector*": allow
+    "api-pentester*": allow
+    "appsec-engineer*": allow
+    "attack-simulator*": allow
+    "bias-auditor*": allow
+    "blue-team-defender*": allow
+    "bug-bounty-coordinator*": allow
+    "chaos-engineer*": allow
+    "cloud-engineer*": allow
+    "cloud-pentester*": allow
+    "content-strategist*": allow
+    "corpus-builder*": allow
+    "covert-ops-planner*": allow
+    "customer-success*": allow
+    "data-analyst*": allow
+    "data-annotator*": allow
+    "data-cleaner*": allow
+    "data-governance-officer*": allow
+    "data-harvester*": allow
+    "data-preprocessor*": allow
+    "data-quality-engineer*": allow
+    "data-validator*": allow
+    "dataset-auditor*": allow
+    "dataset-curator*": allow
+    "dataset-versioner*": allow
+    "defense-validator*": allow
+    "detection-engineer*": allow
+    "developer-advocate*": allow
+    "devsecops-engineer*": allow
+    "digital-forensics*": allow
+    "discourse-analyst*": allow
+    "domain-expert*": allow
+    "embedding-engineer*": allow
+    "exercise-controller*": allow
+    "explainability-engineer*": allow
+    "exploit-developer*": allow
+    "feature-engineer*": allow
+    "financial-analyst*": allow
+    "fine-tuning-engineer*": allow
+    "fintech-specialist*": allow
+    "hardening-engineer*": allow
+    "healthcare-specialist*": allow
+    "incident-commander*": allow
+    "industry-analyst*": allow
+    "inference-engineer*": allow
+    "infrastructure-defender*": allow
+    "infrastructure-engineer*": allow
+    "innovation-lead*": allow
+    "insider-threat-simulator*": allow
+    "internal-pentester*": allow
+    "kubernetes-engineer*": allow
+    "license-manager*": allow
+    "linguistic-analyst*": allow
+    "malware-analyst*": allow
+    "malware-reverse-engineer*": allow
+    "market-researcher*": allow
+    "ml-ops-engineer*": allow
+    "mobile-pentester*": allow
+    "model-monitor*": allow
+    "model-trainer*": allow
+    "morphological-analyst*": allow
+    "network-pentester*": allow
+    "nlp-engineer*": allow
+    "observability-engineer*": allow
+    "orchestra*": allow
+    "partnership-manager*": allow
+    "penetration-tester*": allow
+    "phonology-analyst*": allow
+    "policy-maker*": allow
+    "pos-tagger*": allow
+    "pragmatic-engineer*": allow
+    "privacy-engineer*": allow
+    "prompt-engineer*": allow
+    "purple-team-lead*": allow
+    "red-team-operator*": allow
+    "regulatory-specialist*": allow
+    "research-scientist*": allow
+    "rule-enforcer*": allow
+    "safety-officer*": allow
+    "scenario-designer*": allow
+    "secure-code-reviewer*": allow
+    "security-architect*": allow
+    "security-engineer*": allow
+    "semantic-engineer*": allow
+    "shadow-it-auditor*": allow
+    "shift-left-engineer*": allow
+    "siem-analyst*": allow
+    "site-reliability-engineer*": allow
+    "social-engineer*": allow
+    "support-engineer*": allow
+    "survey-designer*": allow
+    "syllable-analyst*": allow
+    "syntactic-engineer*": allow
+    "synthetic-data-generator*": allow
+    "technical-writer*": allow
+    "technology-scout*": allow
+    "telemetry-engineer*": allow
+    "terms-conditions-writer*": allow
+    "terraform-engineer*": allow
+    "test-architect*": allow
+    "threat-hunter*": allow
+    "threat-intelligence-analyst*": allow
+    "threat-simulator*": allow
+    "training-specialist*": allow
+    "translation-coordinator*": allow
+    "vector-db-engineer*": allow
+    "vulnerability-researcher*": allow
+    "web-app-pentester*": allow
+    "web-scraper*": allow
+    "zero-knowledge-tester*": allow
+    # END GENERATED: task allowlist
   bash: allow
   edit: deny
   websearch: allow
