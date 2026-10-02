@@ -166,6 +166,26 @@ function evidenceLint(root) {
 }
 
 /**
+ * Labels of the findings that are provably self-matches inside
+ * `security-scanner.js` itself.
+ *
+ * The scanner file is the SOURCE of the rules, so it matches them twice over:
+ *   1. it holds the private-key header literals its rules search for, and
+ *   2. every rule LABEL carries the very call-site text its rule searches for
+ *      (the label of the code-injection rule ends in a parenthesised opening
+ *      call, the XSS rule's ends in a document-write call, and so on).
+ *
+ * The pattern is written from the label SUFFIXES on purpose. Spelling the
+ * labels out in full would re-introduce the same literals into THIS file,
+ * which would then need its own exclusion — an allowlist that documents the
+ * rules it silences must not quote them.
+ *
+ * Scope: these labels ONLY. A planted secret, a real call site or any other
+ * rule in `security-scanner.js` still blocks.
+ */
+const SELF_SCAN_RULE_LITERAL_LABELS = /\((?:command|code) injection risk\)$|\bXSS risk\)$|^SSH private key$|^RSA private key$|non-crypto purposes\)$/;
+
+/**
  * Findings the scanner is allowed to ignore, each with a written reason.
  *
  * The scanner matches its own rule source (RSA/SSH header literals, the eval /
@@ -179,16 +199,20 @@ function evidenceLint(root) {
  * opening parenthesis — writing them literally would make THIS file trip the
  * very rules they justify (and it is not on the allowlist).
  *
- * Scope rule: entries must stay narrow. A new exclusion needs a matching
- * false positive that is provable from the finding alone — never a whole
- * directory, never a rule that could mask a real defect elsewhere.
+ * Scope rule (audit finding B3): EVERY entry carries a rule/label constraint.
+ * A file-only entry silences every rule at every severity in that file, which
+ * is how a planted GitHub token in `security-scanner.js` stayed invisible.
+ * A new exclusion needs a matching false positive that is provable from the
+ * finding alone — never a whole directory, never a rule that could mask a
+ * real defect elsewhere.
  */
 const SELF_SCAN_EXCLUSIONS = [
   {
-    id: "scanner-self-patterns",
+    id: "scanner-rule-source-literals",
     file: /(^|\/)security-scanner\.js$/,
+    label: SELF_SCAN_RULE_LITERAL_LABELS,
     reason:
-      "the scanner matches the literals of its own rules (private-key headers, eval, new Function, exec) — a file that only holds rule source cannot hold a real finding",
+      "the scanner file is the source of its own rules: it holds the private-key header literals, and each rule label ends with the same call-site text its rule searches for. Narrowed to those labels so a planted secret or a real call site in this file still blocks.",
   },
   {
     id: "regex-exec-not-shell-exec",
@@ -204,7 +228,7 @@ function isSelfScanExcluded(finding) {
   const file = (finding && finding.file) || "";
   const label = (finding && finding.label) || "";
   return SELF_SCAN_EXCLUSIONS.some(
-    (e) => e.file.test(file) && (!e.label || (label && e.label.test(label)))
+    (e) => e.file.test(file) && e.label instanceof RegExp && !!label && e.label.test(label)
   );
 }
 

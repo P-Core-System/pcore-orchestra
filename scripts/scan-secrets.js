@@ -42,7 +42,6 @@ const scanner = require(path.join(__dirname, "..", "bundle", "hooks", "lib", "se
 const SEVERITY_RANK = Object.freeze({ critical: 4, high: 3, medium: 2, low: 1 });
 const LEVELS = Object.keys(SEVERITY_RANK);
 const DEFAULT_FAIL_ON = "high";
-const ALLOW_FILE = ".secret-scan-allow";
 
 function usage() {
   return [
@@ -78,54 +77,19 @@ function parseArgs(argv) {
 }
 
 /**
- * Read the allowlist. Every entry must carry a reason.
- * @returns {{entries:{pattern:string, reason:string}[], error:string|null, file:string|null}}
+ * Allowlist reading + matching are implemented in the SHARED scanner module
+ * (`security-scanner.js`) so this CLI and the in-loop `evidenceSecurity` gate
+ * cannot drift apart. Re-exported here for callers/tests that used the old
+ * local helpers.
  */
+const { loadSecretScanAllow, isAllowedFinding, normalizeScanPath, ALLOW_FILE } = scanner;
+
 function loadAllow(allowPath) {
-  if (!allowPath || !fs.existsSync(allowPath)) return { entries: [], error: null, file: allowPath || null };
-  let raw;
-  try {
-    raw = fs.readFileSync(allowPath, "utf8");
-  } catch (err) {
-    return { entries: [], error: `${allowPath}: ${err.message}`, file: allowPath };
-  }
-  const entries = [];
-  raw.split("\n").forEach((line, idx) => {
-    const withoutComment = line.split("#")[0].trim();
-    if (withoutComment.length === 0) return;
-    const sep = withoutComment.indexOf("|");
-    const pattern = (sep === -1 ? withoutComment : withoutComment.slice(0, sep)).trim();
-    const reason = (sep === -1 ? "" : withoutComment.slice(sep + 1)).trim();
-    if (pattern.length === 0) return;
-    if (reason.length === 0) {
-      entries.push({ pattern, reason: "", file: allowPath, line: idx + 1 });
-      return;
-    }
-    entries.push({ pattern, reason, file: allowPath, line: idx + 1 });
-  });
-  const undocumented = entries.find((e) => e.reason.length === 0);
-  if (undocumented) {
-    return {
-      entries,
-      error: `${allowPath}:${undocumented.line} — allow entry "${undocumented.pattern}" needs a reason (\`pattern | why it is safe\`)`,
-      file: allowPath,
-    };
-  }
-  return { entries, error: null, file: allowPath };
+  return loadSecretScanAllow(allowPath);
 }
 
-function normalizePath(p) {
-  return String(p || "").split(path.sep).join("/");
-}
-
-/** Does an allowlist entry cover this finding (by file path or by label)? */
 function isAllowed(finding, entries) {
-  const file = normalizePath(finding.file).toLowerCase();
-  const label = String(finding.label || "").toLowerCase();
-  return entries.some((entry) => {
-    const pattern = entry.pattern.toLowerCase();
-    return file.includes(pattern) || label.includes(pattern);
-  });
+  return isAllowedFinding(finding, entries);
 }
 
 /**
@@ -173,7 +137,7 @@ function main(argv) {
   }
 
   const allowFileAbs = allow.file ? path.resolve(allow.file) : null;
-  const isAllowFile = (f) => allowFileAbs !== null && path.resolve(dir, normalizePath(f.file)) === allowFileAbs;
+  const isAllowFile = (f) => allowFileAbs !== null && path.resolve(dir, normalizeScanPath(f.file)) === allowFileAbs;
 
   const scanned = scanner.scanDirectory(dir);
   const all = [...scanned.secrets, ...scanned.vulnerabilities, ...scanned.crypto];
@@ -215,7 +179,7 @@ function main(argv) {
   });
   const lines = [report, "", `**Blocking threshold:** ${opts.failOn} (exit ${exitCode})`];
   if (allow.entries.length > 0) {
-    lines.push("", `## Allowed findings (${allowed.length}) — documented in ${normalizePath(path.relative(process.cwd(), allow.file) || allow.file)}`);
+    lines.push("", `## Allowed findings (${allowed.length}) — documented in ${normalizeScanPath(path.relative(process.cwd(), allow.file) || allow.file)}`);
     for (const f of allowed) lines.push(`- [${f.severity}] ${f.label} in ${f.file}:${f.line}`);
   }
   if (selfScan.length > 0) {

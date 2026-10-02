@@ -154,6 +154,114 @@ test(".git and node_modules are never walked", () => {
   eq(r.vulnerabilities.length, 0, `vendor/VCS trees must be skipped: ${JSON.stringify(r.vulnerabilities)}`);
 });
 
+// ------------------------------------------------------- binary guard (regression)
+//
+// The binary guard in `scanFile` compares the file text against a NUL byte.
+// It once embedded the NUL as a LITERAL source byte, so the scanner judged
+// ITSELF binary and `scanDirectory` silently skipped it — a secret planted in
+// `security-scanner.js` was invisible while the same secret in any sibling
+// file was Critical. The guard must use a real escape and no first-party
+// source file may carry a raw NUL.
+
+/** A raw NUL, built without embedding one in this source file. */
+const RAW_NUL = Buffer.from([0]);
+
+/** Path of the scanner copy inside the fixture workspaces. */
+const OWN_REL = "bundle/hooks/lib/security-scanner.js";
+
+/** Synthetic token shapes that match the scanner rules. */
+const GH_TOKEN = `ghp_${"a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8"}`;
+const GOOGLE_KEY = `AIza${"b".repeat(35)}`;
+
+test("the scanner source holds no raw NUL and its binary guard uses an escape", () => {
+  const src = fs.readFileSync(SCANNER);
+  eq(src.includes(RAW_NUL), false, "security-scanner.js must not embed a raw NUL byte in its own source");
+  const text = src.toString("utf8");
+  ok(
+    /indexOf\(\s*"\\u0000"\s*\)|includes\(\s*"\\u0000"\s*\)|indexOf\(NUL_BYTE\)/.test(text),
+    "the binary guard must compare against a real escape (\\u0000 or the NUL_BYTE constant), not a literal"
+  );
+});
+
+test("the scanner's own source file is scanned, not skipped as binary", () => {
+  const dir = fixture({ "bundle/hooks/lib/.keep": "" });
+  fs.copyFileSync(SCANNER, path.join(dir, "bundle/hooks/lib/security-scanner.js"));
+  const r = scanner.scanDirectory(dir);
+  const own = [...r.secrets, ...r.vulnerabilities, ...r.crypto].filter(
+    (f) => f.file === OWN_REL
+  );
+  ok(
+    own.length > 0,
+    `security-scanner.js must be scanned (0 findings means it was skipped as binary): ${JSON.stringify(
+      [...r.secrets, ...r.vulnerabilities, ...r.crypto].map((f) => f.file)
+    )}`
+  );
+});
+
+test("a planted PAT in the scanner's own source file is Critical (sibling file agrees)", () => {
+  const dir = fixture({ "bundle/hooks/lib/.keep": "", "bundle/hooks/lib/plain.js": `const t = "${GH_TOKEN}";\n` });
+  const target = path.join(dir, "bundle/hooks/lib/security-scanner.js");
+  fs.copyFileSync(SCANNER, target);
+  fs.appendFileSync(target, `\n// fixture token ${GH_TOKEN}\n`);
+  const r = scanner.scanDirectory(dir);
+  const own = r.secrets.filter((f) => f.file === OWN_REL);
+  ok(own.length > 0, "a planted PAT in security-scanner.js must be reported");
+  ok(
+    own.some((f) => f.severity === "critical"),
+    `the planted PAT must be critical: ${JSON.stringify(own.map((f) => [f.severity, f.label]))}`
+  );
+  ok(
+    r.secrets.some((f) => f.file === "bundle/hooks/lib/plain.js" && f.severity === "critical"),
+    "the identical key in a sibling file must be Critical too (control)"
+  );
+});
+
+test("a genuinely binary file is still skipped by the NUL guard", () => {
+  const dir = fixture({ "keep.js": "const f = eval('1');\n" });
+  fs.writeFileSync(
+    path.join(dir, "blob.js"),
+    Buffer.concat([Buffer.from("const t = 'ghp_"), RAW_NUL, Buffer.from("';")])
+  );
+  const r = scanner.scanDirectory(dir);
+  ok(
+    !r.secrets.some((f) => f.file === "blob.js"),
+    `a file containing a raw NUL is binary and must stay skipped: ${JSON.stringify(r.secrets)}`
+  );
+  ok(
+    [...r.secrets, ...r.vulnerabilities, ...r.crypto].some((f) => f.file === "keep.js"),
+    "the sibling source file must still be scanned"
+  );
+});
+
+test("no scanable source file under bundle/** or scripts/** contains a raw NUL", () => {
+  const offenders = [];
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (e.isDirectory()) {
+        if (scanner.SKIP_DIRS.has(e.name)) continue;
+        walk(path.join(dir, e.name));
+      } else if (e.isFile()) {
+        const abs = path.join(dir, e.name);
+        const ext = path.extname(abs);
+        if (ext !== "" && !scanner.SCAN_EXTENSIONS.includes(ext)) continue;
+        let buf;
+        try {
+          buf = fs.readFileSync(abs);
+        } catch {
+          continue;
+        }
+        if (buf.includes(RAW_NUL)) offenders.push(`${path.relative(ROOT, abs)} (${buf.length} bytes)`);
+      }
+    }
+  };
+  for (const top of ["bundle", "scripts"]) walk(path.join(ROOT, top));
+  eq(
+    offenders.length,
+    0,
+    `a raw NUL makes the scanner skip the file as binary (it hid a planted secret in security-scanner.js): ${offenders.join(", ")}`
+  );
+});
+
 // ------------------------------------------------------------ owasp + redaction
 
 test("checkOwaspTop10 has at least one caller (was dead code)", () => {
@@ -227,6 +335,28 @@ test("SELF_SCAN_EXCLUSIONS is a documented allowlist", () => {
   }
 });
 
+test("every self-scan exclusion is rule-scoped, never whole-file", () => {
+  for (const e of runner.SELF_SCAN_EXCLUSIONS) {
+    ok(
+      e.label instanceof RegExp,
+      `entry ${e.id} must narrow itself with a rule/label regex — a file-only entry silences EVERY rule at EVERY severity in that file`
+    );
+  }
+});
+
+test("a planted PAT in security-scanner.js is NOT silenced by the self-scan allowlist", () => {
+  const dir = gateFixture({ "helper.js": "module.exports = 1;\n" });
+  const target = path.join(dir, OWN_REL);
+  fs.appendFileSync(target, `\n// fixture token ${GH_TOKEN}\n`);
+  const res = runner.evidenceSecurity(dir);
+  eq(res.ok, false, `a planted PAT in the scanner's own source must block: ${res.details}`);
+  ok(/critical/i.test(res.details), "the planted PAT must be reported as critical");
+  ok(
+    new RegExp(`security-scanner\\.js`).test(res.details),
+    `the blocking finding must name the file: ${res.details}`
+  );
+});
+
 /** Build a workspace root shaped like an orchestra install + extra lib files. */
 function gateFixture(libFiles) {
   const files = {};
@@ -274,9 +404,7 @@ test("a clean lib tree passes the security gate", () => {
 // blocking CLI wrapper over the same scanner the evidence gate uses, so what
 // CI blocks on and what the loop blocks on can never diverge.
 
-/** Synthetic token shapes that match the scanner rules. */
-const GH_TOKEN = `ghp_${"a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8"}`;
-const GOOGLE_KEY = `AIza${"b".repeat(35)}`;
+/** Synthetic token shapes are declared next to the binary-guard block. */
 
 function runCli(args) {
   return cp.spawnSync(process.execPath, [CLI, ...args], { encoding: "utf8", cwd: ROOT, timeout: 120000 });
@@ -342,6 +470,43 @@ test("an undocumented allow entry is a config error (exit 2)", () => {
   const r = runCli(["--dir", dir, "--fail-on=high"]);
   eq(r.status, 2, `an allow entry without a reason must exit 2: ${r.stdout}${r.stderr}`);
   ok(/reason/i.test(r.stderr), `the error must say a reason is required: ${r.stderr}`);
+});
+
+test("a NARROW allow entry (file + label) silences only that rule in that file", () => {
+  const dir = fixture({
+    "synthetic.md": `token ${GOOGLE_KEY}\n`,
+    "plain.js": `const password = "hunter2xyz123";\n`,
+    ".secret-scan-allow":
+      "file:synthetic.md + label:Google API key | synthetic Google key shape used only in tests\n",
+  });
+  const r = runCli(["--dir", dir, "--json", "--fail-on=high"]);
+  eq(r.status, 1, `another rule in another file must still block: ${r.stdout}${r.stderr}`);
+  const parsed = JSON.parse(r.stdout);
+  eq(parsed.allowed.length, 1, `only the narrowed finding may be allowed: ${JSON.stringify(parsed.allowed)}`);
+  ok(
+    parsed.findings.some((f) => /hardcoded password/i.test(f.label)),
+    `the hardcoded password must still be reported: ${JSON.stringify(parsed.findings.map((f) => f.label))}`
+  );
+  ok(
+    parsed.allowed.every((f) => f.label === "Google API key"),
+    `an allow entry must never silence a different rule: ${JSON.stringify(parsed.allowed)}`
+  );
+});
+
+test("the scanner exposes the allowlist helpers the CLI and the loop share", () => {
+  for (const name of ["loadSecretScanAllow", "isAllowedFinding", "parseAllowPattern", "ALLOW_FILE"]) {
+    ok(scanner[name] !== undefined, `security-scanner must export ${name} (single source of truth)`);
+  }
+  const parsed = scanner.parseAllowPattern("file:a/b.js + label:rsa private key");
+  eq(parsed.file, "a/b.js", "the file qualifier must parse");
+  eq(parsed.label, "rsa private key", "the label qualifier must parse");
+  const legacy = scanner.parseAllowPattern("bundle/skills/x/");
+  eq(legacy.any, "bundle/skills/x/", "a bare pattern stays an any-of match (path or label)");
+  eq(
+    scanner.isAllowedFinding({ file: "other.js", label: "Hardcoded password" }, [parsed]),
+    false,
+    "a narrow entry must not match a different file"
+  );
 });
 
 test("the repo itself passes the blocking scan", () => {
