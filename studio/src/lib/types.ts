@@ -204,3 +204,28 @@ export interface StateDirInfo {
   isWorktree: boolean;
   runId?: string;
 }
+
+export interface CyclePhase {
+  name: string;
+  status: 'pending' | 'active' | 'completed' | 'failed' | 'skipped';
+  startedAt?: number;
+  completedAt?: number;
+  durationMs?: number;
+  agent?: string;
+  outcome?: PhaseOutcome;
+}
+
+export interface CycleReport {
+  runId: string;
+  workspace: string;
+  sessionId: string;
+  taskId: string;
+  goal: string;
+  status: 'in_progress' | 'completed' | 'failed' | 'stalled';
+  phase: string;
+  startedAt: number;
+  updatedAt: number;
+  durationMs?: number;
+  phases: CyclePhase[];
+  worktreePath?: string;
+}

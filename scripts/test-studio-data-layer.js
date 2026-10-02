@@ -353,5 +353,56 @@ if (fs.existsSync(evidenceVisualizerPath)) {
   assert(content.includes('EvidenceTable') && content.includes('EvidenceDetail'), 'Composes EvidenceTable and EvidenceDetail');
 }
 
+// Test 23: stateResolver.ts - worktree-aware state discovery (T8 - RED phase)
+console.log('\nTest 23: stateResolver.ts - worktree-aware state discovery');
+const stateResolverPath = path.join(studioLibDir, 'stateResolver.ts');
+assert(fs.existsSync(stateResolverPath), 'stateResolver.ts exists');
+
+if (fs.existsSync(stateResolverPath)) {
+  const content = fs.readFileSync(stateResolverPath, 'utf8');
+  assert(content.includes('export function discoverStateDirs'), 'discoverStateDirs exported');
+  assert(content.includes('export function getGlobalStateDir'), 'getGlobalStateDir exported');
+  assert(content.includes('export function getWorktreeStateDirs'), 'getWorktreeStateDirs exported');
+  assert(content.includes('export function resolveStateDirForRun'), 'resolveStateDirForRun exported');
+  assert(content.includes('PCORE_STATE_DIR'), 'Uses PCORE_STATE_DIR env');
+  assert(content.includes('.config/opencode/hooks/state'), 'Default global state dir');
+  assert(content.includes('.pcore/state'), 'Worktree state dir pattern');
+  assert(content.includes('git worktree list --porcelain'), 'Parses git worktree list');
+  assert(content.includes('StateDirInfo'), 'Uses StateDirInfo type');
+  assert(content.includes('isWorktree'), 'Includes isWorktree flag');
+  assert(content.includes('runId'), 'Includes optional runId');
+}
+
+// Test 24: StateContext.tsx - React context for state directory selection
+console.log('\nTest 24: StateContext.tsx - React context');
+const stateContextPath = path.join(studioLibDir, 'StateContext.tsx');
+assert(fs.existsSync(stateContextPath), 'StateContext.tsx exists');
+
+if (fs.existsSync(stateContextPath)) {
+  const content = fs.readFileSync(stateContextPath, 'utf8');
+  assert(content.includes('export function StateProvider'), 'StateProvider exported');
+  assert(content.includes('export function useStateContext'), 'useStateContext exported');
+  assert(content.includes('createContext'), 'Uses React createContext');
+  assert(content.includes('useState'), 'Uses React useState');
+  assert(content.includes('useEffect'), 'Uses React useEffect');
+  assert(content.includes('stateDirs'), 'Provides stateDirs');
+  assert(content.includes('selectedStateDir'), 'Provides selectedStateDir');
+  assert(content.includes('setSelectedStateDir'), 'Provides setSelectedStateDir');
+  assert(content.includes('refreshStateDirs'), 'Provides refreshStateDirs');
+  assert(content.includes('discoverStateDirs'), 'Calls discoverStateDirs on mount');
+}
+
+// Test 25: App.tsx - StateProvider wired at root, sidebar has selector
+console.log('\nTest 25: App.tsx - StateProvider and sidebar selector');
+const appPath2 = path.join(studioSrcDir, 'App.tsx');
+if (fs.existsSync(appPath2)) {
+  const content = fs.readFileSync(appPath2, 'utf8');
+  assert(content.includes('StateProvider'), 'Wraps with StateProvider');
+  assert(content.includes('StateDirSelector') || content.includes('stateDirs'), 'Has state dir selector component');
+  assert(content.includes('selectedStateDir'), 'Uses selectedStateDir');
+  assert(content.includes('setSelectedStateDir'), 'Uses setSelectedStateDir');
+  assert(content.includes('refreshStateDirs'), 'Has refresh button');
+}
+
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);
 process.exit(failed > 0 ? 1 : 0);
