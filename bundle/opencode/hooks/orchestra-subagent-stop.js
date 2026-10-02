@@ -29,6 +29,13 @@ const { checkPhaseCommitGate } = require("./lib/phase-commit-gate.js");
 const { evaluatePhaseOutcome } = require("./lib/phase-outcome.js");
 const { PHASE_BLOCKED_EVENT } = require("./lib/constants.js");
 
+// Phase 2 domain event log — lazy + guarded so a missing/broken domain module
+// can never take the host hook down (fail-open by design).
+let recordPhaseOutcome = null;
+try {
+  ({ recordPhaseOutcome } = require("./lib/domain/index.js"));
+} catch {}
+
 function getAgentDisplayName(agentId) {
   const display = {
     "business-analyst": "Business Analyst",
@@ -407,6 +414,14 @@ async function main() {
     warning: outcome.warning,
     at: new Date().toISOString(),
   };
+
+  // Domain event log (Phase 2): record every phase outcome. Fail-open —
+  // never touches stdout, quality gates or the orchestra.json shape.
+  try {
+    if (typeof recordPhaseOutcome === "function") {
+      recordPhaseOutcome(state, state.last_outcome, subagentType);
+    }
+  } catch {}
 
   if (outcome.decision === "block") {
     emitLifecycleEvent(state, PHASE_BLOCKED_EVENT, state.currentPhase, {

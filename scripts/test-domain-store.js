@@ -12,9 +12,11 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { spawnSync } = require("node:child_process");
 
 const ROOT = path.resolve(__dirname, "..");
 const DOMAIN = path.join(ROOT, "bundle", "hooks", "lib", "domain");
+const HOOK = path.join(ROOT, "bundle", "hooks", "orchestra-subagent-stop.js");
 
 let failed = 0;
 
@@ -156,6 +158,124 @@ check(
 );
 const nullEvent = domain.recordPhaseOutcome(null, null, null);
 check("recordPhaseOutcome is defensive on null inputs", nullEvent && nullEvent.type === "phase.outcome", JSON.stringify(nullEvent));
+
+// --------------------------------------------- hook: append phase.outcome on stop
+const hookState = path.join(tmp, "hook-state");
+fs.mkdirSync(hookState, { recursive: true });
+
+function seedHookSession(overrides) {
+  const root = {
+    version: 3,
+    sessions: {
+      "hook-test": Object.assign(
+        {
+          active: true,
+          goal: "domain hook wiring",
+          currentPhase: "plan",
+          loopMode: "core",
+          iteration: 0,
+          max_iterations: 20,
+        },
+        overrides || {}
+      ),
+    },
+  };
+  fs.writeFileSync(path.join(hookState, "orchestra.json"), JSON.stringify(root, null, 2));
+}
+
+const hookEnv = Object.assign({}, process.env, {
+  PCORE_STATE_DIR: hookState,
+  PCORE_SESSION_ID: "hook-test",
+});
+delete hookEnv.CURSOR_TRACE_ID;
+delete hookEnv.OPENCODE_SESSION_ID;
+delete hookEnv.CLAUDE_SESSION_ID;
+
+function runHook(subagentType, summary) {
+  return spawnSync(process.execPath, [HOOK], {
+    input: JSON.stringify({ status: "completed", subagent_type: subagentType, summary }),
+    env: hookEnv,
+    cwd: tmp,
+    encoding: "utf8",
+    timeout: 60000,
+  });
+}
+
+function hookEvents() {
+  const p = path.join(hookState, "domain-events.json");
+  return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, "utf8")) : [];
+}
+
+function hookOutcomeEvents() {
+  return hookEvents().filter((e) => e && e.type === "phase.outcome");
+}
+
+function readHookSession() {
+  const root = JSON.parse(fs.readFileSync(path.join(hookState, "orchestra.json"), "utf8"));
+  return { root, session: root.sessions["hook-test"] };
+}
+
+function containsDomainKey(value) {
+  if (!value || typeof value !== "object") return false;
+  const keys = Array.isArray(value) ? value.map((_, i) => String(i)) : Object.keys(value);
+  if (keys.some((k) => /domain/i.test(k))) return true;
+  return keys.some((k) => containsDomainKey(value[k]));
+}
+
+// advance case
+seedHookSession();
+let hookOut = runHook("orchestra-planner", "PLAN_READY\nSteps 0-8 defined.");
+check("hook advance exits 0", hookOut.status === 0, hookOut.stderr);
+let advanced = readHookSession();
+check("hook advance moves plan -> implement", advanced.session.currentPhase === "implement", advanced.session.currentPhase);
+const advanceEvents = hookOutcomeEvents();
+check(
+  "hook advance appends a phase.outcome event",
+  advanceEvents.length >= 1,
+  JSON.stringify(hookEvents().map((e) => e.type))
+);
+check(
+  "phase.outcome decision = advance",
+  advanceEvents.some((e) => e.payload && e.payload.decision === "advance"),
+  JSON.stringify(advanceEvents.map((e) => e.payload && e.payload.decision))
+);
+check(
+  "phase.outcome carries subagentType + phase",
+  advanceEvents.some((e) => e.payload && e.payload.subagentType === "orchestra-planner" && e.payload.phase === "plan"),
+  JSON.stringify(advanceEvents.map((e) => e.payload))
+);
+
+// block case (fresh event log)
+fs.writeFileSync(path.join(hookState, "domain-events.json"), "[]", "utf8");
+seedHookSession();
+hookOut = runHook("orchestra-planner", "Drafted a plan but forgot the handshake.");
+check("hook block exits 0", hookOut.status === 0, hookOut.stderr);
+const blockedSession = readHookSession();
+check("hook block keeps phase at plan", blockedSession.session.currentPhase === "plan", blockedSession.session.currentPhase);
+const blockEvents = hookOutcomeEvents();
+check("hook block appends a phase.outcome event", blockEvents.length >= 1, JSON.stringify(hookEvents().map((e) => e.type)));
+check(
+  "phase.outcome decision = block",
+  blockEvents.some((e) => e.payload && e.payload.decision === "block"),
+  JSON.stringify(blockEvents.map((e) => e.payload && e.payload.decision))
+);
+check(
+  "phase.outcome block reason recorded",
+  blockEvents.some((e) => e.payload && e.payload.reason === "token-missing"),
+  JSON.stringify(blockEvents.map((e) => e.payload && e.payload.reason))
+);
+
+// orchestra.json keeps its shape — domain data never lands here
+const shape = readHookSession();
+check("orchestra.json still parses with version+sessions", shape.root.version === 3 && shape.root.sessions && typeof shape.root.sessions === "object", JSON.stringify(Object.keys(shape.root)));
+check("orchestra.json has no domain fields", containsDomainKey(shape.root) === false, JSON.stringify(shape.root).slice(0, 200));
+const seededKeys = ["active", "goal", "currentPhase", "loopMode", "iteration", "max_iterations"];
+check(
+  "orchestra.json session keeps its seeded keys",
+  seededKeys.every((k) => Object.prototype.hasOwnProperty.call(shape.session, k)),
+  JSON.stringify(Object.keys(shape.session))
+);
+check("orchestra.json records the outcome as before", shape.session.last_outcome && shape.session.last_outcome.decision === "block", JSON.stringify(shape.session.last_outcome));
 
 const residue2 = fs.readdirSync(stateDir).filter((f) => f.includes(".tmp.") || f.endsWith(".lock"));
 check("no residue at the end", residue2.length === 0, residue2.join(", "));
