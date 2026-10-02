@@ -26,6 +26,8 @@ const { saveCheckpoint } = require("./lib/checkpoint-manager.js");
 const { savePlanArtifact, buildPlanHandoffLine } = require("./lib/plan-artifact.js");
 const { writeCycleReport } = require("./lib/cycle-report.js");
 const { checkPhaseCommitGate } = require("./lib/phase-commit-gate.js");
+const { evaluatePhaseOutcome } = require("./lib/phase-outcome.js");
+const { PHASE_BLOCKED_EVENT } = require("./lib/constants.js");
 
 function getAgentDisplayName(agentId) {
   const display = {
@@ -388,6 +390,33 @@ async function main() {
   ) {
     if (handleFixRequired(state)) return;
   }
+
+  // Phase outcome gate: end token + green required gates before advancing.
+  // fix > block > advance; warnings (enterprise/empty output) never stop the loop.
+  const outcome = evaluatePhaseOutcome(state, input);
+  state.last_outcome = {
+    phase: state.currentPhase,
+    decision: outcome.decision,
+    reason: outcome.reason,
+    token: outcome.token,
+    expected: outcome.expected,
+    warning: outcome.warning,
+    at: new Date().toISOString(),
+  };
+
+  if (outcome.decision === "block") {
+    emitLifecycleEvent(state, PHASE_BLOCKED_EVENT, state.currentPhase, {
+      reason: outcome.reason,
+      expected: outcome.expected,
+      subagent: subagentType,
+      iteration: state.iteration,
+    });
+    saveState(state);
+    emit({ followup_message: outcome.message });
+    return;
+  }
+
+  if (outcome.decision === "fix" && handleFixRequired(state)) return;
 
   handlePhaseComplete(state, chain);
 }

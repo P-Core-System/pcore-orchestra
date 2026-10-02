@@ -113,6 +113,19 @@ const QUALITY_GATES = [
   "daily-journal-updated", "release-notes-updated", "tech-debt-recorded",
 ];
 
+// --- Phase outcome contract ---
+// A core phase may only advance when its subagent emits one of these end
+// tokens. Enterprise SDLC phases have no token contract (warning only).
+const PHASE_END_TOKENS = {
+  plan: ["PLAN_READY"],
+  implement: ["IMPLEMENT_DONE"],
+  verify: ["VERIFY_PASS", "VERIFY_FAIL"],
+  review: ["ORCHESTRA_COMPLETE", "FIX_REQUIRED"],
+};
+
+// Lifecycle event emitted when the outcome gate refuses to advance.
+const PHASE_BLOCKED_EVENT = "phase_blocked";
+
 module.exports = {
   LIFECYCLE_MAX_EVENTS,
   MEMORY_MAX_COMPLETED,
@@ -166,4 +179,6 @@ module.exports = {
   SDLC_PHASES,
   PHASE_IDS,
   QUALITY_GATES,
+  PHASE_END_TOKENS,
+  PHASE_BLOCKED_EVENT,
 };
