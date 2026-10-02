@@ -20,6 +20,7 @@ INSTALL_CURSOR=0
 INSTALL_OPENCODE=0
 INSTALL_PROJECT=0
 SKIP_OPENCODE_UPGRADE=0
+INSTALL_MCP=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -27,16 +28,18 @@ while [[ $# -gt 0 ]]; do
     --cursor)     INSTALL_CURSOR=1; shift ;;
     --opencode)   INSTALL_OPENCODE=1; shift ;;
     --project)    INSTALL_PROJECT=1; shift ;;
+    --mcp)        INSTALL_MCP=1; shift ;;
     --skip-opencode-upgrade) SKIP_OPENCODE_UPGRADE=1; shift ;;
     -h|--help)
       cat <<'HELP'
-Usage: bash install.sh [--all|--cursor|--opencode] [--project] [--skip-opencode-upgrade]
+Usage: bash install.sh [--all|--cursor|--opencode] [--project] [--mcp] [--skip-opencode-upgrade]
 
 Options:
   --all        Install for both Cursor and OpenCode (default)
   --cursor     Install for Cursor IDE only
   --opencode   Install for OpenCode CLI only
   --project    Also install project bridge (.cursor/) in current repo
+  --mcp        Install MCP server dependencies (npm install @modelcontextprotocol/sdk)
   --skip-opencode-upgrade  Skip upgrading OpenCode CLI to latest (npm/bun)
 
 OpenCode: upgrades CLI via scripts/ensure-opencode-latest.sh unless skipped.
@@ -77,6 +80,13 @@ install_cursor() {
   cp -f "$BUNDLE/hooks/"orchestra-*.js "$CURSOR/hooks/"
   rm -rf "$CURSOR/hooks/lib"
   cp -rf "$BUNDLE/hooks/lib" "$CURSOR/hooks/lib"
+
+  # MCP server (if requested)
+  if [[ "$INSTALL_MCP" -eq 1 ]]; then
+    echo "==> Installing MCP server dependencies"
+    (cd "$ROOT" && npm install --production 2>/dev/null || npm install 2>/dev/null)
+    cp -f "$BUNDLE/hooks/lib/mcp-server.js" "$CURSOR/hooks/lib/"
+  fi
 
   # Default state (don't overwrite)
   if [[ ! -f "$CURSOR/hooks/state/orchestra.json" ]]; then
@@ -238,6 +248,14 @@ PY
   cp -rf "$BUNDLE/opencode/hooks/lib" "$OPENCODE/hooks/lib"
   cp -f "$ROOT/scripts/lib/opencode-config-sanitize.js" "$ROOT/scripts/lib/opencode-version.js" \
     "$OPENCODE/hooks/lib/" 2>/dev/null || true
+
+  # MCP server (if requested)
+  if [[ "$INSTALL_MCP" -eq 1 ]]; then
+    echo "==> Installing MCP server dependencies"
+    (cd "$ROOT" && npm install --production 2>/dev/null || npm install 2>/dev/null)
+    cp -f "$BUNDLE/opencode/hooks/lib/mcp-server.js" "$OPENCODE/hooks/lib/"
+  fi
+
   # Default state (don't overwrite) — runtime reads hooks/state/orchestra.json
   mkdir -p "$OPENCODE/hooks/state"
   if [[ ! -f "$OPENCODE/hooks/state/orchestra.json" ]]; then
@@ -415,6 +433,9 @@ if [[ "$INSTALL_OPENCODE" -eq 1 ]]; then
   echo "  OpenCode tip:    opencode --auto  (session auto-approve; denies still bind)"
   echo "  OpenCode test:   node $OPENCODE/hooks/orchestra-health-opencode.js"
   echo "  Free models:     bash scripts/update-free-models.sh --refresh --apply (weekly via systemd/cron)"
+fi
+if [[ "$INSTALL_MCP" -eq 1 ]]; then
+  echo "  MCP server:     @modelcontextprotocol/sdk installed; mcp-server.js in hooks/lib/"
 fi
 echo "  Repo scoping:    ~/.local/bin/setup-repo-scoping.sh (run on any repo)"
 echo "  Maintenance:    ~/.local/bin/opencode-maintenance.sh --apply (clean DB/logs)"
