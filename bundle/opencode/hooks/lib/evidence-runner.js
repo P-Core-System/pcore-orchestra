@@ -4,6 +4,7 @@ const { spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 const { QUALITY_GATES } = require("./constants.js");
+const { EXCERPT_MAX } = require("./evidence-record.js");
 
 const CORE_REQUIRED_GATES = [
   "build",
@@ -24,19 +25,41 @@ const ENTERPRISE_SKIP_DEFAULT = [
   "version-updated",
 ];
 
+function truncate(s) {
+  if (s === null || s === undefined) return "";
+  const str = String(s);
+  if (str.length <= EXCERPT_MAX) return str;
+  return str.slice(0, EXCERPT_MAX);
+}
+
 function runCmd(command, args, cwd) {
+  const started = process.hrtime.bigint();
   const r = spawnSync(command, args, {
     cwd: cwd || process.cwd(),
     encoding: "utf8",
     timeout: 60000,
     maxBuffer: 2 * 1024 * 1024,
   });
+  const ended = process.hrtime.bigint();
+  let durationMs = 0;
+  try {
+    durationMs = Number((ended - started) / 1000000n);
+  } catch (e) {
+    durationMs = 0;
+  }
+  if (!Number.isFinite(durationMs) || durationMs < 0) durationMs = 0;
+  const stdout = (r.stdout || "").trim();
+  const stderr = (r.stderr || "").trim();
   return {
     ok: r.status === 0,
     status: r.status,
-    stdout: (r.stdout || "").trim(),
-    stderr: (r.stderr || "").trim(),
+    exitCode: r.status,
+    stdout,
+    stderr,
+    stdoutExcerpt: truncate(stdout),
+    stderrExcerpt: truncate(stderr),
     error: r.error ? r.error.message : null,
+    durationMs,
   };
 }
 
