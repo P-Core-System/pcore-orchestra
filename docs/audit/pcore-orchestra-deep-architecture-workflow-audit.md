@@ -450,15 +450,15 @@ Two concurrent agents would race on **one working tree** — no mechanism preven
 
 | Control | Where | Enforced? |
 |---|---|---|
-| 3 unit/behavior test suites (`test-adaptive-loop` 30 checks, `test-conductor-state` 23, `test-state-manager-compat` 10) | `scripts/test-*.js` | **Manual only** — CI has no test step (**[workflow C10] FAIL**) |
-| CI syntax lint (`node --check` over all JS) + `shellcheck ... \|\| true` | `.github/workflows/ci.yml:20-25` | Syntax only; shellcheck non-blocking; **no lint/type-check/test/security job** |
+| ~~3 unit/behavior test suites~~ → **17 suites / 511 named checks** | `scripts/test-*.js` | **CLOSED by Phase 3** (`836fe47`): every suite is registered in `.github/workflows/ci.yml` and the secret scan runs as a required step |
+| CI syntax lint (`node --check` over all JS, both hook trees) + `shellcheck --severity=error` + blocking secret scan | `.github/workflows/ci.yml` | **CLOSED by Phase 3** (`836fe47`): `\|\| true` removed, shellcheck blocking on errors, `scripts/scan-secrets.js --fail-on=high` is a required step |
 | Evidence gates (build, tests, lint, reviewer-approval, docs-updated, memory-updated, +8 enterprise) | `evidence-runner.js`, `quality-gate.js` | **Recorded, NOT enforced** — `handlePhaseComplete` never reads `qualityGates.failed` (**[runtime §6]**) |
 | Phase commit gate | `phase-commit-gate.js` | Advisory message; fail-open on git error |
 | Reviewer end-token regex (`FIX_REQUIRED|VERIFY_FAIL` → fix loop) | `phase-engine.js:194-203` | **The only enforced quality control** |
 | Host `status==="completed"` | `orchestra-subagent-stop.js:305` | The only advance precondition |
 | Verifier/reviewer prompt checklists | `orchestra-verifier.md`, `orchestra-reviewer.md` | LLM self-discipline |
 | Security scanner (regex secrets/vulns) | `security-scanner.js` | Enterprise mode only; scope = `bundle/hooks/lib` only; `checkOwaspTop10` dead |
-| Human review | README claims "Human Checkpoints (auth/payments/security/scope-creep)" | **NOT implemented in code** — zero matches for such a gate in hooks; "human" appears in agent prose only (`orchestra.md:178` `needs_human` status string, never produced by code) |
+| Human review | README claims "Human Checkpoints (auth/payments/security/scope-creep)" | **PARTIALLY closed by Phase 3** (`d0aa26f`): `domain/review-queue.js` derives the pending queue from the event log and the quality-gate hook injects a `## Human review queue` block on blocked/`needs_human`. Still **advisory**: nothing in the loop *creates* a ticket whose `humanReview.required` is true, so the queue is empty until something writes a `review.requested` / `needs_human` event |
 
 **"Agent says completed" vs "System verified completed":**
 
@@ -501,11 +501,12 @@ No traces, no metrics backend, no structured log sink (stdout JSON only), no cro
 | S-04 | **High** | Corrupt/unparsable state JSON silently replaced by defaults → **total state+memory loss without signal** (`state-manager.js` load path) |
 | S-05/S-06/S-07 | Med | Non-atomic `writeFileSync` + read-modify-write races on shared state (7 writers); `session-claims.json` non-atomic |
 | S-14 | Med | Installer pipes remote script to shell without checksum/signature (`ensure-opencode-latest.sh`, reached by default `install.sh:175` path) |
-| S-19 | Med | Integrity gates **fail OPEN**: git-status error → commit gate PASS; tool error → evidence ok |
-| S-08/S-09/S-10/S-12 | Med | Security scanner gaps: core loop never scans; scope skips dot-dirs/.env; secret regexes miss `PASSWORD=hunter2` dotenv style |
+| S-19 | Med | Integrity gates **fail OPEN**: git-status error → commit gate PASS; tool error → evidence ok — **PARTIALLY closed by Phase 3** (`d05a54c`): the docs-updated gate is diff-derived and FAILS closed with `reason: "git-error"` (only a non-repo yields SKIP). **Still open**: `phase-commit-gate.js:50-56` returns `clean: true` / "skip commit gate" when git is unavailable |
+| S-08/S-09/S-10/S-12 | Med | Security scanner gaps: core loop never scans; scope skips dot-dirs/.env; secret regexes miss `PASSWORD=hunter2` dotenv style — **CLOSED by Phase 3** (`de09ddc`: security gate is a CORE_REQUIRED_GATE, dot-dirs + extensionless files are walked, unquoted `KEY=value` secrets are detected) |
 | S-16 | Med | `PCORE_ORCHESTRA_REPO` env selects path of a bash script spawned by health |
-| S-20 | Med | CI has no secret-scan/SAST; shellcheck non-blocking |
-| S-01/S-02/S-03/S-11/S-13/S-15/S-17/S-18/S-21 | Low | unvalidated scriptName join, unbounded stdin buffer, fail-open parse, dead OWASP check, matched secrets stored verbatim (50 chars), weekly remote config rewrite, no spawn timeout, swallowed errors, Turnstile test-secret echoed by design |
+| S-20 | Med | CI has no secret-scan/SAST; shellcheck non-blocking — **CLOSED by Phase 3** (`836fe47`): `scripts/scan-secrets.js --dir . --fail-on=high` is a required step (exit 1 on high/critical) with documented `.secret-scan-allow` entries, and `shellcheck` no longer has `\|\| true` (blocking at `--severity=error`) |
+| S-11/S-13 | Low | `checkOwaspTop10()` was dead code and matched secrets were stored verbatim — **CLOSED by Phase 3** (`de09ddc`): OWASP results are surfaced as advisory categories, and every finding excerpt is redacted + clamped before it is persisted. Other Low findings (S-01/S-02/S-03/S-15/S-17/S-18/S-21) unchanged |
+| S-01/S-02/S-03/S-15/S-17/S-18/S-21 | Low | unvalidated scriptName join, unbounded stdin buffer, fail-open parse, dead OWASP check, matched secrets stored verbatim (50 chars), weekly remote config rewrite, no spawn timeout, swallowed errors, Turnstile test-secret echoed by design |
 | (from **[agents §5]** and **[security]**) | Med | Permission posture: Cursor CLI profile = `Shell(**)`, `deny: []`, `approvalMode: unrestricted`, `sandbox: disabled`; conflicting sandbox files; terminal allowlist incl. `curl/wget/docker`; prompt-word control plane (`disable orchestra` / bare `continue` short-circuit in `prompt-classifier.js:124,142`) with zero prompt-injection handling |
 
 **Positives:** no committed secrets (repo-wide `sk-`/`ghp_`/`AKIA`/private-key scan = only scanner regexes + Cloudflare public test keys); all hook shell exec is fixed-argv `spawnSync` (no `shell:true`, no string interpolation from prompts); `set -euo pipefail` installers; OpenCode bash deny-list (force-push, `rm -rf /`, `dd`, fork bomb) + env/ssh read-deny.
@@ -789,6 +790,7 @@ docs/ (stale/phantom)                  ──►  docs/ + CI doc-drift check; au
 - **Features:** structured evidence records (command, exit code, duration, output excerpt) attached to run; docs-updated gate reads real diff (not summary regex); security scan in core loop (fix S-08..S-12); CI runs the 3+ suites (fix C10) + secret scan (S-20); human-review queue surfaced on needs_human.
 - **Files:** `evidence-runner.js`, `security-scanner.js`, `.github/workflows/ci.yml`, plan/cycle reporters.
 - **Dependencies:** Phases 1-2. **Outcome:** success is provable, auditable. **Acceptance:** completion record embeds evidence; CI blocks merge on test/secret failures.
+- **Status (2026-10-02): DELIVERED.** Evidence records + durable runs `9249073`/`f911dc6`, hook-attached records `b01323b`, diff-derived docs gate `d05a54c`, security core loop + scanner hardening `de09ddc`, review queue `d0aa26f`, state-dir relocation `28fe67c`, CI suites + blocking secret scan `836fe47`, doc sync this commit. Closes S-08, S-09, S-10, S-11, S-12, S-13, S-20 and C10; **partially** closes S-19 (`phase-commit-gate.js` still skips on git error) and human review (the queue is derived and surfaced, but nothing yet creates a `humanReview.required` ticket).
 
 ### Phase 4 — Context and project memory
 - **Features:** handoff includes work-item context + evidence digest (replaces bare bullets where needed); six-file pointer → verifier actually reads/validates critical context (progress-tracker touched when claimed); memory retrieval wired (`searchMemoryIndex` used or removed); hybrid retrieval upgrade only if usage warrants (P3-1).
