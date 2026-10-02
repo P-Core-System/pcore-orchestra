@@ -54,4 +54,6 @@ Default: composer-2.5 (standard, not Fast) on Cursor; dynamic free primary (inhe
 | Phase gate fails | Implementer fixes, re-verify |
 | Max fix loops reached | Escalate to user |
 
-4. End with `WORKFLOW_ORCHESTRATED`.
+### Handshake
+End with `WORKFLOW_PLAN_READY` — the token the conductor waits for before it launches per-track Full Delivery.
+Legacy alias: `WORKFLOW_ORCHESTRATED` (pre-contract spelling, accepted as an alias only — never as the primary token).
