@@ -222,7 +222,7 @@ PYFREE
   echo "     bash scripts/update-free-models.sh --refresh --apply"
   echo "     bash scripts/update-free-models.sh --schedule   # systemd/cron timer"
   echo ""
-  echo "  4. For production work, consider upgrading to OpenCode Go ($10/mo)"
+  echo "  4. For production work, consider upgrading to OpenCode Go (\$10/mo)"
   echo "     for zero-retention, stronger models."
   echo ""
 }
