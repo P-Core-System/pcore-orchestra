@@ -66,7 +66,7 @@ function failedGateIds(qualityGates) {
 }
 
 function blockResult(phase, reason, expected, message) {
-  return { decision: "block", phase, reason, expected, token: null, message, warning: null };
+  return { decision: "block", phase, reason, expected, token: null, message, warning: null, needs_human: true };
 }
 
 function advanceResult(phase, reason, token, warning) {
