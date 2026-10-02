@@ -234,5 +234,1681 @@
     "web-scraper",
     "workflow-orchestrator",
     "zero-knowledge-tester"
+  ],
+  "agentDetails": [
+    {
+      "id": "accessibility-reviewer",
+      "independence": {
+        "files": [
+          "src/**/*.tsx",
+          "src/**/*.jsx",
+          "src/**/*.html",
+          "src/**/*.css"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "a11y_findings",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "adr-archivist",
+      "independence": {
+        "files": [
+          "docs/adr/**"
+        ],
+        "gates": [
+          "docs-updated"
+        ],
+        "stateKeys": [
+          "adrs",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "adversary-emulator",
+      "independence": {
+        "files": [
+          "security/**"
+        ],
+        "gates": [
+          "security"
+        ],
+        "stateKeys": [
+          "emulation_results",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "agent-selector",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": [
+          "team_roster",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "ai-ethics-reviewer",
+      "independence": {
+        "files": [
+          "context/ai-ethics.md"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "ethics_review",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "ai-safety-engineer",
+      "independence": {
+        "files": [
+          "context/ai-safety.md"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "safety_checks",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "annotation-specialist",
+      "independence": {
+        "files": [
+          "data/**/annotations/**"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "annotations",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "api-collector",
+      "independence": {
+        "files": [
+          "api/**",
+          "openapi/**"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "api_specs",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "api-contract-validator",
+      "independence": {
+        "files": [
+          "api/**",
+          "contracts/**"
+        ],
+        "gates": [
+          "tests"
+        ],
+        "stateKeys": [
+          "validation_results",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "api-pentester",
+      "independence": {
+        "files": [
+          "api/**"
+        ],
+        "gates": [
+          "security"
+        ],
+        "stateKeys": [
+          "pentest_findings",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "appsec-engineer",
+      "independence": {
+        "files": [
+          "src/**/*"
+        ],
+        "gates": [
+          "security"
+        ],
+        "stateKeys": [
+          "security_findings",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "architect",
+      "independence": {
+        "files": [
+          "context/architecture.md",
+          "context/tech-selection.md"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "architecture",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "attack-simulator",
+      "independence": {
+        "files": [
+          "src/**/*"
+        ],
+        "gates": [
+          "security"
+        ],
+        "stateKeys": [
+          "attack_results",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "automation-engineer",
+      "independence": {
+        "files": [
+          "e2e/**",
+          "scripts/**",
+          ".github/**"
+        ],
+        "gates": [
+          "tests",
+          "lint"
+        ],
+        "stateKeys": [
+          "test_results",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "backend-engineer",
+      "independence": {
+        "files": [
+          "src/**/*.js",
+          "src/**/*.ts",
+          "src/**/*.py"
+        ],
+        "gates": [
+          "build",
+          "tests"
+        ],
+        "stateKeys": [
+          "files_changed",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "bias-auditor",
+      "independence": {
+        "files": [
+          "models/**",
+          "data/**"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "bias_report",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "blue-team-defender",
+      "independence": {
+        "files": [
+          "security/**",
+          "monitoring/**"
+        ],
+        "gates": [
+          "security"
+        ],
+        "stateKeys": [
+          "defense_results",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "bug-bounty-coordinator",
+      "independence": {
+        "files": [
+          "security/**",
+          "bug-bounty/**"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "bounty_reports",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "business-analyst",
+      "independence": {
+        "files": [
+          "context/project-overview.md",
+          "context/requirements.md"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "requirements",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "business-strategist",
+      "independence": {
+        "files": [
+          "context/business-strategy.md"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "strategy",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "chaos-engineer",
+      "independence": {
+        "files": [
+          "chaos/**",
+          "scripts/**"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "chaos_results",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "cloud-engineer",
+      "independence": {
+        "files": [
+          "cloud/**",
+          "terraform/**",
+          "scripts/**"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "cloud_resources",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "cloud-pentester",
+      "independence": {
+        "files": [
+          "cloud/**",
+          "terraform/**"
+        ],
+        "gates": [
+          "security"
+        ],
+        "stateKeys": [
+          "pentest_findings",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "code-reviewer",
+      "independence": {
+        "files": [
+          "**/*.js",
+          "**/*.ts",
+          "**/*.py",
+          "**/*.md"
+        ],
+        "gates": [
+          "reviewer-approval"
+        ],
+        "stateKeys": [
+          "review_comments",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "compliance-officer",
+      "independence": {
+        "files": [
+          "context/compliance.md"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "compliance_checks",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "content-strategist",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "corpus-builder",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "covert-ops-planner",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "customer-success",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "data-analyst",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "data-annotator",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "data-cleaner",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "data-engineer",
+      "independence": {
+        "files": [
+          "data/**",
+          "sql/**",
+          "pipelines/**"
+        ],
+        "gates": [
+          "build",
+          "tests"
+        ],
+        "stateKeys": [
+          "data_models",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "data-governance-officer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "data-harvester",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "data-preprocessor",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "data-quality-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "data-validator",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "database-engineer",
+      "independence": {
+        "files": [
+          "migrations/**",
+          "src/**/*.sql",
+          "prisma/**"
+        ],
+        "gates": [
+          "build",
+          "tests"
+        ],
+        "stateKeys": [
+          "files_changed",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "dataset-auditor",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "dataset-curator",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "dataset-versioner",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "defense-validator",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "detection-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "developer-advocate",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "devops-engineer",
+      "independence": {
+        "files": [
+          "docker/**",
+          "k8s/**",
+          "terraform/**",
+          ".github/**",
+          "scripts/**"
+        ],
+        "gates": [
+          "build",
+          "lint"
+        ],
+        "stateKeys": [
+          "infra_changes",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "devsecops-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "digital-forensics",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "discourse-analyst",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "documentation-writer",
+      "independence": {
+        "files": [
+          "docs/**",
+          "context/**",
+          "README.md",
+          "CHANGELOG.md"
+        ],
+        "gates": [
+          "docs-updated"
+        ],
+        "stateKeys": [
+          "docs_updated",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "domain-expert",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "embedding-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "exercise-controller",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "explainability-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "exploit-developer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "feature-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "financial-analyst",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "fine-tuning-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "fintech-specialist",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "frontend-engineer",
+      "independence": {
+        "files": [
+          "src/**/*.tsx",
+          "src/**/*.jsx",
+          "src/**/*.css",
+          "src/**/*.html"
+        ],
+        "gates": [
+          "build",
+          "tests",
+          "lint"
+        ],
+        "stateKeys": [
+          "files_changed",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "full-stack-engineer",
+      "independence": {
+        "files": [
+          "src/**/*"
+        ],
+        "gates": [
+          "build",
+          "tests",
+          "lint"
+        ],
+        "stateKeys": [
+          "files_changed",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "hardening-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "healthcare-specialist",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "incident-commander",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "incident-responder",
+      "independence": {
+        "files": [
+          "context/incident-response.md"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "incident_log",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "industry-analyst",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "inference-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "infrastructure-defender",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "infrastructure-engineer",
+      "independence": {
+        "files": [
+          "terraform/**",
+          "ansible/**",
+          "scripts/**"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "infra_changes",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "innovation-lead",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "insider-threat-simulator",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "internal-pentester",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "kubernetes-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "legal-advisor",
+      "independence": {
+        "files": [
+          "context/legal-review.md"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "legal_opinion",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "license-manager",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "linguistic-analyst",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "malware-analyst",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "malware-reverse-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "market-researcher",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "ml-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "ml-ops-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "mobile-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "mobile-pentester",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "model-evaluator",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "model-monitor",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "model-trainer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "morphological-analyst",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "network-pentester",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "nlp-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "observability-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "observer",
+      "independence": {
+        "files": [
+          "monitoring/**",
+          "dashboards/**"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "metrics",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "ops-manager",
+      "independence": {
+        "files": [
+          "context/ops-runbook.md"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "ops_plan",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "orchestra",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "orchestra-implementer",
+      "independence": {
+        "files": [
+          "**/*.js",
+          "**/*.ts",
+          "**/*.py",
+          "**/*.md"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "files_changed",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "orchestra-planner",
+      "independence": {
+        "files": [
+          "context/architecture.md",
+          "context/project-overview.md",
+          "context/progress-tracker.md",
+          ".cursor/orchestra-plan.md"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "goal",
+          "memory",
+          "orchestraConfig"
+        ]
+      }
+    },
+    {
+      "id": "orchestra-reviewer",
+      "independence": {
+        "files": [],
+        "gates": [
+          "reviewer-approval",
+          "docs-updated",
+          "memory-updated"
+        ],
+        "stateKeys": [
+          "qualityGates",
+          "review_decision"
+        ]
+      }
+    },
+    {
+      "id": "orchestra-verifier",
+      "independence": {
+        "files": [],
+        "gates": [
+          "build",
+          "tests",
+          "lint",
+          "security",
+          "docs-updated"
+        ],
+        "stateKeys": [
+          "qualityGates",
+          "evidence_records"
+        ]
+      }
+    },
+    {
+      "id": "partnership-manager",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "penetration-tester",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "performance-engineer",
+      "independence": {
+        "files": [
+          "src/**/*",
+          "benchmarks/**"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "perf_data",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "phonology-analyst",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "platform-engineer",
+      "independence": {
+        "files": [
+          "k8s/**",
+          "terraform/**",
+          "docker/**"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "platform_changes",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "policy-maker",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "pos-tagger",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "pragmatic-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "privacy-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "product-manager",
+      "independence": {
+        "files": [
+          "context/requirements.md",
+          "context/user-stories.md"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "stories",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "product-owner",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "project-manager",
+      "independence": {
+        "files": [
+          "context/sprint-plan.md",
+          "context/task-breakdown.md"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "tasks",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "project-type-classifier",
+      "independence": {
+        "files": [
+          "project.yaml"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "project_type",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "prompt-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "purple-team-lead",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "qa-engineer",
+      "independence": {
+        "files": [
+          "tests/**",
+          "e2e/**"
+        ],
+        "gates": [
+          "tests",
+          "lint"
+        ],
+        "stateKeys": [
+          "test_results",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "red-team-operator",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "regression-tester",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "regulatory-specialist",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "release-manager",
+      "independence": {
+        "files": [
+          "CHANGELOG.md",
+          "package.json",
+          ".github/**"
+        ],
+        "gates": [
+          "version-updated",
+          "changelog-updated",
+          "release-notes-updated"
+        ],
+        "stateKeys": [
+          "release_info",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "research-scientist",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "rule-enforcer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "safety-officer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "scenario-designer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "scrum-master",
+      "independence": {
+        "files": [
+          "context/sprint-plan.md",
+          "context/retrospective.md"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "sprint_data",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "secure-code-reviewer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "security-architect",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "security-engineer",
+      "independence": {
+        "files": [
+          "**/*.js",
+          "**/*.ts",
+          "**/*.py",
+          "**/*.sh"
+        ],
+        "gates": [
+          "security"
+        ],
+        "stateKeys": [
+          "security_findings",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "security-executive-advisor",
+      "independence": {
+        "files": [
+          "context/security-policy.md"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "security_policy",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "security-performance-reviewer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "semantic-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "shadow-it-auditor",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "shift-left-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "siem-analyst",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "site-reliability-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "social-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "sre",
+      "independence": {
+        "files": [
+          "monitoring/**",
+          "alerting/**",
+          "scripts/**"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "slo_data",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "stakeholder-advocate",
+      "independence": {
+        "files": [
+          "context/stakeholder-input.md"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "stakeholder_feedback",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "support-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "survey-designer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "syllable-analyst",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "syntactic-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "synthetic-data-generator",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "tech-lead",
+      "independence": {
+        "files": [
+          "context/folder-structure.md",
+          "context/coding-standards.md"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "tech_decisions",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "technical-debt-tracker",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "technical-writer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "technology-scout",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "telemetry-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "terms-conditions-writer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "terraform-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "test-architect",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "threat-hunter",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "threat-intelligence-analyst",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "threat-simulator",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "training-specialist",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "translation-coordinator",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "ui-ux-designer",
+      "independence": {
+        "files": [
+          "design/**",
+          "src/**/*.css",
+          "src/**/*.scss",
+          "context/ui-context.md"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "design_specs",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "vector-db-engineer",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "vulnerability-researcher",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "web-app-pentester",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "web-scraper",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "workflow-orchestrator",
+      "independence": {
+        "files": [
+          "context/workflow-plan.md"
+        ],
+        "gates": [],
+        "stateKeys": [
+          "workflow_plan",
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "zero-knowledge-tester",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    }
   ]
 }
