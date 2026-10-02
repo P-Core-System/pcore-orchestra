@@ -40,6 +40,11 @@ function passGate(state, gateId, details) {
       details: details || null,
     });
   }
+  // A later PASS supersedes an earlier FAIL, otherwise a single red run would
+  // pin the outcome gate shut forever (failGate never drops its entry).
+  if (Array.isArray(state.qualityGates.failed) && state.qualityGates.failed.length > 0) {
+    state.qualityGates.failed = state.qualityGates.failed.filter(g => g.id !== gateId);
+  }
   state.qualityGates.allRequiredPassed = checkAllGatesPassed(state);
   return state.qualityGates;
 }
