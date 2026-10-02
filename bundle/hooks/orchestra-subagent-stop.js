@@ -388,7 +388,18 @@ async function main() {
 
   if (subagentType === "orchestra-verifier" && state.currentPhase === "verify") {
     try {
-      const { report } = applyEvidenceToGates(state, passGate, failGate, skipGate);
+      const { report } = applyEvidenceToGates(state, passGate, failGate, skipGate, {
+        cwd: undefined,
+        includeSecurity: false,
+        onEvidence: (ev) => {
+          try {
+            const dom = require("./lib/domain");
+            if (dom && dom.evidence && typeof dom.evidence.appendEvidenceRun === "function") {
+              dom.evidence.appendEvidenceRun(ev);
+            }
+          } catch {}
+        },
+      });
       if (!state.memory) state.memory = { ...DEFAULT_STATE.memory };
       state.memory.evidence_gates = report;
       saveState(state);
