@@ -450,7 +450,7 @@ Two concurrent agents would race on **one working tree** — no mechanism preven
 
 | Control | Where | Enforced? |
 |---|---|---|
-| ~~3 unit/behavior test suites~~ → **17 suites / 511 named checks** | `scripts/test-*.js` | **CLOSED by Phase 3** (`836fe47`): every suite is registered in `.github/workflows/ci.yml` and the secret scan runs as a required step |
+| ~~3 unit/behavior test suites~~ → **17 suites / 554 named checks** | `scripts/test-*.js` | **CLOSED by Phase 3** (`836fe47`): every suite is registered in `.github/workflows/ci.yml` and the secret scan runs as a required step |
 | CI syntax lint (`node --check` over all JS, both hook trees) + `shellcheck --severity=error` + blocking secret scan | `.github/workflows/ci.yml` | **CLOSED by Phase 3** (`836fe47`): `\|\| true` removed, shellcheck blocking on errors, `scripts/scan-secrets.js --fail-on=high` is a required step |
 | Evidence gates (build, tests, lint, reviewer-approval, docs-updated, memory-updated, +8 enterprise) | `evidence-runner.js`, `quality-gate.js` | **Recorded, NOT enforced** — `handlePhaseComplete` never reads `qualityGates.failed` (**[runtime §6]**) |
 | Phase commit gate | `phase-commit-gate.js` | Advisory message; fail-open on git error |
