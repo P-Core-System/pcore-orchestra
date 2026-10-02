@@ -555,6 +555,172 @@ test("an EXPLICIT state.baseCommit that git cannot resolve still FAILS closed", 
   }
 });
 
+// ---------------------------------------------------------------------------
+// T12 (review B6): invariant 21 documented a persisted evidence record that
+// the live path never produced.
+//
+// `context/architecture.md:313` promises
+// `{gate, command, args, exitCode, durationMs, ok, stdoutExcerpt, stderrExcerpt,
+// startedAt}` and `buildEvidenceRecord` (`evidence-record.js`) is the builder for
+// it — but it had NO production caller: `applyEvidenceToGates` persisted
+// `{gate, ok, details, exitCode}` instead, and `details` on the security-FAIL
+// path embedded a whole report with no bound at all. The assertions below are
+// made AT THE HOOK BOUNDARY (what actually reaches the domain log), which is
+// where the drift was invisible.
+// ---------------------------------------------------------------------------
+
+/** The record shape invariant 21 promises, plus the clamped `details`. */
+const DOCUMENTED_RECORD_KEYS = [
+  "args",
+  "command",
+  "details",
+  "durationMs",
+  "exitCode",
+  "gate",
+  "ok",
+  "startedAt",
+  "stderrExcerpt",
+  "stdoutExcerpt",
+].sort();
+
+/** `evidence.run` records as they landed in <stateDir>/domain-events.json. */
+function domainEvidenceRecords(stateDir) {
+  const file = path.join(stateDir, "domain-events.json");
+  if (!fs.existsSync(file)) return null;
+  const log = JSON.parse(fs.readFileSync(file, "utf8"));
+  const events = Array.isArray(log) ? log : (log.events || []);
+  const runs = events.filter((e) => e && e.type === "evidence.run");
+  if (runs.length === 0) return null;
+  const last = runs[runs.length - 1];
+  return (last.payload && last.payload.records) || [];
+}
+
+/**
+ * A fixture workspace with a planted secret storm: enough findings that the
+ * security FAIL detail would dwarf any sane bound.
+ */
+function plantedSecretRepo() {
+  const files = { "src/app.js": "module.exports = 1;\n" };
+  // Assembled from fragments on purpose: this test file must not carry a
+  // literal secret shape, or the repo's own blocking scan would need a new
+  // allowlist entry to stay green. The planted files live in os.tmpdir() and are
+  // never scanned by the repo.
+  const keyHead = ["AKIA", "IOSFODNN7", "EXAMPLE"].join("");
+  const pw = ["hunter2Super", "SecretValue"].join("");
+  const keyName = ["api_", "key"].join("");
+  const pwName = ["pass", "word"].join("");
+  for (let i = 0; i < 60; i++) {
+    files[`src/leak-${i}.js`] =
+      `const ${keyName} = "${keyHead}${String(i).padStart(4, "0")}";\n` +
+      `const ${pwName} = "${pw}${i}";\n` +
+      "module.exports = 1;\n";
+  }
+  const dir = gitFixture(files);
+  fs.mkdirSync(path.join(dir, "bundle", "hooks", "lib"), { recursive: true });
+  fs.copyFileSync(
+    path.join(ROOT, "bundle/hooks/lib/security-scanner.js"),
+    path.join(dir, "bundle/hooks/lib/security-scanner.js")
+  );
+  return dir;
+}
+
+test("applyEvidenceToGates persists the DOCUMENTED record shape (buildEvidenceRecord wired)", () => {
+  const dir = gitFixture({ "src/app.js": "module.exports = 1;\n" });
+  try {
+    const passed = [];
+    const failed = [];
+    const skipped = [];
+    const state = { loopMode: "core", qualityGates: { passed: [], failed: [], skipped: [], allRequiredPassed: false } };
+    const out = runner.applyEvidenceToGates(
+      state,
+      (s, gate, details) => passed.push({ gate, details }),
+      (s, gate, details) => failed.push({ gate, details }),
+      (s, gate, details) => skipped.push({ gate, details }),
+      { cwd: dir }
+    );
+    ok(out.records.length > 0, "records must be produced");
+    for (const rec of out.records) {
+      ok(
+        JSON.stringify(Object.keys(rec).sort()) === JSON.stringify(DOCUMENTED_RECORD_KEYS),
+        `record must carry exactly the documented shape: ${JSON.stringify(Object.keys(rec).sort())}`
+      );
+      ok("stdoutExcerpt" in rec, `record must carry stdoutExcerpt (buildEvidenceRecord output): ${JSON.stringify(rec)}`);
+      ok("stderrExcerpt" in rec, `record must carry stderrExcerpt: ${JSON.stringify(rec)}`);
+      ok(typeof rec.startedAt === "string" && rec.startedAt.length > 0, `startedAt must be stamped: ${JSON.stringify(rec)}`);
+      ok(typeof rec.durationMs === "number" && rec.durationMs >= 0, `durationMs must be a number: ${JSON.stringify(rec)}`);
+    }
+    const withCommand = out.records.filter((r) => r.command === "git");
+    ok(withCommand.length > 0, "a command-backed gate must record its command, not null");
+    for (const r of withCommand) {
+      ok(Array.isArray(r.args) && r.args.length > 0, `args must be recorded: ${JSON.stringify(r)}`);
+    }
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("DETAILS_MAX bounds the details a FAIL persists (security-FAIL report embed)", () => {
+  const dir = plantedSecretRepo();
+  try {
+    ok(typeof runner.DETAILS_MAX === "number", `DETAILS_MAX must be exported: ${runner.DETAILS_MAX}`);
+    const { results } = runner.runEvidenceChecks({ loopMode: "core" }, { cwd: dir });
+    const sec = results.filter((r) => r.gate === "security");
+    ok(sec.length === 1, `expected one security result, got ${sec.length}`);
+    ok(sec[0].ok === false, `planted secrets must FAIL the gate: ${sec[0].details.slice(0, 80)}`);
+    ok(
+      sec[0].details.length <= runner.DETAILS_MAX,
+      `the security-FAIL detail must be bounded, got ${sec[0].details.length} chars`
+    );
+    ok(
+      /^security scan FAIL/.test(sec[0].details),
+      `the clamp must keep the headline verdict: ${sec[0].details.slice(0, 80)}`
+    );
+    ok(
+      /\[\+\d+ chars\]/.test(sec[0].details),
+      `a clamped detail must say it was truncated: ${sec[0].details.slice(-60)}`
+    );
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("hook boundary: the domain log receives the documented shape, details clamped", () => {
+  const dir = plantedSecretRepo();
+  try {
+    fs.writeFileSync(path.join(dir, "context-progress.md"), "");
+    fs.rmSync(path.join(dir, "context-progress.md"));
+    commitAll(dir, { "context/progress-tracker.md": "- planted\n" }, "docs: track progress");
+    writeHookState(dir, { qualityGates: { passed: [], failed: [], skipped: [], allRequiredPassed: false } });
+    const ctx = hookContext(dir, REVIEWER_PAYLOAD);
+    ok(ctx !== "", "the hook must emit additional_context for a final review");
+    const records = domainEvidenceRecords(path.join(dir, "state"));
+    ok(records !== null, "the hook must append an evidence.run to the domain log");
+    ok(records.length > 0, "the evidence.run must carry records");
+    for (const rec of records) {
+      ok(
+        JSON.stringify(Object.keys(rec).sort()) === JSON.stringify(DOCUMENTED_RECORD_KEYS),
+        `persisted record shape must match invariant 21: ${JSON.stringify(Object.keys(rec).sort())}`
+      );
+      ok(
+        typeof rec.details === "string" && rec.details.length <= runner.DETAILS_MAX,
+        `persisted details must be clamped, got ${rec.details && rec.details.length} chars`
+      );
+    }
+    const sec = records.find((r) => r.gate === "security");
+    ok(sec !== undefined, `the security gate must be persisted: ${JSON.stringify(records.map((r) => r.gate))}`);
+    ok(sec.ok === false, "a planted secret must be persisted as a FAIL");
+    ok(
+      sec.stdoutExcerpt.length <= record.EXCERPT_MAX && sec.stderrExcerpt.length <= record.EXCERPT_MAX,
+      "excerpts must stay clamped to EXCERPT_MAX"
+    );
+    const docs = records.find((r) => r.gate === "docs-updated");
+    ok(docs !== undefined, "the docs-updated gate must be persisted");
+    ok(docs.ok === true, `committed docs must pass: ${docs.details}`);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 if (failures > 0) {
   process.exit(1);
 } else {
