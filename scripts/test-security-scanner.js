@@ -587,6 +587,106 @@ test("the repo itself passes the blocking scan", () => {
   eq(r.status, 0, `the repository must be clean at --fail-on=high: ${r.stdout}${r.stderr}`);
 });
 
+// ------------------------------------------- the repo's OWN allowlist entries
+//
+// Residual defect N1: blocking defect B3 was fixed in `SELF_SCAN_EXCLUSIONS`
+// but the same hazard survived one path over, in `.secret-scan-allow`. Nine
+// first-party entries named a file and nothing else, so the documented reason
+// ("this regex `.exec` is not child_process") silently also allowed every REAL
+// secret in that file — a planted `ghp_` passed at exit 0. These tests drive
+// the repo's real allowlist over tmpdir copies of exactly those files.
+
+/** The first-party files the repo used to allow by PATH alone. `exec` marks the
+ *  ones whose DOCUMENTED reason is a regex `.exec` false positive, so the
+ *  control can prove that one survives the narrowing. */
+const PATH_ONLY_ALLOWED = [
+  { file: "bundle/hooks/lib/phase-outcome.js", exec: true },
+  { file: "bundle/opencode/hooks/lib/phase-outcome.js", exec: true },
+  { file: "scripts/gen-agent-registry.js", exec: true },
+  { file: "scripts/test-security-scanner.js", exec: true },
+  { file: "scripts/setup-cursor-byok.sh", exec: false },
+];
+
+/** The repo allowlist, read from the repo itself (never a copy). */
+function repoAllow() {
+  const allow = scanner.loadSecretScanAllow(path.join(ROOT, ".secret-scan-allow"));
+  eq(allow.error, null, `the repo allowlist must parse: ${allow.error}`);
+  return allow;
+}
+
+/**
+ * tmpdir copies of every path-only-allowed file, each carrying the planted PAT
+ * and — where the entry's reason claims it — the genuine regex-`exec` false
+ * positive. Scanned with the repo's real allowlist.
+ */
+function plantedPatFixture() {
+  const files = {};
+  for (const { file, exec } of PATH_ONLY_ALLOWED) {
+    files[file] = `${exec ? "const FRONTMATTER = /^---/.exec(blob);\n" : ""}const token = "${GH_TOKEN}";\n`;
+  }
+  return fixture(files);
+}
+
+/** Scan a planted fixture against the repo's real allowlist. */
+function scanWithRepoAllow(dir) {
+  const r = runCli(["--dir", dir, "--allow", path.join(ROOT, ".secret-scan-allow"), "--json", "--fail-on=high"]);
+  return { status: r.status, parsed: JSON.parse(r.stdout), raw: `${r.stdout}${r.stderr}` };
+}
+
+test("a PAT planted in a documented first-party file is BLOCKED, never silenced (N1)", () => {
+  const { status, parsed, raw } = scanWithRepoAllow(plantedPatFixture());
+  const blocked = parsed.findings.filter((f) => /GitHub personal access token/.test(f.label));
+  eq(status, 1, `a critical PAT must fail the build in every first-party file: ${raw}`);
+  for (const { file } of PATH_ONLY_ALLOWED) {
+    ok(
+      blocked.some((f) => f.file === file),
+      `a PAT planted in ${file} must be a BLOCKING finding, not an allowlisted one: ${raw}`
+    );
+    ok(
+      !parsed.allowed.some((f) => f.file === file && /GitHub personal access token/.test(f.label)),
+      `${file} must never allow a GitHub token: ${raw}`
+    );
+  }
+  eq(parsed.summary.critical, PATH_ONLY_ALLOWED.length, `one PAT finding per file, none allowed: ${raw}`);
+});
+
+test("the genuine regex-exec false positive in those files is STILL allowed (N1 control)", () => {
+  const { parsed, raw } = scanWithRepoAllow(plantedPatFixture());
+  for (const { file, exec } of PATH_ONLY_ALLOWED) {
+    const allowedFp = parsed.allowed.some((f) => f.file === file && /exec\(\) call/.test(f.label));
+    eq(allowedFp, exec, `${file}: regex-exec false positive allowed=${exec} as documented: ${raw}`);
+  }
+});
+
+test("every allowlist entry for a FILE names a rule label (N1 audit)", () => {
+  const allow = repoAllow();
+  const unlabelled = allow.entries
+    .filter((e) => e.label === null && !e.pattern.trim().endsWith("/"))
+    .map((e) => `line ${e.line}: ${e.pattern}`);
+  eq(
+    unlabelled.length,
+    0,
+    `a file entry without a label silences EVERY rule in that file, including a planted secret: ${unlabelled.join("; ")}`
+  );
+});
+
+test("only vendored documentation subtrees are allowed as directories (N1 policy)", () => {
+  const allow = repoAllow();
+  const dirs = allow.entries.filter((e) => e.pattern.trim().endsWith("/")).map((e) => e.pattern.trim());
+  ok(dirs.length > 0, "the vendored-doc subtree entries must still exist");
+  const bad = dirs.filter((p) => !/^bundle\/(opencode\/)?skills(-cursor)?\//.test(p));
+  eq(bad.length, 0, `an allowed directory is an invisible one — only vendored doc subtrees may be: ${bad.join("; ")}`);
+});
+
+test("the allowlist header states its real entry count (N1/N3 accuracy)", () => {
+  const header = fs.readFileSync(path.join(ROOT, ".secret-scan-allow"), "utf8");
+  const allow = repoAllow();
+  const claimed = /^\s*#\s*(\d+)\s+entries\./m.exec(header);
+  ok(claimed !== null, "the header must state the entry count");
+  eq(Number(claimed[1]), allow.entries.length, "the stated entry count must match the file");
+  ok(header.endsWith("\n"), "the allowlist must end with a newline (an append must not glue onto the last entry)");
+});
+
 console.log(`security-scanner assertions: ${asserts}`);
 
 if (failures > 0) {
