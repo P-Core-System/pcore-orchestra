@@ -192,10 +192,170 @@ function evidenceSecurity(root) {
   }
 }
 
+/**
+ * Files whose presence in the diff counts as "documentation was updated".
+ * Deliberately narrow: source changes are not doc evidence.
+ */
+const DOC_EVIDENCE_PATTERNS = [
+  /progress-tracker\.md$/i,
+  /context\/.*\.md$/i,
+  /^docs\//i,
+  /^README\.md$/i,
+];
+
+/** Strip the 3-char porcelain status prefix (and rename arrows) from a line. */
+function porcelainPath(line) {
+  let p = line.slice(3).trim();
+  const arrow = p.lastIndexOf(" -> ");
+  if (arrow !== -1) p = p.slice(arrow + 4).trim();
+  return p;
+}
+
+/**
+ * Resolve the diff range for the docs gate.
+ * Prefers an explicit merge-base (`<mb>...HEAD`); falls back to the raw
+ * three-dot range, then the two-dot range. Returns null when git cannot
+ * produce any usable range (caller fails the gate closed).
+ * Note: the three-dot range is ASCII `...` — git does not accept U+2026.
+ */
+function resolveDiffRange(root, base) {
+  const mb = runCmd("git", ["merge-base", base, "HEAD"], root);
+  if (mb.ok && mb.stdout) {
+    return { range: `${mb.stdout}...HEAD`, base, via: "merge-base" };
+  }
+  const threeDot = runCmd("git", ["diff", "--name-only", `${base}...HEAD`], root);
+  if (threeDot.ok) return { range: `${base}...HEAD`, base, via: "three-dot" };
+  const twoDot = runCmd("git", ["diff", "--name-only", base, "HEAD"], root);
+  if (twoDot.ok) return { range: `${base}..HEAD`, base, via: "two-dot" };
+  return null;
+}
+
+/**
+ * Derive the `docs-updated` verdict from the real git diff (audit S-19).
+ *
+ * Sources of truth, in order:
+ *   1. `git diff --name-only <base>…HEAD` — committed changes since the base
+ *   2. `git status --porcelain -uall`     — the current worktree
+ *
+ * Failure policy — fail closed:
+ *   - git present but erroring, or absent while `.git` exists ⇒ FAIL `git-error`
+ *   - git entirely absent outside a git workspace ⇒ SKIP with an explicit reason
+ * There is no "no summary text ⇒ pass" path left; the old
+ * `evidenceGitClean` always returned `ok:true`.
+ *
+ * @param {string} root workspace root
+ * @param {object} [state] orchestrator state; `state.baseCommit` overrides the
+ *   diff base (defaults to `HEAD`, i.e. uncommitted worktree changes only)
+ */
+function evidenceDocsUpdated(root, state) {
+  const base = (state && state.baseCommit) || "HEAD";
+  const hasGitDir = fs.existsSync(path.join(root, ".git"));
+
+  const version = runCmd("git", ["--version"], root);
+  if (version.error) {
+    if (hasGitDir) {
+      return {
+        gate: "docs-updated",
+        ok: false,
+        reason: "git-error",
+        details: `git-error: git binary unavailable (${version.error}) but ${root}/.git exists — docs evidence unverifiable, failing closed`,
+        files: [],
+      };
+    }
+    return {
+      gate: "docs-updated",
+      ok: true,
+      reason: "skip-no-git",
+      details: `SKIPPED: no git binary and ${root} is not a git workspace — docs-updated not verifiable here`,
+      files: [],
+    };
+  }
+
+  const inWorkTree = runCmd("git", ["rev-parse", "--is-inside-work-tree"], root);
+  if (!inWorkTree.ok || inWorkTree.stdout.trim() !== "true") {
+    if (hasGitDir) {
+      return {
+        gate: "docs-updated",
+        ok: false,
+        reason: "git-error",
+        details: `git-error: ${root}/.git exists but git reports this is not a work tree (${inWorkTree.stderr || inWorkTree.stdout || "no output"}) — failing closed`,
+        files: [],
+      };
+    }
+    return {
+      gate: "docs-updated",
+      ok: true,
+      reason: "skip-no-git",
+      details: `SKIPPED: ${root} is not a git repository — docs-updated not verifiable here`,
+      files: [],
+    };
+  }
+
+  const resolved = resolveDiffRange(root, base);
+  if (!resolved) {
+    return {
+      gate: "docs-updated",
+      ok: false,
+      reason: "git-error",
+      details: `git-error: cannot diff against base ${base} — failing closed`,
+      files: [],
+    };
+  }
+
+  const diff = runCmd("git", ["diff", "--name-only", resolved.range], root);
+  if (!diff.ok) {
+    return {
+      gate: "docs-updated",
+      ok: false,
+      reason: "git-error",
+      details: `git-error: git diff --name-only ${resolved.range} failed (${diff.stderr || diff.error}) — failing closed`,
+      files: [],
+    };
+  }
+  const status = runCmd("git", ["status", "--porcelain", "-uall"], root);
+  if (!status.ok) {
+    return {
+      gate: "docs-updated",
+      ok: false,
+      reason: "git-error",
+      details: `git-error: git status --porcelain failed (${status.stderr || status.error}) — failing closed`,
+      files: [],
+    };
+  }
+
+  const committed = diff.stdout ? diff.stdout.split("\n").map((l) => l.trim()).filter(Boolean) : [];
+  const dirty = status.stdout ? status.stdout.split("\n").map(porcelainPath).filter(Boolean) : [];
+  const changed = [...new Set([...committed, ...dirty])];
+  const docFiles = changed.filter((f) => DOC_EVIDENCE_PATTERNS.some((re) => re.test(f)));
+
+  if (docFiles.length > 0) {
+    return {
+      gate: "docs-updated",
+      ok: true,
+      reason: "docs-touched",
+      details: `docs evidence from git (base ${base} via ${resolved.via}): ${docFiles.slice(0, 10).join(", ")}`,
+      files: docFiles,
+      changedCount: changed.length,
+    };
+  }
+
+  return {
+    gate: "docs-updated",
+    ok: false,
+    reason: "no-doc-changes",
+    details: `no documentation changed (base ${base} via ${resolved.via}; ${changed.length} file(s) changed, none matching progress-tracker.md / context/*.md / docs/ / README.md) — update docs and commit`,
+    files: [],
+    changedCount: changed.length,
+  };
+}
+
 function evidenceGitClean(root) {
   const r = runCmd("git", ["status", "--porcelain"], root);
-  if (r.error) return { gate: "docs-updated", ok: true, details: "SKIPPED: not a git repo" };
-  // Dirty tree is not a gate failure for docs; just report
+  // Dirty tree is not a gate failure for docs; just report. The docs-updated
+  // verdict is owned by evidenceDocsUpdated (fail-closed, diff-derived).
+  if (r.error) {
+    return { gate: "git-status", ok: true, details: "git unavailable in this workspace" };
+  }
   return {
     gate: "git-status",
     ok: true,
@@ -221,6 +381,7 @@ function runEvidenceChecks(state, options) {
   }
 
   results.push(evidenceGitClean(root));
+  results.push(evidenceDocsUpdated(root, state));
 
   const lines = ["## Evidence checks", `Root: ${root}`, `Mode: ${mode}`, ""];
   for (const r of results) {
@@ -288,6 +449,7 @@ function applyEvidenceToGates(state, passGate, failGate, skipGate, options) {
 
 module.exports = {
   CORE_REQUIRED_GATES,
+  DOC_EVIDENCE_PATTERNS,
   runCmd,
   runEvidenceChecks,
   applyEvidenceToGates,
@@ -296,4 +458,5 @@ module.exports = {
   evidenceTests,
   evidenceLint,
   evidenceSecurity,
+  evidenceDocsUpdated,
 };

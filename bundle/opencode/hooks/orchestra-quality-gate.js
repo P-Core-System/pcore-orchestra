@@ -63,10 +63,25 @@ async function main() {
     }
 
     passGate(state, "memory-updated", "Lifecycle hooks flushed memory");
-    if (/\bprogress-tracker\.md\b/i.test(summaryBlob) || state.memory?.files_changed?.some((f) => /progress-tracker/.test(f))) {
-      passGate(state, "docs-updated", "progress-tracker or docs referenced in run");
+
+    // docs-updated is decided by evidence (evidenceDocsUpdated), which diffs
+    // the real git range and fails closed on git errors. The summary/memory
+    // probe below is an ADDITIONAL accept signal only — it can add a pass, but
+    // it must never be the sole basis for one, and it must never mask a
+    // diff-derived FAIL by writing a skip on top of it.
+    const summaryMentionsDocs =
+      /\bprogress-tracker\.md\b/i.test(summaryBlob) ||
+      (state.memory?.files_changed || []).some((f) => /progress-tracker/.test(f));
+    if (summaryMentionsDocs) {
+      passGate(state, "docs-updated", "progress-tracker referenced in run summary (additional signal on top of git diff)");
     } else {
-      skipGate(state, "docs-updated", "no progress-tracker evidence in summary — verify manually");
+      const hasEvidenceVerdict =
+        [...(state.qualityGates?.passed || []), ...(state.qualityGates?.failed || [])].some(
+          (g) => g.id === "docs-updated"
+        );
+      if (!hasEvidenceVerdict) {
+        skipGate(state, "docs-updated", "no doc evidence produced — verify manually");
+      }
     }
 
     saveState(state);
