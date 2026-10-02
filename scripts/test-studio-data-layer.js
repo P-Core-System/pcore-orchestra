@@ -184,5 +184,24 @@ if (fs.existsSync(tokenTrackerPath)) {
   assert(content.includes('computeTrend') || content.includes('trend'), 'Computes trend');
 }
 
+// Test 13: history.ts module
+console.log('\nTest 13: history.ts data layer');
+const historyPath = path.join(studioLibDir, 'history.ts');
+assert(fs.existsSync(historyPath), 'history.ts exists');
+
+if (fs.existsSync(historyPath)) {
+  const content = fs.readFileSync(historyPath, 'utf8');
+  assert(content.includes('export function loadHistory'), 'loadHistory exported');
+  assert(content.includes('export function getRecentRuns'), 'getRecentRuns exported');
+  assert(content.includes('export function getRunById'), 'getRunById exported');
+  assert(content.includes('export function getRunByRunId'), 'getRunByRunId exported');
+  assert(content.includes('export function getPhasesForRun'), 'getPhasesForRun exported');
+  assert(content.includes('export function getCompletedRuns'), 'getCompletedRuns exported');
+  assert(content.includes('export function getFailedRuns'), 'getFailedRuns exported');
+  assert(content.includes('PCORE_STATE_DIR'), 'Uses PCORE_STATE_DIR env');
+  assert(content.includes('resolveHistoryPaths'), 'Worktree path support function');
+  assert(content.includes("'.pcore'") && content.includes("'state'") && content.includes("'orchestra-history.json'"), 'Worktree orchestra-history path components');
+}
+
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);
 process.exit(failed > 0 ? 1 : 0);
