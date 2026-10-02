@@ -687,6 +687,101 @@ test("the allowlist header states its real entry count (N1/N3 accuracy)", () => 
   ok(header.endsWith("\n"), "the allowlist must end with a newline (an append must not glue onto the last entry)");
 });
 
+// --------------------------------------------------- S4: mirror-pair integrity
+
+/**
+ * Mirror asymmetry between `bundle/**` and `bundle/opencode/hooks|skills/**`
+ * allowlist entries.
+ *
+ * ~20 of this file's entries exist only because the payload is duplicated into
+ * the OpenCode tree, and each twin was written BY HAND with a prose reason
+ * ("mirror of bundle/..."). Nothing checked that pairing, so dropping one twin
+ * silently re-exposes every finding in the mirrored file — CI and the in-loop
+ * gate both go red with no hint of the real cause. `test-mirror-sync.js` gates
+ * the FILES; this gates the ALLOWLIST PAIRS.
+ *
+ * `exists(relPath)` is injected so the self-test below can prove a dropped twin
+ * is actually detected.
+ *
+ * @returns {string[]} problems; empty means every mirror pair is complete
+ */
+function mirrorAsymmetry(entries, exists) {
+  const problems = [];
+  // Index the entries by (normalised path, normalised label).
+  const index = new Set();
+  for (const e of entries || []) {
+    const p = e.file !== null && e.file !== undefined ? e.file : e.any;
+    if (!p) continue;
+    index.add(`${p}::${e.label || ""}`);
+  }
+  const mirrored = (pattern) =>
+    pattern.startsWith("bundle/opencode/")
+      ? `bundle/${pattern.slice("bundle/opencode/".length)}`
+      : `bundle/opencode/${pattern.slice("bundle/".length)}`;
+
+  for (const e of entries || []) {
+    const pattern = e.file !== null && e.file !== undefined ? e.file : e.any;
+    if (!pattern || !pattern.startsWith("bundle/")) continue;
+    const label = e.label || "";
+    const twin = mirrored(pattern);
+    const line = e.line ? `line ${e.line}` : "entry";
+
+    if (pattern.startsWith("bundle/opencode/")) {
+      // The mirror copy is documented, so the original must be too — otherwise
+      // one of the two trees has an undocumented allowance.
+      if (!index.has(`${mirrored(pattern)}::${label}`)) {
+        problems.push(`${line}: ${pattern} has no allowlist entry for its mirror ${mirrored(pattern)} (label "${label}")`);
+      }
+      continue;
+    }
+    // Forward direction, filesystem-aware: only require a twin when the mirrored
+    // path actually exists (`bundle/skills-cursor/sdk/` has no OpenCode copy).
+    if (exists && exists(twin) && !index.has(`${twin}::${label}`)) {
+      problems.push(`${line}: ${pattern} (label "${label}") has no allowlist entry for its mirror ${twin}, which exists on disk`);
+    }
+  }
+  return problems;
+}
+
+test("S4 detector is not a no-op: a DROPPED mirror twin is reported", () => {
+  const alwaysExists = () => true;
+  const paired = [
+    Object.assign(scanner.parseAllowPattern("file:bundle/hooks/lib/phase-outcome.js + label:exec() call"), { line: 1 }),
+    Object.assign(scanner.parseAllowPattern("file:bundle/opencode/hooks/lib/phase-outcome.js + label:exec() call"), { line: 2 }),
+  ];
+  eq(mirrorAsymmetry(paired, alwaysExists).length, 0, "a complete pair must report nothing");
+
+  const dropped = [paired[0]];
+  const found = mirrorAsymmetry(dropped, alwaysExists);
+  eq(found.length, 1, `a dropped opencode twin must be detected, got ${JSON.stringify(found)}`);
+  ok(/bundle\/opencode\/hooks\/lib\/phase-outcome\.js/.test(found[0]), `the report must name the missing twin: ${found[0]}`);
+
+  const droppedBase = [paired[1]];
+  eq(
+    mirrorAsymmetry(droppedBase, alwaysExists).length,
+    1,
+    "a dropped ORIGINAL twin must be detected too"
+  );
+  eq(
+    mirrorAsymmetry([paired[0]], () => false).length,
+    0,
+    "an entry whose mirror does not exist on disk is not a violation"
+  );
+});
+
+test("every allowlist mirror pair is complete in BOTH directions (S4)", () => {
+  const allow = repoAllow();
+  const exists = (rel) => fs.existsSync(path.join(ROOT, rel));
+  const problems = mirrorAsymmetry(allow.entries, exists);
+  eq(
+    problems.length,
+    0,
+    `a hand-written mirror pair that lost its twin is an invisible hole — ${problems.join("; ")}`
+  );
+  const pairs = allow.entries.filter((e) => (e.file || e.any || "").startsWith("bundle/opencode/")).length;
+  ok(pairs >= 15, `expected the documented mirror entries to still be there, found ${pairs}`);
+});
+
 console.log(`security-scanner assertions: ${asserts}`);
 
 if (failures > 0) {
