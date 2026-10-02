@@ -119,12 +119,26 @@ function evaluateCompletion(input) {
 
   checks.gates_green = failedGateIds(i.gates).length === 0;
 
+  const evidenceRecord = i.evidence || null;
+  const currentCommitKnown = current ? true : false;
+  const recordCommitKnown = knownCommit(evidenceRecord && evidenceRecord.commit) ? true : false;
+  checks.evidence_passed = evidenceRecord ? !!evidenceRecord.ok : true;
+  checks.evidenceStale = false;
+  if (evidenceRecord && recordCommitKnown && currentCommitKnown) {
+    const rc = knownCommit(evidenceRecord.commit);
+    checks.evidenceStale = rc !== current;
+  }
+  if (checks.evidence_passed && checks.evidenceStale) {
+    checks.evidence_passed = false;
+  }
+
   if (!checks.verification_passed) reasons.push("verification_not_passed");
   if (!checks.acceptance_passed) reasons.push("acceptance_missing");
   if (humanRequired && !checks.review_satisfied) reasons.push("review_required");
   if (humanRequired && checks.review_satisfied && !checks.review_fresh) reasons.push("review_stale");
   if (!checks.verification_fresh) reasons.push("verification_stale");
   if (!checks.gates_green) reasons.push("gates_failed");
+  if (!checks.evidence_passed) reasons.push(checks.evidenceStale ? "evidence_stale" : "evidence_failed");
 
   return { complete: reasons.length === 0, reasons, checks };
 }
