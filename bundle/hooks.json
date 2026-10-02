@@ -16,12 +16,12 @@
     "subagentStop": [
       {
         "command": "node ./hooks/orchestra-subagent-stop.js",
-        "matcher": "business-analyst|product-manager|architect|tech-lead|project-manager|backend-engineer|frontend-engineer|full-stack-engineer|database-engineer|qa-engineer|automation-engineer|security-engineer|accessibility-reviewer|documentation-writer|release-manager|devops-engineer|sre|observer|code-reviewer|performance-engineer|platform-engineer|cloud-engineer|infrastructure-engineer|orchestra-planner|orchestra-implementer|orchestra-verifier|orchestra-reviewer",
+        "matcher": "accessibility-reviewer|architect|automation-engineer|backend-engineer|business-analyst|cloud-engineer|code-reviewer|database-engineer|devops-engineer|documentation-writer|frontend-engineer|full-stack-engineer|infrastructure-engineer|observer|orchestra-implementer|orchestra-planner|orchestra-reviewer|orchestra-verifier|performance-engineer|platform-engineer|product-manager|project-manager|qa-engineer|release-manager|security-engineer|sre|tech-lead",
         "loop_limit": 12
       },
       {
         "command": "node ./hooks/orchestra-lifecycle.js",
-        "matcher": "business-analyst|product-manager|architect|tech-lead|project-manager|backend-engineer|frontend-engineer|full-stack-engineer|database-engineer|qa-engineer|automation-engineer|security-engineer|accessibility-reviewer|documentation-writer|release-manager|devops-engineer|sre|observer|code-reviewer|performance-engineer|platform-engineer|cloud-engineer|infrastructure-engineer|orchestra-planner|orchestra-implementer|orchestra-verifier|orchestra-reviewer",
+        "matcher": "accessibility-reviewer|architect|automation-engineer|backend-engineer|business-analyst|cloud-engineer|code-reviewer|database-engineer|devops-engineer|documentation-writer|frontend-engineer|full-stack-engineer|infrastructure-engineer|observer|orchestra-implementer|orchestra-planner|orchestra-reviewer|orchestra-verifier|performance-engineer|platform-engineer|product-manager|project-manager|qa-engineer|release-manager|security-engineer|sre|tech-lead",
         "loop_limit": 12
       },
       {

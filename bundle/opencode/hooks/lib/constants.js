@@ -126,6 +126,20 @@ const PHASE_END_TOKENS = {
 // Lifecycle event emitted when the outcome gate refuses to advance.
 const PHASE_BLOCKED_EVENT = "phase_blocked";
 
+// Agents that must chain through subagentStop but are not referenced by any
+// phase chain (the delivery / engineering team). Registry SSOT input —
+// scripts/gen-agent-registry.js derives the hook matcher from these.
+const DELIVERY_EXTRA_AGENTS = [
+  "backend-engineer",
+  "frontend-engineer",
+  "full-stack-engineer",
+  "database-engineer",
+  "code-reviewer",
+  "platform-engineer",
+  "cloud-engineer",
+  "infrastructure-engineer",
+];
+
 module.exports = {
   LIFECYCLE_MAX_EVENTS,
   MEMORY_MAX_COMPLETED,
@@ -181,4 +195,5 @@ module.exports = {
   QUALITY_GATES,
   PHASE_END_TOKENS,
   PHASE_BLOCKED_EVENT,
+  DELIVERY_EXTRA_AGENTS,
 };
