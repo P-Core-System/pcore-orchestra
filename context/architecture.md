@@ -72,6 +72,7 @@
 | Long-term memory | `~/.cursor/hooks/state/orchestra-memory.json` | Persistent across sessions, capped at 100 goals |
 | Token usage | `~/.cursor/hooks/state/orchestra-tokens.json` | Per-run estimates, aggregates, improvement tips |
 | Plan artifact | `<project>/.cursor/orchestra-plan.md` | Approved plan for implement→verify→review (gitignored) |
+| Agent registry | `bundle/agent-registry.json` | Generated SSOT (160 agent files, 27 hook agents, 160/side coverage) — also regenerates the conductor `permission.task` allowlist; `--check` gate in CI |
 | Cycle reports | `~/.cursor/hooks/state/cycles/{run_id}.json` | Production audit per completed run |
 | Memory index | `~/.cursor/hooks/state/memory-index.json` | Inverted index for fast goal recall |
 | Project management | `~/.cursor/hooks/state/orchestra-project.json` | Epics, milestones, stories, tasks, velocity, backlog |
@@ -294,3 +295,7 @@ powershell -File scripts/init-project.ps1 -Target . -Type web -Name "My App"
 12. Phase chain is extensible — new phases can be added by creating agent + hook entry.
 13. Orchestra hooks remain **Node.js only** — no Python hook runtime. Optional Python 3 is a skill dependency for `ui-ux-pro-max` `search.py` (and related design scripts), not for install/health.
 14. Vendored UI skills ship **real directories** (`data/`, `scripts/`) — never symlink stubs into the bundle.
+15. State writes are atomic: all non-conductor state goes through `bundle/hooks/lib/safe-write.js` (`atomicWrite` tmp+rename; `updateState` with advisory lock) — never raw `fs.writeFile` on shared state, never silent corrupt-reset (quarantine + backup instead).
+16. A phase only advances when `bundle/hooks/lib/phase-outcome.js` approves: correct end token (`PLAN_READY` / `IMPLEMENT_DONE` / `VERIFY_PASS|VERIFY_FAIL` / `ORCHESTRA_COMPLETE|FIX_REQUIRED`) AND no failed quality gates; otherwise `phase_blocked` + corrective follow-up is emitted and `state.last_outcome` records the reason. Unknown/empty output advances with a warning (never bricks the loop).
+17. `permission.task` on both conductors is **deny-first** (`"*": deny` first rule, `edit: deny`, `readonly: true` on Cursor) and generated from `bundle/agent-registry.json` between BEGIN/END markers — coverage must stay 160/160, additive only.
+18. `bundle/hooks/**` and `bundle/opencode/hooks/**` stay byte-identical per file (only the health entry differs: `orchestra-health.js` vs `orchestra-health-opencode.js`); enforced by `scripts/test-mirror-sync.js`.

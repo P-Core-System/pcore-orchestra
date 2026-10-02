@@ -173,6 +173,24 @@ your-project/
 | `/orchestra <goal>` | Force start with goal |
 | `abort [reason]` | Save checkpoint and abort |
 
+### Self-check (repo maintainers)
+
+```bash
+node scripts/gen-agent-registry.js            # regenerate agent-registry.json + conductor allowlist + hook matcher
+node scripts/gen-agent-registry.js --check    # fail if anything generated is stale (CI)
+node scripts/test-safe-write.js               # atomic state writes + quarantine
+node scripts/test-state-manager-compat.js     # state-manager/lib compatibility
+node scripts/test-conductor-state.js          # per-run isolation CLI
+node scripts/test-phase-outcome.js            # end-token / failed-gate phase blocking
+node scripts/test-agent-registry.js           # registry SSOT
+node scripts/test-handshake-contract.js       # selector/orchestrator end tokens
+node scripts/test-mirror-sync.js              # bundle/hooks == bundle/opencode/hooks
+node scripts/test-permission-review.js        # deny-first conductor allowlist, 160/160 coverage
+node scripts/test-adaptive-loop.js            # phase model / adaptive loops
+```
+
+All suites run in `.github/workflows/ci.yml` on every PR.
+
 ---
 
 ## Setup Your Project
