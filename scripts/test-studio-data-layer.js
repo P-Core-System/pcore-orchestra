@@ -162,5 +162,27 @@ if (fs.existsSync(domainEventsPath)) {
   assert(content.includes('review.requested') && content.includes('review.resolved'), 'Handles review events');
 }
 
+// Test 12: tokenTracker.ts module
+console.log('\nTest 12: tokenTracker.ts data layer');
+const tokenTrackerPath = path.join(studioLibDir, 'tokenTracker.ts');
+assert(fs.existsSync(tokenTrackerPath), 'tokenTracker.ts exists');
+
+if (fs.existsSync(tokenTrackerPath)) {
+  const content = fs.readFileSync(tokenTrackerPath, 'utf8');
+  assert(content.includes('export function loadTokenState'), 'loadTokenState exported');
+  assert(content.includes('export function getAggregatedTokens'), 'getAggregatedTokens exported');
+  assert(content.includes('export function getSessionTokens'), 'getSessionTokens exported');
+  assert(content.includes('export function getRunTokens'), 'getRunTokens exported');
+  assert(content.includes('export function getOverBudgetAgents'), 'getOverBudgetAgents exported');
+  assert(content.includes('export function getPhasesExceedingEstimate'), 'getPhasesExceedingEstimate exported');
+  assert(content.includes('export function getTokenTrend'), 'getTokenTrend exported');
+  assert(content.includes('PCORE_STATE_DIR'), 'Uses PCORE_STATE_DIR env');
+  assert(content.includes('resolveTokensPaths'), 'Worktree path support function');
+  assert(content.includes("'.pcore'") && content.includes("'state'") && content.includes("'orchestra-tokens.json'"), 'Worktree orchestra-tokens path components');
+  assert(content.includes('computeAgentTokens') || content.includes('byAgent'), 'Computes byAgent aggregates');
+  assert(content.includes('computePhaseTokens') || content.includes('byPhase'), 'Computes byPhase aggregates');
+  assert(content.includes('computeTrend') || content.includes('trend'), 'Computes trend');
+}
+
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);
 process.exit(failed > 0 ? 1 : 0);
