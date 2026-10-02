@@ -4,11 +4,36 @@ const crypto = require("node:crypto");
 
 const EXCERPT_MAX = 500;
 
+/**
+ * Upper bound for a gate's human-readable `details` string.
+ *
+ * `details` is the one record field with no natural size limit: the security
+ * FAIL path embeds a whole `generateSecurityReport`, so an unbounded `details`
+ * was written into `state.qualityGates`, the evidence report and the domain
+ * event log alike. 2000 chars keeps any verdict's headline plus its evidence.
+ */
+const DETAILS_MAX = 2000;
+
 function truncate(s) {
   if (s === null || s === undefined) return "";
   const str = String(s);
   if (str.length <= EXCERPT_MAX) return str;
   return str.slice(0, EXCERPT_MAX);
+}
+
+/**
+ * Clamp `details` to `DETAILS_MAX`, saying how much was dropped — a silently
+ * shortened verdict reads like a complete one. The marker is counted INSIDE the
+ * budget, so the result never exceeds `DETAILS_MAX`.
+ * @returns {string}
+ */
+function clampDetails(s) {
+  if (s === null || s === undefined) return "";
+  const str = String(s);
+  if (str.length <= DETAILS_MAX) return str;
+  const suffix = `… [+${str.length - DETAILS_MAX} chars]`;
+  const keep = Math.max(0, DETAILS_MAX - suffix.length);
+  return str.slice(0, keep) + suffix;
 }
 
 function toNumberExitCode(v) {
@@ -71,6 +96,8 @@ function evidenceDigest(records) {
 
 module.exports = {
   EXCERPT_MAX,
+  DETAILS_MAX,
   buildEvidenceRecord,
+  clampDetails,
   evidenceDigest,
 };

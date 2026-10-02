@@ -4,7 +4,7 @@ const { spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 const { QUALITY_GATES } = require("./constants.js");
-const { EXCERPT_MAX } = require("./evidence-record.js");
+const { EXCERPT_MAX, DETAILS_MAX, buildEvidenceRecord, clampDetails } = require("./evidence-record.js");
 
 const CORE_REQUIRED_GATES = [
   "build",
@@ -34,6 +34,7 @@ function truncate(s) {
 }
 
 function runCmd(command, args, cwd) {
+  const startedAt = new Date().toISOString();
   const started = process.hrtime.bigint();
   const r = spawnSync(command, args, {
     cwd: cwd || process.cwd(),
@@ -55,6 +56,11 @@ function runCmd(command, args, cwd) {
     ok: r.status === 0,
     status: r.status,
     exitCode: r.status,
+    // Provenance: the persisted evidence record must name what was run
+    // (invariant 21), so the command travels with the result.
+    command,
+    args: Array.isArray(args) ? args.slice() : [],
+    startedAt,
     stdout,
     stderr,
     stdoutExcerpt: truncate(stdout),
@@ -62,6 +68,48 @@ function runCmd(command, args, cwd) {
     error: r.error ? r.error.message : null,
     durationMs,
   };
+}
+
+/**
+ * The result shape every evidence verdict shares, so `buildEvidenceRecord` can
+ * emit the documented record (invariant 21) from any of them.
+ *
+ * `r` is the `runCmd` result that produced the verdict, or null when the verdict
+ * came from no single command (a SKIP, or a verdict derived from git OUTPUT —
+ * `git diff` exiting 0 does not mean the docs gate passed).
+ */
+function verdictFields(gate, ok, details, r) {
+  return {
+    gate,
+    ok: !!ok,
+    details: clampDetails(details),
+    command: (r && r.command) || null,
+    args: r && Array.isArray(r.args) ? r.args.slice() : [],
+    exitCode: r && r.exitCode !== undefined ? r.exitCode : null,
+    durationMs: r && typeof r.durationMs === "number" && r.durationMs >= 0 ? r.durationMs : 0,
+    startedAt: (r && r.startedAt) || new Date().toISOString(),
+    stdout: (r && r.stdout) || "",
+    stderr: (r && r.stderr) || "",
+  };
+}
+
+/** A verdict whose ok/fail IS the command's exit status (build, tests, lint). */
+function ran(gate, r, details) {
+  return verdictFields(gate, r && r.ok, details, r);
+}
+
+/** A verdict derived from a command's OUTPUT — the gate decides, not the exit code. */
+function derived(gate, r, ok, details) {
+  return verdictFields(gate, ok, details, r);
+}
+
+/**
+ * An evidence verdict produced WITHOUT a command (a SKIP, or a pure-logic
+ * verdict). `command`/`args` stay null/empty — the record must not claim a
+ * command that never ran.
+ */
+function verdict(gate, ok, details) {
+  return verdictFields(gate, ok, details, null);
 }
 
 function detectWorkspaceRoot(state) {
@@ -126,14 +174,10 @@ function evidenceBuild(root) {
       const json = JSON.parse(fs.readFileSync(pkg, "utf8"));
       if (json.scripts?.build) {
         const r = runCmd("npm", ["run", "build", "--silent"], root);
-        return {
-          gate: "build",
-          ok: r.ok,
-          details: r.ok ? "npm run build OK" : `npm run build failed: ${r.stderr || r.stdout || r.error}`,
-        };
+        return ran("build", r, r.ok ? "npm run build OK" : `npm run build failed: ${r.stderr || r.stdout || r.error}`);
       }
     } catch (e) {
-      return { gate: "build", ok: false, details: `package.json parse error: ${e.message}` };
+      return verdict("build", false, `package.json parse error: ${e.message}`);
     }
   }
 
@@ -152,28 +196,20 @@ function evidenceBuild(root) {
     for (const f of files.slice(0, 40)) {
       const r = runCmd(process.execPath, ["--check", f], root);
       if (!r.ok) {
-        return {
-          gate: "build",
-          ok: false,
-          details: `node --check failed: ${path.relative(root, f)} ${r.stderr || r.error}`,
-        };
+        return ran("build", r, `node --check failed: ${path.relative(root, f)} ${r.stderr || r.error}`);
       }
     }
-    return { gate: "build", ok: true, details: `node --check OK (${Math.min(files.length, 40)} hook files)` };
+    return verdict("build", true, `node --check OK (${Math.min(files.length, 40)} hook files)`);
   }
 
-  return { gate: "build", ok: true, details: "SKIPPED: no build script or bundle/hooks — treated as N/A pass" };
+  return verdict("build", true, "SKIPPED: no build script or bundle/hooks — treated as N/A pass");
 }
 
 function evidenceTests(root) {
   const adaptive = path.join(root, "scripts", "test-adaptive-loop.js");
   if (fs.existsSync(adaptive)) {
     const r = runCmd(process.execPath, [adaptive], root);
-    return {
-      gate: "tests",
-      ok: r.ok,
-      details: r.ok ? "test-adaptive-loop.js PASS" : `tests failed: ${r.stderr || r.stdout || r.error}`,
-    };
+    return ran("tests", r, r.ok ? "test-adaptive-loop.js PASS" : `tests failed: ${r.stderr || r.stdout || r.error}`);
   }
   const pkg = path.join(root, "package.json");
   if (fs.existsSync(pkg)) {
@@ -181,17 +217,13 @@ function evidenceTests(root) {
       const json = JSON.parse(fs.readFileSync(pkg, "utf8"));
       if (json.scripts?.test) {
         const r = runCmd("npm", ["test", "--silent"], root);
-        return {
-          gate: "tests",
-          ok: r.ok,
-          details: r.ok ? "npm test OK" : `npm test failed: ${r.stderr || r.stdout || r.error}`,
-        };
+        return ran("tests", r, r.ok ? "npm test OK" : `npm test failed: ${r.stderr || r.stdout || r.error}`);
       }
     } catch (e) {
-      return { gate: "tests", ok: false, details: e.message };
+      return verdict("tests", false, e.message);
     }
   }
-  return { gate: "tests", ok: true, details: "SKIPPED: no test runner — N/A" };
+  return verdict("tests", true, "SKIPPED: no test runner — N/A");
 }
 
 function evidenceLint(root) {
@@ -201,16 +233,12 @@ function evidenceLint(root) {
   if (fs.existsSync(health)) {
     const r = runCmd(process.execPath, [health], root);
     // health prints warnings but exits 0 on pass
-    return {
-      gate: "lint",
-      ok: r.ok,
-      details: r.ok ? "orchestra-health.js OK" : `health failed: ${r.stderr || r.stdout || r.error}`,
-    };
+    return ran("lint", r, r.ok ? "orchestra-health.js OK" : `health failed: ${r.stderr || r.stdout || r.error}`);
   }
   if (fs.existsSync(adaptive)) {
-    return { gate: "lint", ok: true, details: "SKIPPED: no dedicated linter — deferred to tests/health" };
+    return verdict("lint", true, "SKIPPED: no dedicated linter — deferred to tests/health");
   }
-  return { gate: "lint", ok: true, details: "SKIPPED: no linter" };
+  return verdict("lint", true, "SKIPPED: no linter");
 }
 
 /**
@@ -300,7 +328,7 @@ function isSelfScanExcluded(finding) {
 function evidenceSecurity(root) {
   const scanner = path.join(root, "bundle", "hooks", "lib", "security-scanner.js");
   if (!fs.existsSync(scanner)) {
-    return { gate: "security", ok: true, details: "SKIPPED: no security-scanner" };
+    return verdict("security", true, "SKIPPED: no security-scanner");
   }
   try {
     const { scanDirectory, generateSecurityReport, loadSecretScanAllow, isAllowedFinding, ALLOW_FILE } =
@@ -308,11 +336,11 @@ function evidenceSecurity(root) {
 
     const allow = loadSecretScanAllow(path.join(root, ALLOW_FILE));
     if (allow.error) {
-      return {
-        gate: "security",
-        ok: false,
-        details: `allowlist error: ${allow.error} — an undocumented false positive is a rule that quietly rots`,
-      };
+      return verdict(
+        "security",
+        false,
+        `allowlist error: ${allow.error} — an undocumented false positive is a rule that quietly rots`
+      );
     }
 
     const findings = scanDirectory(root);
@@ -350,12 +378,11 @@ function evidenceSecurity(root) {
     const owaspNote = owasp.length > 0 ? `; ${owasp.length} OWASP category hit(s) advisory` : "";
 
     if (blocking.length === 0) {
-      return {
-        gate: "security",
-        ok: true,
-        details:
-          `security scan: PASS — 0 critical/high; ${advisory.length} medium/low finding(s) reported non-blocking${owaspNote}${allowedNote}`,
-      };
+      return verdict(
+        "security",
+        true,
+        `security scan: PASS — 0 critical/high; ${advisory.length} medium/low finding(s) reported non-blocking${owaspNote}${allowedNote}`
+      );
     }
 
     const report = generateSecurityReport({
@@ -366,16 +393,15 @@ function evidenceSecurity(root) {
       owasp,
       summary,
     });
-    return {
-      gate: "security",
-      ok: false,
-      details:
-        `security scan FAIL: ${blocking.length} critical/high finding(s) — ${report}` +
+    return verdict(
+      "security",
+      false,
+      `security scan FAIL: ${blocking.length} critical/high finding(s) — ${report}` +
         (advisory.length > 0 ? `\n(${advisory.length} medium/low finding(s) reported non-blocking)` : "") +
-        allowedNote,
-    };
+        allowedNote
+    );
   } catch (e) {
-    return { gate: "security", ok: false, details: `scanner error: ${e.message}` };
+    return verdict("security", false, `scanner error: ${e.message}`);
   }
 }
 
@@ -480,41 +506,29 @@ function evidenceDocsUpdated(root, state) {
   const version = runCmd("git", ["--version"], root);
   if (version.error) {
     if (hasGitDir) {
-      return {
-        gate: "docs-updated",
-        ok: false,
+      return Object.assign(verdict("docs-updated", false, `git-error: git binary unavailable (${version.error}) but ${root}/.git exists — docs evidence unverifiable, failing closed`), {
         reason: "git-error",
-        details: `git-error: git binary unavailable (${version.error}) but ${root}/.git exists — docs evidence unverifiable, failing closed`,
         files: [],
-      };
+      });
     }
-    return {
-      gate: "docs-updated",
-      ok: true,
+    return Object.assign(verdict("docs-updated", true, `SKIPPED: no git binary and ${root} is not a git workspace — docs-updated not verifiable here`), {
       reason: "skip-no-git",
-      details: `SKIPPED: no git binary and ${root} is not a git workspace — docs-updated not verifiable here`,
       files: [],
-    };
+    });
   }
 
   const inWorkTree = runCmd("git", ["rev-parse", "--is-inside-work-tree"], root);
   if (!inWorkTree.ok || inWorkTree.stdout.trim() !== "true") {
     if (hasGitDir) {
-      return {
-        gate: "docs-updated",
-        ok: false,
+      return Object.assign(verdict("docs-updated", false, `git-error: ${root}/.git exists but git reports this is not a work tree (${inWorkTree.stderr || inWorkTree.stdout || "no output"}) — failing closed`), {
         reason: "git-error",
-        details: `git-error: ${root}/.git exists but git reports this is not a work tree (${inWorkTree.stderr || inWorkTree.stdout || "no output"}) — failing closed`,
         files: [],
-      };
+      });
     }
-    return {
-      gate: "docs-updated",
-      ok: true,
+    return Object.assign(verdict("docs-updated", true, `SKIPPED: ${root} is not a git repository — docs-updated not verifiable here`), {
       reason: "skip-no-git",
-      details: `SKIPPED: ${root} is not a git repository — docs-updated not verifiable here`,
       files: [],
-    };
+    });
   }
 
   let resolved = resolveDiffRange(root, chosen.base);
@@ -527,24 +541,18 @@ function evidenceDocsUpdated(root, state) {
     baseNote = `${chosen.base} via ${chosen.via} (not resolvable here) → HEAD`;
   }
   if (!resolved) {
-    return {
-      gate: "docs-updated",
-      ok: false,
+    return Object.assign(verdict("docs-updated", false, `git-error: cannot diff against base ${chosen.base} — failing closed`), {
       reason: "git-error",
-      details: `git-error: cannot diff against base ${chosen.base} — failing closed`,
       files: [],
-    };
+    });
   }
 
   const status = runCmd("git", ["status", "--porcelain", "-uall"], root);
   if (!status.ok) {
-    return {
-      gate: "docs-updated",
-      ok: false,
+    return Object.assign(verdict("docs-updated", false, `git-error: git status --porcelain failed (${status.stderr || status.error}) — failing closed`), {
       reason: "git-error",
-      details: `git-error: git status --porcelain failed (${status.stderr || status.error}) — failing closed`,
       files: [],
-    };
+    });
   }
 
   const committed = [];
@@ -568,13 +576,10 @@ function evidenceDocsUpdated(root, state) {
 
   const primary = runCmd("git", ["diff", "--name-only", resolved.range], root);
   if (!primary.ok) {
-    return {
-      gate: "docs-updated",
-      ok: false,
+    return Object.assign(derived("docs-updated", primary, false, `git-error: git diff --name-only ${resolved.range} failed (${primary.stderr || primary.error}) — failing closed`), {
       reason: "git-error",
-      details: `git-error: git diff --name-only ${resolved.range} failed (${primary.stderr || primary.error}) — failing closed`,
       files: [],
-    };
+    });
   }
   committed.push(...primary.stdout.split("\n").map((l) => l.trim()).filter(Boolean));
 
@@ -584,24 +589,18 @@ function evidenceDocsUpdated(root, state) {
   const label = `${baseNote}${sources.length > 1 ? " + " + sources.slice(1).join(" + ") : ""}`;
 
   if (docFiles.length > 0) {
-    return {
-      gate: "docs-updated",
-      ok: true,
+    return Object.assign(derived("docs-updated", primary, true, `docs evidence from git (base ${label}): ${docFiles.slice(0, 10).join(", ")}`), {
       reason: "docs-touched",
-      details: `docs evidence from git (base ${label}): ${docFiles.slice(0, 10).join(", ")}`,
       files: docFiles,
       changedCount: changed.length,
-    };
+    });
   }
 
-  return {
-    gate: "docs-updated",
-    ok: false,
+  return Object.assign(derived("docs-updated", primary, false, `no documentation changed (base ${label}; ${changed.length} file(s) changed, none matching progress-tracker.md / context/*.md / docs/ / README.md) — update docs and commit`), {
     reason: "no-doc-changes",
-    details: `no documentation changed (base ${label}; ${changed.length} file(s) changed, none matching progress-tracker.md / context/*.md / docs/ / README.md) — update docs and commit`,
     files: [],
     changedCount: changed.length,
-  };
+  });
 }
 
 function evidenceGitClean(root) {
@@ -609,13 +608,13 @@ function evidenceGitClean(root) {
   // Dirty tree is not a gate failure for docs; just report. The docs-updated
   // verdict is owned by evidenceDocsUpdated (fail-closed, diff-derived).
   if (r.error) {
-    return { gate: "git-status", ok: true, details: "git unavailable in this workspace" };
+    return verdict("git-status", true, "git unavailable in this workspace");
   }
-  return {
-    gate: "git-status",
-    ok: true,
-    details: r.stdout ? `dirty:\n${r.stdout.split("\n").slice(0, 20).join("\n")}` : "clean",
-  };
+  return ran(
+    "git-status",
+    r,
+    r.stdout ? `dirty:\n${r.stdout.split("\n").slice(0, 20).join("\n")}` : "clean"
+  );
 }
 
 /**
@@ -655,12 +654,23 @@ function applyEvidenceToGates(state, passGate, failGate, skipGate, options) {
   const records = [];
 
   for (const r of results) {
-    const rec = {
+    // The persisted record is built by `buildEvidenceRecord` — the builder
+    // invariant 21 documents — so the live shape and the documented shape
+    // cannot drift again (review B6). `details` was already clamped at the
+    // source by ran()/verdict(); clamped again here so ANY future result that
+    // skips those helpers still cannot persist an unbounded string.
+    const rec = buildEvidenceRecord({
       gate: r.gate,
-      ok: !!r.ok,
-      details: r.details,
-      exitCode: r.exitCode === undefined ? (r.status === undefined ? null : r.status) : r.exitCode,
-    };
+      command: r.command,
+      args: r.args,
+      exitCode: r.exitCode,
+      durationMs: r.durationMs,
+      ok: r.ok,
+      stdout: r.stdout,
+      stderr: r.stderr,
+      startedAt: r.startedAt,
+    });
+    rec.details = clampDetails(r.details);
     records.push(rec);
     if (r.gate === "git-status") continue;
     if (/^SKIPPED:/.test(r.details) && r.ok) {
@@ -715,6 +725,11 @@ module.exports = {
   evidenceLint,
   evidenceSecurity,
   evidenceDocsUpdated,
+  DETAILS_MAX,
+  ran,
+  derived,
+  verdict,
+  verdictFields,
   recordRunDiffBase,
   resolveDocsBase,
 };
