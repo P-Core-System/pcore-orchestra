@@ -3,7 +3,7 @@
 
 const { STOP_NUDGE_LOOP_LIMIT } = require("./lib/constants.js");
 const { readStdinJson, emit } = require("./lib/io.js");
-const { loadState, saveState } = require("./lib/state-manager.js");
+const { loadState, updateState } = require("./lib/state-manager.js");
 const { AMBIENT_CONTEXT } = require("./lib/context-detector.js");
 const { isStalled, writeHeartbeat } = require("./lib/heartbeat-monitor.js");
 const { getAgentForPhase } = require("./lib/phase-engine.js");
@@ -18,14 +18,22 @@ async function main() {
     return;
   }
 
-  const state = loadState();
-  if (!state.active) {
+  const loaded = loadState();
+  if (!loaded.active) {
     emit({});
     return;
   }
 
-  writeHeartbeat(state);
-  saveState(state);
+  // Locked read → heartbeat → write: a concurrent hook cannot lose the beat.
+  const state = updateState((s) => {
+    if (!s.active) return null; // stopped underneath us — skip the write
+    writeHeartbeat(s);
+    return s;
+  });
+  if (!state) {
+    emit({});
+    return;
+  }
 
   // Let heartbeat own stall messaging
   if (isStalled(state)) {

@@ -1,6 +1,5 @@
 "use strict";
 
-const fs = require("node:fs");
 const path = require("node:path");
 const {
   MEMORY_MAX_COMPLETED,
@@ -17,6 +16,7 @@ const {
   formatRelevantGoals,
 } = require("./semantic-memory.js");
 const { indexCompletedGoal } = require("./memory-index.js");
+const { writeJson, readJsonSafe, resolveStatePath } = require("./safe-write.js");
 
 const MEMORY_PATH = path.join(__dirname, "..", "state", "orchestra-memory.json");
 
@@ -62,12 +62,7 @@ function migrateToSessions(raw) {
 function loadLongTermMemory(sessionId) {
   const session = sessionId || getSessionId();
   try {
-    if (!fs.existsSync(MEMORY_PATH)) {
-      const empty = { version: 1, sessions: {} };
-      empty.sessions[session] = { ...DEFAULT_SESSION_MEMORY };
-      return empty;
-    }
-    const raw = JSON.parse(fs.readFileSync(MEMORY_PATH, "utf8"));
+    const raw = readJsonSafe(resolveStatePath(MEMORY_PATH), { version: 1, sessions: {} });
     const migrated = migrateToSessions(raw);
 
     if (!migrated.sessions[session]) {
@@ -150,19 +145,8 @@ function getAggregatedMemory(memoryState) {
 
 function saveLongTermMemory(mem, sessionId) {
   const session = sessionId || getSessionId();
-  fs.mkdirSync(path.dirname(MEMORY_PATH), { recursive: true });
-
-  let fullState;
-  try {
-    if (fs.existsSync(MEMORY_PATH)) {
-      fullState = JSON.parse(fs.readFileSync(MEMORY_PATH, "utf8"));
-      fullState = migrateToSessions(fullState);
-    } else {
-      fullState = { version: 1, sessions: {} };
-    }
-  } catch {
-    fullState = { version: 1, sessions: {} };
-  }
+  const memoryPath = resolveStatePath(MEMORY_PATH);
+  const fullState = migrateToSessions(readJsonSafe(memoryPath, { version: 1, sessions: {} }));
 
   if (!fullState.sessions) fullState.sessions = {};
   if (!fullState.sessions[session]) fullState.sessions[session] = { ...DEFAULT_SESSION_MEMORY };
@@ -174,7 +158,7 @@ function saveLongTermMemory(mem, sessionId) {
   target.project_patterns = mem.project_patterns || target.project_patterns || {};
   target.user_preferences = mem.user_preferences || target.user_preferences || {};
 
-  fs.writeFileSync(MEMORY_PATH, JSON.stringify(fullState, null, 2));
+  writeJson(memoryPath, fullState);
 }
 
 function flushShortToLong(state, outcome, sessionId) {

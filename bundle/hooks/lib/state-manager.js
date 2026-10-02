@@ -11,6 +11,7 @@ const {
   LOOP_MODE_ENTERPRISE,
 } = require("./constants.js");
 const { normalizeLoopMode, getPhaseCategory, getPhaseIdsForState, getPhasesForState } = require("./phase-engine.js");
+const { writeJson, readJsonSafe, resolveStatePath: resolveStateFile, withLock } = require("./safe-write.js");
 
 const STATE_PATH = path.join(__dirname, "..", "state", "orchestra.json");
 
@@ -172,12 +173,12 @@ function isSessionShaped(obj) {
   return "active" in obj || "currentPhase" in obj || "goal" in obj;
 }
 
-/** Resolve on-disk path; never path.join a non-string. */
+/** Resolve on-disk path; never path.join a non-string. `PCORE_STATE_DIR` wins. */
 function resolveStatePath(rootDir) {
   if (typeof rootDir === "string" && rootDir.length > 0) {
-    return path.join(rootDir, ".cursor", "hooks", "state", "orchestra.json");
+    return resolveStateFile(path.join(rootDir, ".cursor", "hooks", "state", "orchestra.json"));
   }
-  return STATE_PATH;
+  return resolveStateFile(STATE_PATH);
 }
 
 /** Migrate legacy flat state to session-namespaced structure. */
@@ -229,7 +230,14 @@ function loadRootState(rootDir, sessionId) {
       empty.sessions[session] = createSessionState();
       return empty;
     }
-    const raw = JSON.parse(fs.readFileSync(statePath, "utf8"));
+    // readJsonSafe quarantines a corrupt file to `.corrupt-<ts>` and returns
+    // defaults — never a silent in-place reset.
+    const raw = readJsonSafe(statePath, null);
+    if (!raw || typeof raw !== "object") {
+      const empty = { version: 3, sessions: {} };
+      empty.sessions[session] = createSessionState();
+      return empty;
+    }
     const migrated = migrateToSessions(raw);
 
     if (!migrated.sessions[session]) {
@@ -309,8 +317,40 @@ function saveState(a, b, c) {
 
   if (!root.version) root.version = 3;
 
-  fs.mkdirSync(path.dirname(statePath), { recursive: true });
-  fs.writeFileSync(statePath, JSON.stringify(root, null, 2));
+  writeJson(statePath, root);
+}
+
+/**
+ * Locked read → mutate → write. The `.lock` file is held for the whole
+ * load/mutate/save cycle so concurrent hook processes cannot interleave a
+ * read-modify-write and lose each other's updates.
+ *
+ * @param {(session: object) => object|null|undefined} mutator receives the
+ *   loaded session; return the session (or nothing) to persist, or `null` to
+ *   abort without saving.
+ * @param {{rootDir?: string|null, sessionId?: string, waitMs?: number}} [options]
+ * @returns {object|null} the persisted session, or null when aborted
+ */
+function updateState(mutator, options = {}) {
+  if (typeof mutator !== "function") {
+    throw new TypeError("updateState: expected a mutator function");
+  }
+  const sid = options.sessionId || getSessionId();
+  const rootDir = typeof options.rootDir === "string" ? options.rootDir : null;
+  const statePath = resolveStatePath(rootDir);
+
+  return withLock(
+    statePath,
+    () => {
+      const session = loadState(rootDir, sid);
+      const next = mutator(session);
+      if (next === null) return null;
+      const payload = next && typeof next === "object" ? next : session;
+      saveState(rootDir, payload, sid);
+      return payload;
+    },
+    { waitMs: options.waitMs }
+  );
 }
 
 /** Get the current session's state from the full state object. */
@@ -459,6 +499,7 @@ module.exports = {
   loadRootState,
   loadState,
   saveState,
+  updateState,
   startOrchestra,
   normalizePhaseFields,
   syncProjectIdentity,

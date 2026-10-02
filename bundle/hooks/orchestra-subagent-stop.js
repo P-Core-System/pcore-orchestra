@@ -2,7 +2,7 @@
 "use strict";
 
 const { readStdinJson, emit } = require("./lib/io.js");
-const { loadState, saveState, DEFAULT_STATE } = require("./lib/state-manager.js");
+const { saveState, updateState, DEFAULT_STATE } = require("./lib/state-manager.js");
 const {
   getPhaseChain,
   getAgentForPhase,
@@ -307,56 +307,62 @@ async function main() {
     return;
   }
 
-  const state = loadState();
-  if (!state.active) {
+  // Locked read → mutate → write for the bookkeeping half of this hook.
+  // Evidence runs, gate checks and phase transitions stay OUTSIDE the lock —
+  // they can take minutes (spawnSync of build/tests/lint) and would starve
+  // every other hook waiting on the same lock file.
+  const state = updateState((s) => {
+    if (!s.active) return null;
+    if (!getPhaseChain(s)[s.currentPhase]) return null;
+
+    s.last_subagent = subagentType;
+    s.iteration = (s.iteration || 0) + 1;
+
+    endPhaseTimer(s, "completed");
+    recordPhaseTokens(s, input, subagentType);
+    emitLifecycleEvent(s, "phase_complete", s.currentPhase, {
+      subagent: subagentType,
+      iteration: s.iteration,
+    });
+
+    if (!s.memory) {
+      s.memory = {
+        phases_completed: [],
+        files_changed: [],
+        errors: [],
+        decisions: [],
+        context_summary: "",
+      };
+    }
+
+    const outputSnippet = (input.summary || input.result || input.output || input.text || "")
+      .toString()
+      .slice(0, 200);
+    s.memory.phases_completed.push({
+      phase: s.currentPhase,
+      agent: subagentType,
+      summary: outputSnippet,
+      timestamp: new Date().toISOString(),
+    });
+
+    if (
+      subagentType === "orchestra-planner" &&
+      s.currentPhase === "plan"
+    ) {
+      try {
+        savePlanArtifact(s, input);
+      } catch {}
+    }
+
+    return s;
+  });
+
+  if (!state) {
     emit({});
     return;
   }
 
   const chain = getPhaseChain(state)[state.currentPhase];
-  if (!chain) {
-    emit({});
-    return;
-  }
-
-  state.last_subagent = subagentType;
-  state.iteration = (state.iteration || 0) + 1;
-
-  endPhaseTimer(state, "completed");
-  recordPhaseTokens(state, input, subagentType);
-  emitLifecycleEvent(state, "phase_complete", state.currentPhase, {
-    subagent: subagentType,
-    iteration: state.iteration,
-  });
-
-  if (!state.memory) {
-    state.memory = {
-      phases_completed: [],
-      files_changed: [],
-      errors: [],
-      decisions: [],
-      context_summary: "",
-    };
-  }
-
-  const outputSnippet = (input.summary || input.result || input.output || input.text || "")
-    .toString()
-    .slice(0, 200);
-  state.memory.phases_completed.push({
-    phase: state.currentPhase,
-    agent: subagentType,
-    summary: outputSnippet,
-    timestamp: new Date().toISOString(),
-  });
-
-  if (
-    subagentType === "orchestra-planner" &&
-    state.currentPhase === "plan"
-  ) {
-    try {
-      savePlanArtifact(state, input);
-    } catch {}
-  }
 
   if (
     subagentType === "orchestra-planner" &&

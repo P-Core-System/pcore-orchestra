@@ -1,9 +1,9 @@
 "use strict";
 
-const fs = require("node:fs");
 const path = require("node:path");
 const { MAX_DAILY_ENTRIES } = require("./constants.js");
 const { loadProjectState } = require("./project-manager.js");
+const { writeJson, readJsonSafe, resolveStatePath, atomicWrite } = require("./safe-write.js");
 
 const DAILY_PATH = path.join(__dirname, "..", "state", "orchestra-daily.json");
 
@@ -48,12 +48,7 @@ function migrateToSessions(raw) {
 function loadDailyState(sessionId) {
   const session = sessionId || getSessionId();
   try {
-    if (!fs.existsSync(DAILY_PATH)) {
-      const fresh = { version: 1, sessions: {} };
-      fresh.sessions[session] = { ...DEFAULT_SESSION_DAILY };
-      return fresh;
-    }
-    const raw = JSON.parse(fs.readFileSync(DAILY_PATH, "utf8"));
+    const raw = readJsonSafe(resolveStatePath(DAILY_PATH), { version: 1, sessions: {} });
     const migrated = migrateToSessions(raw);
     if (!migrated.sessions[session]) {
       migrated.sessions[session] = { ...DEFAULT_SESSION_DAILY };
@@ -66,42 +61,10 @@ function loadDailyState(sessionId) {
   }
 }
 
-/** Atomic write with temp file + rename, with 3-retry backoff. */
-function atomicWrite(filePath, data, retries = 3) {
-  const tempPath = filePath + ".tmp." + process.pid + "." + Date.now().toString(36);
-  let lastError;
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-      fs.writeFileSync(tempPath, JSON.stringify(data, null, 2));
-      fs.renameSync(tempPath, filePath);
-      return true;
-    } catch (err) {
-      lastError = err;
-      if (attempt < retries) {
-        const delay = Math.min(50 * attempt, 200);
-        require("node:timers/promises").setTimeout(delay);
-      }
-      try { fs.unlinkSync(tempPath); } catch {}
-    }
-  }
-  throw lastError;
-}
-
 function saveDailyState(ds, sessionId) {
   const session = sessionId || getSessionId();
-
-  let fullState;
-  try {
-    if (fs.existsSync(DAILY_PATH)) {
-      fullState = JSON.parse(fs.readFileSync(DAILY_PATH, "utf8"));
-      fullState = migrateToSessions(fullState);
-    } else {
-      fullState = { version: 1, sessions: {} };
-    }
-  } catch {
-    fullState = { version: 1, sessions: {} };
-  }
+  const dailyPath = resolveStatePath(DAILY_PATH);
+  const fullState = migrateToSessions(readJsonSafe(dailyPath, { version: 1, sessions: {} }));
 
   if (!fullState.sessions) fullState.sessions = {};
   if (!fullState.sessions[session]) {
@@ -116,7 +79,7 @@ function saveDailyState(ds, sessionId) {
   target.sessionId = session;
   target.lastUpdated = new Date().toISOString();
 
-  atomicWrite(DAILY_PATH, fullState);
+  writeJson(dailyPath, fullState);
 }
 
 function getTodayKey() {

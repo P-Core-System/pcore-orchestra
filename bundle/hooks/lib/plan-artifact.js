@@ -3,6 +3,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { saveState } = require("./state-manager.js");
+const { atomicWrite, resolveStateDir } = require("./safe-write.js");
 
 const PLAN_DIR = ".cursor";
 const PLAN_FILENAME = "orchestra-plan.md";
@@ -20,7 +21,7 @@ function workspacePlanPath(root) {
 }
 
 function globalPlanPath(runId) {
-  return path.join(PLANS_STATE_DIR, `${runId}.md`);
+  return path.join(resolveStateDir(PLANS_STATE_DIR), `${runId}.md`);
 }
 
 function extractSubagentOutput(input) {
@@ -64,13 +65,11 @@ function savePlanArtifact(state, input) {
 
   const content = header + text.trim() + "\n";
 
-  fs.mkdirSync(path.join(root, PLAN_DIR), { recursive: true });
   const wsPath = workspacePlanPath(root);
-  fs.writeFileSync(wsPath, content, "utf8");
+  atomicWrite(wsPath, content);
 
-  fs.mkdirSync(PLANS_STATE_DIR, { recursive: true });
   const gPath = globalPlanPath(runId);
-  fs.writeFileSync(gPath, content, "utf8");
+  atomicWrite(gPath, content);
 
   state.planArtifact = {
     path: wsPath,

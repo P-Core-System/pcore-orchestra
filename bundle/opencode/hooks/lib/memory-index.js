@@ -1,23 +1,17 @@
 "use strict";
 
-const fs = require("node:fs");
 const path = require("node:path");
 const { tokenize } = require("./semantic-memory.js");
+const { writeJson, readJsonSafe, resolveStatePath } = require("./safe-write.js");
 
 const INDEX_PATH = path.join(__dirname, "..", "state", "memory-index.json");
 const INDEX_MAX_ENTRIES = 500;
 
 function loadMemoryIndex() {
-  try {
-    if (!fs.existsSync(INDEX_PATH)) return { version: 1, entries: [], inverted: {} };
-    return JSON.parse(fs.readFileSync(INDEX_PATH, "utf8"));
-  } catch {
-    return { version: 1, entries: [], inverted: {} };
-  }
+  return readJsonSafe(resolveStatePath(INDEX_PATH), { version: 1, entries: [], inverted: {} });
 }
 
 function saveMemoryIndex(index) {
-  fs.mkdirSync(path.dirname(INDEX_PATH), { recursive: true });
   if (index.entries.length > INDEX_MAX_ENTRIES) {
     const drop = index.entries.length - INDEX_MAX_ENTRIES;
     const removed = index.entries.splice(0, drop);
@@ -28,7 +22,7 @@ function saveMemoryIndex(index) {
       }
     }
   }
-  fs.writeFileSync(INDEX_PATH, JSON.stringify(index, null, 2));
+  writeJson(resolveStatePath(INDEX_PATH), index);
 }
 
 function indexCompletedGoal(goalEntry, timestamp) {

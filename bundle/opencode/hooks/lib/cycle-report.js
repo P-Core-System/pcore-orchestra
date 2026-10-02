@@ -2,26 +2,26 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const { writeJson, readJsonSafe, resolveStatePath, resolveStateDir } = require("./safe-write.js");
 
 const CYCLES_DIR = path.join(__dirname, "..", "state", "cycles");
 const CYCLES_INDEX_PATH = path.join(CYCLES_DIR, "index.json");
 const CYCLES_INDEX_MAX = 100;
 
+/** Resolved cycles directory (honors PCORE_STATE_DIR). */
+function cyclesDir() {
+  return resolveStateDir(CYCLES_DIR);
+}
+
 function loadCyclesIndex() {
-  try {
-    if (!fs.existsSync(CYCLES_INDEX_PATH)) return { version: 1, cycles: [] };
-    return JSON.parse(fs.readFileSync(CYCLES_INDEX_PATH, "utf8"));
-  } catch {
-    return { version: 1, cycles: [] };
-  }
+  return readJsonSafe(resolveStatePath(CYCLES_INDEX_PATH), { version: 1, cycles: [] });
 }
 
 function saveCyclesIndex(index) {
-  fs.mkdirSync(CYCLES_DIR, { recursive: true });
   if (index.cycles.length > CYCLES_INDEX_MAX) {
     index.cycles = index.cycles.slice(-CYCLES_INDEX_MAX);
   }
-  fs.writeFileSync(CYCLES_INDEX_PATH, JSON.stringify(index, null, 2));
+  writeJson(resolveStatePath(CYCLES_INDEX_PATH), index);
 }
 
 /**
@@ -62,9 +62,8 @@ function writeCycleReport(state, outcome) {
     evidence: state.memory?.evidence_gates ? "recorded" : null,
   };
 
-  fs.mkdirSync(CYCLES_DIR, { recursive: true });
-  const reportPath = path.join(CYCLES_DIR, `${runId}.json`);
-  fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+  const reportPath = path.join(cyclesDir(), `${runId}.json`);
+  writeJson(reportPath, report);
 
   const index = loadCyclesIndex();
   index.cycles.push({

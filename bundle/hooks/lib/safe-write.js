@@ -61,6 +61,15 @@ function resolveStatePath(defaultPath) {
   return defaultPath;
 }
 
+/** Directory variant of {@link resolveStatePath} — for multi-file state dirs. */
+function resolveStateDir(defaultDir) {
+  const dir = process.env.PCORE_STATE_DIR;
+  if (dir && typeof dir === "string" && dir.length > 0 && defaultDir) {
+    return dir;
+  }
+  return defaultDir;
+}
+
 function serialize(data) {
   if (Buffer.isBuffer(data)) return data;
   if (typeof data === "string") return data;
@@ -229,6 +238,7 @@ module.exports = {
   sleepSync,
   backoffMs,
   resolveStatePath,
+  resolveStateDir,
   atomicWrite,
   writeJson,
   readJsonSafe,
