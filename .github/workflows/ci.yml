@@ -33,7 +33,7 @@ jobs:
           node-version: "20"
       - name: Agent registry in sync
         run: node scripts/gen-agent-registry.js --check
-      - name: Hook suites (safe-write, state, conductor, outcome, registry, handshake, mirrors)
+      - name: Hook suites (safe-write, state, conductor, outcome, registry, handshake, mirrors, permissions)
         run: |
           set -e
           node scripts/test-safe-write.js
@@ -43,5 +43,6 @@ jobs:
           node scripts/test-agent-registry.js
           node scripts/test-handshake-contract.js
           node scripts/test-mirror-sync.js
+          node scripts/test-permission-review.js
       - name: Adaptive loop suite
         run: node scripts/test-adaptive-loop.js

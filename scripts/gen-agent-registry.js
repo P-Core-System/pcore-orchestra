@@ -35,6 +35,12 @@ const AGENT_DIRS = [
   path.join(ROOT, "bundle", "agents"),
   path.join(ROOT, "bundle", "opencode", "agents"),
 ];
+const CONDUCTORS = [
+  path.join(ROOT, "bundle", "agents", "orchestra.md"),
+  path.join(ROOT, "bundle", "opencode", "agents", "orchestra.md"),
+];
+const TASK_BEGIN = "# BEGIN GENERATED: task allowlist (scripts/gen-agent-registry.js)";
+const TASK_END = "# END GENERATED: task allowlist";
 const CHAINED_RE = /orchestra-subagent-stop\.js|orchestra-lifecycle\.js/;
 
 function uniqSorted(list) {
@@ -113,6 +119,64 @@ function applyHooks(obj, matcher) {
   return { obj, touched };
 }
 
+const RULE_RE = /^"[^"]+":\s*(allow|deny)$/;
+const ALLOW_PAT_RE = /^"([^"]+)":\s*allow$/;
+
+function ruleCovers(ruleLine, agent) {
+  const m = ALLOW_PAT_RE.exec(ruleLine);
+  if (!m) return false;
+  const pat = m[1];
+  return pat.endsWith("*") ? agent.startsWith(pat.slice(0, -1)) : pat === agent;
+}
+
+/**
+ * Regenerate the conductor's permission.task block:
+ * `"*": deny` first, every existing allow rule preserved (additive only), and
+ * one `<agent>*: allow` per registered agent so nothing in the registry is
+ * unspawnable. The block is wrapped in BEGIN/END markers.
+ *
+ * Returns the rewritten file text, or null when there is no task block.
+ */
+function rewriteTaskBlock(text, agents) {
+  const eol = /\r\n/.test(text) ? "\r\n" : "\n";
+  const lines = text.split(/\r?\n/);
+  const start = lines.findIndex((l) => /^  task:\s*$/.test(l));
+  if (start === -1) return null;
+  let end = start + 1;
+  while (end < lines.length && !/^  \w/.test(lines[end])) end += 1;
+
+  const section = lines.slice(start + 1, end);
+  const rules = [];
+  const passthrough = [];
+  for (const raw of section) {
+    const t = raw.trim();
+    if (!t) continue;
+    if (RULE_RE.test(t)) rules.push(t);
+    else if (t === TASK_BEGIN || t === TASK_END) continue;
+    else passthrough.push(raw);
+  }
+
+  const deny = rules.filter((r) => /^"\*":\s*deny$/.test(r));
+  const allow = rules.filter((r) => !/^"\*":\s*deny$/.test(r));
+  const ordered = deny.length > 0 ? deny : ['"*": deny'];
+  ordered.push(...allow);
+
+  for (const agent of agents) {
+    if (!ordered.some((r) => ruleCovers(r, agent))) {
+      ordered.push(`"${agent}*": allow`);
+    }
+  }
+
+  const rebuilt = [
+    "    " + TASK_BEGIN,
+    ...ordered.map((r) => "    " + r),
+    "    " + TASK_END,
+    ...passthrough,
+  ];
+
+  return [...lines.slice(0, start + 1), ...rebuilt, ...lines.slice(end)].join(eol);
+}
+
 function serializeHooks(obj) {
   return JSON.stringify(obj, null, 2) + "\n";
 }
@@ -154,6 +218,18 @@ function plan(roster, registry) {
     stale: regCurrent !== regExpected,
   });
 
+  for (const file of CONDUCTORS) {
+    const current = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : null;
+    const expected = current === null ? null : rewriteTaskBlock(current, registry.agents);
+    jobs.push({
+      path: file,
+      rel: path.relative(ROOT, file),
+      expected,
+      current,
+      stale: current === null || expected === null || expected !== current,
+    });
+  }
+
   return jobs;
 }
 
@@ -194,10 +270,13 @@ module.exports = {
   derive,
   buildRegistry,
   applyHooks,
+  rewriteTaskBlock,
   frontmatterName,
   scanAgentDir,
   plan,
   main,
   HOOKS_COPIES,
   REGISTRY_PATH,
+  TASK_BEGIN,
+  TASK_END,
 };
