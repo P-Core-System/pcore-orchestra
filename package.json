@@ -1,0 +1,24 @@
+{
+  "name": "pcore-orchestra",
+  "version": "1.0.0",
+  "description": "Multi-agent orchestra for Cursor and OpenCode",
+  "main": "bundle/hooks/orchestra-prompt.js",
+  "scripts": {
+    "test": "node scripts/test-adaptive-loop.js"
+  },
+  "keywords": [
+    "orchestra",
+    "cursor",
+    "opencode",
+    "agents",
+    "mcp"
+  ],
+  "author": "P-Core",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
