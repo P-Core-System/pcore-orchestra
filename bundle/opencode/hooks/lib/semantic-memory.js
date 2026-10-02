@@ -105,5 +105,6 @@ module.exports = {
   retrieveRelevantGoals,
   retrieveRelevantErrors,
   formatRelevantGoals,
+  scoreEntry,
   DEFAULT_TOP_K,
 };
