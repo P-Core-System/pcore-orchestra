@@ -139,5 +139,28 @@ console.log('\nTest 10: Public directory');
 const publicDir = path.join(studioDir, 'public');
 assert(fs.existsSync(publicDir), 'studio/public/ directory exists');
 
+// Test 11: domainEvents.ts module
+console.log('\nTest 11: domainEvents.ts data layer');
+const domainEventsPath = path.join(studioLibDir, 'domainEvents.ts');
+assert(fs.existsSync(domainEventsPath), 'domainEvents.ts exists');
+
+if (fs.existsSync(domainEventsPath)) {
+  const content = fs.readFileSync(domainEventsPath, 'utf8');
+  assert(content.includes('export function loadEvents'), 'loadEvents exported');
+  assert(content.includes('export function getEvidenceRuns'), 'getEvidenceRuns exported');
+  assert(content.includes('export function getPhaseOutcomes'), 'getPhaseOutcomes exported');
+  assert(content.includes('export function getReviewEvents'), 'getReviewEvents exported');
+  assert(content.includes('export function getTicketEvents'), 'getTicketEvents exported');
+  assert(content.includes('export function getWorkItems'), 'getWorkItems exported');
+  assert(content.includes('export function getWorkItemsByRun'), 'getWorkItemsByRun exported');
+  assert(content.includes('export function getAllTicketStates'), 'getAllTicketStates exported');
+  assert(content.includes('PCORE_STATE_DIR'), 'Uses PCORE_STATE_DIR env');
+  assert(content.includes('resolveDomainEventsPaths'), 'Worktree path support function');
+  assert(content.includes("'.pcore'") && content.includes("'state'") && content.includes("'domain-events.json'"), 'Worktree domain-events path components');
+  assert(content.includes('ticket.created') && content.includes('ticket.transitioned'), 'Handles ticket.created and ticket.transitioned');
+  assert(content.includes('evidence.run') && content.includes('phase.outcome'), 'Handles evidence.run and phase.outcome');
+  assert(content.includes('review.requested') && content.includes('review.resolved'), 'Handles review events');
+}
+
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);
 process.exit(failed > 0 ? 1 : 0);
