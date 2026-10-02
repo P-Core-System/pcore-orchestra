@@ -48,6 +48,39 @@ function humanReviewQueueBlock(state) {
   }
 }
 
+/**
+ * The documentation file referenced by this run, as a FULL path.
+ *
+ * `progress-tracker.md` anywhere in the summary (or in
+ * `memory.files_changed`) is an additional accept signal for `docs-updated`.
+ * The path is returned complete — the substring must never lose its leading
+ * segment (`context/progress-tracker.md`, never `ontext/...`).
+ *
+ * @returns {string|null} the matched path, or null when nothing was mentioned
+ */
+function progressTrackerMention(summaryBlob, memory) {
+  // `String.match` (never RegExp#exec) on purpose: the scanner's shell-exec
+  // rule cannot tell the two apart, and a documented allowlist entry for this
+  // file is a worse trade than not writing the exec call in the first place.
+  const inSummary = String(summaryBlob || "").match(/[A-Za-z0-9_.@/-]*progress-tracker\.md/i);
+  if (inSummary) return inSummary[0];
+  const changed = (memory && memory.files_changed) || [];
+  const hit = changed.find((f) => /progress-tracker/i.test(f || ""));
+  return hit || null;
+}
+
+/** True when the evidence runner already produced a verdict for a gate. */
+function hasGateVerdict(state, gateId) {
+  return [...(state.qualityGates?.passed || []), ...(state.qualityGates?.failed || [])].some(
+    (g) => g.id === gateId
+  );
+}
+
+/** True when the evidence runner failed a gate (authoritative). */
+function gateFailed(state, gateId) {
+  return (state.qualityGates?.failed || []).some((g) => g.id === gateId);
+}
+
 async function main() {
   const input = await readStdinJson();
   const state = loadState();
@@ -102,22 +135,22 @@ async function main() {
 
     // docs-updated is decided by evidence (evidenceDocsUpdated), which diffs
     // the real git range and fails closed on git errors. The summary/memory
-    // probe below is an ADDITIONAL accept signal only — it can add a pass, but
-    // it must never be the sole basis for one, and it must never mask a
-    // diff-derived FAIL by writing a skip on top of it.
-    const summaryMentionsDocs =
-      /\bprogress-tracker\.md\b/i.test(summaryBlob) ||
-      (state.memory?.files_changed || []).some((f) => /progress-tracker/.test(f));
-    if (summaryMentionsDocs) {
-      passGate(state, "docs-updated", "progress-tracker referenced in run summary (additional signal on top of git diff)");
-    } else {
-      const hasEvidenceVerdict =
-        [...(state.qualityGates?.passed || []), ...(state.qualityGates?.failed || [])].some(
-          (g) => g.id === "docs-updated"
-        );
-      if (!hasEvidenceVerdict) {
-        skipGate(state, "docs-updated", "no doc evidence produced — verify manually");
-      }
+    // probe below is an ADDITIONAL accept signal only: it may ADD a pass where
+    // the evidence runner produced no verdict, but it must NEVER clear a gate
+    // the evidence runner already failed — `passGate` deletes the gate id from
+    // `failed`, so calling it on a diff-derived FAIL reported ALL GATES PASSED
+    // on a tree where no doc file changed.
+    const mentionedDoc = progressTrackerMention(summaryBlob, state.memory);
+    if (gateFailed(state, "docs-updated")) {
+      // Diff-derived FAIL is authoritative: leave it exactly as evidence set it.
+    } else if (mentionedDoc) {
+      passGate(
+        state,
+        "docs-updated",
+        `${mentionedDoc} referenced in the run summary (additional signal on top of the git diff)`
+      );
+    } else if (!hasGateVerdict(state, "docs-updated")) {
+      skipGate(state, "docs-updated", "no doc evidence produced — verify manually");
     }
 
     saveState(state);

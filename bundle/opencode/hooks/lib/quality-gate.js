@@ -107,9 +107,12 @@ function generateGatesReport(state) {
   const lines = ["## Quality Gates Report\n"];
   const allGates = new Map();
 
+  // Precedence: FAIL > PASS > SKIP. A gate can be both skipped earlier and
+  // passed later (the docs-updated probe adds a pass where evidence produced
+  // no verdict) — reporting SKIP there hid a real pass from the reviewer.
+  for (const g of gates.skipped) allGates.set(g.id, { status: "SKIP", label: g.label, reason: g.reason });
   for (const g of gates.passed) allGates.set(g.id, { status: "PASS", label: g.label, details: g.details });
   for (const g of gates.failed) allGates.set(g.id, { status: "FAIL", label: g.label, reason: g.reason });
-  for (const g of gates.skipped) allGates.set(g.id, { status: "SKIP", label: g.label, reason: g.reason });
 
   for (const gateId of QUALITY_GATES) {
     const info = allGates.get(gateId) || { status: "PENDING", label: GATE_LABELS[gateId] || gateId };
