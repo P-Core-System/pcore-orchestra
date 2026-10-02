@@ -23,3 +23,25 @@ jobs:
           done
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
       - run: shellcheck install.sh scripts/*.sh || true
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Agent registry in sync
+        run: node scripts/gen-agent-registry.js --check
+      - name: Hook suites (safe-write, state, conductor, outcome, registry, handshake, mirrors)
+        run: |
+          set -e
+          node scripts/test-safe-write.js
+          node scripts/test-state-manager-compat.js
+          node scripts/test-conductor-state.js
+          node scripts/test-phase-outcome.js
+          node scripts/test-agent-registry.js
+          node scripts/test-handshake-contract.js
+          node scripts/test-mirror-sync.js
+      - name: Adaptive loop suite
+        run: node scripts/test-adaptive-loop.js
