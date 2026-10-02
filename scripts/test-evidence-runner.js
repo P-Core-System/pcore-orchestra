@@ -267,6 +267,145 @@ test("runEvidenceChecks reports a docs-updated gate in core mode", () => {
 
 console.log(`evidence-runner docs-gate assertions: ${asserts4}`);
 
+// ---------------------------------------------------------------------------
+// T10: the docs-updated verdict is decided at the HOOK level (audit B2).
+//
+// `evidenceDocsUpdated` was unit-tested only. At the hook level a self-reported
+// "progress-tracker.md" mention in the run summary (or in
+// `memory.files_changed`) called `passGate`, which deletes the gate id from
+// `failed` — so a diff-derived FAIL was cleared and the hook reported
+// ALL GATES PASSED on a tree where no doc file changed.
+// ---------------------------------------------------------------------------
+
+const QUALITY_GATE_HOOK = path.join(ROOT, "bundle/hooks/orchestra-quality-gate.js");
+
+/** Write an active core-loop session state the hook will load. */
+function writeHookState(dir, session) {
+  const stateDir = path.join(dir, "state");
+  fs.mkdirSync(stateDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(stateDir, "orchestra.json"),
+    JSON.stringify({
+      version: 3,
+      sessions: {
+        s1: Object.assign(
+          { version: 3, active: true, goal: "hook-level docs gate", loopMode: "core" },
+          session
+        ),
+      },
+    })
+  );
+}
+
+/** Run the quality-gate hook inside `dir` with `payload` on stdin. */
+function runQualityGateHook(dir, payload) {
+  return cp.spawnSync(process.execPath, [QUALITY_GATE_HOOK], {
+    cwd: dir,
+    input: JSON.stringify(payload),
+    encoding: "utf8",
+    env: Object.assign({}, process.env, {
+      PCORE_STATE_DIR: path.join(dir, "state"),
+      PCORE_SESSION_ID: "s1",
+    }),
+    timeout: 180000,
+  });
+}
+
+/** Additional-context block of a hook run, or "" on a broken envelope. */
+function hookContext(dir, payload) {
+  const r = runQualityGateHook(dir, payload);
+  try {
+    const parsed = JSON.parse(r.stdout);
+    return (parsed && parsed.additional_context) || "";
+  } catch {
+    return `UNPARSEABLE STDOUT: ${r.stdout}${r.stderr}`;
+  }
+}
+
+/** `✓/✗/–/○ **<label>**: <STATUS>` line for a gate, plus its reason/details. */
+function gateBlock(context, label) {
+  const lines = context.split("\n");
+  const i = lines.findIndex((l) => l.includes(`**${label}**`));
+  if (i === -1) return "";
+  return lines.slice(i, i + 3).join("\n");
+}
+
+const REVIEWER_PAYLOAD = {
+  status: "completed",
+  subagent_type: "orchestra-reviewer",
+  summary: "Reviewed the change. ORCHESTRA_COMPLETE",
+};
+
+test("hook: a summary mentioning progress-tracker.md CANNOT clear a diff-derived FAIL", () => {
+  const dir = gitFixture({ "src/app.js": "module.exports = 1;\n" });
+  try {
+    fs.writeFileSync(path.join(dir, "src", "app.js"), "module.exports = 2;\n");
+    writeHookState(dir, { qualityGates: { passed: [], failed: [], skipped: [], allRequiredPassed: false } });
+    const ctx = hookContext(dir, Object.assign({}, REVIEWER_PAYLOAD, {
+      summary: "Updated context/progress-tracker.md, verified the suite. ORCHESTRA_COMPLETE",
+    }));
+    ok(ctx !== "", "the hook must emit additional_context for a final review");
+    const block = gateBlock(ctx, "Documentation updated");
+    ok(/✗/.test(block), `docs-updated must stay FAIL when no doc file changed:\n${block}`);
+    ok(/no documentation changed/.test(block), `the diff-derived reason must survive:\n${block}`);
+    ok(/GATES NOT CLEARED/.test(ctx), "the hook must not report ALL GATES PASSED on a non-doc diff");
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("hook: memory.files_changed mentioning progress-tracker.md CANNOT clear the FAIL either", () => {
+  const dir = gitFixture({ "src/app.js": "module.exports = 1;\n" });
+  try {
+    fs.writeFileSync(path.join(dir, "src", "app.js"), "module.exports = 3;\n");
+    writeHookState(dir, {
+      memory: { files_changed: ["src/app.js", "context/progress-tracker.md"] },
+      qualityGates: { passed: [], failed: [], skipped: [], allRequiredPassed: false },
+    });
+    const ctx = hookContext(dir, REVIEWER_PAYLOAD);
+    const block = gateBlock(ctx, "Documentation updated");
+    ok(/✗/.test(block), `memory.files_changed must not clear the FAIL either:\n${block}`);
+    ok(/GATES NOT CLEARED/.test(ctx), "the hook must not report ALL GATES PASSED");
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("hook: a real doc change in the worktree PASSES docs-updated", () => {
+  const dir = gitFixture({ "src/app.js": "module.exports = 1;\n" });
+  try {
+    const tracker = path.join(dir, "context", "progress-tracker.md");
+    fs.mkdirSync(path.dirname(tracker), { recursive: true });
+    fs.writeFileSync(tracker, "- shipped\n");
+    writeHookState(dir, { qualityGates: { passed: [], failed: [], skipped: [], allRequiredPassed: false } });
+    const ctx = hookContext(dir, REVIEWER_PAYLOAD);
+    const block = gateBlock(ctx, "Documentation updated");
+    ok(/✓/.test(block), `a touched progress-tracker.md must PASS:\n${block}`);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("hook: a mention may still ADD a pass where evidence produced no verdict (non-git dir)", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "orchestra-hook-nogit-"));
+  try {
+    fs.writeFileSync(path.join(dir, "readme.txt"), "hello\n");
+    writeHookState(dir, { qualityGates: { passed: [], failed: [], skipped: [], allRequiredPassed: false } });
+    const ctx = hookContext(dir, Object.assign({}, REVIEWER_PAYLOAD, {
+      summary: "Wrote context/progress-tracker.md by hand. ORCHESTRA_COMPLETE",
+    }));
+    const block = gateBlock(ctx, "Documentation updated");
+    ok(/✓/.test(block), `the additional accept signal must still be able to add a pass:\n${block}`);
+    ok(/context\/progress-tracker\.md/.test(block), `the gate detail must name the full path:\n${block}`);
+    ok(
+      !/(^|[^c])ontext\/progress-tracker\.md/.test(block),
+      `the gate detail must not chop the leading character of the path:\n${block}`
+    );
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 if (failures > 0) {
   process.exit(1);
 } else {
