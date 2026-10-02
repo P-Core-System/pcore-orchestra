@@ -180,6 +180,125 @@ const SKIP_DIRS = new Set([".git", "node_modules"]);
 /** Skip files larger than this (logs, fixtures, minified bundles). */
 const MAX_FILE_BYTES = 512 * 1024;
 
+/**
+ * The binary marker, as an ESCAPE.
+ *
+ * This constant must stay the six characters backslash-u-0-0-0-0 and never a
+ * literal 0x00 byte: a source file that holds a raw NUL is binary to
+ * {@link scanDirectory}, so writing the byte literally once made the scanner
+ * skip its own source file — and therefore every secret planted in it.
+ * Regression coverage: scripts/test-security-scanner.js.
+ */
+const NUL_BYTE = "\u0000";
+
+/** Allowlist filename, resolved from the scan root by both consumers. */
+const ALLOW_FILE = ".secret-scan-allow";
+
+/**
+ * Parse one allowlist pattern.
+ *
+ * Two forms:
+ *   `<substring>`                          legacy — matches the finding's file
+ *                                           path OR its rule label (substring,
+ *                                           case-insensitive)
+ *   `file:<substr> + label:<substr>`       narrow  — the finding must match
+ *                                           BOTH, so one rule in one file can be
+ *                                           documented without silencing that
+ *                                           file's other rules (a directory entry
+ *                                           over executable trees is how a real
+ *                                           secret becomes silently allowed).
+ *
+ * @returns {{file: string|null, label: string|null, any: string|null}}
+ */
+function parseAllowPattern(raw) {
+  const terms = String(raw == null ? "" : raw)
+    .split("+")
+    .map((t) => t.trim())
+    .filter(Boolean);
+  let file = null;
+  let label = null;
+  let any = null;
+  for (const term of terms) {
+    const m = /^(file|label)\s*:\s*(.+)$/i.exec(term);
+    if (m) {
+      const value = m[2].trim().toLowerCase();
+      if (m[1].toLowerCase() === "file") file = value;
+      else label = value;
+    } else {
+      any = term.toLowerCase();
+    }
+  }
+  return { file, label, any };
+}
+
+/** Findings report `path.relative(root, file)`; normalise separators. */
+function normalizeScanPath(p) {
+  return String(p || "").split(path.sep).join("/");
+}
+
+/** Does an allowlist entry (parsed or raw) cover this finding? */
+function isAllowedFinding(finding, entries) {
+  const file = normalizeScanPath(finding && finding.file).toLowerCase();
+  const label = String((finding && finding.label) || "").toLowerCase();
+  return (entries || []).some((entry) => {
+    const p =
+      entry && typeof entry === "object" && entry.file !== undefined
+        ? entry
+        : parseAllowPattern(entry && entry.pattern !== undefined ? entry.pattern : entry);
+    if (p.any) return file.includes(p.any) || label.includes(p.any);
+    if (p.file === null && p.label === null) return false;
+    const fileOk = p.file === null ? true : file.includes(p.file);
+    const labelOk = p.label === null ? true : label.includes(p.label);
+    return fileOk && labelOk;
+  });
+}
+
+/**
+ * Read `<root>/.secret-scan-allow` (or an explicit path).
+ *
+ * One entry per line: `<pattern> | <reason>`; `#` starts a comment. An entry
+ * without a reason is a config error (exit 2) — a false positive that nobody
+ * documented is a rule that quietly rots.
+ *
+ * SHARED with `scripts/scan-secrets.js` and the in-loop `evidenceSecurity`
+ * gate, so CI and the core loop can never disagree about what is allowed.
+ *
+ * @returns {{entries: object[], error: string|null, file: string|null}}
+ */
+function loadSecretScanAllow(allowPath) {
+  if (!allowPath || !fs.existsSync(allowPath)) {
+    return { entries: [], error: null, file: allowPath || null };
+  }
+  let raw;
+  try {
+    raw = fs.readFileSync(allowPath, "utf8");
+  } catch (err) {
+    return { entries: [], error: `${allowPath}: ${err.message}`, file: allowPath };
+  }
+  const entries = [];
+  let missingReason = null;
+  raw.split("\n").forEach((line, idx) => {
+    const withoutComment = line.split("#")[0].trim();
+    if (withoutComment.length === 0) return;
+    const sep = withoutComment.indexOf("|");
+    const pattern = (sep === -1 ? withoutComment : withoutComment.slice(0, sep)).trim();
+    const reason = (sep === -1 ? "" : withoutComment.slice(sep + 1)).trim();
+    if (pattern.length === 0) return;
+    if (reason.length === 0 && !missingReason) {
+      missingReason = { pattern, line: idx + 1 };
+    }
+    entries.push(Object.assign(parseAllowPattern(pattern), { pattern, reason, allowFile: allowPath, line: idx + 1 }));
+  });
+  if (missingReason) {
+    return {
+      entries,
+      error: `${allowPath}:${missingReason.line} — allow entry "${missingReason.pattern}" needs a reason (\`pattern | why it is safe\`)`,
+      file: allowPath,
+    };
+  }
+  return { entries, error: null, file: allowPath };
+}
+
 function scanDirectory(dirPath, fileExtensions) {
   const exts = fileExtensions || SCAN_EXTENSIONS;
   const findings = { secrets: [], vulnerabilities: [], crypto: [], owasp: [], summary: { critical: 0, high: 0, medium: 0, low: 0 } };
@@ -192,8 +311,11 @@ function scanDirectory(dirPath, fileExtensions) {
       const stat = fs.statSync(filePath);
       if (stat.size > MAX_FILE_BYTES) return;
       content = fs.readFileSync(filePath, "utf8");
-      // NUL byte => binary, not reviewable source
-      if (content.indexOf(" ") !== -1) return;
+      // NUL byte => binary, not reviewable source. The NUL is written as an
+      // ESCAPE on purpose: embedding the raw 0x00 byte here made the scanner's
+      // own source binary, so scanDirectory silently skipped itself and a
+      // secret planted in security-scanner.js was invisible.
+      if (content.indexOf(NUL_BYTE) !== -1) return;
     } catch {
       return;
     }
@@ -317,6 +439,12 @@ function checkOwaspTop10(content, filename) {
 }
 
 module.exports = {
+  ALLOW_FILE,
+  parseAllowPattern,
+  normalizeScanPath,
+  isAllowedFinding,
+  loadSecretScanAllow,
+  NUL_BYTE,
   SECRET_PATTERNS,
   UNQUOTED_SECRET_PATTERNS,
   SECRET_PLACEHOLDERS,
