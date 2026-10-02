@@ -187,6 +187,9 @@ node scripts/test-handshake-contract.js       # selector/orchestrator end tokens
 node scripts/test-mirror-sync.js              # bundle/hooks == bundle/opencode/hooks
 node scripts/test-permission-review.js        # deny-first conductor allowlist, 160/160 coverage
 node scripts/test-adaptive-loop.js            # phase model / adaptive loops
+node scripts/test-domain-model.js             # domain entities + ticket/session state machine
+node scripts/test-domain-completion.js        # claimed-vs-verified completion gate
+node scripts/test-domain-store.js             # domain JSON store + checkpoint + hook append
 ```
 
 All suites run in `.github/workflows/ci.yml` on every PR.

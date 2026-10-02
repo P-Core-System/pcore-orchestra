@@ -42,6 +42,9 @@ node scripts/test-handshake-contract.js
 node scripts/test-mirror-sync.js
 node scripts/test-permission-review.js
 node scripts/test-adaptive-loop.js
+node scripts/test-domain-model.js
+node scripts/test-domain-completion.js
+node scripts/test-domain-store.js
 node scripts/gen-agent-registry.js --check
 ```
 
