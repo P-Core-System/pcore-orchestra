@@ -429,6 +429,15 @@ function startOrchestra(goal, state, source, options) {
   session.qualityGates = { passed: [], failed: [], skipped: [], allRequiredPassed: false };
   const { initRunTokens } = require("./token-tracker.js");
   initRunTokens(session);
+  // Per-run diff base for the docs-updated gate (review B5). Recorded HERE, at
+  // the start of the run, because the gate's own default (`HEAD`) diffs an
+  // empty range and would only ever see uncommitted work — so an implementer
+  // who COMMITTED their docs was blocked at verify AND review. Lazy + guarded:
+  // a non-git workspace simply leaves `session.diffBase` unset (invariant 19).
+  try {
+    const { recordRunDiffBase } = require("./evidence-runner.js");
+    recordRunDiffBase(session);
+  } catch {}
   emitLifecycleEvent(session, "orchestra_start", startPhase, {
     goal,
     source,
