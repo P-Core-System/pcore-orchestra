@@ -12,6 +12,42 @@ const {
 } = require("./lib/quality-gate.js");
 const { applyEvidenceToGates } = require("./lib/evidence-runner.js");
 
+/**
+ * True when this run needs a person: a failed quality gate, or a recorded
+ * `needs_human` / `block` outcome on the session.
+ */
+function needsHuman(state) {
+  const failed = state && state.qualityGates && Array.isArray(state.qualityGates.failed)
+    ? state.qualityGates.failed
+    : [];
+  if (failed.length > 0) return true;
+  const decision = state && state.last_outcome ? state.last_outcome.decision : null;
+  return decision === "needs_human" || decision === "block";
+}
+
+/**
+ * Markdown block listing what is waiting on a human review. Empty string when
+ * nothing needs a person.
+ *
+ * Best-effort by construction: the domain module is lazily required inside a
+ * try/catch (invariant 19), so an unreadable review queue can never change a
+ * gate verdict, the stdout envelope, or the exit code of this hook.
+ */
+function humanReviewQueueBlock(state) {
+  if (!needsHuman(state)) return "";
+  try {
+    const dom = require("./lib/domain");
+    if (!dom || typeof dom.pendingReview !== "function") return "";
+    const items = dom.pendingReview();
+    if (!Array.isArray(items) || items.length === 0) {
+      return "## Human review queue\n\nNo pending items — this run is blocked, but nothing is queued for triage.";
+    }
+    return dom.reviewQueue.formatQueue(items);
+  } catch {
+    return "";
+  }
+}
+
 async function main() {
   const input = await readStdinJson();
   const state = loadState();
@@ -85,8 +121,11 @@ async function main() {
     }
 
     saveState(state);
+    const contextParts = [report, "", generateGatesReport(state)];
+    const reviewQueueBlock = humanReviewQueueBlock(state);
+    if (reviewQueueBlock) contextParts.push("", reviewQueueBlock);
     emit({
-      additional_context: [report, "", generateGatesReport(state)].join("\n"),
+      additional_context: contextParts.join("\n"),
     });
     return;
   }
