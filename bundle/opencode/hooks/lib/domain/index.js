@@ -4,7 +4,7 @@
  * Core Domain Model — public barrel.
  *
  * Re-exports the whole domain (constants, entities, state machine,
- * completion gate, store) plus `recordPhaseOutcome`, the helper hooks call
+ * completion gate, store, evidence, review queue) plus `recordPhaseOutcome`, the helper hooks call
  * to append a `phase.outcome` domain event whenever a subagent finishes.
  *
  * recordPhaseOutcome never throws on shape problems (defensive), but real
@@ -18,6 +18,7 @@ const stateMachine = require("./state-machine.js");
 const completion = require("./completion.js");
 const store = require("./store.js");
 const evidence = require("./evidence.js");
+const reviewQueue = require("./review-queue.js");
 
 /**
  * Build + persist the `phase.outcome` event for a finished subagent.
@@ -52,6 +53,7 @@ module.exports = Object.assign(
     completion,
     store,
     evidence,
+    reviewQueue,
     recordPhaseOutcome,
   },
   constants,
@@ -59,5 +61,6 @@ module.exports = Object.assign(
   stateMachine,
   completion,
   store,
-  evidence
+  evidence,
+  reviewQueue
 );
