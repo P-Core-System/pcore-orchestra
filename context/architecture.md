@@ -34,6 +34,13 @@
 | `bundle/hooks/lib/greenfield-scaffold.js` | Greenfield auto-scaffold (empty repo → init-project instruction) |
 | `bundle/hooks/lib/version-manager.js` | Semver, changelog, release automation |
 | `bundle/hooks/lib/evidence-runner.js` | Command-evidence checks for quality gates |
+| `bundle/hooks/lib/domain/constants.js` | Domain vocabulary: TICKET_STATES (10), additive-only ALLOWED_TRANSITIONS, SESSION_STATES/ACTIONS, DOMAIN_EVENT_TYPES (incl. `phase.outcome`), DOMAIN_EVENT_CAP |
+| `bundle/hooks/lib/domain/entities.js` | 11 entity factories (`createTicket/Plan/Task/Session/AgentRun/Event/Evidence/Verification/Review/Checkpoint/MemoryRef`) + `validateEntity` + `appendRing` |
+| `bundle/hooks/lib/domain/state-machine.js` | Explicit ticket/session transitions: `canTransition`, `transition` (invalid → `{ok:false, code:"invalid_transition"}`, input never mutated), `reopen` (only COMPLETED→IN_PROGRESS path), `sessionTransition` (terminal rejection) |
+| `bundle/hooks/lib/domain/completion.js` | Claimed-vs-verified gate: `claimDone`, `startVerification`/`recordVerification` (records commit+diffHash), `evaluateCompletion` → `{complete, reasons[], checks}`, `applyCompletion` |
+| `bundle/hooks/lib/domain/store.js` | safe-write-only JSON store: `appendEvent` (withLock + readJsonSafe + ring cap + writeJson), `loadEvents` (corrupt → `.corrupt-<ts>` quarantine + defaults), `saveCheckpoint`/`loadCheckpoint` (session-filtered) |
+| `bundle/hooks/lib/domain/index.js` | Domain barrel + `recordPhaseOutcome(state, outcome, subagentType)` → `phase.outcome` event |
+| `bundle/opencode/hooks/lib/domain/` | Byte-identical mirror of all six domain modules |
 | `bundle/agents/` | Subagent prompts (divided by phase category) |
 | `bundle/agents/01-idea/` | Idea → Analysis agents |
 | `bundle/agents/02-requirements/` | Requirements agents |
@@ -73,6 +80,8 @@
 | Token usage | `~/.cursor/hooks/state/orchestra-tokens.json` | Per-run estimates, aggregates, improvement tips |
 | Plan artifact | `<project>/.cursor/orchestra-plan.md` | Approved plan for implement→verify→review (gitignored) |
 | Agent registry | `bundle/agent-registry.json` | Generated SSOT (160 agent files, 27 hook agents, 160/side coverage) — also regenerates the conductor `permission.task` allowlist; `--check` gate in CI |
+| Domain events | `<state>/domain-events.json` (`bundle/hooks/state/` in-repo, `PCORE_STATE_DIR` redirect in tests/CI) | Ring-capped domain event log (`DOMAIN_EVENT_CAP` = 500, oldest trimmed) — written **only** by `domain/store.js` via safe-write; every subagent stop appends a `phase.outcome` |
+| Domain checkpoint | `<state>/domain-checkpoint.json` | Resume checkpoint (Scenario J domain half): sessionId, ticketId, completed/running/pendingTasks, lastEventId, lastVerifiedCommit, createdAt; session-filtered on load. Both files gitignored as `domain-*.json` |
 | Cycle reports | `~/.cursor/hooks/state/cycles/{run_id}.json` | Production audit per completed run |
 | Memory index | `~/.cursor/hooks/state/memory-index.json` | Inverted index for fast goal recall |
 | Project management | `~/.cursor/hooks/state/orchestra-project.json` | Epics, milestones, stories, tasks, velocity, backlog |
@@ -299,3 +308,5 @@ powershell -File scripts/init-project.ps1 -Target . -Type web -Name "My App"
 16. A phase only advances when `bundle/hooks/lib/phase-outcome.js` approves: correct end token (`PLAN_READY` / `IMPLEMENT_DONE` / `VERIFY_PASS|VERIFY_FAIL` / `ORCHESTRA_COMPLETE|FIX_REQUIRED`) AND, at the gate-enforced phases **verify** and **review** (`GATE_ENFORCED_PHASES`), no failed quality gates. Failed gates block with `phase_blocked` + corrective follow-up and `state.last_outcome = failed-gates`. **plan/implement are not gate-enforced**: they advance on their own end token while red evidence stays visible (verify re-runs evidence on entry; the implementer cannot clear gates, so blocking them would deadlock the fix loop). Failed-gates is evaluated **before** the empty-output advance, so silent/whitespace output can never finish a run with red gates; empty output at a non-gate-enforced phase (or with green gates) still advances with a warning (never bricks the loop).
 17. `permission.task` on both conductors is **deny-first** (`"*": deny` first rule, `edit: deny`, `readonly: true` on Cursor) and generated from `bundle/agent-registry.json` between BEGIN/END markers — coverage must stay 160/160, additive only.
 18. `bundle/hooks/**` and `bundle/opencode/hooks/**` stay byte-identical per file (only the health entry differs: `orchestra-health.js` vs `orchestra-health-opencode.js`); enforced by `scripts/test-mirror-sync.js`.
+19. **Domain writes are safe-write-only**: `bundle/hooks/lib/domain/store.js` is the sole writer of `domain-events.json` / `domain-checkpoint.json` (withLock + readJsonSafe + writeJson; corrupt files quarantine to a `.corrupt-<ts>` sibling, never silent reset; ring-capped). The domain module is **fail-open** from the hooks' point of view (lazy guarded `require` + `try/catch`) and must never change stdout, quality gates, or the `orchestra.json` shape — Phase 2 domain data lives only in the `domain-*.json` files.
+20. **Completion is claimed-vs-verified**: an agent setting `agent_status: "claimed_done"` (`claimDone`) NEVER completes a ticket — `evaluateCompletion` requires passed verification recorded at the current commit, required acceptance results, required human review (when `humanReview.required`), and green gates; staleness is only asserted when BOTH commits are known (`null` = unknown, not stale). `ALLOWED_TRANSITIONS` is additive-only (extension point); `reopen()` is the only COMPLETED→IN_PROGRESS path.
