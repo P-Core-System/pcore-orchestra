@@ -13,6 +13,40 @@
 - All conductor run state MUST go through `bundle/hooks/lib/conductor-state.js` (and its `bundle/opencode/hooks/lib/conductor-state.js` mirror): atomic tmp+rename writes, isolation-keyed by (workspace + session + task), shared registry at `conductor-runs/index.json`.
 - NEVER write run state via raw heredoc to shared flat files (e.g. `~/.config/opencode/state/orchestra-state.json`) — concurrent loops/workspaces would clobber each other. Use the CLI: `scripts/conductor-state.sh begin/save/who/resume/complete/fail/gc`.
 
+### State writes (invariant)
+
+- Every other state write (orchestra, memory, tokens, projects, plans, cycle reports, version, daily, health counters) goes through `bundle/hooks/lib/safe-write.js`: `atomicWrite()` (tmp + fsync + rename with sync-sleep retry backoff) and `updateState(mutator, {rootDir, sessionId, waitMs})` (advisory `<path>.lock` file, mutate-in-place, no full-file rewrites). A corrupt/unparseable file is renamed to a `.corrupt-<ts>` sibling (bytes preserved for forensics) and the caller gets defaults — never a silent reset.
+- `updateState` mutators must be pure sync reads of the current JSON and may return `null` to abort without saving. Long/critical work (evidence capture, gate bookkeeping) stays OUTSIDE the lock.
+- `PCORE_STATE_DIR` (via `safe-write.resolveStatePath`) redirects all state paths — tests must set `PCORE_SESSION_ID` and run against a temp dir.
+- All hooks still fail open: `main().catch(() => emit({}))` — a state error must never break the host.
+
+### Hook mirrors (invariant)
+
+- `bundle/hooks/` and `bundle/opencode/hooks/` must stay byte-identical for every shared file; after editing anything under `bundle/hooks/lib/`, copy it to `bundle/opencode/hooks/lib/` and re-run `node scripts/test-mirror-sync.js`.
+- Allowed differences: `orchestra-health.js` vs `orchestra-health-opencode.js` (and the mirror-only health entry). Nothing else may diverge.
+
+### Generated blocks (invariant)
+
+- `permission.task` in `bundle/agents/orchestra.md` and `bundle/opencode/agents/orchestra.md` is generated — edit `scripts/gen-agent-registry.js`, never the block. It sits between `# BEGIN GENERATED: task allowlist (...)` / `# END GENERATED: task allowlist` markers, keeps `"*": deny` as the first rule, and is strictly additive (no pre-existing allow rule may be dropped).
+- `bundle/agent-registry.json` + the `subagentStop` matcher in the three `hooks.json` copies are generated too. `node scripts/gen-agent-registry.js --check` must exit 0 (CI enforces it).
+
+### Self-check suites (run before every commit)
+
+```bash
+node scripts/test-safe-write.js
+node scripts/test-state-manager-compat.js
+node scripts/test-conductor-state.js
+node scripts/test-phase-outcome.js
+node scripts/test-agent-registry.js
+node scripts/test-handshake-contract.js
+node scripts/test-mirror-sync.js
+node scripts/test-permission-review.js
+node scripts/test-adaptive-loop.js
+node scripts/gen-agent-registry.js --check
+```
+
+All must exit 0. `.github/workflows/ci.yml` runs the same list on every PR.
+
 ## Agent markdown
 
 - YAML frontmatter: `name`, `description`, optional `readonly: true` for planner.
