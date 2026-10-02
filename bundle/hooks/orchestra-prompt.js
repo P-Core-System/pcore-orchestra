@@ -24,6 +24,12 @@ const { resumeOrchestra, detectCrashRecovery } = require("./lib/checkpoint-manag
 const { loadLongTermMemory, buildMemoryContext } = require("./lib/memory-manager.js");
 const { getAgentForPhase, LOOP_MODE_ENTERPRISE } = require("./lib/phase-engine.js");
 
+// MCP server — lazy + guarded for fail-open
+let mcpServerStart = null;
+try {
+  ({ start: mcpServerStart } = require("./lib/mcp-server.js"));
+} catch {}
+
 function handleDisable(state, sessionId) {
   const session = getSessionState(state, sessionId);
   session.ambient = false;
@@ -219,6 +225,21 @@ async function main() {
     intake,
     orchestraConfig,
   });
+
+  // Start MCP server on run start (port 0 = stdio transport)
+  if (mcpServerStart) {
+    try {
+      const sessionId = getSessionId();
+      const runId = state.sessionId || sessionId || `run-${Date.now()}`;
+      const worktreePath = state.worktreePath || process.cwd();
+      const server = await mcpServerStart({ port: 0, worktreePath });
+      // Store port and server instance for later cleanup
+      // Note: mcp-server.js manages its own module-level instance tracking
+      if (server && typeof server.port === "number") {
+        // Port is stored in mcp-server's internal tracking
+      }
+    } catch {}
+  }
 
   const ltm = loadLongTermMemory();
   const memCtx = buildMemoryContext(ltm, { query: goal || prompt });

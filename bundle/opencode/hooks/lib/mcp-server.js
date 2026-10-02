@@ -40,6 +40,8 @@ class McpServer {
       }
     );
     this.transport = null;
+    this._resources = [];
+    this._tools = [];
     this.setupHandlers();
   }
 
@@ -80,6 +82,7 @@ class McpServer {
         }
       } catch (e) {}
       
+      this._resources = resources;
       return { resources };
     });
 
@@ -165,54 +168,54 @@ class McpServer {
 
     // List tools
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
-      return {
-        tools: [
-          {
-            name: "get_run_status",
-            description: "Get the status of an orchestra run",
-            inputSchema: {
-              type: "object",
-              properties: {
-                runId: { type: "string", description: "Run ID (workspaceSlug/sessionId/taskId)" },
-              },
-              required: ["runId"],
+      const tools = [
+        {
+          name: "get_run_status",
+          description: "Get the status of an orchestra run",
+          inputSchema: {
+            type: "object",
+            properties: {
+              runId: { type: "string", description: "Run ID (workspaceSlug/sessionId/taskId)" },
+            },
+            required: ["runId"],
+          },
+        },
+        {
+          name: "get_gate_results",
+          description: "Get quality gate results for a run",
+          inputSchema: {
+            type: "object",
+            properties: {
+              runId: { type: "string", description: "Run ID" },
+            },
+            required: ["runId"],
+          },
+        },
+        {
+          name: "get_evidence",
+          description: "Get evidence records for a run",
+          inputSchema: {
+            type: "object",
+            properties: {
+              runId: { type: "string", description: "Run ID" },
+            },
+            required: ["runId"],
+          },
+        },
+        {
+          name: "list_runs",
+          description: "List all orchestra runs",
+          inputSchema: {
+            type: "object",
+            properties: {
+              workspace: { type: "string", description: "Optional workspace filter" },
+              status: { type: "string", description: "Optional status filter" },
             },
           },
-          {
-            name: "get_gate_results",
-            description: "Get quality gate results for a run",
-            inputSchema: {
-              type: "object",
-              properties: {
-                runId: { type: "string", description: "Run ID" },
-              },
-              required: ["runId"],
-            },
-          },
-          {
-            name: "get_evidence",
-            description: "Get evidence records for a run",
-            inputSchema: {
-              type: "object",
-              properties: {
-                runId: { type: "string", description: "Run ID" },
-              },
-              required: ["runId"],
-            },
-          },
-          {
-            name: "list_runs",
-            description: "List all orchestra runs",
-            inputSchema: {
-              type: "object",
-              properties: {
-                workspace: { type: "string", description: "Optional workspace filter" },
-                status: { type: "string", description: "Optional status filter" },
-              },
-            },
-          },
-        ],
-      };
+        },
+      ];
+      this._tools = tools;
+      return { tools };
     });
 
     // Call tool
@@ -365,8 +368,7 @@ class McpServer {
    * @returns {Promise<Array>}
    */
   async listResources() {
-    const result = await this.server._request({ method: "resources/list" });
-    return result.resources || [];
+    return this._resources || [];
   }
 
   /**
@@ -374,8 +376,7 @@ class McpServer {
    * @returns {Promise<Array>}
    */
   async listTools() {
-    const result = await this.server._request({ method: "tools/list" });
-    return result.tools || [];
+    return this._tools || [];
   }
 
   /**
@@ -405,32 +406,80 @@ class McpServer {
   }
 }
 
-let mcpServerInstance = null;
+// Map to track MCP server instances per runId
+const mcpServerInstances = new Map();
 
 /**
- * Start the MCP server.
+ * Start the MCP server for a specific run.
  * @param {object} config - Configuration
+ * @param {string} config.runId - Run ID for tracking
+ * @param {number} [config.port] - Port for stdio transport (not used, stdio is fixed)
+ * @param {string} [config.worktreePath] - Worktree path for state reading
  * @returns {Promise<object>} Server instance with port and close method
  */
 async function start(config) {
   config = config || {};
-  mcpServerInstance = new McpServer();
-  return mcpServerInstance.start(config);
+  const runId = config.runId || `run-${Date.now()}`;
+  
+  // If instance already exists for this runId, return it
+  if (mcpServerInstances.has(runId)) {
+    return mcpServerInstances.get(runId);
+  }
+  
+  const instance = new McpServer();
+  const server = await instance.start(config);
+  
+  // Store instance with runId
+  mcpServerInstances.set(runId, { instance, server, runId, worktreePath: config.worktreePath });
+  
+  return server;
 }
 
 /**
- * Stop the MCP server.
+ * Stop the MCP server for a specific run.
+ * @param {string} runId - Run ID to stop
  * @returns {Promise<void>}
  */
-async function stop() {
-  if (mcpServerInstance) {
-    await mcpServerInstance.stop();
-    mcpServerInstance = null;
+async function stop(runId) {
+  if (!runId) return;
+  const entry = mcpServerInstances.get(runId);
+  if (entry) {
+    await entry.instance.stop();
+    mcpServerInstances.delete(runId);
   }
 }
+
+/**
+ * Stop all MCP servers (for process exit cleanup).
+ * @returns {Promise<void>}
+ */
+async function stopAll() {
+  for (const [runId, entry] of mcpServerInstances.entries()) {
+    try {
+      await entry.instance.stop();
+    } catch {}
+  }
+  mcpServerInstances.clear();
+}
+
+// Handle process exit and SIGTERM for cleanup
+process.on("exit", () => {
+  stopAll();
+});
+
+process.on("SIGTERM", () => {
+  stopAll();
+  process.exit(0);
+});
+
+process.on("SIGINT", () => {
+  stopAll();
+  process.exit(0);
+});
 
 module.exports = {
   McpServer: McpServer,
   start: start,
   stop: stop,
+  stopAll: stopAll,
 };
