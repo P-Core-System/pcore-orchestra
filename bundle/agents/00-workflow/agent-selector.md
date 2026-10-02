@@ -55,4 +55,6 @@ Default: composer-2.5 (standard, not Fast) on Cursor; dynamic free primary (inhe
 - Spawn order: [sequential/parallel]
 - Estimated tokens: [budget]
 
-4. End with `AGENTS_SELECTED`.
+### Handshake
+End with `TEAM_SELECTED` — the token the conductor waits for before it runs the project-type classifier.
+Legacy alias: `AGENTS_SELECTED` (pre-contract spelling, accepted as an alias only — never as the primary token).
