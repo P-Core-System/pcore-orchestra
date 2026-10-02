@@ -310,5 +310,48 @@ if (fs.existsSync(runViewerPath)) {
   assert(content.includes('stateDirs') && content.includes('selectedStateDir'), 'Has state dir selector');
 }
 
+// Test 20: EvidenceTable component
+console.log('\nTest 20: EvidenceTable component');
+const evidenceTablePath = path.join(studioComponentsDir, 'EvidenceTable.tsx');
+assert(fs.existsSync(evidenceTablePath), 'EvidenceTable.tsx exists');
+
+if (fs.existsSync(evidenceTablePath)) {
+  const content = fs.readFileSync(evidenceTablePath, 'utf8');
+  assert(content.includes('export function EvidenceTable'), 'EvidenceTable exported');
+  assert(content.includes('evidence') && content.includes('onRowClick'), 'Accepts evidence and onRowClick props');
+  assert(content.includes('search') && content.includes('setSearch'), 'Has search functionality');
+  assert(content.includes('sortConfig') && content.includes('handleSort'), 'Has sorting');
+  assert(content.includes('pagination') || content.includes('currentPage'), 'Has pagination');
+  assert(content.includes('gate') && content.includes('ok') && content.includes('exitCode'), 'Shows all columns');
+}
+
+// Test 21: EvidenceDetail component
+console.log('\nTest 21: EvidenceDetail component');
+const evidenceDetailPath = path.join(studioComponentsDir, 'EvidenceDetail.tsx');
+assert(fs.existsSync(evidenceDetailPath), 'EvidenceDetail.tsx exists');
+
+if (fs.existsSync(evidenceDetailPath)) {
+  const content = fs.readFileSync(evidenceDetailPath, 'utf8');
+  assert(content.includes('export function EvidenceDetail'), 'EvidenceDetail exported');
+  assert(content.includes('evidence') && content.includes('onClose'), 'Accepts evidence and onClose props');
+  assert(content.includes('command') && content.includes('args'), 'Shows command and args');
+  assert(content.includes('stdoutExcerpt') && content.includes('stderrExcerpt'), 'Shows stdout/stderr');
+  assert(content.includes('details') && content.includes('exitCode'), 'Shows details and exit code');
+  assert(content.includes('fixed inset-0') || content.includes('Modal'), 'Is a modal/drawer');
+}
+
+// Test 22: EvidenceVisualizer component
+console.log('\nTest 22: EvidenceVisualizer component');
+const evidenceVisualizerPath = path.join(studioComponentsDir, 'EvidenceVisualizer.tsx');
+assert(fs.existsSync(evidenceVisualizerPath), 'EvidenceVisualizer.tsx exists');
+
+if (fs.existsSync(evidenceVisualizerPath)) {
+  const content = fs.readFileSync(evidenceVisualizerPath, 'utf8');
+  assert(content.includes('export function EvidenceVisualizer'), 'EvidenceVisualizer exported');
+  assert(content.includes('handoff') && content.includes('evidenceDigest'), 'Shows handoff digest');
+  assert(content.includes('phase.outcome') || content.includes('block') || content.includes('needsHuman'), 'Shows phase blocks/needsHuman');
+  assert(content.includes('EvidenceTable') && content.includes('EvidenceDetail'), 'Composes EvidenceTable and EvidenceDetail');
+}
+
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);
 process.exit(failed > 0 ? 1 : 0);
