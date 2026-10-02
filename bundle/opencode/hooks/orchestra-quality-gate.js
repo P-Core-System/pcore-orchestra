@@ -45,7 +45,16 @@ async function main() {
   }
 
   if (isFinalReview) {
-    const { report } = applyEvidenceToGates(state, passGate, failGate, skipGate);
+    const { report } = applyEvidenceToGates(state, passGate, failGate, skipGate, {
+      onEvidence: (ev) => {
+        try {
+          const dom = require("./lib/domain");
+          if (dom && dom.evidence && typeof dom.evidence.appendEvidenceRun === "function") {
+            dom.evidence.appendEvidenceRun(ev);
+          }
+        } catch {}
+      },
+    });
 
     if (/\bFIX_REQUIRED\b/i.test(summaryBlob) || /\bVERIFY_FAIL\b/i.test(summaryBlob)) {
       failGate(state, "reviewer-approval", "Reviewer/verifier requested fixes");

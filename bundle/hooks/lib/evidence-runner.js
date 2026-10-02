@@ -233,11 +233,20 @@ function requiredGatesForMode(mode) {
   return mode === "enterprise" ? QUALITY_GATES : CORE_REQUIRED_GATES;
 }
 
-function applyEvidenceToGates(state, passGate, failGate, skipGate) {
-  const { results, report } = runEvidenceChecks(state);
-  const mode = state.loopMode || "core";
+function applyEvidenceToGates(state, passGate, failGate, skipGate, options) {
+  const opts = options || {};
+  const { results, report } = runEvidenceChecks(state, opts);
+  const mode = state && state.loopMode || "core";
+  const records = [];
 
   for (const r of results) {
+    const rec = {
+      gate: r.gate,
+      ok: !!r.ok,
+      details: r.details,
+      exitCode: r.exitCode === undefined ? (r.status === undefined ? null : r.status) : r.exitCode,
+    };
+    records.push(rec);
     if (r.gate === "git-status") continue;
     if (/^SKIPPED:/.test(r.details) && r.ok) {
       skipGate(state, r.gate, r.details);
@@ -258,15 +267,23 @@ function applyEvidenceToGates(state, passGate, failGate, skipGate) {
   } else {
     for (const g of ENTERPRISE_SKIP_DEFAULT) {
       const attempted = new Set([
-        ...(state.qualityGates?.passed || []).map((x) => x.id),
-        ...(state.qualityGates?.failed || []).map((x) => x.id),
-        ...(state.qualityGates?.skipped || []).map((x) => x.id),
+        ...(state && state.qualityGates && state.qualityGates.passed || []).map((x) => x.id),
+        ...(state && state.qualityGates && state.qualityGates.failed || []).map((x) => x.id),
+        ...(state && state.qualityGates && state.qualityGates.skipped || []).map((x) => x.id),
       ]);
       if (!attempted.has(g)) skipGate(state, g, "not produced this run — skip");
     }
   }
 
-  return { results, report };
+  try {
+    if (typeof opts.onEvidence === "function") {
+      opts.onEvidence({ runId: state && state.runId ? state.runId : null, records });
+    }
+  } catch (e) {
+    // fail-open
+  }
+
+  return { results, report, records };
 }
 
 module.exports = {
