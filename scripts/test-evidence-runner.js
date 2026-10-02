@@ -406,6 +406,155 @@ test("hook: a mention may still ADD a pass where evidence produced no verdict (n
   }
 });
 
+// ---------------------------------------------------------------------------
+// T11 (review B5): the PRODUCTION default must not fail closed on success.
+//
+// `base` defaulted to "HEAD", so `merge-base HEAD HEAD` yielded the EMPTY range
+// HEAD...HEAD and the only remaining source of changed files was the
+// UNCOMMITTED worktree. No production writer of `state.baseCommit` existed
+// anywhere in the repo (the sole writer was this suite), so an implementer who
+// COMMITTED their docs — exactly what orchestra-subagent-stop tells them to do
+// — got `reason:"no-doc-changes"` -> failGate -> phase-outcome "block" at BOTH
+// verify and review. The gate's own parameter default failed closed on success.
+// ---------------------------------------------------------------------------
+
+/** `git` in `dir`; returns {ok, stdout}. */
+function gitIn(dir, args) {
+  const r = cp.spawnSync("git", args, { cwd: dir, encoding: "utf8", stdio: "pipe" });
+  return { ok: r.status === 0, stdout: (r.stdout || "").trim(), stderr: (r.stderr || "").trim() };
+}
+
+/** Write `files` into `dir`, stage them and COMMIT — what an implementer does. */
+function commitAll(dir, files, message) {
+  for (const [rel, body] of Object.entries(files)) {
+    const abs = path.join(dir, rel);
+    fs.mkdirSync(path.dirname(abs), { recursive: true });
+    fs.writeFileSync(abs, body);
+  }
+  assert.strictEqual(gitIn(dir, ["add", "-A"]).ok, true, "git add");
+  assert.strictEqual(gitIn(dir, ["commit", "-qm", message]).ok, true, "git commit");
+}
+
+test("PRODUCTION default: COMMITTED docs on a CLEAN tree PASS (no baseCommit injected)", () => {
+  const dir = gitFixture({ "src/app.js": "module.exports = 1;\n" });
+  try {
+    commitAll(dir, { "context/progress-tracker.md": "- shipped\n" }, "docs: track progress");
+    ok(
+      gitIn(dir, ["status", "--porcelain"]).stdout === "",
+      "fixture must be CLEAN — the docs change is COMMITTED, not dirty"
+    );
+    // No `baseCommit`, no `diffBase`: exactly what production state carries.
+    const res = runner.evidenceDocsUpdated(dir, { loopMode: "core" });
+    ok(res.ok === true, `a committed docs change must PASS on the production default: ${res.details}`);
+    ok(res.reason === "docs-touched", `expected reason docs-touched, got ${res.reason}`);
+    ok(/progress-tracker\.md/.test(res.details), `details must cite the file: ${res.details}`);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("hook: COMMITTED docs on a CLEAN tree PASS the gate (no baseCommit in state)", () => {
+  const dir = gitFixture({ "src/app.js": "module.exports = 1;\n" });
+  try {
+    commitAll(dir, { "context/progress-tracker.md": "- shipped\n" }, "docs: track progress");
+    ok(
+      gitIn(dir, ["status", "--porcelain"]).stdout === "",
+      "fixture must be CLEAN before the hook runs"
+    );
+    writeHookState(dir, { qualityGates: { passed: [], failed: [], skipped: [], allRequiredPassed: false } });
+    const stateRaw = JSON.parse(fs.readFileSync(path.join(dir, "state", "orchestra.json"), "utf8"));
+    const session = stateRaw.sessions.s1;
+    ok(session.baseCommit === undefined, "no baseCommit may be injected into hook state");
+    ok(session.diffBase === undefined, "no diffBase may be injected into hook state either");
+    const ctx = hookContext(dir, REVIEWER_PAYLOAD);
+    ok(ctx !== "", "the hook must emit additional_context for a final review");
+    const block = gateBlock(ctx, "Documentation updated");
+    ok(/✓/.test(block), `committed docs on a clean tree must PASS:\n${block}`);
+    ok(/progress-tracker\.md/.test(block), `the gate detail must cite the committed file:\n${block}`);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a run-start recorded diff base counts COMMITTED docs even with a dirty worktree", () => {
+  const dir = gitFixture({ "src/app.js": "module.exports = 1;\n" });
+  try {
+    const state = { loopMode: "core" };
+    const recorded = runner.recordRunDiffBase(state, dir);
+    ok(recorded !== null, "recordRunDiffBase must record the run's starting commit");
+    ok(/^[0-9a-f]{40}$/.test(recorded.commit), `a full sha must be recorded: ${JSON.stringify(recorded)}`);
+    ok(/run-start/.test(String(recorded.by)), "the record must say it came from the run start");
+    commitAll(dir, { "context/progress-tracker.md": "- shipped\n" }, "docs: track progress");
+    // A non-doc source edit left uncommitted: the last-commit fallback does NOT
+    // apply (the tree is dirty), only the recorded per-run base can see the docs.
+    fs.writeFileSync(path.join(dir, "src", "app.js"), "module.exports = 2;\n");
+    const res = runner.evidenceDocsUpdated(dir, state);
+    ok(res.ok === true, `the recorded run base must see the committed docs: ${res.details}`);
+    ok(/run-start/.test(res.details), `details must name the run-start base: ${res.details}`);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("startOrchestra records the run diff base — the production writer of state.diffBase", () => {
+  const dir = gitFixture({ "src/app.js": "module.exports = 1;\n" });
+  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "orchestra-start-"));
+  const savedEnv = process.env.PCORE_STATE_DIR;
+  const savedCwd = process.cwd();
+  process.env.PCORE_STATE_DIR = stateDir;
+  process.chdir(dir);
+  try {
+    const sm = require(path.join(ROOT, "bundle/hooks/lib/state-manager.js"));
+    const state = Object.assign({}, sm.DEFAULT_SESSION_STATE, {
+      project: Object.assign({}, sm.DEFAULT_SESSION_STATE.project, {
+        identityFile: path.join(dir, "project.yaml"),
+      }),
+    });
+    sm.startOrchestra("ship the docs gate", state, "test");
+    const head = gitIn(dir, ["rev-parse", "HEAD"]).stdout;
+    ok(
+      state.diffBase && state.diffBase.commit === head,
+      `startOrchestra must record HEAD as the run diff base: ${JSON.stringify(state.diffBase)} vs ${head}`
+    );
+    ok(typeof state.diffBase.at === "string" && state.diffBase.at.length > 0, "the record must be timestamped");
+    ok(
+      state.diffBase.runId === (state.tokens && state.tokens.run_id) || state.diffBase.runId === null,
+      `the record must carry the run id when tokens exist: ${JSON.stringify(state.diffBase)}`
+    );
+  } finally {
+    process.chdir(savedCwd);
+    if (savedEnv === undefined) delete process.env.PCORE_STATE_DIR;
+    else process.env.PCORE_STATE_DIR = savedEnv;
+    fs.rmSync(dir, { recursive: true, force: true });
+    fs.rmSync(stateDir, { recursive: true, force: true });
+  }
+});
+
+test("a stale recorded base from another tree degrades to HEAD, it is not a git error", () => {
+  const dir = gitFixture({ "src/app.js": "module.exports = 1;\n" });
+  try {
+    const state = { loopMode: "core", diffBase: { commit: "0".repeat(40), root: "/nonexistent/tree", by: "run-start" } };
+    fs.writeFileSync(path.join(dir, "README.md"), "# touched\n");
+    const res = runner.evidenceDocsUpdated(dir, state);
+    ok(res.ok === true, `state drift must not fail a run on a git error: ${res.details}`);
+    ok(res.reason !== "git-error", `a stale base must not be reported as a git error: ${res.details}`);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("an EXPLICIT state.baseCommit that git cannot resolve still FAILS closed", () => {
+  const dir = gitFixture({ "src/app.js": "module.exports = 1;\n" });
+  try {
+    fs.writeFileSync(path.join(dir, "README.md"), "# touched\n");
+    const res = runner.evidenceDocsUpdated(dir, { loopMode: "core", baseCommit: "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef" });
+    ok(res.ok === false, `an unresolvable explicit base must fail closed: ${res.details}`);
+    ok(res.reason === "git-error", `expected reason git-error, got ${res.reason}`);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 if (failures > 0) {
   process.exit(1);
 } else {

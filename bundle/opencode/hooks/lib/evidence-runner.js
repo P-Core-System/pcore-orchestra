@@ -71,6 +71,54 @@ function detectWorkspaceRoot(state) {
   return process.cwd();
 }
 
+/** Full sha of `HEAD`, or null (no repo, no commits yet, or git unusable). */
+function currentHeadCommit(root) {
+  const r = runCmd("git", ["rev-parse", "--verify", "--quiet", "HEAD^{commit}"], root);
+  if (!r.ok) return null;
+  const sha = r.stdout.trim();
+  return /^[0-9a-f]{40}$/i.test(sha) ? sha : null;
+}
+
+/**
+ * Record the commit this run starts from as its diff base.
+ *
+ * WHY (review B5): the docs-updated gate used to default its base to `"HEAD"`,
+ * so `merge-base HEAD HEAD` produced the EMPTY range `HEAD...HEAD` and the
+ * only source of changed files left was the UNCOMMITTED worktree. Nothing in
+ * production wrote `state.baseCommit`, so an implementer who COMMITTED their
+ * docs — what `orchestra-subagent-stop` explicitly instructs — was blocked at
+ * verify AND review. The gate's own parameter default failed closed on success.
+ *
+ * Recording the base at RUN START (not at gate time) is what makes the gate
+ * work for a committed docs change, and it is also what Phase 5 worktrees need:
+ * `detectWorkspaceRoot` resolves a per-PROJECT root, so two worktree runs would
+ * otherwise gate against the same tree. Persisted on the session as
+ * `state.diffBase` (stamp + run id for auditability); `evidenceDocsUpdated`
+ * consumes it.
+ *
+ * Best-effort by construction: returns null and leaves `state.diffBase` unset
+ * outside a git workspace, and the caller wraps the call in try/catch
+ * (invariant 19) so a run can never fail to start because of this.
+ *
+ * @param {object} state session state (mutated with `state.diffBase`)
+ * @param {string} [root] workspace root; defaults to `detectWorkspaceRoot(state)`
+ * @returns {{commit:string, root:string, at:string, runId:string|null, by:string}|null}
+ */
+function recordRunDiffBase(state, root) {
+  if (!state || typeof state !== "object") return null;
+  const resolvedRoot = root || detectWorkspaceRoot(state);
+  const commit = currentHeadCommit(resolvedRoot);
+  if (!commit) return null;
+  state.diffBase = {
+    commit,
+    root: path.resolve(resolvedRoot),
+    at: new Date().toISOString(),
+    runId: (state.tokens && state.tokens.run_id) || null,
+    by: "run-start",
+  };
+  return state.diffBase;
+}
+
 function evidenceBuild(root) {
   const pkg = path.join(root, "package.json");
   if (fs.existsSync(pkg)) {
@@ -370,10 +418,49 @@ function resolveDiffRange(root, base) {
 }
 
 /**
+ * The diff base for the docs gate, in precedence order:
+ *   1. `state.baseCommit`        — explicit caller contract. Unresolvable ⇒ the
+ *      caller FAILS closed with `git-error`: a base the caller named and git
+ *      cannot resolve is a config error, not drift.
+ *   2. `state.diffBase.commit`   — recorded when the run started (review B5).
+ *   3. `"HEAD"`                  — nothing recorded (legacy session state, or a
+ *      workspace that is not a git repo at all).
+ * @returns {{base:string, via:string, explicit:boolean}}
+ */
+function resolveDocsBase(state) {
+  const explicit = state && typeof state.baseCommit === "string" ? state.baseCommit.trim() : "";
+  if (explicit) return { base: explicit, via: "state.baseCommit", explicit: true };
+  const recorded = state && state.diffBase && typeof state.diffBase.commit === "string"
+    ? state.diffBase.commit.trim()
+    : "";
+  if (/^[0-9a-f]{7,40}$/i.test(recorded)) return { base: recorded, via: "run-start", explicit: false };
+  return { base: "HEAD", via: "default", explicit: false };
+}
+
+/**
+ * Files changed by the LAST commit (`HEAD~1..HEAD`), or null when there is no
+ * parent commit (a single-commit repo) or the range is unusable.
+ *
+ * This is the fallback for a session that never recorded a run base: with base
+ * `HEAD` the committed range is empty BY CONSTRUCTION, so an implementer who
+ * committed their docs would otherwise always be blocked. Never turns a git
+ * failure into a verdict — a null return just means "no last-commit evidence".
+ */function lastCommitDiff(root) {
+  const parent = runCmd("git", ["rev-parse", "--verify", "--quiet", "HEAD~1^{commit}"], root);
+  if (!parent.ok || !parent.stdout.trim()) return null;
+  const base = parent.stdout.trim();
+  const diff = runCmd("git", ["diff", "--name-only", `${base}..HEAD`], root);
+  if (!diff.ok) return null; // the primary range already proved git works here
+  return { range: `${base}..HEAD`, base, via: "last-commit", names: diff.stdout };
+}
+
+/**
  * Derive the `docs-updated` verdict from the real git diff (audit S-19).
  *
  * Sources of truth, in order:
- *   1. `git diff --name-only <base>…HEAD` — committed changes since the base
+ *   1. `git diff --name-only <base>…HEAD` — committed changes since the base,
+ *      where `base` is `state.baseCommit`, else the run-start `state.diffBase`,
+ *      else `HEAD` plus the last commit (`HEAD~1..HEAD`)
  *   2. `git status --porcelain -uall`     — the current worktree
  *
  * Failure policy — fail closed:
@@ -384,10 +471,10 @@ function resolveDiffRange(root, base) {
  *
  * @param {string} root workspace root
  * @param {object} [state] orchestrator state; `state.baseCommit` overrides the
- *   diff base (defaults to `HEAD`, i.e. uncommitted worktree changes only)
+ *   diff base, `state.diffBase` is the per-run base recorded at run start
  */
 function evidenceDocsUpdated(root, state) {
-  const base = (state && state.baseCommit) || "HEAD";
+  const chosen = resolveDocsBase(state);
   const hasGitDir = fs.existsSync(path.join(root, ".git"));
 
   const version = runCmd("git", ["--version"], root);
@@ -430,27 +517,25 @@ function evidenceDocsUpdated(root, state) {
     };
   }
 
-  const resolved = resolveDiffRange(root, base);
+  let resolved = resolveDiffRange(root, chosen.base);
+  let baseNote = `${chosen.base} via ${chosen.via}`;
+  if (!resolved && !chosen.explicit) {
+    // A run base recorded in another tree (Phase 5 worktrees, a rebased branch)
+    // is session drift, not a git failure: re-derive from HEAD instead of
+    // blocking the run on a stale sha. An EXPLICIT base still fails closed below.
+    resolved = resolveDiffRange(root, "HEAD");
+    baseNote = `${chosen.base} via ${chosen.via} (not resolvable here) → HEAD`;
+  }
   if (!resolved) {
     return {
       gate: "docs-updated",
       ok: false,
       reason: "git-error",
-      details: `git-error: cannot diff against base ${base} — failing closed`,
+      details: `git-error: cannot diff against base ${chosen.base} — failing closed`,
       files: [],
     };
   }
 
-  const diff = runCmd("git", ["diff", "--name-only", resolved.range], root);
-  if (!diff.ok) {
-    return {
-      gate: "docs-updated",
-      ok: false,
-      reason: "git-error",
-      details: `git-error: git diff --name-only ${resolved.range} failed (${diff.stderr || diff.error}) — failing closed`,
-      files: [],
-    };
-  }
   const status = runCmd("git", ["status", "--porcelain", "-uall"], root);
   if (!status.ok) {
     return {
@@ -462,17 +547,48 @@ function evidenceDocsUpdated(root, state) {
     };
   }
 
-  const committed = diff.stdout ? diff.stdout.split("\n").map((l) => l.trim()).filter(Boolean) : [];
+  const committed = [];
+  const sources = [resolved.via];
+  // A session with no recorded run base gates against HEAD, whose committed
+  // range is empty BY CONSTRUCTION, so the only committed evidence it has is
+  // the last commit. Reading it is what lets an implementer who COMMITTED their
+  // docs go green (review B5) — the alternative is a gate that can never clear
+  // for any committed run. Not conditioned on a clean worktree on purpose: the
+  // harness's own state file, an editor temp file or a stale artifact would
+  // otherwise disable it and re-block the run. A session that DID record a run
+  // base never reaches this branch, so a real run never borrows the previous
+  // commit's docs as its own evidence.
+  if (chosen.via === "default") {
+    const last = lastCommitDiff(root);
+    if (last) {
+      committed.push(...(last.names || "").split("\n").map((l) => l.trim()).filter(Boolean));
+      sources.push(`${last.via} ${last.base.slice(0, 12)}`);
+    }
+  }
+
+  const primary = runCmd("git", ["diff", "--name-only", resolved.range], root);
+  if (!primary.ok) {
+    return {
+      gate: "docs-updated",
+      ok: false,
+      reason: "git-error",
+      details: `git-error: git diff --name-only ${resolved.range} failed (${primary.stderr || primary.error}) — failing closed`,
+      files: [],
+    };
+  }
+  committed.push(...primary.stdout.split("\n").map((l) => l.trim()).filter(Boolean));
+
   const dirty = status.stdout ? status.stdout.split("\n").map(porcelainPath).filter(Boolean) : [];
   const changed = [...new Set([...committed, ...dirty])];
   const docFiles = changed.filter((f) => DOC_EVIDENCE_PATTERNS.some((re) => re.test(f)));
+  const label = `${baseNote}${sources.length > 1 ? " + " + sources.slice(1).join(" + ") : ""}`;
 
   if (docFiles.length > 0) {
     return {
       gate: "docs-updated",
       ok: true,
       reason: "docs-touched",
-      details: `docs evidence from git (base ${base} via ${resolved.via}): ${docFiles.slice(0, 10).join(", ")}`,
+      details: `docs evidence from git (base ${label}): ${docFiles.slice(0, 10).join(", ")}`,
       files: docFiles,
       changedCount: changed.length,
     };
@@ -482,7 +598,7 @@ function evidenceDocsUpdated(root, state) {
     gate: "docs-updated",
     ok: false,
     reason: "no-doc-changes",
-    details: `no documentation changed (base ${base} via ${resolved.via}; ${changed.length} file(s) changed, none matching progress-tracker.md / context/*.md / docs/ / README.md) — update docs and commit`,
+    details: `no documentation changed (base ${label}; ${changed.length} file(s) changed, none matching progress-tracker.md / context/*.md / docs/ / README.md) — update docs and commit`,
     files: [],
     changedCount: changed.length,
   };
@@ -599,4 +715,6 @@ module.exports = {
   evidenceLint,
   evidenceSecurity,
   evidenceDocsUpdated,
+  recordRunDiffBase,
+  resolveDocsBase,
 };
