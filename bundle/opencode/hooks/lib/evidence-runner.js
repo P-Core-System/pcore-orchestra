@@ -232,23 +232,57 @@ function isSelfScanExcluded(finding) {
   );
 }
 
+/**
+ * Secret scan for the in-loop `security` gate.
+ *
+ * Scope: the WORKSPACE ROOT — the same tree `scripts/scan-secrets.js` scans in
+ * CI (`--dir .`). It used to scan only `bundle/hooks/lib`, so a `ghp_` token in
+ * `scripts/` was CI-blocking and loop-silent: invariant 24 ("CI and the core
+ * loop can never disagree") was false.
+ *
+ * Allowlist: `<root>/.secret-scan-allow`, read through the SAME
+ * `security-scanner.js` helpers the CLI uses, so the two cannot drift. A
+ * reasonless entry is a config error and fails the gate (CI exits 2 on it).
+ * Findings inside the allowlist file itself are advisory, never blocking — that
+ * file documents patterns, so it quotes them by definition.
+ *
+ * Two filters apply to every finding: `SELF_SCAN_EXCLUSIONS` (this harness's own
+ * rule-source self-matches, each label-scoped) and the allowlist.
+ */
 function evidenceSecurity(root) {
   const scanner = path.join(root, "bundle", "hooks", "lib", "security-scanner.js");
   if (!fs.existsSync(scanner)) {
     return { gate: "security", ok: true, details: "SKIPPED: no security-scanner" };
   }
   try {
-    const { scanDirectory, generateSecurityReport } = require(scanner);
-    const target = fs.existsSync(path.join(root, "bundle", "hooks", "lib"))
-      ? path.join(root, "bundle", "hooks", "lib")
-      : root;
-    const findings = scanDirectory(target);
+    const { scanDirectory, generateSecurityReport, loadSecretScanAllow, isAllowedFinding, ALLOW_FILE } =
+      require(scanner);
 
-    const keep = (list) => (list || []).filter((f) => !isSelfScanExcluded(f));
+    const allow = loadSecretScanAllow(path.join(root, ALLOW_FILE));
+    if (allow.error) {
+      return {
+        gate: "security",
+        ok: false,
+        details: `allowlist error: ${allow.error} — an undocumented false positive is a rule that quietly rots`,
+      };
+    }
+
+    const findings = scanDirectory(root);
+    const allowAbs = allow.file ? path.resolve(allow.file) : null;
+    const isAllowFile = (f) =>
+      allowAbs !== null && path.resolve(root, String(f.file || "")) === allowAbs;
+
+    const keep = (list) =>
+      (list || []).filter(
+        (f) => !isAllowFile(f) && !isSelfScanExcluded(f) && !isAllowedFinding(f, allow.entries)
+      );
     const secrets = keep(findings.secrets);
     const vulnerabilities = keep(findings.vulnerabilities);
     const crypto = keep(findings.crypto);
     const owasp = keep(findings.owasp);
+    const allowSelfScan = (findings.secrets || [])
+      .concat(findings.vulnerabilities || [], findings.crypto || [])
+      .filter(isAllowFile).length;
 
     const summary = { critical: 0, high: 0, medium: 0, low: 0 };
     for (const f of [...secrets, ...vulnerabilities, ...crypto]) {
@@ -261,6 +295,10 @@ function evidenceSecurity(root) {
     const advisory = [...secrets, ...vulnerabilities, ...crypto].filter(
       (f) => f.severity === "medium" || f.severity === "low"
     );
+    const allowedNote =
+      allow.entries.length > 0
+        ? `; ${allow.entries.length} allowlist entr${allow.entries.length === 1 ? "y" : "ies"} applied${allowSelfScan > 0 ? ` (${allowSelfScan} non-blocking self-scan hit(s))` : ""}`
+        : "";
     const owaspNote = owasp.length > 0 ? `; ${owasp.length} OWASP category hit(s) advisory` : "";
 
     if (blocking.length === 0) {
@@ -268,7 +306,7 @@ function evidenceSecurity(root) {
         gate: "security",
         ok: true,
         details:
-          `security scan: PASS — 0 critical/high; ${advisory.length} medium/low finding(s) reported non-blocking${owaspNote}`,
+          `security scan: PASS — 0 critical/high; ${advisory.length} medium/low finding(s) reported non-blocking${owaspNote}${allowedNote}`,
       };
     }
 
@@ -285,7 +323,8 @@ function evidenceSecurity(root) {
       ok: false,
       details:
         `security scan FAIL: ${blocking.length} critical/high finding(s) — ${report}` +
-        (advisory.length > 0 ? `\n(${advisory.length} medium/low finding(s) reported non-blocking)` : ""),
+        (advisory.length > 0 ? `\n(${advisory.length} medium/low finding(s) reported non-blocking)` : "") +
+        allowedNote,
     };
   } catch (e) {
     return { gate: "security", ok: false, details: `scanner error: ${e.message}` };

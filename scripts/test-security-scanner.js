@@ -509,6 +509,79 @@ test("the scanner exposes the allowlist helpers the CLI and the loop share", () 
   );
 });
 
+// ------------------------------------------------- CI <-> core-loop agreement
+//
+// Invariant 24 claims CI and the core loop "can never disagree". They could:
+// the CLI scanned `--dir .` while `evidenceSecurity` scanned only
+// `bundle/hooks/lib` and never read `.secret-scan-allow` at all, so a `ghp_` in
+// `scripts/` was CI-blocking and loop-silent. Both now go through the same
+// scope and the same allowlist, and these tests hold them to it.
+
+/** Scanner self-literal allowlist entries, as the repo declares them. */
+const SELF_LITERAL_ALLOW =
+  "file:bundle/hooks/lib/security-scanner.js + label:private key | rule-source header literal\n" +
+  "file:bundle/hooks/lib/security-scanner.js + label:risk) | rule-label call-site literal\n";
+
+/** A workspace with the scanner installed, mirroring a real orchestra repo. */
+function securityFixture(files) {
+  const all = Object.assign({ "bundle/hooks/lib/.keep": "" }, files);
+  if (all[".secret-scan-allow"] === undefined) all[".secret-scan-allow"] = SELF_LITERAL_ALLOW;
+  const dir = fixture(all);
+  fs.copyFileSync(SCANNER, path.join(dir, "bundle/hooks/lib/security-scanner.js"));
+  return dir;
+}
+
+test("a secret in scripts/ blocks the CI CLI and the core loop alike", () => {
+  const dir = securityFixture({ "scripts/some-tool.js": `const token = "${GH_TOKEN}";\n` });
+  const loop = runner.evidenceSecurity(dir);
+  eq(loop.ok, false, `the core loop must scan the workspace root, not just bundle/hooks/lib: ${loop.details}`);
+  ok(/some-tool\.js/.test(loop.details), `the loop must name the file it blocked on: ${loop.details}`);
+  const cli = runCli(["--dir", dir, "--json", "--fail-on=high"]);
+  eq(cli.status, 1, `CI must block the same finding: ${cli.stdout}${cli.stderr}`);
+  ok(
+    JSON.parse(cli.stdout).findings.some((f) => /some-tool\.js/.test(f.file)),
+    "CI and the loop must see the same finding"
+  );
+});
+
+test("the core loop honours .secret-scan-allow exactly like the CI CLI", () => {
+  const dir = securityFixture({
+    "scripts/some-tool.js": `const token = "${GH_TOKEN}";\n`,
+    ".secret-scan-allow":
+      SELF_LITERAL_ALLOW +
+      "file:scripts/some-tool.js + label:GitHub personal access token | synthetic token shape used only in this fixture\n",
+  });
+  const loop = runner.evidenceSecurity(dir);
+  eq(loop.ok, true, `the loop must honour a documented allow entry: ${loop.details}`);
+  const cli = runCli(["--dir", dir, "--json", "--fail-on=high"]);
+  eq(cli.status, 0, `CI must honour the same allow entry: ${cli.stdout}${cli.stderr}`);
+  ok(
+    JSON.parse(cli.stdout).allowed.some((f) => /some-tool\.js/.test(f.file)),
+    "the suppressed finding must still be reported as allowed"
+  );
+});
+
+test("a documented allow entry silences ONE rule, never the whole file", () => {
+  const dir = securityFixture({
+    "scripts/some-tool.js": `const token = "${GH_TOKEN}";\nconst password = "hunter2xyz123";\n`,
+    ".secret-scan-allow":
+      SELF_LITERAL_ALLOW +
+      "file:scripts/some-tool.js + label:GitHub personal access token | synthetic token shape used only in this fixture\n",
+  });
+  const loop = runner.evidenceSecurity(dir);
+  eq(loop.ok, false, `the un-narrowed hardcoded password must still block in the loop: ${loop.details}`);
+  const cli = runCli(["--dir", dir, "--json", "--fail-on=high"]);
+  eq(cli.status, 1, `CI must agree: ${cli.stdout}${cli.stderr}`);
+});
+
+test("an undocumented allowlist entry fails the loop gate exactly as CI exits 2", () => {
+  const dir = securityFixture({ ".secret-scan-allow": "scripts/some-tool.js\n" });
+  const loop = runner.evidenceSecurity(dir);
+  eq(loop.ok, false, `a reasonless allow entry must fail the loop gate: ${loop.details}`);
+  ok(/reason/i.test(loop.details), `the loop must say why: ${loop.details}`);
+  eq(runCli(["--dir", dir, "--fail-on=high"]).status, 2, "CI must exit 2 on the same input");
+});
+
 test("the repo itself passes the blocking scan", () => {
   const r = runCli(["--dir", ROOT, "--fail-on=high"]);
   eq(r.status, 0, `the repository must be clean at --fail-on=high: ${r.stdout}${r.stderr}`);
