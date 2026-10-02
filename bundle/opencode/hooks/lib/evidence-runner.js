@@ -623,10 +623,18 @@ function evidenceGitClean(root) {
 
 /**
  * Run evidence checks appropriate for the loop mode.
+ *
+ * `options.includeSecurity === false` SKIPS the workspace scan. The verify hook
+ * (`orchestra-subagent-stop.js`) asks for that: it has already run the scan for
+ * the verify preflight report, and paying ~1.1s again for the same unscoped
+ * walk on every verify bought nothing. The review hook passes no such option, so
+ * the security gate is still decided there before `ORCHESTRA_COMPLETE`.
+ *
  * @returns {{ results: object[], report: string }}
  */
 function runEvidenceChecks(state, options) {
-  const root = options?.cwd || detectWorkspaceRoot(state);
+  const opts = options || {};
+  const root = opts.cwd || detectWorkspaceRoot(state);
   const mode = state?.loopMode || "core";
   const results = [];
 
@@ -635,7 +643,7 @@ function runEvidenceChecks(state, options) {
   results.push(evidenceLint(root));
   // Security runs in EVERY mode, not just enterprise: a critical secret in the
   // workspace must block the core loop too.
-  results.push(evidenceSecurity(root));
+  if (opts.includeSecurity !== false) results.push(evidenceSecurity(root));
 
   results.push(evidenceGitClean(root));
   results.push(evidenceDocsUpdated(root, state));

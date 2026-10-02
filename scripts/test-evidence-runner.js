@@ -636,6 +636,36 @@ test("git-status stays ADVISORY outside a git repo (never a FAIL verdict)", () =
   }
 });
 
+test("S3: includeSecurity: false is HONOURED, not a dead option", () => {
+  const dir = gitFixture({ "src/app.js": "module.exports = 1;\n" });
+  try {
+    const withScan = runner.runEvidenceChecks({ loopMode: "core" }, { cwd: dir });
+    ok(
+      withScan.results.some((r) => r.gate === "security"),
+      "the security gate must run by default in core mode"
+    );
+    const without = runner.runEvidenceChecks({ loopMode: "core" }, { cwd: dir, includeSecurity: false });
+    ok(
+      !without.results.some((r) => r.gate === "security"),
+      "includeSecurity:false must skip the scan — it is what the verify hook asks for"
+    );
+    const gates = [];
+    runner.applyEvidenceToGates(
+      { loopMode: "core", qualityGates: { passed: [], failed: [], skipped: [], allRequiredPassed: false } },
+      (s, gate) => gates.push(["pass", gate]),
+      (s, gate) => gates.push(["fail", gate]),
+      (s, gate) => gates.push(["skip", gate]),
+      { cwd: dir, includeSecurity: false }
+    );
+    ok(
+      !gates.some(([, gate]) => gate === "security"),
+      "applyEvidenceToGates must honour the option too, not just runEvidenceChecks"
+    );
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("applyEvidenceToGates persists the DOCUMENTED record shape (buildEvidenceRecord wired)", () => {
   const dir = gitFixture({ "src/app.js": "module.exports = 1;\n" });
   try {
