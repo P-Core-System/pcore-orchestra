@@ -31,6 +31,11 @@ const { writeCycleReport } = require("./lib/cycle-report.js");
 const { checkPhaseCommitGate } = require("./lib/phase-commit-gate.js");
 const { evaluatePhaseOutcome } = require("./lib/phase-outcome.js");
 const { PHASE_BLOCKED_EVENT } = require("./lib/constants.js");
+const {
+  createRunWorktree,
+  cleanupRunWorktree,
+  getWorktreePath,
+} = require("./lib/worktree-manager.js");
 
 // Phase 2 domain event log — lazy + guarded so a missing/broken domain module
 // can never take the host hook down (fail-open by design).
@@ -38,6 +43,31 @@ let recordPhaseOutcome = null;
 try {
   ({ recordPhaseOutcome } = require("./lib/domain/index.js"));
 } catch {}
+
+/** Create worktree for a new run if not already created. */
+function ensureWorktree(state) {
+  if (state.worktreePath) return state.worktreePath;
+  const baseCommit = state.baseCommit || state.diffBase?.commit;
+  if (!baseCommit) return null;
+  const runId = state.runId || state.tokens?.run_id || `run-${Date.now()}`;
+  try {
+    const result = createRunWorktree(runId, baseCommit);
+    state.worktreePath = result.worktreePath;
+    state.runId = runId;
+    return result.worktreePath;
+  } catch (e) {
+    return null;
+  }
+}
+
+/** Clean up worktree when run completes. */
+function cleanupWorktree(state) {
+  if (!state.worktreePath || !state.runId) return;
+  try {
+    cleanupRunWorktree(state.runId);
+    state.worktreePath = null;
+  } catch {}
+}
 
 function getAgentDisplayName(agentId) {
   const display = {
@@ -210,6 +240,9 @@ function handlePhaseComplete(state, chain) {
     state.currentPhase = "idle";
     saveState(state);
 
+    // Clean up worktree when run completes
+    cleanupWorktree(state);
+
     const summary = generateProjectSummary(loadProjectState());
     const modeLabel = state.loopMode === LOOP_MODE_ENTERPRISE ? "Enterprise SDLC" : "Core loop";
     const tokenLine = state.tokens?.last_finalized
@@ -241,6 +274,10 @@ function handlePhaseComplete(state, chain) {
     state.active = false;
     state.currentPhase = "idle";
     saveState(state);
+
+    // Clean up worktree on max iterations
+    cleanupWorktree(state);
+
     emit({
       followup_message:
         "Orchestra hit max iterations. Stop chaining and give the user a status report.",
@@ -275,16 +312,18 @@ function handlePhaseComplete(state, chain) {
   let sixFileValidation = null;
   if (nextPhase === "verify") {
     try {
-      const { report, records } = runEvidenceChecks(state);
+      // Ensure worktree exists for this run
+      const worktreePath = ensureWorktree(state);
+      const { report, records } = runEvidenceChecks(state, { cwd: worktreePath });
       evidenceBlock = report;
       evidenceRecords = records || [];
       if (!state.memory) state.memory = { ...DEFAULT_STATE.memory };
       state.memory.evidence_preflight = report;
 
       // Six-file context validation at verify entry
-      const workspaceRoot = state.project?.identityFile
+      const workspaceRoot = worktreePath || (state.project?.identityFile
         ? path.dirname(state.project.identityFile)
-        : process.cwd();
+        : process.cwd());
       const claimedAt = state.memory?.progressTrackerClaimedAt || Date.now();
       sixFileValidation = validateSixFileContext(workspaceRoot, claimedAt);
       if (sixFileValidation) {
@@ -418,14 +457,15 @@ async function main() {
 
   if (subagentType === "orchestra-verifier" && state.currentPhase === "verify") {
     try {
+      const worktreePath = state.worktreePath;
       const { report } = applyEvidenceToGates(state, passGate, failGate, skipGate, {
-        cwd: undefined,
+        cwd: worktreePath,
         includeSecurity: false,
         onEvidence: (ev) => {
           try {
             const dom = require("./lib/domain");
             if (dom && dom.evidence && typeof dom.evidence.appendEvidenceRun === "function") {
-              dom.evidence.appendEvidenceRun(ev);
+              dom.evidence.appendEvidenceRun(ev, { worktreePath });
             }
           } catch {}
         },
@@ -460,7 +500,7 @@ async function main() {
   // never touches stdout, quality gates or the orchestra.json shape.
   try {
     if (typeof recordPhaseOutcome === "function") {
-      recordPhaseOutcome(state, state.last_outcome, subagentType);
+      recordPhaseOutcome(state, state.last_outcome, subagentType, state.worktreePath);
     }
   } catch {}
 

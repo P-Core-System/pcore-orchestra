@@ -11,6 +11,10 @@
  *
  * Legacy `~/.config/opencode/state/orchestra-state.json` is migrated exactly
  * once on the first beginRun (stashed on the run, renamed, never re-read).
+ *
+ * Worktree isolation: when `worktreePath` is provided, conductor runs are stored
+ * in `worktreePath/.pcore/state/conductor-runs/` instead of the global
+ * directory. This enables per-run isolation for concurrent orchestra runs.
  */
 
 const fs = require("node:fs");
@@ -24,8 +28,11 @@ const INDEX_VERSION = 1;
 const INDEX_NAME = "index.json";
 
 /** Base directory for the registry + per-run files. */
-function getConductorBaseDir() {
+function getConductorBaseDir(worktreePath) {
   if (process.env.PCORE_CONDUCTOR_STATE_DIR) return process.env.PCORE_CONDUCTOR_STATE_DIR;
+  if (worktreePath && typeof worktreePath === "string") {
+    return path.join(worktreePath, ".pcore", "state", "conductor-runs");
+  }
   return path.join(os.homedir(), ".config", "opencode", "hooks", "state", "conductor-runs");
 }
 
@@ -74,7 +81,8 @@ function runKeyOf(run) {
 
 /** Resolve a per-run file path from a key string, an args object, or a path. */
 function resolveRunPath(args) {
-  const baseDir = getConductorBaseDir();
+  const worktreePath = args && typeof args === "object" ? args.worktreePath : undefined;
+  const baseDir = getConductorBaseDir(worktreePath);
   if (typeof args === "string") {
     const parts = runKeyParts(args);
     if (parts) return path.join(baseDir, parts.workspaceSlug, parts.sessionId, `${parts.taskId}.json`);
@@ -109,8 +117,8 @@ function atomicWrite(filePath, data) {
 }
 
 /** Read + parse the registry index; safe fallback to empty on parse errors. */
-function loadIndex() {
-  const indexPath = path.join(getConductorBaseDir(), INDEX_NAME);
+function loadIndex(worktreePath) {
+  const indexPath = path.join(getConductorBaseDir(worktreePath), INDEX_NAME);
   try {
     if (!fs.existsSync(indexPath)) return { version: INDEX_VERSION, updated_at: null, runs: {} };
     return JSON.parse(fs.readFileSync(indexPath, "utf8"));
@@ -120,15 +128,15 @@ function loadIndex() {
 }
 
 /** Atomic write of the registry index. */
-function writeIndex(index) {
+function writeIndex(index, worktreePath) {
   index.version = INDEX_VERSION;
   index.updated_at = new Date().toISOString();
-  atomicWrite(path.join(getConductorBaseDir(), INDEX_NAME), JSON.stringify(index, null, 2));
+  atomicWrite(path.join(getConductorBaseDir(worktreePath), INDEX_NAME), JSON.stringify(index, null, 2));
 }
 
 /** Read a run file; null if missing or unparsable. */
-function readRun(runKeyOrArgs) {
-  const filePath = resolveRunPath(runKeyOrArgs);
+function readRun(runKeyOrArgs, worktreePath) {
+  const filePath = resolveRunPath(typeof runKeyOrArgs === "object" ? { ...runKeyOrArgs, worktreePath } : runKeyOrArgs);
   try {
     if (!fs.existsSync(filePath)) return null;
     return JSON.parse(fs.readFileSync(filePath, "utf8"));
@@ -138,10 +146,10 @@ function readRun(runKeyOrArgs) {
 }
 
 /** Persist a run file + upsert the registry index. */
-function saveRun(run) {
-  const filePath = resolveRunPath(run);
+function saveRun(run, worktreePath) {
+  const filePath = resolveRunPath({ ...run, worktreePath });
   atomicWrite(filePath, JSON.stringify(run, null, 2));
-  const index = loadIndex();
+  const index = loadIndex(worktreePath);
   index.runs[runKeyOf(run)] = {
     workspace: run.workspace,
     workspaceSlug: run.workspaceSlug,
@@ -154,7 +162,7 @@ function saveRun(run) {
     lastHeartbeat: run.lastHeartbeat,
     lastUpdatedAt: new Date().toISOString(),
   };
-  writeIndex(index);
+  writeIndex(index, worktreePath);
 }
 
 /**
@@ -177,15 +185,17 @@ function migrateLegacy() {
 /**
  * Begin (or resume) a run. Idempotent: an existing live run on the same key is
  * resumed and preserves its startedAt. Returns `{ run, resumed }`.
+ * @param {object} opts - options including optional worktreePath
  */
 function beginRun(opts) {
+  const worktreePath = opts.worktreePath;
   const legacy = migrateLegacy();
   const ws = resolveWorkspace(opts.workspace);
   const sessionId = opts.sessionId || resolveSessionId();
   const startedAt = new Date().toISOString();
   const taskId = opts.taskId || resolveTaskId(opts.goal, startedAt);
-  const args = { workspaceSlug: ws.slug, sessionId, taskId };
-  const existing = readRun(args);
+  const args = { workspaceSlug: ws.slug, sessionId, taskId, worktreePath };
+  const existing = readRun(args, worktreePath);
 
   let run;
   let resumed = false;
@@ -215,14 +225,14 @@ function beginRun(opts) {
     if (legacy) run.legacy = legacy;
   }
   run.lastHeartbeat = new Date().toISOString();
-  saveRun(run);
+  saveRun(run, worktreePath);
   return { run, resumed };
 }
 
 /** Touches the run heartbeat and persists. */
-function heartbeat(run) {
+function heartbeat(run, worktreePath) {
   run.lastHeartbeat = new Date().toISOString();
-  saveRun(run);
+  saveRun(run, worktreePath);
   return run;
 }
 
@@ -240,10 +250,12 @@ function isLiveStatus(status) {
  * List index entries, optionally filtered by workspace + status. Without an
  * explicit `status` all runs are returned regardless of status; with a
  * `status` only runs matching that exact status are returned.
+ * @param {object} [filters] - filters including optional worktreePath
  */
 function listRuns(filters) {
   filters = filters || {};
-  const index = loadIndex();
+  const worktreePath = filters.worktreePath;
+  const index = loadIndex(worktreePath);
   const wsSlug = filters.workspace ? resolveWorkspace(filters.workspace).slug : null;
   return Object.values(index.runs).filter((entry) => {
     if (wsSlug && entry.workspaceSlug !== wsSlug) return false;
@@ -255,18 +267,18 @@ function listRuns(filters) {
 /** List only live (active/in_progress) runs, optionally scoped to a workspace. */
 function listLiveRuns(filters) {
   filters = filters || {};
-  return listRuns({ workspace: filters.workspace }).filter((entry) => isLiveStatus(entry.status));
+  return listRuns({ workspace: filters.workspace, worktreePath: filters.worktreePath }).filter((entry) => isLiveStatus(entry.status));
 }
 
 /** Distinct live session ids (active/in_progress), optionally scoped to a workspace. */
 function activeSessionIds(filters) {
   filters = filters || {};
-  return [...new Set(listLiveRuns(filters).map((r) => r.sessionId))];
+  return [...new Set(listLiveRuns({ workspace: filters.workspace, worktreePath: filters.worktreePath }).map((r) => r.sessionId))];
 }
 
 /** Find a run for a session (prefers the live/active one). */
-function getRunBySession(sessionId, workspace) {
-  const entries = listRuns({ workspace });
+function getRunBySession(sessionId, workspace, worktreePath) {
+  const entries = listRuns({ workspace, worktreePath });
   const live = entries.find((e) => e.sessionId === sessionId && e.status === "active");
   const any = entries.find((e) => e.sessionId === sessionId);
   return live || any || null;
@@ -282,38 +294,39 @@ function isStale(run, thresholdMs) {
 }
 
 /** Return all live runs whose heartbeat is stale. */
-function findStale(thresholdMs) {
-  return listRuns({ status: "active" }).filter((entry) => isStale(entry, thresholdMs));
+function findStale(thresholdMs, worktreePath) {
+  return listRuns({ status: "active", worktreePath }).filter((entry) => isStale(entry, thresholdMs));
 }
 
 /** Mark a run completed with an optional summary. */
-function completeRun(run, summary) {
+function completeRun(run, summary, worktreePath) {
   run.status = "completed";
   run.completedAt = new Date().toISOString();
   if (summary !== undefined) run.summary = summary;
-  saveRun(run);
+  saveRun(run, worktreePath);
   return run;
 }
 
 /** Mark a run failed with a reason. */
-function failRun(run, reason) {
+function failRun(run, reason, worktreePath) {
   run.status = "failed";
   run.failReason = reason || null;
   run.completedAt = new Date().toISOString();
-  saveRun(run);
+  saveRun(run, worktreePath);
   return run;
 }
 
 /** Garbage-collect stale runs; delete their files when `deleteFiles` is set. */
 function gcRuns(opts) {
   opts = opts || {};
-  const index = loadIndex();
+  const worktreePath = opts.worktreePath;
+  const index = loadIndex(worktreePath);
   const pruned = [];
   for (const key of Object.keys(index.runs)) {
     const entry = index.runs[key];
     if (entry.status !== "active") continue;
     if (!isStale(entry, opts.staleMs || DEFAULT_STALL_THRESHOLD_MS)) continue;
-    const filePath = resolveRunPath(entry);
+    const filePath = resolveRunPath({ ...entry, worktreePath });
     if (opts.deleteFiles) {
       fs.rmSync(filePath, { force: true });
     } else {
@@ -330,7 +343,7 @@ function gcRuns(opts) {
     delete index.runs[key];
     pruned.push(key);
   }
-  if (pruned.length) writeIndex(index);
+  if (pruned.length) writeIndex(index, worktreePath);
   return pruned;
 }
 

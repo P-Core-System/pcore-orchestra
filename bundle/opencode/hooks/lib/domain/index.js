@@ -25,9 +25,10 @@ const reviewQueue = require("./review-queue.js");
  * @param {object|null} state   session/current state (currentPhase, goal, ...)
  * @param {object|null} outcome outcome record (decision, reason, phase, token)
  * @param {string|null} subagentType
+ * @param {string|null} [worktreePath] optional worktree path for isolation
  * @returns {object} the stored event
  */
-function recordPhaseOutcome(state, outcome, subagentType) {
+function recordPhaseOutcome(state, outcome, subagentType, worktreePath) {
   const s = state || {};
   const o = outcome || {};
   const event = entities.createEvent({
@@ -42,7 +43,7 @@ function recordPhaseOutcome(state, outcome, subagentType) {
       goal: s.goal || null,
     },
   });
-  return store.appendEvent(event);
+  return store.appendEvent(event, { worktreePath });
 }
 
 module.exports = Object.assign(
