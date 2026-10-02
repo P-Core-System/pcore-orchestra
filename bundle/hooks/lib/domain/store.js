@@ -9,16 +9,30 @@
  * Files (both under the resolved state dir, gitignored as `domain-*.json`):
  *   domain-events.json       ring-capped domain event log (oldest trimmed)
  *   domain-checkpoint.json   last checkpoint for resume (Scenario J domain half)
+ *
+ * The DEFAULT state dir is `~/.config/opencode/hooks/state` — alongside the
+ * other state writers, deliberately OUTSIDE the shipped bundle. A path derived
+ * from `__dirname` would write a runtime artifact into the installed payload
+ * (and into this repo on any run without `PCORE_STATE_DIR`). `PCORE_STATE_DIR`
+ * still overrides everything, which is what the suites use.
  */
 
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
-const { withLock, readJsonSafe, writeJson, resolveStatePath } = require("../safe-write.js");
+const { withLock, readJsonSafe, writeJson, resolveStateDir } = require("../safe-write.js");
 const { appendRing, newId } = require("./entities.js");
 const { DOMAIN_EVENT_CAP } = require("./constants.js");
 
-const EVENTS_FILE = path.join(__dirname, "..", "state", "domain-events.json");
-const CHECKPOINT_FILE = path.join(__dirname, "..", "state", "domain-checkpoint.json");
+/** Shared state dir used by the other orchestra state writers. */
+function defaultStateDir() {
+  return path.join(os.homedir(), ".config", "opencode", "hooks", "state");
+}
+
+/** Resolved state dir: `PCORE_STATE_DIR` wins, never a path inside the bundle. */
+function stateDir() {
+  return resolveStateDir(defaultStateDir());
+}
 
 function ensureDir(filePath) {
   try {
@@ -29,11 +43,11 @@ function ensureDir(filePath) {
 }
 
 function domainEventsPath() {
-  return resolveStatePath(EVENTS_FILE);
+  return path.join(stateDir(), "domain-events.json");
 }
 
 function checkpointPath() {
-  return resolveStatePath(CHECKPOINT_FILE);
+  return path.join(stateDir(), "domain-checkpoint.json");
 }
 
 function domainEventCap() {
@@ -94,6 +108,8 @@ function loadCheckpoint(sessionId) {
 }
 
 module.exports = {
+  defaultStateDir,
+  stateDir,
   domainEventsPath,
   checkpointPath,
   domainEventCap,
