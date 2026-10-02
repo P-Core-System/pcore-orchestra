@@ -20,10 +20,12 @@ const assert = require("node:assert");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const cp = require("node:child_process");
 
 const ROOT = path.resolve(__dirname, "..");
 const SCANNER = path.join(ROOT, "bundle/hooks/lib/security-scanner.js");
 const RUNNER = path.join(ROOT, "bundle/hooks/lib/evidence-runner.js");
+const CLI = path.join(ROOT, "scripts/scan-secrets.js");
 
 let failures = 0;
 let asserts = 0;
@@ -263,6 +265,88 @@ test("a clean lib tree passes the security gate", () => {
   const clean = gateFixture({ "helper.js": "module.exports = function add(a, b) { return a + b; };\n" });
   const res = runner.evidenceSecurity(clean);
   eq(res.ok, true, `clean tree must pass: ${res.details}`);
+});
+
+
+// ------------------------------------------------------------ scan-secrets CLI
+//
+// audit S-20: CI had no secret scan at all. `scripts/scan-secrets.js` is the
+// blocking CLI wrapper over the same scanner the evidence gate uses, so what
+// CI blocks on and what the loop blocks on can never diverge.
+
+/** Synthetic token shapes that match the scanner rules. */
+const GH_TOKEN = `ghp_${"a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8"}`;
+const GOOGLE_KEY = `AIza${"b".repeat(35)}`;
+
+function runCli(args) {
+  return cp.spawnSync(process.execPath, [CLI, ...args], { encoding: "utf8", cwd: ROOT, timeout: 120000 });
+}
+
+test("scan-secrets.js exists (RED first)", () => {
+  ok(fs.existsSync(CLI), "scripts/scan-secrets.js must exist");
+});
+
+test("CLI exits 1 on a high/critical finding with --fail-on=high", () => {
+  const dir = fixture({ ".env": `GITHUB_TOKEN=${GH_TOKEN}\n` });
+  const r = runCli(["--dir", dir, "--fail-on=high"]);
+  eq(r.status, 1, `expected exit 1 on a high finding, got ${r.status}: ${r.stdout}${r.stderr}`);
+  ok(/secret|ghp_/i.test(r.stdout), `the report must name the finding: ${r.stdout}`);
+  ok(!/\bsecret\b.*\*{20}/.test(r.stdout), "the report must not echo raw secret material");
+});
+
+test("CLI exits 0 on a clean directory", () => {
+  const dir = fixture({ "hello.js": "module.exports = function add(a, b) { return a + b; };\n" });
+  const r = runCli(["--dir", dir, "--fail-on=high"]);
+  eq(r.status, 0, `expected exit 0 on a clean tree, got ${r.status}: ${r.stdout}${r.stderr}`);
+  ok(/PASS|no critical/i.test(r.stdout), `the report must state the verdict: ${r.stdout}`);
+});
+
+test("--json emits parseable JSON carrying the summary and the findings", () => {
+  const dir = fixture({ "config.toml": `api_key = "${GOOGLE_KEY}"\n` });
+  const r = runCli(["--dir", dir, "--json", "--fail-on=high"]);
+  eq(r.status, 1, `expected exit 1, got ${r.status}: ${r.stderr}`);
+  let parsed = null;
+  let parseErr = null;
+  try {
+    parsed = JSON.parse(r.stdout);
+  } catch (e) {
+    parseErr = e;
+  }
+  eq(parseErr, null, `--json must emit parseable JSON on stdout: ${parseErr && parseErr.message}`);
+  ok(parsed && Array.isArray(parsed.findings), "JSON must carry a findings array");
+  ok(parsed && parsed.summary && parsed.summary.high >= 1, `JSON summary must count the high finding: ${JSON.stringify(parsed && parsed.summary)}`);
+  eq(parsed.exitCode, 1, "JSON must report the exit code it used");
+  ok(!/b{35}/.test(r.stdout), "JSON output must not echo raw secret material");
+});
+
+test("--fail-on=critical lets a high-only finding through", () => {
+  const dir = fixture({ "notes.md": `Google key: ${GOOGLE_KEY}\n` });
+  const r = runCli(["--dir", dir, "--json", "--fail-on=critical"]);
+  eq(r.status, 0, `--fail-on=critical must not block on a high finding: ${r.stdout}${r.stderr}`);
+  const parsed = JSON.parse(r.stdout);
+  eq(parsed.exitCode, 0, "JSON exitCode must match the process exit code");
+  ok(parsed.summary.high >= 1, "the high finding must still be reported, not hidden");
+});
+
+test("a documented .secret-scan-allow entry suppresses its finding", () => {
+  const dir = fixture({ "synthetic.md": `token ${GOOGLE_KEY}\n`, ".secret-scan-allow": "# synthetic fixtures\nsynthetic.md | synthetic Google key shape used only in tests\n" });
+  const r = runCli(["--dir", dir, "--json", "--fail-on=high"]);
+  eq(r.status, 0, `a documented allow entry must suppress the finding: ${r.stdout}${r.stderr}`);
+  const parsed = JSON.parse(r.stdout);
+  eq(parsed.allowed.length, 1, `the suppressed finding must be reported as allowed: ${JSON.stringify(parsed.allowed)}`);
+  eq(parsed.summary.high, 0, "an allowed finding must not count toward the summary");
+});
+
+test("an undocumented allow entry is a config error (exit 2)", () => {
+  const dir = fixture({ "synthetic.md": `token ${GOOGLE_KEY}\n`, ".secret-scan-allow": "synthetic.md\n" });
+  const r = runCli(["--dir", dir, "--fail-on=high"]);
+  eq(r.status, 2, `an allow entry without a reason must exit 2: ${r.stdout}${r.stderr}`);
+  ok(/reason/i.test(r.stderr), `the error must say a reason is required: ${r.stderr}`);
+});
+
+test("the repo itself passes the blocking scan", () => {
+  const r = runCli(["--dir", ROOT, "--fail-on=high"]);
+  eq(r.status, 0, `the repository must be clean at --fail-on=high: ${r.stdout}${r.stderr}`);
 });
 
 console.log(`security-scanner assertions: ${asserts}`);

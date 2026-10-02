@@ -188,12 +188,12 @@ if [[ "$INTERACTIVE" == true ]]; then
   echo ""
   info "Step 6: Architecture"
   echo "  Available templates:"
-  local arch_files=()
-  local arch_opt=("None (skip)")
+  arch_files=()
+  arch_opt=("None (skip)")
   for f in "$ARCH_DIR"/*.md; do
-    local base="$(basename "$f")"
+    base="$(basename "$f")"
     arch_files+=("$base")
-    local label="${base#??-}"; label="${label%.md}"
+    label="${base#??-}"; label="${label%.md}"
     echo "    $(( ${#arch_files[@]} )). $label"
     arch_opt+=("$base")
   done

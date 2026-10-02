@@ -198,7 +198,7 @@ interactive_guide() {
   echo -e "${GREEN}Hypereal (recommended for most users):${NC}"
   echo "  Base URL:  https://api.hypereal.cloud/v1"
   echo "  Models:    gpt-5.4, claude-opus-4-7, claude-sonnet-4-6, gemini-3-pro-preview"
-  echo "  Cost:      ~$80-150/mo for heavy use (pay-per-token)"
+  echo "  Cost:      ~\$80-150/mo for heavy use (pay-per-token)"
   echo ""
 
   echo -e "${GREEN}LiteLLM local proxy (for GPT-5.5):${NC}"

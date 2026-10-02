@@ -18,11 +18,16 @@ jobs:
         with:
           node-version: "20"
       - run: |
-          for f in scripts/*.js bundle/**/*.js templates/**/*.js; do
-            [ -f "$f" ] && node --check "$f" && echo "OK: $f"
+          shopt -s globstar
+          for f in scripts/*.js scripts/lib/*.js bundle/hooks/**/*.js bundle/opencode/hooks/**/*.js templates/**/*.js; do
+            if [ -f "$f" ]; then node --check "$f" && echo "OK: $f"; fi
           done
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
-      - run: shellcheck install.sh scripts/*.sh || true
+      # Blocking at error severity: `local` outside a function and `$10` without
+      # braces are real defects; the style/warning backlog is tracked separately.
+      - run: shellcheck --severity=error install.sh scripts/*.sh
+      - name: Secret scan (blocking)
+        run: node scripts/scan-secrets.js --dir . --fail-on=high
 
   test:
     runs-on: ubuntu-latest
@@ -33,7 +38,7 @@ jobs:
           node-version: "20"
       - name: Agent registry in sync
         run: node scripts/gen-agent-registry.js --check
-      - name: Hook suites (safe-write, state, conductor, outcome, registry, handshake, mirrors, permissions, domain)
+      - name: Hook suites (safe-write, state, conductor, outcome, registry, handshake, mirrors, permissions, adaptive, domain, evidence, review queue, security scanner)
         run: |
           set -e
           node scripts/test-safe-write.js
@@ -44,8 +49,12 @@ jobs:
           node scripts/test-handshake-contract.js
           node scripts/test-mirror-sync.js
           node scripts/test-permission-review.js
+          node scripts/test-adaptive-loop.js
           node scripts/test-domain-model.js
           node scripts/test-domain-completion.js
           node scripts/test-domain-store.js
-      - name: Adaptive loop suite
-        run: node scripts/test-adaptive-loop.js
+          node scripts/test-domain-evidence.js
+          node scripts/test-domain-state-dir.js
+          node scripts/test-evidence-runner.js
+          node scripts/test-review-queue.js
+          node scripts/test-security-scanner.js
