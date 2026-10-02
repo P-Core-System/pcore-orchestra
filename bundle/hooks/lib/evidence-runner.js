@@ -10,6 +10,7 @@ const CORE_REQUIRED_GATES = [
   "build",
   "tests",
   "lint",
+  "security",
   "reviewer-approval",
   "docs-updated",
   "memory-updated",
@@ -164,6 +165,49 @@ function evidenceLint(root) {
   return { gate: "lint", ok: true, details: "SKIPPED: no linter" };
 }
 
+/**
+ * Findings the scanner is allowed to ignore, each with a written reason.
+ *
+ * The scanner matches its own rule source (RSA/SSH header literals, the eval /
+ * new-Function / exec call sites in its pattern list), so without this
+ * allowlist every scan self-reports a critical and the gate could never clear.
+ * This replaces the old inline `security-scanner\.js$` filter, which was an
+ * undocumented one-liner that also missed the `phase-outcome.js` RegExp-exec
+ * false positive.
+ *
+ * NOTE: the reasons below deliberately spell rule names without their
+ * opening parenthesis — writing them literally would make THIS file trip the
+ * very rules they justify (and it is not on the allowlist).
+ *
+ * Scope rule: entries must stay narrow. A new exclusion needs a matching
+ * false positive that is provable from the finding alone — never a whole
+ * directory, never a rule that could mask a real defect elsewhere.
+ */
+const SELF_SCAN_EXCLUSIONS = [
+  {
+    id: "scanner-self-patterns",
+    file: /(^|\/)security-scanner\.js$/,
+    reason:
+      "the scanner matches the literals of its own rules (private-key headers, eval, new Function, exec) — a file that only holds rule source cannot hold a real finding",
+  },
+  {
+    id: "regex-exec-not-shell-exec",
+    file: /(^|\/)phase-outcome\.js$/,
+    label: /^exec\(\) call/,
+    reason:
+      "a RegExp#exec on a blob is not child_process exec; the rule targets shell exec. Scoped to this one file so a real shell exec anywhere else still blocks.",
+  },
+];
+
+/** True when `finding` matches a documented self-scan exclusion. */
+function isSelfScanExcluded(finding) {
+  const file = (finding && finding.file) || "";
+  const label = (finding && finding.label) || "";
+  return SELF_SCAN_EXCLUSIONS.some(
+    (e) => e.file.test(file) && (!e.label || (label && e.label.test(label)))
+  );
+}
+
 function evidenceSecurity(root) {
   const scanner = path.join(root, "bundle", "hooks", "lib", "security-scanner.js");
   if (!fs.existsSync(scanner)) {
@@ -175,17 +219,49 @@ function evidenceSecurity(root) {
       ? path.join(root, "bundle", "hooks", "lib")
       : root;
     const findings = scanDirectory(target);
-    // Ignore self-pattern false positives in security-scanner.js itself
-    const secrets = (findings.secrets || []).filter((s) => !/security-scanner\.js$/.test(s.file));
-    const vulns = (findings.vulnerabilities || []).filter((v) => !/security-scanner\.js$/.test(v.file));
-    const critical = [...secrets, ...vulns].filter((f) => f.severity === "critical" || f.severity === "high");
+
+    const keep = (list) => (list || []).filter((f) => !isSelfScanExcluded(f));
+    const secrets = keep(findings.secrets);
+    const vulnerabilities = keep(findings.vulnerabilities);
+    const crypto = keep(findings.crypto);
+    const owasp = keep(findings.owasp);
+
+    const summary = { critical: 0, high: 0, medium: 0, low: 0 };
+    for (const f of [...secrets, ...vulnerabilities, ...crypto]) {
+      if (summary[f.severity] === undefined) continue;
+      summary[f.severity] += 1;
+    }
+    const blocking = [...secrets, ...vulnerabilities, ...crypto].filter(
+      (f) => f.severity === "critical" || f.severity === "high"
+    );
+    const advisory = [...secrets, ...vulnerabilities, ...crypto].filter(
+      (f) => f.severity === "medium" || f.severity === "low"
+    );
+    const owaspNote = owasp.length > 0 ? `; ${owasp.length} OWASP category hit(s) advisory` : "";
+
+    if (blocking.length === 0) {
+      return {
+        gate: "security",
+        ok: true,
+        details:
+          `security scan: PASS — 0 critical/high; ${advisory.length} medium/low finding(s) reported non-blocking${owaspNote}`,
+      };
+    }
+
+    const report = generateSecurityReport({
+      ...findings,
+      secrets,
+      vulnerabilities,
+      crypto,
+      owasp,
+      summary,
+    });
     return {
       gate: "security",
-      ok: critical.length === 0,
+      ok: false,
       details:
-        critical.length === 0
-          ? "security scan: no critical/high outside scanner patterns"
-          : `security scan FAIL: ${critical.length} critical/high — ${generateSecurityReport({ ...findings, secrets, vulnerabilities: vulns, crypto: findings.crypto || [], summary: findings.summary })}`,
+        `security scan FAIL: ${blocking.length} critical/high finding(s) — ${report}` +
+        (advisory.length > 0 ? `\n(${advisory.length} medium/low finding(s) reported non-blocking)` : ""),
     };
   } catch (e) {
     return { gate: "security", ok: false, details: `scanner error: ${e.message}` };
@@ -375,10 +451,9 @@ function runEvidenceChecks(state, options) {
   results.push(evidenceBuild(root));
   results.push(evidenceTests(root));
   results.push(evidenceLint(root));
-
-  if (mode === "enterprise" || options?.includeSecurity) {
-    results.push(evidenceSecurity(root));
-  }
+  // Security runs in EVERY mode, not just enterprise: a critical secret in the
+  // workspace must block the core loop too.
+  results.push(evidenceSecurity(root));
 
   results.push(evidenceGitClean(root));
   results.push(evidenceDocsUpdated(root, state));
@@ -450,6 +525,8 @@ function applyEvidenceToGates(state, passGate, failGate, skipGate, options) {
 module.exports = {
   CORE_REQUIRED_GATES,
   DOC_EVIDENCE_PATTERNS,
+  SELF_SCAN_EXCLUSIONS,
+  isSelfScanExcluded,
   runCmd,
   runEvidenceChecks,
   applyEvidenceToGates,
