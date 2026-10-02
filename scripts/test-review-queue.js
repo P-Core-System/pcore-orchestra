@@ -345,6 +345,101 @@ test("a broken review queue never breaks the hook (fail-open)", () => {
   ok(/Quality Gates Report/.test(emitted.additional_context), "the gates report must still be emitted");
 });
 
+// -------------------------------------------------- S1: the queue has a producer
+
+test("phase.outcome `block` — the decision phase-outcome.js really emits — opens the queue", () => {
+  const eventsPath = useStateDir("orchestra-rq-block-");
+  const at = "2026-10-02T08:00:00.000Z";
+  writeEvents(eventsPath, [
+    {
+      id: "e1",
+      kind: "event",
+      type: "phase.outcome",
+      entityId: null,
+      payload: { phase: "verify", decision: "block", reason: "failed-gates" },
+      at,
+      createdAt: at,
+      updatedAt: at,
+      refs: [],
+    },
+  ]);
+  const { pendingReview } = loadQueue();
+  const items = pendingReview();
+  eq(items.length, 1, `a blocked phase must be queued for triage, got ${JSON.stringify(items)}`);
+  eq(items[0].phase, "verify", "the blocked phase must be carried through");
+  eq(items[0].reason, "failed-gates", "the blocking reason must be carried through");
+  eq(items[0].since, at, "since must be the block timestamp");
+});
+
+test("an `advance` after a `block` closes it again", () => {
+  const eventsPath = useStateDir("orchestra-rq-block-advance-");
+  writeEvents(eventsPath, [
+    {
+      id: "e1",
+      kind: "event",
+      type: "phase.outcome",
+      entityId: null,
+      payload: { phase: "verify", decision: "block", reason: "failed-gates" },
+      at: "2026-10-02T08:00:00.000Z",
+      createdAt: "2026-10-02T08:00:00.000Z",
+      updatedAt: "2026-10-02T08:00:00.000Z",
+      refs: [],
+    },
+    {
+      id: "e2",
+      kind: "event",
+      type: "phase.outcome",
+      entityId: null,
+      payload: { phase: "verify", decision: "advance" },
+      at: "2026-10-02T10:00:00.000Z",
+      createdAt: "2026-10-02T10:00:00.000Z",
+      updatedAt: "2026-10-02T10:00:00.000Z",
+      refs: [],
+    },
+  ]);
+  eq(loadQueue().pendingReview().length, 0, "an advance must close the blocked item");
+});
+
+test("every decision phase-outcome.js can emit is classified (queue and needsHuman agree)", () => {
+  const src = fs.readFileSync(path.join(DOMAIN, "..", "phase-outcome.js"), "utf8");
+  const emitted = new Set();
+  for (const m of src.matchAll(/decision:\s*"([a-z_]+)"/g)) emitted.add(m[1]);
+  ok(emitted.size >= 3, `expected the outcome gate's decisions in source, found ${JSON.stringify([...emitted])}`);
+  const queue = loadQueue();
+  ok(queue.OPEN_DECISIONS.has("block"), "needsHuman() treats `block` as needing a person, so the queue must open on it");
+  ok(queue.OPEN_DECISIONS.has("needs_human"), "the prose decision must stay supported");
+  ok(queue.CLOSE_DECISIONS.has("advance"), "an advance closes a queued item");
+  for (const d of emitted) {
+    ok(
+      queue.OPEN_DECISIONS.has(d) || queue.CLOSE_DECISIONS.has(d) || d === "fix",
+      `decision "${d}" is emitted by phase-outcome.js but classified by neither side of the queue — an unclassified decision is an inert feature`
+    );
+  }
+});
+
+test("the queue hook renders a REAL phase.outcome block instead of \"nothing is queued\"", () => {
+  const eventsPath = useStateDir("orchestra-rq-hook-block-outcome-");
+  const stateDir = path.dirname(eventsPath);
+  const sessionId = "rq-block-outcome";
+  seedSession(stateDir, sessionId);
+  // The real producer: the same helper orchestra-subagent-stop.js calls.
+  const domain = require(path.join(DOMAIN, "index.js"));
+  domain.recordPhaseOutcome(
+    { currentPhase: "review", goal: "queue producer" },
+    { phase: "review", decision: "block", reason: "failed-gates", token: null },
+    "orchestra-reviewer"
+  );
+  const out = runGateHook(stateDir, sessionId, "FIX_REQUIRED\nA required gate is red.");
+  eq(out.status, 0, `the hook must still exit 0 (fail-open), got ${out.status}: ${out.stderr}`);
+  const ctx = JSON.parse(out.stdout || "{}").additional_context || "";
+  ok(/^## Human review queue$/m.test(ctx), `expected the queue heading, got:\n${ctx.slice(0, 500)}`);
+  ok(
+    /nothing is queued for triage/.test(ctx) === false,
+    `a blocked phase must produce a queue entry, not the empty-queue line:\n${ctx.slice(0, 500)}`
+  );
+  ok(/review/.test(ctx.split("## Human review queue")[1] || ""), `the blocked phase must be named:\n${ctx.slice(0, 500)}`);
+});
+
 console.log(`review-queue assertions: ${asserts}`);
 
 if (failures > 0) {
