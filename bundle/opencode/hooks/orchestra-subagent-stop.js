@@ -37,6 +37,7 @@ const {
   getWorktreePath,
 } = require("./lib/worktree-manager.js");
 const { canRunInParallel } = require("./lib/orchestra-spawn-matrix.js");
+const { spawn: spawnAdapter, SUPPORTED_HOSTS } = require("./lib/spawn-adapter.js");
 
 // Load agent registry for independence checks
 let agentRegistry = null;
@@ -50,6 +51,52 @@ let recordPhaseOutcome = null;
 try {
   ({ recordPhaseOutcome } = require("./lib/domain/index.js"));
 } catch {}
+
+// MCP server — lazy + guarded for fail-open
+let mcpServer = null;
+try {
+  ({ start: mcpServerStart, stop: mcpServerStop } = require("./lib/mcp-server.js"));
+} catch {}
+
+// Module-level WeakMap to track MCP server instances per runId
+const mcpServerInstances = new WeakMap();
+
+/** Detect host from environment or state. */
+function detectHost(state) {
+  // Check state.host first (explicitly set)
+  if (state?.host && SUPPORTED_HOSTS.includes(state.host)) {
+    return state.host;
+  }
+  // Check environment variables
+  if (process.env.CURSOR_TRACE_ID) return "cursor";
+  if (process.env.OPENCODE_SESSION_ID) return "opencode";
+  if (process.env.CLAUDE_CODE_SESSION_ID) return "claude-code";
+  if (process.env.CODEX_SESSION_ID) return "codex";
+  // Default to cursor for backward compatibility
+  return "cursor";
+}
+
+/** Spawn subagent via adapter with fallback to stdout emission. */
+async function spawnSubagent(agentId, payload, worktreePath, host) {
+  try {
+    const result = await spawnAdapter(agentId, payload, worktreePath, host);
+    // Also emit to stdout for backward compatibility (hosts that don't use adapter)
+    const taskCall = result.result?.taskCall || result.result?.mcpCall;
+    if (taskCall) {
+      process.stdout.write(JSON.stringify(taskCall) + "\n");
+    }
+    return result;
+  } catch (e) {
+    // Fallback: emit raw JSON to stdout (original behavior)
+    const fallbackCall = host === "cursor"
+      ? { tool: "Task", subagent_type: agentId, prompt: JSON.stringify(payload) }
+      : host === "opencode"
+        ? { tool: "task", agent: agentId, prompt: JSON.stringify(payload) }
+        : { jsonrpc: "2.0", method: "tools/call", params: { name: "spawn_subagent", arguments: { agent: agentId, payload: JSON.stringify(payload) } }, id: `spawn-${Date.now()}` };
+    process.stdout.write(JSON.stringify(fallbackCall) + "\n");
+    return { success: false, result: null, error: e.message, artifacts: [] };
+  }
+}
 
 /** Create worktree for a new run if not already created. */
 function ensureWorktree(state) {
@@ -73,6 +120,19 @@ function cleanupWorktree(state) {
   try {
     cleanupRunWorktree(state.runId);
     state.worktreePath = null;
+  } catch {}
+}
+
+/** Stop MCP server and clean up instance tracking. */
+async function cleanupMcpServer(state) {
+  if (!state.runId || !mcpServerStop) return;
+  try {
+    await mcpServerStop(state.runId);
+  } catch {}
+  // Clean up weak map reference
+  try {
+    // WeakMap doesn't have delete by key easily, but the instance will be GC'd
+    // when no longer referenced. The mcp-server.js module manages its own instance.
   } catch {}
 }
 
@@ -155,7 +215,7 @@ function emitConcurrentSpawn(state, nextPhase, nextAgentId, parallelPhase) {
   });
 }
 
-function handleFixRequired(state) {
+async function handleFixRequired(state) {
   const implPhase = getImplementPhaseId(state.loopMode);
   const agentId = "orchestra-implementer";
   state.currentPhase = implPhase;
@@ -181,6 +241,14 @@ function handleFixRequired(state) {
     state.active = false;
     state.currentPhase = "idle";
     saveState(state);
+    
+    // Stop MCP server on max iterations
+    if (state.runId && mcpServerStop) {
+      try {
+        await mcpServerStop(state.runId);
+      } catch {}
+    }
+    
     emit({
       followup_message:
         "Orchestra max iterations reached after FIX_REQUIRED. Report blockers to the user.",
@@ -190,6 +258,16 @@ function handleFixRequired(state) {
 
   startPhaseTimer(state, implPhase, agentId);
   saveState(state);
+  
+  // Spawn implementer via adapter for fix loop
+  const host = detectHost(state);
+  const payload = {
+    goal: state.goal,
+    fixRequired: true,
+    iteration: state.iteration,
+  };
+  await spawnSubagent(agentId, payload, state.worktreePath, host);
+  
   const modeLabel = state.loopMode === LOOP_MODE_ENTERPRISE ? "Enterprise" : "Core";
   emit({
     followup_message:
@@ -228,7 +306,7 @@ function handlePlanOnlyPause(state) {
   return true;
 }
 
-function handlePhaseComplete(state, chain) {
+async function handlePhaseComplete(state, chain) {
   const phases = getPhasesForMode(state.loopMode, state);
   const nextPhase = chain.nextPhase;
   state.currentPhase = nextPhase;
@@ -295,6 +373,8 @@ function handlePhaseComplete(state, chain) {
 
     // Clean up worktree when run completes
     cleanupWorktree(state);
+    // Stop MCP server
+    await cleanupMcpServer(state);
 
     const summary = generateProjectSummary(loadProjectState());
     const modeLabel = state.loopMode === LOOP_MODE_ENTERPRISE ? "Enterprise SDLC" : "Core loop";
@@ -330,6 +410,8 @@ function handlePhaseComplete(state, chain) {
 
     // Clean up worktree on max iterations
     cleanupWorktree(state);
+    // Stop MCP server
+    await cleanupMcpServer(state);
 
     emit({
       followup_message:
@@ -421,10 +503,48 @@ function handlePhaseComplete(state, chain) {
   // Check for parallel phase execution
   const parallelPhase = checkParallelPhases(state, nextPhase, nextAgentId);
   if (parallelPhase) {
+    // Spawn both agents concurrently via adapter
+    const host = detectHost(state);
+    const payload = {
+      goal: state.goal,
+      handoff: enrichedHandoff,
+      commitGate: commitGateBlock,
+      evidence: evidenceBlock,
+    };
+    await Promise.all([
+      spawnSubagent(nextAgentId, payload, state.worktreePath, host),
+      spawnSubagent(parallelPhase.agentId, payload, state.worktreePath, host),
+    ]);
+    // Also emit concurrent spawn message for backward compatibility
     emitConcurrentSpawn(state, nextPhase, nextAgentId, parallelPhase);
     return true;
   }
 
+  // Spawn next agent via adapter
+  const host = detectHost(state);
+  const payload = {
+    goal: state.goal,
+    handoff: enrichedHandoff,
+    commitGate: commitGateBlock,
+    evidence: evidenceBlock,
+  };
+  const spawnResult = await spawnSubagent(nextAgentId, payload, state.worktreePath, host);
+  
+  // Use normalized response to drive phase outcome evaluation
+  if (spawnResult && !spawnResult.success) {
+    // Spawn failed - record and potentially block
+    if (!state.memory) state.memory = { ...DEFAULT_STATE.memory };
+    state.memory.errors = state.memory.errors || [];
+    state.memory.errors.push({
+      phase: nextPhase,
+      agent: nextAgentId,
+      error: spawnResult.error || "Spawn failed",
+      timestamp: new Date().toISOString(),
+    });
+    saveState(state);
+  }
+
+  // Emit followup message for backward compatibility / human visibility
   emit({
     followup_message: [
       `${modeLabel} — ${categoryLabel} Phase: **${phaseLabel}**`,
@@ -540,7 +660,7 @@ async function main() {
     (subagentType === "orchestra-reviewer" || subagentType === "code-reviewer") &&
     reviewerNeedsFix(input)
   ) {
-    if (handleFixRequired(state)) return;
+    if (await handleFixRequired(state)) return;
   }
 
   // Phase outcome gate: end token + green required gates before advancing.
@@ -576,9 +696,9 @@ async function main() {
     return;
   }
 
-  if (outcome.decision === "fix" && handleFixRequired(state)) return;
+  if (outcome.decision === "fix" && (await handleFixRequired(state))) return;
 
-  handlePhaseComplete(state, chain);
+  await handlePhaseComplete(state, chain);
 }
 
 main().catch(() => {
