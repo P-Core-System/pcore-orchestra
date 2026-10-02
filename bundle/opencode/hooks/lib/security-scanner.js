@@ -174,8 +174,8 @@ const SCAN_EXTENSIONS = [
 /** Also scan files with no extension at all (`Dockerfile`, `.env`, `LICENSE`). */
 const SCAN_EXTENSIONLESS = true;
 
-/** Directories never walked — VCS internals and vendored dependencies. */
-const SKIP_DIRS = new Set([".git", "node_modules"]);
+/** Directories never walked — VCS internals, vendored dependencies, and build artifacts. */
+const SKIP_DIRS = new Set([".git", "node_modules", "dist", "build"]);
 
 /** Skip files larger than this (logs, fixtures, minified bundles). */
 const MAX_FILE_BYTES = 512 * 1024;
