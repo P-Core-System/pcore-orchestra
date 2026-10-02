@@ -17,6 +17,7 @@ const entities = require("./entities.js");
 const stateMachine = require("./state-machine.js");
 const completion = require("./completion.js");
 const store = require("./store.js");
+const evidence = require("./evidence.js");
 
 /**
  * Build + persist the `phase.outcome` event for a finished subagent.
@@ -50,11 +51,13 @@ module.exports = Object.assign(
     stateMachine,
     completion,
     store,
+    evidence,
     recordPhaseOutcome,
   },
   constants,
   entities,
   stateMachine,
   completion,
-  store
+  store,
+  evidence
 );
