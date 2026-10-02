@@ -147,6 +147,42 @@ function buildContextInjection(ctx) {
   return lines.join("\n");
 }
 
+/**
+ * Validate six-file context at verify phase.
+ * Returns { files, missing, progressTrackerTouched, foundCount, totalCount, root, contextDir }
+ * progressTrackerTouched = true if progress-tracker.md mtime > claimedAt (from state.memory.progressTrackerClaimedAt)
+ */
+function validateSixFileContext(workspaceRoot, claimedAt) {
+  if (!workspaceRoot) return null;
+  const ctxDir = path.join(workspaceRoot, "context");
+  if (!fs.existsSync(ctxDir)) return null;
+
+  const files = SIX_FILE_CONTEXT.map(({ file }) => {
+    const full = path.join(ctxDir, file);
+    return { file, exists: fs.existsSync(full) };
+  });
+  const found = files.filter((f) => f.exists);
+  const missing = files.filter((f) => !f.exists).map((f) => f.file);
+
+  // Check if progress-tracker.md was touched since claimedAt
+  const trackerPath = path.join(ctxDir, "progress-tracker.md");
+  let progressTrackerTouched = false;
+  if (fs.existsSync(trackerPath) && typeof claimedAt === "number") {
+    const trackerMtime = fs.statSync(trackerPath).mtimeMs;
+    progressTrackerTouched = trackerMtime > claimedAt;
+  }
+
+  return {
+    root: workspaceRoot,
+    contextDir: "context",
+    files,
+    missing,
+    foundCount: found.length,
+    totalCount: SIX_FILE_CONTEXT.length,
+    progressTrackerTouched,
+  };
+}
+
 module.exports = {
   AMBIENT_CONTEXT,
   PARENT_HANDOFF_CONTEXT,
@@ -159,4 +195,5 @@ module.exports = {
   detectProjectYamlInWorkspaces,
   buildProjectYamlInjection,
   detectFullWorkspaceContext,
+  validateSixFileContext,
 };

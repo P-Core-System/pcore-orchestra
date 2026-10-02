@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 "use strict";
 
+const fs = require("node:fs");
+const path = require("node:path");
 const { readStdinJson, emit } = require("./lib/io.js");
 const { saveState, updateState, DEFAULT_STATE } = require("./lib/state-manager.js");
 const {
@@ -22,6 +24,7 @@ const { loadDailyState, saveDailyState, getOrCreateTodayEntry, generateDailySumm
 const { recordPhaseTokens, finalizeRunTokens } = require("./lib/token-tracker.js");
 const { buildPhaseHandoff, buildHandoffEnforcement } = require("./lib/handoff-enforcer.js");
 const { runEvidenceChecks, applyEvidenceToGates } = require("./lib/evidence-runner.js");
+const { validateSixFileContext } = require("./lib/context-detector.js");
 const { saveCheckpoint } = require("./lib/checkpoint-manager.js");
 const { savePlanArtifact, buildPlanHandoffLine } = require("./lib/plan-artifact.js");
 const { writeCycleReport } = require("./lib/cycle-report.js");
@@ -269,6 +272,7 @@ function handlePhaseComplete(state, chain) {
 
   let evidenceBlock = "";
   let evidenceRecords = [];
+  let sixFileValidation = null;
   if (nextPhase === "verify") {
     try {
       const { report, records } = runEvidenceChecks(state);
@@ -276,7 +280,22 @@ function handlePhaseComplete(state, chain) {
       evidenceRecords = records || [];
       if (!state.memory) state.memory = { ...DEFAULT_STATE.memory };
       state.memory.evidence_preflight = report;
-      saveState(state);
+
+      // Six-file context validation at verify entry
+      const workspaceRoot = state.project?.identityFile
+        ? path.dirname(state.project.identityFile)
+        : process.cwd();
+      const claimedAt = state.memory?.progressTrackerClaimedAt || Date.now();
+      sixFileValidation = validateSixFileContext(workspaceRoot, claimedAt);
+      if (sixFileValidation) {
+        state.memory.progressTrackerTouchedAt = Date.now();
+        state.memory.progressTrackerClaimedAt = claimedAt;
+        if (sixFileValidation.missing.length > 0) {
+          if (!state.qualityGates) state.qualityGates = { passed: [], failed: [], skipped: [] };
+          state.qualityGates.missingContext = sixFileValidation.missing;
+        }
+        saveState(state);
+      }
     } catch {}
   }
 
