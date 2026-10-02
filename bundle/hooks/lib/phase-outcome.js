@@ -11,13 +11,25 @@
  *
  * Decision precedence: fix > block > advance.
  *   fix    — verify/review emitted FIX_REQUIRED or VERIFY_FAIL → replay implement.
- *   block  — end token missing (non-empty output) or a required quality gate is
- *            red. Records PHASE_BLOCKED_EVENT and returns a corrective message.
- *            The phase does NOT advance.
- *   advance- token matched (and gates green).
+ *   block  — a required quality gate is red at a gate-enforced phase
+ *            (verify/review), or the end token is missing from non-empty
+ *            output. Records PHASE_BLOCKED_EVENT and returns a corrective
+ *            message. The phase does NOT advance.
+ *   advance- token matched (and, at verify/review, gates green).
+ *
+ * Gate scoping (GATE_ENFORCED_PHASES = verify, review):
+ *   only verify/review re-evaluate evidence, so they are the only phases that
+ *   may block on red gates. plan/implement advance on their own end token even
+ *   while gates stay red — otherwise a red test run deadlocks the fix loop
+ *   (the implementer cannot clear gates and no evidence re-run is reachable).
+ *   Red evidence stays visible in state; nothing is cleared.
+ *
+ * Precedence within a phase: failed-gates is checked BEFORE the empty-output
+ * advance, so silent output can never finish a run with red gates.
  *
  * Deliberate non-blocks (avoid bricking a run):
- *   - empty / absent subagent output → advance + warning (nothing to judge).
+ *   - empty / absent subagent output at a non-gate-enforced phase (or with
+ *     green gates) → advance + warning (nothing to judge).
  *   - enterprise SDLC phases and unknown phases have no token contract →
  *     advance + warning only.
  */
@@ -26,6 +38,7 @@ const { PHASE_END_TOKENS, PHASE_BLOCKED_EVENT, LOOP_MODE_ENTERPRISE } = require(
 
 const OUTPUT_FIELDS = ["summary", "result", "output", "final_text", "text"];
 const FIX_PHASES = new Set(["verify", "review"]);
+const GATE_ENFORCED_PHASES = new Set(["verify", "review"]);
 const FIX_RE = /\b(FIX_REQUIRED|VERIFY_FAIL)\b/i;
 
 /** Join every text field a hook may carry into one blob. */
@@ -98,24 +111,30 @@ function evaluatePhaseOutcome(state, input) {
     return advanceResult(phase, "unenforced-phase", null, warning);
   }
 
-  // 3. nothing to judge → advance with a warning (never brick on silence).
-  if (!blob) {
-    return advanceResult(phase, "empty-output", null, `Subagent returned no output for phase "${phase}" — cannot verify ${expected.join("|")}.`);
+  // 3. required gates must be green before verify/review move on (P0-1).
+  //    Phase-scoped: plan/implement are not gate-enforced — they advance on
+  //    their own end token (verify re-runs evidence on entry; the implementer
+  //    cannot clear gates). Checked BEFORE the empty-output advance below so
+  //    silent output never finishes a run with red gates.
+  if (GATE_ENFORCED_PHASES.has(phase)) {
+    const red = failedGateIds(state.qualityGates);
+    if (red.length > 0) {
+      return blockResult(
+        phase,
+        "failed-gates",
+        expected,
+        [
+          `Orchestra blocked at phase **${phase}** — required quality gate(s) failed: ${red.join(", ")}.`,
+          `Resolve the failures (re-run the checks), then re-run the ${phase} subagent.`,
+          `Expected end token: ${expected.join(" or ")}.`,
+        ].join("\n\n")
+      );
+    }
   }
 
-  // 4. required gates must be green before the loop moves on (P0-1).
-  const red = failedGateIds(state.qualityGates);
-  if (red.length > 0) {
-    return blockResult(
-      phase,
-      "failed-gates",
-      expected,
-      [
-        `Orchestra blocked at phase **${phase}** — required quality gate(s) failed: ${red.join(", ")}.`,
-        `Resolve the failures (re-run the checks), then re-run the ${phase} subagent.`,
-        `Expected end token: ${expected.join(" or ")}.`,
-      ].join("\n\n")
-    );
+  // 4. nothing to judge → advance with a warning (never brick on silence).
+  if (!blob) {
+    return advanceResult(phase, "empty-output", null, `Subagent returned no output for phase "${phase}" — cannot verify ${expected.join("|")}.`);
   }
 
   // 5. end token contract.
