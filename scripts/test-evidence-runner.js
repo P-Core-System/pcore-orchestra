@@ -624,6 +624,18 @@ function plantedSecretRepo() {
   return dir;
 }
 
+test("git-status stays ADVISORY outside a git repo (never a FAIL verdict)", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "orchestra-nogit-status-"));
+  try {
+    const { results } = runner.runEvidenceChecks({ loopMode: "core" }, { cwd: dir });
+    const gs = results.filter((r) => r.gate === "git-status");
+    ok(gs.length === 1, `expected one git-status result, got ${gs.length}`);
+    ok(gs[0].ok === true, `git-status is advisory: a non-repo must not report FAIL (${gs[0].details})`);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("applyEvidenceToGates persists the DOCUMENTED record shape (buildEvidenceRecord wired)", () => {
   const dir = gitFixture({ "src/app.js": "module.exports = 1;\n" });
   try {

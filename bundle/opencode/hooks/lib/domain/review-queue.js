@@ -10,8 +10,16 @@
  * would bypass the lock/quarantine guarantees.
  *
  * Queue rules:
- *   opener  — `review.requested`, or `phase.outcome` with a `needs_human` decision
+ *   opener  — `review.requested`, or `phase.outcome` with a `block` /
+ *             `needs_human` decision
  *   closer  — `review.resolved`, or `phase.outcome` with an `advance` decision
+ *
+ * `block` is an OPENER because that is the decision `phase-outcome.js` really
+ * emits for a red required gate (`advance|block|fix` — it never emits
+ * `needs_human`), and `needsHuman()` in `orchestra-quality-gate.js` already
+ * treats a blocked run as needing a person. With `needs_human` as the only
+ * opener the two disagreed and the queue could never hold anything, so the
+ * human-review feature rendered "nothing is queued for triage" on every run.
  *   key     — `payload.ticketId`, else `entityId`, else `payload.phase`
  *   since   — the opener's `at` (fallback `createdAt`)
  *
@@ -32,7 +40,7 @@ const OPENER_TYPES = new Set(["review.requested"]);
 const CLOSER_TYPES = new Set(["review.resolved"]);
 
 /** phase.outcome decisions that open / close a queue entry. */
-const OPEN_DECISIONS = new Set(["needs_human"]);
+const OPEN_DECISIONS = new Set(["block", "needs_human"]);
 const CLOSE_DECISIONS = new Set(["advance"]);
 
 function isEvent(e) {

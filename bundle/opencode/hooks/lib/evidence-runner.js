@@ -610,9 +610,13 @@ function evidenceGitClean(root) {
   if (r.error) {
     return verdict("git-status", true, "git unavailable in this workspace");
   }
-  return ran(
+  // `derived`, not `ran`: a non-zero exit (not a git repository) is reported,
+  // never turned into a FAIL verdict — git-status is advisory and is skipped
+  // when the gates are applied.
+  return derived(
     "git-status",
     r,
+    true,
     r.stdout ? `dirty:\n${r.stdout.split("\n").slice(0, 20).join("\n")}` : "clean"
   );
 }
