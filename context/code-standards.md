@@ -45,10 +45,17 @@ node scripts/test-adaptive-loop.js
 node scripts/test-domain-model.js
 node scripts/test-domain-completion.js
 node scripts/test-domain-store.js
+node scripts/test-domain-evidence.js
+node scripts/test-domain-state-dir.js
+node scripts/test-evidence-runner.js
+node scripts/test-review-queue.js
+node scripts/test-security-scanner.js
 node scripts/gen-agent-registry.js --check
+node scripts/scan-secrets.js --dir . --fail-on=high
 ```
 
-All must exit 0. `.github/workflows/ci.yml` runs the same list on every PR.
+All must exit 0. `.github/workflows/ci.yml` runs the same list on every PR (the
+secret scan is a required CI step — see invariant 24).
 
 ## Agent markdown
 

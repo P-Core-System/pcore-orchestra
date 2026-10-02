@@ -190,6 +190,12 @@ node scripts/test-adaptive-loop.js            # phase model / adaptive loops
 node scripts/test-domain-model.js             # domain entities + ticket/session state machine
 node scripts/test-domain-completion.js        # claimed-vs-verified completion gate
 node scripts/test-domain-store.js             # domain JSON store + checkpoint + hook append
+node scripts/test-domain-evidence.js          # evidence run records appended on verify/review
+node scripts/test-domain-state-dir.js         # domain state dir stays outside the bundle
+node scripts/test-evidence-runner.js          # diff-derived docs-updated gate, fails closed on git errors
+node scripts/test-review-queue.js             # human-review queue + hook context injection
+node scripts/test-security-scanner.js         # scanner coverage, redaction, blocking CLI
+node scripts/scan-secrets.js --dir . --fail-on=high   # blocking secret scan (CI runs this too)
 ```
 
 All suites run in `.github/workflows/ci.yml` on every PR.
