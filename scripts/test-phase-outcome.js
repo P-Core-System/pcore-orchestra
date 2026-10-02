@@ -112,6 +112,72 @@ check("enterprise phase warns", /enterprise|contract/i.test(entPlan.warning || "
 const unknownCore = evaluatePhaseOutcome(mkState("retrospective"), mkInput("wrapped up"));
 check("unknown core phase -> advance (warning only)", unknownCore.decision === "advance", JSON.stringify(unknownCore));
 
+// --- fix loop 1: gates are phase-scoped (verify/review) -------------------
+const implRedGates = evaluatePhaseOutcome(
+  mkState("implement", { qualityGates: { passed: [], failed: [{ id: "tests", reason: "2 red" }], skipped: [], allRequiredPassed: false } }),
+  mkInput("IMPLEMENT_DONE\nfix committed; evidence re-run pending at verify")
+);
+check(
+  "implement + IMPLEMENT_DONE + red gates -> advance (no fix-loop deadlock)",
+  implRedGates.decision === "advance",
+  JSON.stringify(implRedGates)
+);
+
+const planRedGates = evaluatePhaseOutcome(
+  mkState("plan", { qualityGates: { passed: [], failed: [{ id: "tests" }], skipped: [], allRequiredPassed: false } }),
+  mkInput("PLAN_READY\nEvidence still red from the previous cycle.")
+);
+check("plan + PLAN_READY + red gates -> advance", planRedGates.decision === "advance", JSON.stringify(planRedGates));
+
+const verifyRedGatesStillBlocks = evaluatePhaseOutcome(
+  mkState("verify", { qualityGates: { passed: [], failed: [{ id: "tests" }], skipped: [], allRequiredPassed: false } }),
+  mkInput("VERIFY_PASS")
+);
+check(
+  "verify + VERIFY_PASS + red gates still -> block",
+  verifyRedGatesStillBlocks.decision === "block" && verifyRedGatesStillBlocks.reason === "failed-gates",
+  JSON.stringify(verifyRedGatesStillBlocks)
+);
+
+// --- fix loop 2: failed gates outrank the empty-output advance -------------
+const reviewEmptyObjRed = evaluatePhaseOutcome(
+  mkState("review", { qualityGates: { passed: [], failed: [{ id: "tests", reason: "2 red" }], skipped: [], allRequiredPassed: false } }),
+  {}
+);
+check(
+  "review + red gates + empty output -> block (failed-gates)",
+  reviewEmptyObjRed.decision === "block",
+  JSON.stringify(reviewEmptyObjRed)
+);
+check("empty-output gate block reason = failed-gates", reviewEmptyObjRed.reason === "failed-gates", String(reviewEmptyObjRed.reason));
+
+const reviewWsRed = evaluatePhaseOutcome(
+  mkState("review", { qualityGates: { passed: [], failed: [{ id: "tests" }], skipped: [], allRequiredPassed: false } }),
+  { summary: "   \n\t  " }
+);
+check(
+  "review + red gates + whitespace-only output -> block",
+  reviewWsRed.decision === "block" && reviewWsRed.reason === "failed-gates",
+  JSON.stringify(reviewWsRed)
+);
+
+const verifyEmptyRed = evaluatePhaseOutcome(
+  mkState("verify", { qualityGates: { passed: [], failed: [{ id: "tests" }], skipped: [], allRequiredPassed: false } }),
+  {}
+);
+check(
+  "verify + red gates + empty output -> block",
+  verifyEmptyRed.decision === "block" && verifyEmptyRed.reason === "failed-gates",
+  JSON.stringify(verifyEmptyRed)
+);
+
+const reviewEmptyGreen = evaluatePhaseOutcome(mkState("review"), mkInput(undefined));
+check(
+  "review + clean gates + empty output -> advance (never brick on silence)",
+  reviewEmptyGreen.decision === "advance" && reviewEmptyGreen.reason === "empty-output",
+  JSON.stringify(reviewEmptyGreen)
+);
+
 // passGate must clear a stale failure so a red gate can recover
 const qg = require("../bundle/hooks/lib/quality-gate.js");
 const gateState = { qualityGates: { passed: [], failed: [{ id: "tests", reason: "old" }], skipped: [], allRequiredPassed: false } };
@@ -208,6 +274,30 @@ s = readSession();
 check("C fix routes to implement", s.currentPhase === "implement", s.currentPhase);
 check("C records last_outcome fix", s.last_outcome && s.last_outcome.decision === "fix", JSON.stringify(s.last_outcome));
 
+// C2: the implementer must NOT be dead-locked by the still-red gates —
+// verify re-runs evidence on entry, so implement advances on its own token.
+seed({
+  currentPhase: "implement",
+  iteration: 1,
+  qualityGates: { passed: [], failed: [{ id: "tests", reason: "2 red" }], skipped: [], allRequiredPassed: false },
+});
+out = runHook("orchestra-implementer", "IMPLEMENT_DONE\nfix committed; evidence re-run pending");
+check("C2 exits 0", out.status === 0, out.stderr);
+s = readSession();
+check("C2 implement advances despite red gates (loop converges)", s.currentPhase === "verify", s.currentPhase);
+check("C2 records last_outcome advance", s.last_outcome && s.last_outcome.decision === "advance", JSON.stringify(s.last_outcome));
+
+// C3: verify re-runs evidence, gates go green, the loop keeps moving
+seed({
+  currentPhase: "verify",
+  iteration: 1,
+  qualityGates: { passed: [{ id: "tests" }], failed: [], skipped: [], allRequiredPassed: true },
+});
+out = runHook("orchestra-verifier", "VERIFY_PASS: tests green after re-run");
+check("C3 exits 0", out.status === 0, out.stderr);
+s = readSession();
+check("C3 advanced to review", s.currentPhase === "review", s.currentPhase);
+
 // D: review with failed required gates must not complete (the old P0-1 bug)
 seed({
   currentPhase: "review",
@@ -235,6 +325,37 @@ out = runHook("code-reviewer", "VERIFY_PASS: evidence green");
 check("E exits 0", out.status === 0, out.stderr);
 s = readSession();
 check("E advanced to review", s.currentPhase === "review", s.currentPhase);
+
+// F: FIX_REQUIRED at the iteration cap still records the run + cycle report
+seed({ currentPhase: "review", iteration: 20, max_iterations: 20 });
+out = runHook("orchestra-reviewer", "FIX_REQUIRED: blockers remain but the loop is at cap");
+check("F exits 0", out.status === 0, out.stderr);
+s = readSession();
+check("F at-cap run deactivates", s.active === false && s.currentPhase === "idle", JSON.stringify({ active: s.active, phase: s.currentPhase }));
+check(
+  "F records a max_iterations lifecycle event",
+  Array.isArray(s.lifecycle?.events) && s.lifecycle.events.some((e) => e.type === "max_iterations"),
+  JSON.stringify((s.lifecycle?.events || []).map((e) => e.type))
+);
+const historyPath = path.join(stateDir, "orchestra-history.json");
+const history = fs.existsSync(historyPath) ? JSON.parse(fs.readFileSync(historyPath, "utf8")) : [];
+check(
+  "F records orchestration run (max_iterations)",
+  Array.isArray(history) && history.some((r) => r.outcome === "max_iterations"),
+  JSON.stringify(Array.isArray(history) ? history.map((r) => r.outcome) : history)
+);
+const cyclesIndexPath = path.join(stateDir, "index.json"); // resolveStateDir() flattens to PCORE_STATE_DIR
+const cyclesIndex = fs.existsSync(cyclesIndexPath) ? JSON.parse(fs.readFileSync(cyclesIndexPath, "utf8")) : { cycles: [] };
+check(
+  "F writes a cycle report (max_iterations)",
+  Array.isArray(cyclesIndex.cycles) && cyclesIndex.cycles.some((c) => c.outcome === "max_iterations"),
+  JSON.stringify(cyclesIndex.cycles || [])
+);
+check(
+  "F persists lastCycleReport on the session",
+  s.lastCycleReport && s.lastCycleReport.outcome === "max_iterations" && fs.existsSync(s.lastCycleReport.path),
+  JSON.stringify(s.lastCycleReport)
+);
 
 // no lock / tmp residue anywhere in the harness dir
 const dirty = residue().filter((f) => f.endsWith(".lock") || f.includes(".tmp."));

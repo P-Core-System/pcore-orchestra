@@ -81,6 +81,10 @@ function handleFixRequired(state) {
     emitLifecycleEvent(state, "max_iterations", state.currentPhase, {
       iteration: state.iteration,
     });
+    recordOrchestrationRun(state, "max_iterations");
+    try {
+      writeCycleReport(state, "max_iterations");
+    } catch {}
     state.active = false;
     state.currentPhase = "idle";
     saveState(state);
