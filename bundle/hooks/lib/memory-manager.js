@@ -15,7 +15,7 @@ const {
   retrieveRelevantErrors,
   formatRelevantGoals,
 } = require("./semantic-memory.js");
-const { indexCompletedGoal } = require("./memory-index.js");
+const { indexCompletedGoal, searchMemoryIndex } = require("./memory-index.js");
 const { writeJson, readJsonSafe, resolveStatePath } = require("./safe-write.js");
 
 const MEMORY_PATH = path.join(__dirname, "..", "state", "orchestra-memory.json");
@@ -231,6 +231,7 @@ function buildMemoryContext(memoryState, options) {
   const lines = ["Long-term memory (past orchestration results):"];
 
   if (query.trim()) {
+    // Use semantic-memory.js for content-based recall
     const relevant = retrieveRelevantGoals(
       aggregated.completed_goals,
       query,
@@ -238,6 +239,19 @@ function buildMemoryContext(memoryState, options) {
     );
     const relevantBlock = formatRelevantGoals(relevant);
     if (relevantBlock) lines.push(relevantBlock);
+
+    // Also use memory-index.js for token-based search (cross-session)
+    const indexed = searchMemoryIndex(query, SEMANTIC_RECALL_TOP_K);
+    if (indexed.length > 0) {
+      lines.push("Relevant past goals (index search):");
+      for (const g of indexed) {
+        const lessons =
+          g.lessons?.length > 0 ? ` | lessons: ${g.lessons.slice(0, 2).join("; ")}` : "";
+        lines.push(
+          `  - "${g.goal}" (${g.outcome}, ${Math.round((g.duration_ms || 0) / 1000)}s, score: ${g.score})${lessons}`
+        );
+      }
+    }
 
     const relevantErrors = retrieveRelevantErrors(
       aggregated.error_patterns,
@@ -307,4 +321,5 @@ module.exports = {
   getAggregatedMemory,
   getSessionMemory,
   migrateToSessions,
+  searchMemoryIndex,
 };
