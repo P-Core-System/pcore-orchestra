@@ -644,7 +644,6 @@ async function main() {
     if (WebSocket) {
       const received = [];
       let opened = false;
-      let closedClean = false;
       const ws = new WebSocket(`ws://127.0.0.1:${port}/api/ws`);
       const done = await new Promise((resolve) => {
         const timer = setTimeout(() => resolve("timeout"), 8000);
@@ -687,9 +686,7 @@ async function main() {
           }
         });
         ws.on("error", () => resolve("error"));
-        ws.on("close", () => {
-          closedClean = true;
-        });
+        ws.on("close", () => resolve("closed"));
       });
 
       ok(opened, "client connects to /api/ws", done);
@@ -712,7 +709,6 @@ async function main() {
       } catch {
         /* ignore */
       }
-      void closedClean;
     }
 
     server.child.kill("SIGTERM");
