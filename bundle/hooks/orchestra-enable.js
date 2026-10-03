@@ -8,6 +8,9 @@ const {
   loadLongTermMemory,
   saveLongTermMemory,
   DEFAULT_LONG_TERM_MEMORY,
+  getSessionMemory,
+  getSessionId,
+  getAggregatedMemory,
 } = require("./lib/memory-manager.js");
 const { loadOrchestrationHistory } = require("./lib/history-recorder.js");
 const { printTokenReport } = require("./lib/token-tracker.js");
@@ -21,7 +24,7 @@ function printStatus(state) {
 }
 
 function printMemory() {
-  const mem = loadLongTermMemory();
+  const mem = getAggregatedMemory(loadLongTermMemory());
   console.log("=== Long-term Memory ===");
   console.log(`Completed goals: ${mem.completed_goals.length}`);
   console.log(`Recent files: ${mem.recent_files.length}`);
@@ -38,7 +41,8 @@ const COMMANDS = {
   status() {
     const state = loadState();
     printStatus(state);
-    const ltm = loadLongTermMemory();
+    const sessionId = getSessionId();
+    const ltm = getSessionMemory(loadLongTermMemory(), sessionId);
     console.log(`\nMemory: ${ltm.completed_goals.length} past goals, ${ltm.recent_files.length} tracked files`);
   },
 
@@ -140,7 +144,8 @@ const COMMANDS = {
         console.error('Usage: orchestra-enable.js memory recall "<query>"');
         process.exit(1);
       }
-      const ltm = loadLongTermMemory();
+      const sessionId = getSessionId();
+    const ltm = getSessionMemory(loadLongTermMemory(), sessionId);
       const { retrieveRelevantGoals, retrieveRelevantErrors, formatRelevantGoals } = require("./lib/semantic-memory.js");
       const goals = retrieveRelevantGoals(ltm.completed_goals, query);
       const errors = retrieveRelevantErrors(ltm.error_patterns, query);
