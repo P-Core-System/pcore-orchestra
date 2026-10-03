@@ -20,7 +20,7 @@ const BASE = path.join(ROOT, "bundle", "hooks");
 const MIRROR = path.join(ROOT, "bundle", "opencode", "hooks");
 
 /** Entry scripts allowed to differ; matched by file name anywhere in the tree. */
-const ALLOWED_DIFFS = ["orchestra-health.js", "orchestra-prompt.js"];
+const ALLOWED_DIFFS = ["orchestra-health.js", "orchestra-prompt.js", "orchestra-enable.js"];
 
 /** OpenCode-only entries (no Cursor counterpart); matched by file name. */
 const ALLOWED_MIRROR_ONLY = ["orchestra-health-opencode.js"];
