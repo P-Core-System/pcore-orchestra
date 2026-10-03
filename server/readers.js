@@ -23,8 +23,10 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
+const graphBuilder = require("./graph-builder.js");
+
 /** Canonical phase chain (docs/studio-v2-architecture.md §4). */
-const PHASE_ORDER = ["plan", "implement", "verify", "review"];
+const PHASE_ORDER = graphBuilder.PHASE_ORDER;
 
 /** Board columns — the 10 TICKET_STATES of the WorkItem kanban (spec §4). */
 const TICKET_STATES = [
@@ -163,10 +165,6 @@ function normalizeStatus(status) {
   return "blocked";
 }
 
-function isLiveStatus(status) {
-  return status === undefined || status === null || status === "active" || status === "in_progress";
-}
-
 function readRunFile(key, dir) {
   const parts = String(key || "").split("/");
   if (parts.length < 3) return null;
@@ -283,67 +281,15 @@ function outcomePayloads(run, dir) {
   });
 }
 
-function normalizePhaseState(status) {
-  switch (status) {
-    case "active":
-    case "running":
-      return "running";
-    case "completed":
-      return "completed";
-    case "failed":
-      return "failed";
-    case "blocked":
-      return "blocked";
-    case "pending":
-    case "skipped":
-    case "idle":
-    case undefined:
-    case null:
-      return "idle";
-    default:
-      return "idle";
-  }
-}
-
 /**
- * Phase list for a run. Uses `run.phases` when the run file carries it;
- * otherwise derives the chain from the current phase + `phase.outcome`
- * events (real conductor runs store only `phase` + `status`).
+ * Phase list for a run — delegates to `graph-builder.derivePhases` so the run
+ * timeline (`GET /api/runs/:id`) and the React Flow graph (`.../graph`) share
+ * one derivation instead of two copies. Uses `run.phases` when the run file
+ * carries it; otherwise derives the chain from the current phase plus
+ * `phase.outcome` decisions (real conductor runs store only `phase` + `status`).
  */
 function phasesFor(run, outcomes) {
-  const list = Array.isArray(run && run.phases) ? run.phases : [];
-  if (list.length > 0) {
-    return list.map((phase) => {
-      const p = phase || {};
-      return {
-        name: p.name,
-        state: normalizePhaseState(p.status !== undefined ? p.status : p.state),
-        startedAt: p.startedAt,
-        endedAt: p.completedAt !== undefined ? p.completedAt : p.endedAt,
-        agent: p.agent,
-        tokens: p.tokens,
-      };
-    });
-  }
-
-  const decisions = new Map();
-  for (const outcome of outcomes || []) {
-    if (outcome && outcome.phase) decisions.set(outcome.phase, outcome.decision);
-  }
-  const current = run && typeof run.phase === "string" ? run.phase : null;
-  const currentIndex = PHASE_ORDER.indexOf(current);
-  const live = run ? isLiveStatus(run.status) : false;
-
-  return PHASE_ORDER.map((name, index) => {
-    const decision = decisions.get(name);
-    let state = "idle";
-    if (decision === "advance") state = "completed";
-    else if (decision === "fix") state = "failed";
-    else if (decision === "block") state = "blocked";
-    else if (index === currentIndex) state = live ? "running" : "completed";
-    else if (currentIndex >= 0 && index < currentIndex) state = "completed";
-    return { name, state };
-  });
+  return graphBuilder.derivePhases(run, outcomes);
 }
 
 function gateResults(records) {
@@ -393,10 +339,7 @@ function loadRunDetail(id, dir) {
   const run = loadRun(id, dir);
   if (!run) return null;
   const events = eventsForRun(run, dir);
-  const outcomes = outcomeEvents(run, dir).map((event) => {
-    const payload = payloadOf(event);
-    return Object.assign({}, payload, { at: atIso(event) });
-  });
+  const outcomes = outcomePayloads(run, dir);
   const records = evidenceRecords(run, dir);
 
   return {
@@ -645,6 +588,7 @@ module.exports = {
   loadIndex,
   runIdOfKey,
   normalizeStatus,
+  readRunFile,
   listRuns,
   loadRun,
   loadRunDetail,

@@ -22,6 +22,7 @@ const path = require("node:path");
 const express = require("express");
 
 const readers = require("./readers.js");
+const { buildRunGraph } = require("./graph-builder.js");
 const store = require("../bundle/hooks/lib/domain/store.js");
 const entities = require("../bundle/hooks/lib/domain/entities.js");
 const { ALLOWED_TRANSITIONS } = require("../bundle/hooks/lib/domain/constants.js");
@@ -44,31 +45,6 @@ function allowedTargets(fromState) {
   return edges.map((state) => DOMAIN_TO_BOARD[state] || state);
 }
 
-/** T1 graph payload: phase chain + sequence edges (graph-builder takes over in T2). */
-function buildGraph(run) {
-  const outcomes = readers.outcomePayloads(run);
-  const phases = readers.phasesFor(run, outcomes);
-  const nodes = phases.map((phase, index) => ({
-    id: phase.name,
-    type: "phase",
-    state: phase.state,
-    label: phase.name,
-    data: { startedAt: phase.startedAt, endedAt: phase.endedAt, tokens: phase.tokens },
-    position: { x: index * 260, y: 120 },
-  }));
-  const edges = [];
-  for (let i = 0; i + 1 < phases.length; i += 1) {
-    edges.push({
-      id: `seq-${phases[i].name}-${phases[i + 1].name}`,
-      source: phases[i].name,
-      target: phases[i + 1].name,
-      kind: "sequence",
-      state: phases[i].state,
-    });
-  }
-  return { nodes, edges };
-}
-
 function createApp() {
   const app = express();
   app.disable("x-powered-by");
@@ -88,7 +64,9 @@ function createApp() {
   app.get("/api/runs/:id/graph", (req, res) => {
     const run = readers.loadRun(req.params.id);
     if (!run) return res.status(404).json({ error: "run not found", id: req.params.id });
-    res.json(buildGraph(run));
+    res.json(
+      buildRunGraph(run, readers.evidenceRecords(run), readers.outcomeEvents(run))
+    );
   });
 
   app.get("/api/workitems", (req, res) => {
@@ -197,16 +175,12 @@ function main() {
   const app = createApp();
   const server = http.createServer(app);
 
-  // WS stream (T2). Absent ws.js must not stop the REST server from booting.
+  // WS stream (/api/ws). Present ws.js attaches; an install without it still
+  // serves REST + static. A broken dependency inside ws.js must fail loudly.
   let wsHandle = null;
-  try {
-    const ws = require("./ws.js");
-    if (ws && typeof ws.attachWs === "function") {
-      wsHandle = ws.attachWs(server, { stateDir: readers.stateDir() });
-    }
-  } catch (err) {
-    const missingWsModule = err && err.code === "MODULE_NOT_FOUND" && /ws\.js/.test(String(err.message));
-    if (!missingWsModule) throw err;
+  const wsModule = path.join(__dirname, "ws.js");
+  if (fs.existsSync(wsModule)) {
+    wsHandle = require(wsModule).attachWs(server, { stateDir: readers.stateDir() });
   }
 
   server.listen(port, "127.0.0.1", () => {
