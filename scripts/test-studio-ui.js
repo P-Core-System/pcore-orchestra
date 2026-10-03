@@ -332,13 +332,142 @@ function testClientWiring() {
   has(hook, "return () =>", "useLiveQuery cleans up (closes the socket) on unmount");
 }
 
-// ============================================================== runner (T1+)
+// ================================================ T2 — workflow graph page
+
+/**
+ * Graph fixture (written to os.tmpdir, per repo rule) covering every node
+ * state, all four edge kinds, and an unknown state that must degrade to idle.
+ */
+function writeGraphFixture() {
+  const dir = path.join(os.tmpdir(), `pcore-studio-ui-${process.pid}`);
+  fs.mkdirSync(dir, { recursive: true });
+  const fixture = {
+    nodes: [
+      { id: "phase:plan", type: "phase", state: "completed", label: "plan", position: { x: 0, y: 0 } },
+      { id: "phase:implement", type: "phase", state: "running", label: "implement", position: { x: 260, y: 0 } },
+      { id: "phase:verify", type: "phase", state: "idle", label: "verify", position: { x: 520, y: 0 } },
+      { id: "phase:review", type: "phase", state: "blocked", label: "review", position: { x: 780, y: 0 } },
+      { id: "gate:tests", type: "gate", state: "failed", label: "tests", position: { x: 260, y: 260 } },
+      { id: "agent:impl", type: "agent", state: "running", label: "orchestra-implementer", position: { x: -260, y: 0 } },
+      { id: "phase:legacy", type: "phase", state: "unexpected", label: "legacy", position: { x: 1040, y: 0 } },
+    ],
+    edges: [
+      { id: "e-seq", source: "phase:plan", target: "phase:implement", kind: "sequence" },
+      { id: "e-gate", source: "gate:tests", target: "phase:verify", kind: "gating", state: "failed" },
+      { id: "e-assign", source: "agent:impl", target: "phase:implement", kind: "assignment", state: "running" },
+      { id: "e-fix", source: "phase:review", target: "phase:implement", kind: "fix-loop", state: "blocked" },
+    ],
+  };
+  const file = path.join(dir, "graph-fixture.json");
+  fs.writeFileSync(file, JSON.stringify(fixture, null, 2));
+  return JSON.parse(fs.readFileSync(file, "utf8"));
+}
+
+/** Spec §7 design token expected per node state. */
+const STATE_TOKEN = {
+  idle: "zinc",
+  running: "sky",
+  completed: "emerald",
+  failed: "red",
+  blocked: "amber",
+};
+
+async function testGraphPage() {
+  console.log("\nT2: graph state classes + studio/src/pages/WorkflowPage.tsx (React Flow)");
+
+  const fixture = writeGraphFixture();
+  const styles = await loadTs("lib/graphStyles.ts", tsCache);
+  ok(!!styles, "lib/graphStyles.ts imports (exists, erasable TS only)");
+
+  if (styles) {
+    const keys = Object.keys(styles.NODE_STATE_CLASSES || {}).sort();
+    ok(
+      JSON.stringify(keys) === JSON.stringify(["blocked", "completed", "failed", "idle", "running"]),
+      "NODE_STATE_CLASSES covers exactly the 5 spec states",
+      JSON.stringify(keys)
+    );
+
+    const pulseStates = [];
+    for (const node of fixture.nodes) {
+      const cls = styles.nodeStateClass(node.state);
+      const expected = STATE_TOKEN[styles.nodeState(node.state)];
+      ok(
+        typeof cls === "string" && cls.length > 0 && cls.includes(expected),
+        `fixture node ${node.id} (state=${node.state}) \u2192 class with the §7 "${expected}" token`,
+        cls
+      );
+      if (/pulse/i.test(String(cls))) pulseStates.push(node.id);
+    }
+
+    ok(
+      JSON.stringify(pulseStates) === JSON.stringify(["phase:implement", "agent:impl"]),
+      "pulse animation applies only to running nodes",
+      JSON.stringify(pulseStates)
+    );
+
+    ok(
+      styles.nodeStateClass("unexpected") === styles.nodeStateClass("idle"),
+      "unknown/missing state degrades to the idle class (spec \u00a73, never crashes)"
+    );
+    ok(styles.isKnownState("running") === true, "isKnownState('running') is true");
+    ok(styles.isKnownState("unexpected") === false, "isKnownState('unexpected') is false (stale marker)");
+
+    const gating = fixture.edges.find((e) => e.kind === "gating");
+    const gatingCls = styles.edgeStateClass(gating.state);
+    ok(
+      typeof gatingCls === "string" && gatingCls.includes("red"),
+      "gating edge inherits the failed target state color",
+      gatingCls
+    );
+    ok(
+      typeof styles.edgeStateClass("running") === "string" && styles.edgeStateClass("running").includes("sky"),
+      "sequence edge class tracks the running state color"
+    );
+    const fix = fixture.edges.find((e) => e.kind === "fix-loop");
+    const fixCls = styles.fixLoopEdgeClass(fix.state);
+    ok(
+      typeof fixCls === "string" && /dash/i.test(fixCls) && fixCls.includes("amber"),
+      "fix-loop edge is dashed + amber (visually distinct from sequencing)",
+      fixCls
+    );
+  } else {
+    for (const m of [
+      "NODE_STATE_CLASSES covers exactly the 5 spec states",
+      "fixture nodes map to §7 state tokens",
+      "pulse animation applies only to running nodes",
+      "unknown/missing state degrades to the idle class (spec §3, never crashes)",
+      "gating edge inherits the failed target state color",
+      "fix-loop edge is dashed + amber (visually distinct from sequencing)",
+    ]) {
+      ok(false, m, "lib/graphStyles.ts missing");
+    }
+  }
+
+  const page = read("pages/WorkflowPage.tsx");
+  ok(page !== null, "src/pages/WorkflowPage.tsx exists");
+  has(page, "'@xyflow/react'", "WorkflowPage imports React Flow from @xyflow/react");
+  has(page, "ReactFlow", "WorkflowPage renders <ReactFlow>");
+  has(page, "queryKeys.graph", "WorkflowPage fetches the ['graph', runId] key");
+  has(page, "queryKeys.runs", "WorkflowPage reads ['runs'] for the run selector");
+  has(page, "fetchRunGraph", "WorkflowPage loads GET /api/runs/:id/graph");
+  has(page, "nodeStateClass", "WorkflowPage colors nodes through nodeStateClass");
+  has(page, "fixLoopEdgeClass", "WorkflowPage styles fix-loop edges distinctly");
+  has(page, "onNodeClick", "WorkflowPage binds node click \u2192 side panel (spec J2)");
+  has(page, "Escape", "side panel closes on Escape (spec \u00a73)");
+  has(page, "Gates", "side panel shows the phase gates");
+  has(page, "Evidence", "side panel shows an evidence excerpt");
+  has(page, "Handoff", "side panel shows the handoff digest");
+  has(page, "stale", "unknown state renders with a stale marker (spec \u00a73)");
+  has(page, "<select", "run selector rendered at the top");
+}
+
 
 async function main_() {
   console.log("\n=== Studio v2 UI tests (RED phase) ===");
   await testApiContract();
   await testQueryKeys();
   testClientWiring();
+  await testGraphPage();
 
   console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);
   process.exit(failed > 0 ? 1 : 0);

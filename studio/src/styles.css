@@ -35,3 +35,46 @@ body {
   width: 100%;
   height: 100%;
 }
+/* ---- Studio v2 graph nodes (design spec §3, §7) -------------------------- */
+
+/* Base card for the custom React Flow node; state colors come from the
+   Tailwind token classes in lib/graphStyles.ts (zinc/sky/emerald/red/amber). */
+.studio-node {
+  min-width: 170px;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+.studio-handle {
+  width: 8px;
+  height: 8px;
+  border: 1px solid #09090b;
+}
+
+/* `running` pulse — sky-400 glow; paired with the "Running" label so state
+   is never communicated by color alone (spec §7). */
+@keyframes studio-node-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(56, 189, 248, 0);
+  }
+}
+
+.node-pulse {
+  animation: studio-node-pulse 1.6s ease-in-out infinite;
+}
+
+/* Spec §3: pulse is disabled under prefers-reduced-motion. */
+@media (prefers-reduced-motion: reduce) {
+  .node-pulse {
+    animation: none;
+  }
+}
