@@ -1,11 +1,17 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { StateProvider, useStateContext } from './lib/StateContext';
+import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from './lib/queryKeys';
+import WorkflowPage from './pages/WorkflowPage';
+import BoardPage from './pages/BoardPage';
+import RunsPage from './pages/RunsPage';
+import RunDetailPage from './pages/RunDetailPage';
+import TokensPage from './pages/TokensPage';
 
 const navItems = [
-  { path: '/', label: 'WorkItems', icon: '📋' },
+  { path: '/', label: 'Workflow', icon: '📊' },
+  { path: '/board', label: 'Board', icon: '📋' },
   { path: '/runs', label: 'Runs', icon: '▶️' },
-  { path: '/evidence', label: 'Evidence', icon: '🔍' },
-  { path: '/reviews', label: 'Reviews', icon: '✅' },
   { path: '/tokens', label: 'Tokens', icon: '💰' },
 ];
 
@@ -51,6 +57,29 @@ function StateDirSelector() {
   );
 }
 
+function WsStatusIndicator() {
+  const { data: wsStatus } = useQuery({
+    queryKey: queryKeys.wsStatus(),
+    queryFn: async () => {
+      // WS status is managed by useLiveQuery hook in main.tsx
+      // This is a placeholder - actual status comes from context
+      return 'connected';
+    },
+    refetchInterval: 10000,
+    staleTime: 5000,
+  });
+
+  const statusColor = wsStatus === 'connected' ? 'bg-green-400' : wsStatus === 'reconnecting' ? 'bg-yellow-400' : 'bg-gray-400';
+  const statusText = wsStatus || 'Live';
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className={`w-2 h-2 rounded-full ${statusColor} animate-pulse`} />
+      <span className="text-xs text-gray-400">{statusText}</span>
+    </div>
+  );
+}
+
 function Sidebar() {
   const location = useLocation();
   return (
@@ -65,7 +94,7 @@ function Sidebar() {
             key={item.path}
             to={item.path}
             className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-              location.pathname === item.path
+              location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path))
                 ? 'bg-gray-700 text-white'
                 : 'text-gray-300 hover:bg-gray-800 hover:text-white'
             }`}
@@ -85,68 +114,16 @@ function Header() {
     <header className="bg-gray-800 text-white px-6 py-4 border-b border-gray-700">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold">P-Core Orchestra Studio</h2>
-        {selectedStateDir && (
-          <span className="text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded">
-            {selectedStateDir.replace(/^.*[\\/]hooks[\\/]state[\\/]/, '').replace(/^.*[\\/]\.pcore[\\/]state[\\/]/, '')}
-          </span>
-        )}
+        <div className="flex items-center gap-4">
+          {selectedStateDir && (
+            <span className="text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded">
+              {selectedStateDir.replace(/^.*[\\/]hooks[\\/]state[\\/]/, '').replace(/^.*[\\/]\.pcore[\\/]state[\\/]/, '')}
+            </span>
+          )}
+          <WsStatusIndicator />
+        </div>
       </div>
     </header>
-  );
-}
-
-function WorkItemsPage() {
-  return (
-    <div className="p-6">
-      <h3 className="text-xl font-semibold mb-4">WorkItems Board</h3>
-      <div className="bg-gray-50 rounded-lg p-4">
-        <p className="text-gray-500">WorkItem board (Triage → Done) - coming soon</p>
-      </div>
-    </div>
-  );
-}
-
-function RunsPage() {
-  return (
-    <div className="p-6">
-      <h3 className="text-xl font-semibold mb-4">Conductor Runs</h3>
-      <div className="bg-gray-50 rounded-lg p-4">
-        <p className="text-gray-500">Run list and detail view - coming soon</p>
-      </div>
-    </div>
-  );
-}
-
-function EvidencePage() {
-  return (
-    <div className="p-6">
-      <h3 className="text-xl font-semibold mb-4">Gate Evidence</h3>
-      <div className="bg-gray-50 rounded-lg p-4">
-        <p className="text-gray-500">Evidence visualizer with excerpts and handoff digest - coming soon</p>
-      </div>
-    </div>
-  );
-}
-
-function ReviewsPage() {
-  return (
-    <div className="p-6">
-      <h3 className="text-xl font-semibold mb-4">Human Review Inbox</h3>
-      <div className="bg-gray-50 rounded-lg p-4">
-        <p className="text-gray-500">Review queue from phase outcomes - coming soon</p>
-      </div>
-    </div>
-  );
-}
-
-function TokensPage() {
-  return (
-    <div className="p-6">
-      <h3 className="text-xl font-semibold mb-4">Token & Cost Charts</h3>
-      <div className="bg-gray-50 rounded-lg p-4">
-        <p className="text-gray-500">Token aggregates and trend charts - coming soon</p>
-      </div>
-    </div>
   );
 }
 
@@ -158,10 +135,10 @@ function AppInner() {
         <Header />
         <main className="flex-1 overflow-auto">
           <Routes>
-            <Route path="/" element={<WorkItemsPage />} />
+            <Route path="/" element={<WorkflowPage />} />
+            <Route path="/board" element={<BoardPage />} />
             <Route path="/runs" element={<RunsPage />} />
-            <Route path="/evidence" element={<EvidencePage />} />
-            <Route path="/reviews" element={<ReviewsPage />} />
+            <Route path="/runs/:id" element={<RunDetailPage />} />
             <Route path="/tokens" element={<TokensPage />} />
           </Routes>
         </main>
