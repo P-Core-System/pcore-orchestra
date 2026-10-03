@@ -32,6 +32,7 @@ Cursor Orchestra is a portable, ambient multi-agent workflow for Cursor IDE. It 
 - Max iteration guard (default 8).
 - **Project-type specialist routing**: medium/complex core loops auto-insert the type's missing specialists (product-owner, product-manager, ui-ux-designer, project-manager, architect, type engineers/testers/reviewers) into the plan→implement→verify→review spine based on `project.yaml` `type`.
 - **Corporate tier**: large org / multi-team / program / portfolio signals escalate to coordination + governance agents (agent-selector, project-type-classifier, workflow-orchestrator, per-track scrum-master/project-manager, governance committee, corporate close).
+- **Studio dashboard**: Separate read-only React/Vite app (`studio/`) that visualizes WorkItems, conductor runs, gate evidence, human reviews, and token usage. Discovers global and worktree-partitioned state directories. Installs via `install.sh --studio`, launches via `orchestra-studio` (serves on http://localhost:3000).
 
 ### Context integration
 

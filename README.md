@@ -162,6 +162,54 @@ your-project/
 
 ---
 
+## Orchestra Studio (Dashboard)
+
+A separate read-only React/Vite dashboard that visualizes orchestra runs, WorkItems, gate evidence, human reviews, and token usage.
+
+### Install Studio
+
+```bash
+# Install with Studio (builds dashboard + creates launcher)
+bash install.sh --studio
+
+# Or install Studio separately (requires existing orchestra install)
+bash install.sh --studio --dry-run   # verify flags
+bash install.sh --studio
+```
+
+### Launch Studio
+
+```bash
+# Via launcher (created at ~/.local/bin/orchestra-studio)
+orchestra-studio
+
+# Or manually
+npx serve -l 0 ~/.config/opencode/studio/dist
+# Or Cursor: npx serve -l 0 ~/.cursor/studio/dist
+```
+
+Studio serves on **http://localhost:3000** by default.
+
+### Studio Features
+
+| View | Description |
+|------|-------------|
+| **WorkItems** | Kanban board (Triage → Done) with 10 ticket states |
+| **Runs** | Conductor run list + detail (phases, gates, evidence, handoff, tokens) |
+| **Evidence** | Gate evidence table with search/sort/pagination + detail modal |
+| **Reviews** | Human review inbox from phase outcomes |
+| **Tokens** | Token aggregates by agent/phase + trend charts |
+
+### State Discovery
+
+Studio automatically discovers:
+- **Global state**: `~/.config/opencode/hooks/state/` (or `PCORE_STATE_DIR`)
+- **Worktree state**: `.pcore/state/` in each git worktree (partitioned per run)
+
+Use the sidebar dropdown to switch between state directories.
+
+---
+
 ## Commands
 
 | Command | Effect |
