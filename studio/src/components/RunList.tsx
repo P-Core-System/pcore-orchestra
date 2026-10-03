@@ -1,4 +1,3 @@
-import React from 'react';
 import type { RunEntry } from '../lib/conductorRuns';
 
 interface RunListProps {

@@ -1,4 +1,3 @@
-import React from 'react';
 import type { RunEvidence } from '../lib/conductorRuns';
 
 interface EvidenceDetailProps {
