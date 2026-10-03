@@ -60,6 +60,8 @@ export interface RunGate {
   evidencePointer?: string;
   phase?: string;
   at?: string;
+  exitCode?: number;
+  command?: string;
 }
 
 export interface RunHandoff {
@@ -140,6 +142,7 @@ export interface TokenRow {
   input: number;
   output: number;
   total: number;
+  budget?: number;
 }
 
 export interface TokenAggregates {
