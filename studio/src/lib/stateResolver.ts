@@ -114,4 +114,4 @@ export function resolveStateDirForRun(runId: string, stateDirs: StateDirInfo[]):
   return global?.path;
 }
 
-export { StateDirInfo } from './types';
+export type { StateDirInfo } from './types';

@@ -14,6 +14,13 @@ import type {
   StateDirInfo,
 } from './types';
 
+export type {
+  TokenState,
+  AgentTokens,
+  PhaseTokens,
+  RunTokens,
+} from './types';
+
 const DEFAULT_STATE_DIR = path.join(os.homedir(), '.config', 'opencode', 'hooks', 'state');
 
 function getEnvStateDir(): string {
