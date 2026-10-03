@@ -5,12 +5,16 @@
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -Cursor      # Cursor only
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -OpenCode    # OpenCode only
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -Project     # + project bridge
+#   powershell -ExecutionPolicy Bypass -File install.ps1 -Studio      # install Studio dashboard
+#   powershell -ExecutionPolicy Bypass -File install.ps1 -DryRun      # show what would be installed
 param(
   [switch]$All,
   [switch]$Cursor,
   [switch]$OpenCode,
   [switch]$Project,
-  [switch]$SkipOpenCodeUpgrade
+  [switch]$SkipOpenCodeUpgrade,
+  [switch]$Studio,
+  [switch]$DryRun
 )
 
 $ErrorActionPreference = "Stop"
@@ -262,12 +266,73 @@ function Install-OpenCode {
   Write-Host "  OpenCode skills:  $OpenCodeDir\skills\ (orchestra-loop + UI + Cloudflare)"
   Write-Host "  OpenCode state:   $OpenCodeDir\state\orchestra.json"
   Write-Host "  OpenCode autonomy:$OpenCodeDir\opencode.json (permission + agents; mcp preserved)"
-  Write-Host "  OpenCode CLI:     opencode --version � restart desktop app after upgrade"
+  Write-Host "  OpenCode CLI:     opencode --version - restart desktop app after upgrade"
+}
+
+###############################################################################
+# Studio installation
+###############################################################################
+function Install-Studio {
+  Write-Host "==> Installing Orchestra Studio"
+
+  # Build studio
+  Write-Host "  Building Studio..."
+  Push-Location (Join-Path $Root "studio")
+  npm ci
+  npm run build
+  Pop-Location
+
+  # Copy dist to Cursor and OpenCode
+  $cursorStudioDist = Join-Path $CursorDir "studio\dist"
+  $opencodeStudioDist = Join-Path $OpenCodeDir "studio\dist"
+  if (Test-Path $cursorStudioDist) { Remove-Item $cursorStudioDist -Recurse -Force }
+  if (Test-Path $opencodeStudioDist) { Remove-Item $opencodeStudioDist -Recurse -Force }
+  $null = robocopy (Join-Path $Root "studio\dist") $cursorStudioDist /E /NDL /NJH /NJS /NP
+  $null = robocopy (Join-Path $Root "studio\dist") $opencodeStudioDist /E /NDL /NJH /NJS /NP
+
+  # Create launcher script
+  $localBin = Join-Path $env:USERPROFILE ".local\bin"
+  if (-not (Test-Path $localBin)) { New-Item -ItemType Directory -Force -Path $localBin | Out-Null }
+  
+  $launcherPath = Join-Path $localBin "orchestra-studio.ps1"
+  $launcherContent = @'
+#!/usr/bin/env pwsh
+# Orchestra Studio launcher (PowerShell)
+# Starts the Studio dashboard via npx serve
+
+$distDir = if ($env:OPENCODE_CONFIG_DIR) { Join-Path $env:OPENCODE_CONFIG_DIR "studio\dist" } else { Join-Path $env:USERPROFILE ".config\opencode\studio\dist" }
+if (-not (Test-Path $distDir)) {
+  $distDir = if ($env:CURSOR_HOME) { Join-Path $env:CURSOR_HOME "studio\dist" } else { Join-Path $env:USERPROFILE ".cursor\studio\dist" }
+}
+
+if (-not (Test-Path $distDir)) {
+  Write-Error "ERROR: Studio not installed. Run 'powershell -File install.ps1 -Studio' first."
+  exit 1
+}
+
+Set-Location $distDir
+Write-Host "Starting Orchestra Studio at http://localhost:3000"
+Write-Host "Press Ctrl+C to stop"
+npx serve -l 0
+'@
+  Set-Content -Path $launcherPath -Value $launcherContent -Encoding UTF8
+  Write-Host "  Launcher:        $localBin\orchestra-studio.ps1"
+  Write-Host "  Studio dist:     $CursorDir\studio\dist (Cursor)"
+  Write-Host "  Studio dist:     $OpenCodeDir\studio\dist (OpenCode)"
 }
 
 ###############################################################################
 # Main
 ###############################################################################
+if ($DryRun) {
+  Write-Host "DRY RUN: Would install:"
+  if ($Cursor) { Write-Host "  - Cursor" }
+  if ($OpenCode) { Write-Host "  - OpenCode" }
+  if ($Project) { Write-Host "  - Project bridge" }
+  if ($Studio) { Write-Host "  - Studio dashboard" }
+  exit 0
+}
+
 if ($Cursor) { Install-Cursor }
 if ($OpenCode) { Install-OpenCode }
 
@@ -278,6 +343,8 @@ if ($Project) {
   Copy-Item (Join-Path $Root "project-bridge\hooks.json") (Join-Path $RepoRoot ".cursor\hooks.json") -Force
   Copy-Item (Join-Path $Root "project-bridge\hooks\bridge.js") (Join-Path $RepoRoot ".cursor\hooks\bridge.js") -Force
 }
+
+if ($Studio) { Install-Studio }
 
 # Health checks
 Write-Host ""
@@ -304,6 +371,9 @@ if ($OpenCode) {
 if ($Cursor) {
   Write-Host "  Autonomy: Settings ? Agents ? Approvals ? Auto-review"
   Write-Host "            Docs: docs/autonomous-workflow.md"
+}
+if ($Studio) {
+  Write-Host "  Studio:   $localBin\orchestra-studio.ps1 (starts on http://localhost:3000)"
 }
 
 # Repo scoping (cross-tool ignore files)

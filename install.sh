@@ -8,6 +8,8 @@
 #   bash install.sh --project    # also install project bridge in current repo
 #   bash install.sh --all --project
 #   bash install.sh --skip-opencode-upgrade   # skip npm/bun OpenCode CLI upgrade
+#   bash install.sh --studio     # install Studio dashboard (build + launcher)
+#   bash install.sh --all --studio
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -21,6 +23,8 @@ INSTALL_OPENCODE=0
 INSTALL_PROJECT=0
 SKIP_OPENCODE_UPGRADE=0
 INSTALL_MCP=0
+INSTALL_STUDIO=0
+DRY_RUN=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -29,10 +33,12 @@ while [[ $# -gt 0 ]]; do
     --opencode)   INSTALL_OPENCODE=1; shift ;;
     --project)    INSTALL_PROJECT=1; shift ;;
     --mcp)        INSTALL_MCP=1; shift ;;
+    --studio)     INSTALL_STUDIO=1; shift ;;
+    --dry-run)    DRY_RUN=1; shift ;;
     --skip-opencode-upgrade) SKIP_OPENCODE_UPGRADE=1; shift ;;
     -h|--help)
       cat <<'HELP'
-Usage: bash install.sh [--all|--cursor|--opencode] [--project] [--mcp] [--skip-opencode-upgrade]
+Usage: bash install.sh [--all|--cursor|--opencode] [--project] [--mcp] [--studio] [--dry-run] [--skip-opencode-upgrade]
 
 Options:
   --all        Install for both Cursor and OpenCode (default)
@@ -40,6 +46,8 @@ Options:
   --opencode   Install for OpenCode CLI only
   --project    Also install project bridge (.cursor/) in current repo
   --mcp        Install MCP server dependencies (npm install @modelcontextprotocol/sdk)
+  --studio     Install Studio dashboard (build + launcher)
+  --dry-run    Show what would be installed without making changes
   --skip-opencode-upgrade  Skip upgrading OpenCode CLI to latest (npm/bun)
 
 OpenCode: upgrades CLI via scripts/ensure-opencode-latest.sh unless skipped.
@@ -391,8 +399,64 @@ GITEOF
 }
 
 ###############################################################################
+# Studio installation
+###############################################################################
+install_studio() {
+  echo "==> Installing Orchestra Studio"
+
+  # Build studio
+  echo "  Building Studio..."
+  (cd "$ROOT/studio" && npm ci && npm run build)
+
+  # Copy dist to Cursor and OpenCode
+  mkdir -p "$CURSOR/studio"
+  mkdir -p "$OPENCODE/studio"
+  rm -rf "$CURSOR/studio/dist"
+  rm -rf "$OPENCODE/studio/dist"
+  cp -rf "$ROOT/studio/dist" "$CURSOR/studio/"
+  cp -rf "$ROOT/studio/dist" "$OPENCODE/studio/"
+
+  # Create launcher script
+  mkdir -p "$HOME/.local/bin"
+  cat > "$HOME/.local/bin/orchestra-studio" <<'LAUNCHER'
+#!/usr/bin/env bash
+# Orchestra Studio launcher
+# Starts the Studio dashboard via npx serve
+
+DIST_DIR="${OPENCODE_CONFIG_DIR:-$HOME/.config/opencode}/studio/dist"
+if [[ ! -d "$DIST_DIR" ]]; then
+  DIST_DIR="${CURSOR_HOME:-$HOME/.cursor}/studio/dist"
+fi
+
+if [[ ! -d "$DIST_DIR" ]]; then
+  echo "ERROR: Studio not installed. Run 'bash install.sh --studio' first."
+  exit 1
+fi
+
+cd "$DIST_DIR"
+echo "Starting Orchestra Studio at http://localhost:3000"
+echo "Press Ctrl+C to stop"
+exec npx serve -l 0
+LAUNCHER
+  chmod +x "$HOME/.local/bin/orchestra-studio"
+  echo "  Launcher:        ~/.local/bin/orchestra-studio"
+  echo "  Studio dist:     $CURSOR/studio/dist (Cursor)"
+  echo "  Studio dist:     $OPENCODE/studio/dist (OpenCode)"
+}
+
+###############################################################################
 # Main
 ###############################################################################
+if [[ "$DRY_RUN" -eq 1 ]]; then
+  echo "DRY RUN: Would install:"
+  [[ "$INSTALL_CURSOR" -eq 1 ]] && echo "  - Cursor"
+  [[ "$INSTALL_OPENCODE" -eq 1 ]] && echo "  - OpenCode"
+  [[ "$INSTALL_PROJECT" -eq 1 ]] && echo "  - Project bridge"
+  [[ "$INSTALL_MCP" -eq 1 ]] && echo "  - MCP server"
+  [[ "$INSTALL_STUDIO" -eq 1 ]] && echo "  - Studio dashboard"
+  exit 0
+fi
+
 if [[ "$INSTALL_CURSOR" -eq 1 ]]; then
   install_cursor
 fi
@@ -403,6 +467,10 @@ fi
 
 if [[ "$INSTALL_PROJECT" -eq 1 ]]; then
   install_project_bridge
+fi
+
+if [[ "$INSTALL_STUDIO" -eq 1 ]]; then
+  install_studio
 fi
 
 # Repo scoping (always install — benefits all tools on the device)
@@ -436,6 +504,9 @@ if [[ "$INSTALL_OPENCODE" -eq 1 ]]; then
 fi
 if [[ "$INSTALL_MCP" -eq 1 ]]; then
   echo "  MCP server:     @modelcontextprotocol/sdk installed; mcp-server.js in hooks/lib/"
+fi
+if [[ "$INSTALL_STUDIO" -eq 1 ]]; then
+  echo "  Studio dashboard: ~/.local/bin/orchestra-studio (starts on http://localhost:3000)"
 fi
 echo "  Repo scoping:    ~/.local/bin/setup-repo-scoping.sh (run on any repo)"
 echo "  Maintenance:    ~/.local/bin/opencode-maintenance.sh --apply (clean DB/logs)"
