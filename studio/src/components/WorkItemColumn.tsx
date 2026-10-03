@@ -1,4 +1,3 @@
-import React from 'react';
 import { WorkItemCard } from './WorkItemCard';
 import type { WorkItemColumn, TicketState } from '../lib/workItems';
 

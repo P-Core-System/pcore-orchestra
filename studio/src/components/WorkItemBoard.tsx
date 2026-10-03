@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { WorkItemColumn } from './WorkItemColumn';
-import { buildBoardColumns, TICKET_STATES, type WorkItemColumn as WorkItemColumnType, type BoardData } from '../lib/workItems';
+import { buildBoardColumns, TICKET_STATES, type WorkItemColumn as WorkItemColumnType } from '../lib/workItems';
 import type { DomainEvent } from '../lib/types';
 
 interface WorkItemBoardProps {
@@ -16,7 +16,7 @@ export function WorkItemBoard({ events, filter }: WorkItemBoardProps) {
     // For now, use the basic buildBoardColumns - filtering can be enhanced
     const columns = buildBoardColumns(events, filter);
     const totalItems = columns.reduce((sum, col) => sum + col.count, 0);
-    return { columns, totalItems };
+    return { columns, totalItems } as { columns: WorkItemColumnType[]; totalItems: number };
   }, [events, filter]);
 
   return (

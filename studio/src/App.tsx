@@ -1,5 +1,5 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
-import { StateProvider, useStateContext, StateDirInfo } from './lib/StateContext';
+import { StateProvider, useStateContext } from './lib/StateContext';
 
 const navItems = [
   { path: '/', label: 'WorkItems', icon: '📋' },

@@ -1,5 +1,4 @@
-import React from 'react';
-import type { RunDetail, RunPhase, RunGate, RunEvidence, RunHandoff } from '../lib/conductorRuns';
+import type { RunDetail, RunPhase, RunGate, RunEvidence } from '../lib/conductorRuns';
 
 interface RunDetailProps {
   run: RunDetail | null;

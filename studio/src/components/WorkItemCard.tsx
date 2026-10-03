@@ -1,4 +1,3 @@
-import React from 'react';
 import type { WorkItem } from '../lib/workItems';
 
 interface WorkItemCardProps {

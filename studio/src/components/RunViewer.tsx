@@ -1,4 +1,3 @@
-import React from 'react';
 import { useRunPolling } from '../hooks/useRunPolling';
 import { RunList } from './RunList';
 import { RunDetail } from './RunDetail';
