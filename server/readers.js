@@ -568,12 +568,6 @@ function getTokenAggregates(dir) {
   };
 }
 
-/** Per-run token rollup for the run detail payload. */
-function tokensForRun(runId, dir) {
-  const row = getTokenAggregates(dir).byRun.find((r) => r.runId === runId);
-  return row ? { input: row.input, output: row.output, total: row.total } : undefined;
-}
-
 module.exports = {
   PHASE_ORDER,
   TICKET_STATES,
@@ -602,5 +596,4 @@ module.exports = {
   deriveWorkItems,
   getWorkItems,
   getTokenAggregates,
-  tokensForRun,
 };
