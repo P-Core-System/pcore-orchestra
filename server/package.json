@@ -1,0 +1,19 @@
+{
+  "name": "pcore-orchestra-studio-server",
+  "version": "1.0.0",
+  "description": "Studio v2 backend: read-only Express + ws API over hook state (docs/studio-v2-architecture.md)",
+  "private": true,
+  "main": "studio-api.js",
+  "scripts": {
+    "start": "node studio-api.js --port 3110",
+    "test": "node ../scripts/test-studio-server.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "ws": "^8.22.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT"
+}

@@ -19,3 +19,6 @@ bundle/opencode/hooks/state/orchestra.json
 bundle/opencode/hooks/state/domain-*.json
 bundle/opencode/hooks/lib/state/
 .pcore/
+
+# Studio v2 server deps (commit package.json + package-lock.json only)
+server/node_modules/
