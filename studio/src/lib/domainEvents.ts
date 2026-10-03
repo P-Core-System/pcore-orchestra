@@ -17,6 +17,15 @@ import type {
   StateDirInfo,
 } from './types';
 
+export type {
+  DomainEvent,
+  EvidenceRunEvent,
+  PhaseOutcomeEvent,
+  ReviewEvent,
+  TicketEvent,
+  WorkItem,
+} from './types';
+
 const DEFAULT_STATE_DIR = path.join(os.homedir(), '.config', 'opencode', 'hooks', 'state');
 
 function getEnvStateDir(): string {
@@ -151,7 +160,11 @@ export function getWorkItemsByRun(runId: string, stateDir?: string): WorkItem[] 
   const allWorkItems = getWorkItems(stateDir);
   // Filter work items that belong to this run (via phase.outcome events)
   const phaseOutcomes = getPhaseOutcomes(runId, stateDir);
-  const runTicketIds = new Set(phaseOutcomes.map((p) => p.data.ticketId).filter(Boolean) as string[]);
+  const runTicketIds = new Set(
+    phaseOutcomes
+      .map((p) => (p.data as Record<string, unknown>).ticketId as string | undefined)
+      .filter(Boolean) as string[]
+  );
   
   if (runTicketIds.size === 0) return allWorkItems; // If no ticketIds in phase outcomes, return all
   

@@ -51,4 +51,4 @@ export function useStateContext(): StateContextValue {
   return context;
 }
 
-export { StateDirInfo } from './stateResolver';
+export type { StateDirInfo } from './stateResolver';

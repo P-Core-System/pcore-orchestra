@@ -12,6 +12,11 @@ import type {
   StateDirInfo,
 } from './types';
 
+export type {
+  CycleReport,
+  CyclePhase,
+} from './types';
+
 const DEFAULT_STATE_DIR = path.join(os.homedir(), '.config', 'opencode', 'hooks', 'state');
 
 function getEnvStateDir(): string {
@@ -69,7 +74,7 @@ export function loadHistoryFromPath(historyPath: string): CycleReport[] {
 export function getRecentRuns(limit: number, stateDir?: string): CycleReport[] {
   const history = loadHistory(stateDir);
   return history
-    .sort((a, b) => b.timestamp - a.timestamp)
+    .sort((a, b) => b.startedAt - a.startedAt)
     .slice(0, limit);
 }
 

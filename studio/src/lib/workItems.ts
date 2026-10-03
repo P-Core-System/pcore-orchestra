@@ -5,6 +5,8 @@
 
 import type { WorkItem, TicketState, DomainEvent } from './types';
 
+export type { WorkItem, TicketState } from './types';
+
 export const TICKET_STATES: TicketState[] = [
   'TRIAGE',
   'READY',
