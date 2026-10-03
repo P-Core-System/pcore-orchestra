@@ -8,8 +8,9 @@
  *   routes per docs/studio-v2-design-spec.md §6, binds 127.0.0.1 only,
  *   serves studio/dist as an SPA, PATCH /api/workitems/:id appends through
  *   store.appendEvent (a fs preload blocks any raw write to domain-events.json).
- * T2 (added later, RED first) — server/graph-builder.js pure buildRunGraph +
- *   server/ws.js /api/ws event stream on fs.watch (500ms debounce).
+ * T2 — server/graph-builder.js pure buildRunGraph (phase chain + gate
+ *   children + fix-loop) and server/ws.js /api/ws stream on fs.watch
+ *   (500ms debounce).
  *
  * Fixture state lives in a temp dir behind PCORE_STATE_DIR; the server process
  * is spawned (never required in-process) so bindings and write paths are real.
@@ -357,6 +358,8 @@ async function main() {
   }
   ok(fs.existsSync(ENTRY), "server/studio-api.js exists");
   ok(fs.existsSync(path.join(SERVER_DIR, "readers.js")), "server/readers.js exists");
+  ok(fs.existsSync(path.join(SERVER_DIR, "graph-builder.js")), "server/graph-builder.js exists");
+  ok(fs.existsSync(path.join(SERVER_DIR, "ws.js")), "server/ws.js exists");
 
   // ------------------------------------------------ Test 2: spawn + bind
   console.log("\nTest 2: spawn on port 0 and loopback bind");
@@ -557,11 +560,166 @@ async function main() {
     ok(!/["']fs["']/.test(joined) || sources.every((s) => !/require\(["']node:fs["']\)\s*\.\s*write/.test(s.text)), "no fs.<write> chain");
     ok(/readFileSync|existsSync|readdirSync|watch\(/.test(joined), "sources read state (read-only adapters)");
 
+    // ------------------------------------------------ Test 11: graph builder
+    console.log("\nTest 11: buildRunGraph (pure function, T2)");
+    let buildRunGraph = null;
+    try {
+      ({ buildRunGraph } = require(path.join(SERVER_DIR, "graph-builder.js")));
+    } catch (err) {
+      ok(false, "server/graph-builder.js loads", err.message);
+    }
+    if (typeof buildRunGraph === "function") {
+      const run = JSON.parse(fs.readFileSync(path.join(stateDir, "conductor-runs", "pcore-orchestra", "sess-1", "abc123def456.json"), "utf8"));
+      const events = readEvents(stateDir);
+      const evidenceEvent = events.find((e) => e.type === "evidence.run");
+      const outcomes = events.filter((e) => e.type === "phase.outcome");
+      const evidence = evidenceEvent ? evidenceEvent.payload.records : [];
+
+      let g1 = null;
+      let g2 = null;
+      try {
+        g1 = buildRunGraph(run, evidence, outcomes);
+        g2 = buildRunGraph(run, evidence, outcomes);
+      } catch (err) {
+        ok(false, "buildRunGraph does not throw on the fixture", err.message);
+      }
+      if (g1) {
+        ok(JSON.stringify(g1) === JSON.stringify(g2), "deterministic: same inputs -> same graph");
+        const phaseNodes = g1.nodes.filter((n) => n.type === "phase");
+        ok(phaseNodes.length === 4, "4 phase nodes", phaseNodes.length);
+        ok(JSON.stringify(phaseNodes.map((n) => n.id)) === JSON.stringify(PHASES), "phase chain plan->review", JSON.stringify(phaseNodes.map((n) => n.id)));
+        const reviewNode = phaseNodes.find((n) => n.id === "review");
+        ok(reviewNode && reviewNode.state === "running", "review phase is running (active)", reviewNode && reviewNode.state);
+        const gateNodes = g1.nodes.filter((n) => n.type === "gate");
+        ok(gateNodes.length === evidence.length, "one gate node per evidence record", `${gateNodes.length} vs ${evidence.length}`);
+        ok(
+          gateNodes.some((n) => n.label === "tests" && n.state === "completed") &&
+            gateNodes.some((n) => n.label === "secrets" && n.state === "failed"),
+          "gate node states mirror evidence ok flags",
+          JSON.stringify(gateNodes.map((n) => [n.label, n.state]))
+        );
+        const gating = g1.edges.filter((e) => e.kind === "gating");
+        ok(gating.length === evidence.length, "one gating edge per gate", gating.length);
+        ok(gating.every((e) => e.source.startsWith("gate:") && phaseNodes.some((p) => p.id === e.target)), "gating edges point gate -> phase", JSON.stringify(gating));
+        const sequence = g1.edges.filter((e) => e.kind === "sequence");
+        ok(sequence.length === 3, "3 sequence edges for the chain", sequence.length);
+        const fixEdges = g1.edges.filter((e) => e.kind === "fix-loop");
+        ok(fixEdges.length >= 1, "fix outcome emits a fix-loop edge", JSON.stringify(fixEdges));
+        ok(
+          fixEdges.some((e) => e.source === "review" && e.target === "implement"),
+          "fix-loop runs review -> implement",
+          JSON.stringify(fixEdges)
+        );
+        const assignment = g1.edges.filter((e) => e.kind === "assignment");
+        ok(assignment.length >= 1, "assignment edge for the active agent", JSON.stringify(assignment));
+        ok(g1.nodes.some((n) => n.type === "agent"), "agent node present", JSON.stringify(g1.nodes.filter((n) => n.type === "agent").map((n) => n.id)));
+
+        // partial / unknown state never throws
+        try {
+          const empty = buildRunGraph({ id: "x" }, [], []);
+          ok(empty && Array.isArray(empty.nodes) && empty.nodes.length === 4, "partial run degrades to 4 idle phases", JSON.stringify(empty && empty.nodes.map((n) => n.state)));
+          ok(empty.nodes.every((n) => n.state === "idle"), "missing state -> idle", JSON.stringify(empty.nodes.map((n) => n.state)));
+        } catch (err) {
+          ok(false, "buildRunGraph tolerates partial state", err.message);
+        }
+      }
+
+      // the HTTP graph route must be backed by the builder
+      const live = await request(port, "GET", `/api/runs/${encodeURIComponent(RUN1)}/graph`);
+      if (live.json && Array.isArray(live.json.nodes)) {
+        const gates = live.json.nodes.filter((n) => n.type === "gate");
+        ok(gates.length === 2, "graph route includes gate nodes", gates.length);
+        ok(live.json.edges.some((e) => e.kind === "fix-loop"), "graph route includes the fix-loop edge", JSON.stringify(live.json.edges));
+      }
+    }
+
+    // --------------------------------------------------- Test 12: /api/ws
+    console.log("\nTest 12: WS /api/ws event stream (T2)");
+    let WebSocket = null;
+    try {
+      WebSocket = require(path.join(SERVER_DIR, "node_modules", "ws"));
+    } catch (err) {
+      ok(false, "ws module resolvable from server/node_modules", err.message);
+    }
+    if (WebSocket) {
+      const received = [];
+      let opened = false;
+      let closedClean = false;
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/api/ws`);
+      const done = await new Promise((resolve) => {
+        const timer = setTimeout(() => resolve("timeout"), 8000);
+        ws.on("open", () => {
+          opened = true;
+          // 1) hook-shaped write: new evidence event (pass + fail records)
+          writeStateFile(path.join(stateDir, "domain-events.json"), readEvents(stateDir).concat([
+            {
+              id: "ev-evidence-2",
+              kind: "event",
+              type: "evidence.run",
+              entityId: RUN1,
+              at: new Date().toISOString(),
+              payload: {
+                runId: RUN1,
+                phase: "review",
+                records: [
+                  { gate: "lint", ok: true, exitCode: 0, phase: "review" },
+                  { gate: "build", ok: false, exitCode: 2, phase: "review" },
+                ],
+              },
+            },
+          ]));
+          // 2) hook-shaped write: run file phase change
+          const runPath = path.join(stateDir, "conductor-runs", "pcore-orchestra", "sess-1", "abc123def456.json");
+          const runDoc = JSON.parse(fs.readFileSync(runPath, "utf8"));
+          runDoc.phase = "implement";
+          writeStateFile(runPath, runDoc);
+        });
+        ws.on("message", (raw) => {
+          try {
+            received.push(JSON.parse(String(raw)));
+          } catch {
+            received.push({ type: "unparsable", raw: String(raw).slice(0, 80) });
+          }
+          const types = received.map((m) => m.type);
+          if (types.includes("gate.passed") && types.includes("gate.failed") && types.includes("phase.started")) {
+            clearTimeout(timer);
+            resolve("enough");
+          }
+        });
+        ws.on("error", () => resolve("error"));
+        ws.on("close", () => {
+          closedClean = true;
+        });
+      });
+
+      ok(opened, "client connects to /api/ws", done);
+      ok(["enough", "timeout"].includes(done), "socket stayed open while events arrived", done);
+      const types = received.map((m) => m.type);
+      ok(types.includes("gate.passed"), "gate.passed pushed on passing evidence", JSON.stringify(types));
+      ok(types.includes("gate.failed"), "gate.failed pushed on failing evidence", JSON.stringify(types));
+      ok(types.includes("phase.started"), "phase.started pushed on run phase change", JSON.stringify(types));
+      const gateMsg = received.find((m) => m.type === "gate.passed");
+      if (gateMsg) {
+        ok(gateMsg.runId === RUN1, "event carries runId", gateMsg.runId);
+        ok(gateMsg.gate === "lint", "event carries gate id", gateMsg.gate);
+        ok(typeof gateMsg.at === "string", "event carries at", gateMsg.at);
+      }
+      const phaseMsg = received.find((m) => m.type === "phase.started");
+      if (phaseMsg) ok(phaseMsg.phase === "implement", "phase.started carries the new phase", phaseMsg.phase);
+      ok(received.every((m) => m.type && m.type !== "unparsable"), "every WS frame parses as JSON", JSON.stringify(received.filter((m) => m.type === "unparsable")));
+      try {
+        ws.close();
+      } catch {
+        /* ignore */
+      }
+      void closedClean;
+    }
+
     server.child.kill("SIGTERM");
     await sleep(200);
     if (server.child.exitCode === null) server.child.kill("SIGKILL");
   } else {
-    ok(false, "route assertions skipped — server never started (see Test 2)", spawnError);
+    ok(false, "route/graph/WS assertions skipped — server never started (see Test 2)", spawnError);
   }
 
   try {
