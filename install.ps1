@@ -250,13 +250,52 @@ function Install-OpenCode {
   node (Join-Path $Root "scripts\merge-autonomy-config.js") --opencode --opencode-home $OpenCodeDir
 
   # Weekly free-model schedule (Windows has no systemd — schtasks Monday 04:17)
+  # schtasks cannot parse a spaced repo path inside /TR ("D:/Learning Web ..." →
+  # "Invalid argument/option - 'Web'"), so schedule a no-space wrapper script
+  # instead. The wrapper runs the repo script via its WSL /mnt/<drive>/ path
+  # (WSL bash cannot open D:\ paths directly).
   if ($bashCmd) {
     $scriptPath = (Join-Path $Root "scripts\update-free-models.sh").Replace('\', '/')
-    schtasks /Create /F /SC WEEKLY /D MON /ST 04:17 /TN "pcore-free-models" /TR "bash `"$scriptPath`" --refresh --apply" 2>&1 | Out-Null
-    if ($LASTEXITCODE -eq 0) {
+    $wrapperPath = Join-Path $env:USERPROFILE ".local\bin\pcore-free-models.sh"
+    $localBinDir = Split-Path -Parent $wrapperPath
+    if (-not (Test-Path $localBinDir)) { New-Item -ItemType Directory -Force -Path $localBinDir | Out-Null }
+
+    # Windows path -> WSL mount path (D:/foo or D:\foo -> /mnt/d/foo); keep as-is otherwise
+    function Convert-ToMntPath([string]$p) {
+      if ($p -match '^[A-Za-z]:') {
+        return "/mnt/" + $p.Substring(0,1).ToLower() + $p.Substring(2).Replace('\', '/')
+      }
+      return $p
+    }
+    $mntScript = Convert-ToMntPath $scriptPath
+    $mntHome = Convert-ToMntPath ($env:USERPROFILE.Replace('\', '/'))
+    $wrapperLines = @(
+      '#!/usr/bin/env bash'
+      "export HOME=$mntHome"
+      "exec bash '$mntScript' --refresh --apply"
+    )
+    # LF-only + ASCII: Set-Content would emit CRLF (breaks bash args — "--apply\r"
+    # -> Unknown option) and a UTF-8 BOM would break shebang parsing
+    $wrapperText = ($wrapperLines -join "`n") + "`n"
+    [System.IO.File]::WriteAllText($wrapperPath, $wrapperText, [System.Text.Encoding]::ASCII)
+
+    # schtasks /TR must have no spaces; never let native stderr/EAP=Stop abort install
+    $taskCmd = "bash " + (Convert-ToMntPath $wrapperPath)
+    $schedExit = -1
+    $prevEAP = $ErrorActionPreference
+    try {
+      $ErrorActionPreference = 'SilentlyContinue'
+      schtasks /Create /F /SC WEEKLY /D MON /ST 04:17 /TN "pcore-free-models" /TR "$taskCmd" | Out-Null
+      $schedExit = $LASTEXITCODE
+    } catch {
+      $schedExit = -1
+    } finally {
+      $ErrorActionPreference = $prevEAP
+    }
+    if ($schedExit -eq 0) {
       Write-Host "  Free-model schedule: schtasks pcore-free-models (Mon 04:17)"
     } else {
-      Write-Host "WARN schtasks failed - schedule manually: bash $scriptPath --refresh --apply (weekly)"
+      Write-Host "WARN schtasks failed - schedule manually: bash $wrapperPath --refresh --apply (weekly)"
     }
   }
 
