@@ -1,4 +1,4 @@
-# P-Core Orchestra — project identity (dogfood)
+﻿# P-Core Orchestra — project identity (dogfood)
 project:
   name: pcore-orchestra
   slug: pcore-orchestra
@@ -17,7 +17,7 @@ lifecycle:
   stage: development
   status: active
   started: 2026-01-01
-  updated: 2026-08-19
+  updated: 2026-10-09
 
 repository:
   url: https://github.com/P-Core-System/pcore-orchestra
@@ -48,7 +48,21 @@ orchestra:
     reviewer: 8000
     cycle: 63000
 
+team:
+  lead: peter
+  members:
+    - name: peter
+      role: maintainer
+      contact: peterlianpi
+  github_team: core-platform
+
 _pcore:
   version: 2
   initialized: 2026-07-22T00:00:00Z
   orchestration_count: 0
+  version_history: []
+  lifecycle_transitions:
+    - stage: development
+      status: active
+      date: 2026-10-09
+      note: Added GitHub team assignment (core-platform).
