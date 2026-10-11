@@ -1,8 +1,14 @@
 /**
  * OpenCode token + quality profile for orchestra.
  * Reduces input tokens (skills, instructions) while tuning reasoning per phase.
+ *
+ * Shapes are native OpenCode V2: compaction{buffer}, permissions[] entries,
+ * agents[].request.body, providers[].models[].variants[]. The V1 → V2 file
+ * mapping lives in lib/opencode-v2.js (opencode debug config oracle).
  */
 "use strict";
+
+const { flattenPermissions, permissionReplaceActions } = require("./opencode-v2.js");
 
 /** Globs that inflate every request — replaced by NARROW_INSTRUCTIONS. */
 const BROAD_INSTRUCTION_GLOBS = new Set([
@@ -65,11 +71,10 @@ const REVIEWER_SKILLS = {
   "verification-before-completion": "allow",
 };
 
+/** V2 compaction: reserve for compaction output as `buffer` (V1: reserved). */
 const COMPACTION = {
   auto: true,
-  prune: true,
-  reserved: 6000,
-  tail_turns: 12,
+  buffer: 6000,
 };
 
 const TOOL_OUTPUT = {
@@ -85,8 +90,19 @@ const REASONING = {
   reviewer: { reasoningEffort: "medium", textVerbosity: "low" },
 };
 
-function mergeSkillPermission(base, scoped) {
-  return { ...(base || {}), ...scoped };
+/** Replace the agent/config-level `skill` permission group with scoped rules. */
+function applySkillPermissions(cfg, skills) {
+  cfg.permissions = permissionReplaceActions(
+    cfg.permissions,
+    flattenPermissions({ skill: skills })
+  );
+}
+
+/** Move reasoning knobs into request.body (V2 agent shape). */
+function applyRequestBody(cfg, knobs) {
+  const request = cfg.request && typeof cfg.request === "object" ? { ...cfg.request } : {};
+  request.body = { ...(request.body || {}), ...knobs };
+  cfg.request = request;
 }
 
 function applyAgentTokenProfile(name, cfg) {
@@ -94,42 +110,27 @@ function applyAgentTokenProfile(name, cfg) {
   const out = { ...cfg };
 
   if (name === "orchestra") {
-    Object.assign(out, REASONING.conductor);
-    out.permission = {
-      ...(out.permission || {}),
-      skill: mergeSkillPermission(out.permission?.skill, CONDUCTOR_SKILLS),
-    };
+    applyRequestBody(out, REASONING.conductor);
+    applySkillPermissions(out, CONDUCTOR_SKILLS);
   } else if (name === "orchestra-planner") {
-    Object.assign(out, REASONING.planner);
-    out.permission = {
-      ...(out.permission || {}),
-      skill: mergeSkillPermission(out.permission?.skill, PLANNER_SKILLS),
-    };
+    applyRequestBody(out, REASONING.planner);
+    applySkillPermissions(out, PLANNER_SKILLS);
   } else if (name === "orchestra-implementer") {
-    Object.assign(out, REASONING.implementer);
-    out.permission = {
-      ...(out.permission || {}),
-      skill: mergeSkillPermission(out.permission?.skill, IMPLEMENTER_SKILLS),
-    };
+    applyRequestBody(out, REASONING.implementer);
+    applySkillPermissions(out, IMPLEMENTER_SKILLS);
   } else if (name === "orchestra-verifier") {
-    Object.assign(out, REASONING.verifier);
-    out.permission = {
-      ...(out.permission || {}),
-      skill: mergeSkillPermission(out.permission?.skill, VERIFIER_SKILLS),
-    };
+    applyRequestBody(out, REASONING.verifier);
+    applySkillPermissions(out, VERIFIER_SKILLS);
   } else if (name === "orchestra-reviewer") {
-    Object.assign(out, REASONING.reviewer);
-    out.permission = {
-      ...(out.permission || {}),
-      skill: mergeSkillPermission(out.permission?.skill, REVIEWER_SKILLS),
-    };
+    applyRequestBody(out, REASONING.reviewer);
+    applySkillPermissions(out, REVIEWER_SKILLS);
   }
 
   return out;
 }
 
 /**
- * @param {Record<string, unknown>} dest opencode.json object (mutated)
+ * @param {Record<string, unknown>} dest V2 opencode.json object (mutated)
  * @param {{ supportsToolOutput?: boolean }} [opts]
  * @returns {{ changed: string[] }}
  */
@@ -147,31 +148,44 @@ function applyTokenProfile(dest, opts = {}) {
   dest.instructions = [...NARROW_INSTRUCTIONS];
   changed.push("instructions(narrow)");
 
-  dest.permission = dest.permission || {};
-  dest.permission.skill = { ...ORCHESTRA_SKILLS };
-  changed.push("permission.skill(deny-by-default)");
+  dest.permissions = permissionReplaceActions(
+    dest.permissions,
+    flattenPermissions({ skill: ORCHESTRA_SKILLS })
+  );
+  changed.push("permissions(skill deny-by-default)");
 
-  dest.agent = dest.agent || {};
-  for (const [name, cfg] of Object.entries(dest.agent)) {
+  dest.agents = dest.agents || {};
+  for (const [name, cfg] of Object.entries(dest.agents)) {
     if (name === "orchestra" || name.startsWith("orchestra-")) {
-      dest.agent[name] = applyAgentTokenProfile(name, cfg);
+      dest.agents[name] = applyAgentTokenProfile(name, cfg);
     }
   }
-  changed.push("agent.reasoning+skill-scope");
+  changed.push("agents.reasoning+skill-scope");
 
-  dest.provider = dest.provider || {};
-  dest.provider.opencode = dest.provider.opencode || {};
-    dest.provider.opencode.models = {
-      ...(dest.provider.opencode.models || {}),
-      "mimo-v2.6-flash-free": {
-        variants: {
-          fast: { reasoningEffort: "low", textVerbosity: "low" },
-          quality: { reasoningEffort: "medium", textVerbosity: "medium" },
-          ...(dest.provider.opencode.models?.["mimo-v2.6-flash-free"]?.variants || {}),
-        },
-      },
-    };
-  changed.push("provider.variants");
+  dest.providers = dest.providers || {};
+  dest.providers.opencode = dest.providers.opencode || {};
+  dest.providers.opencode.models = dest.providers.opencode.models || {};
+  const mimo = dest.providers.opencode.models["mimo-v2.6-flash-free"] || {};
+  const existingVariants = Array.isArray(mimo.variants)
+    ? mimo.variants
+    : Object.entries(
+        mimo.variants && typeof mimo.variants === "object" ? mimo.variants : {}
+      ).map(([id, settings]) => ({ id, settings }));
+  const defaults = [
+    { id: "fast", settings: { reasoningEffort: "low", textVerbosity: "low" } },
+    { id: "quality", settings: { reasoningEffort: "medium", textVerbosity: "medium" } },
+  ];
+  for (const def of defaults) {
+    // Existing entries win (V1 semantics: existing spread over defaults).
+    if (!existingVariants.some((v) => v && v.id === def.id)) {
+      existingVariants.push(def);
+    }
+  }
+  dest.providers.opencode.models["mimo-v2.6-flash-free"] = {
+    ...mimo,
+    variants: existingVariants,
+  };
+  changed.push("providers.variants");
 
   return { changed };
 }

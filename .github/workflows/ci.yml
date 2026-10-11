@@ -58,4 +58,5 @@ jobs:
           node scripts/test-evidence-runner.js
           node scripts/test-review-queue.js
           node scripts/test-security-scanner.js
+          node scripts/test-opencode-v2.js
           bash scripts/test-studio-service.sh

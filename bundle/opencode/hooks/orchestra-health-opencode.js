@@ -326,8 +326,10 @@ if (fs.existsSync(configPath)) {
     if (removed.length > 0) {
       const ver = version || getOpenCodeVersion() || "unknown";
       console.log("WARN opencode.json has unsupported keys:", removed.join(", "));
-      console.log(`      OpenCode ${ver} — need >= ${MIN_TOOL_OUTPUT_VERSION} for tool_output.`);
-      console.log("      Upgrade: bash scripts/ensure-opencode-latest.sh (or OPENCODE_CHANNEL=beta)");
+      if (removed.includes("tool_output")) {
+        console.log(`      OpenCode ${ver} — need >= ${MIN_TOOL_OUTPUT_VERSION} for tool_output.`);
+        console.log("      Upgrade: bash scripts/ensure-opencode-latest.sh (or OPENCODE_CHANNEL=beta)");
+      }
       ok = false;
       if (HEAL) {
         fs.writeFileSync(configPath, JSON.stringify(sanitized, null, 2) + "\n");
@@ -344,7 +346,7 @@ if (fs.existsSync(configPath)) {
       }
     }
 
-    const agents_cfg = sanitized.agent || {};
+    const agents_cfg = sanitized.agents || sanitized.agent || {};
     const orchestra_agents = Object.keys(agents_cfg).filter(
       (k) => k.startsWith("orchestra-") || k === "orchestra"
     );
@@ -358,22 +360,28 @@ if (fs.existsSync(configPath)) {
     const orch = agents_cfg.orchestra;
     if (def === "orchestra") {
       if (!orch) {
-        console.log("WARN default_agent is orchestra but agent.orchestra missing in opencode.json");
+        console.log("WARN default_agent is orchestra but agents.orchestra missing in opencode.json");
         ok = false;
       } else if (orch.mode !== "primary") {
-        console.log("WARN agent.orchestra.mode should be 'primary' (desktop default_agent requires it)");
+        console.log("WARN agents.orchestra.mode should be 'primary' (desktop default_agent requires it)");
         ok = false;
         if (HEAL) {
           orch.mode = "primary";
           orch.description =
             orch.description ||
             "Orchestra conductor — plan → implement → verify → review via task tool";
-          orch.reasoningEffort = orch.reasoningEffort || "low";
-          orch.textVerbosity = orch.textVerbosity || "low";
-          sanitized.agent = agents_cfg;
+          orch.request = orch.request || {};
+          orch.request.body = { ...(orch.request.body || {}) };
+          if (orch.request.body.reasoningEffort === undefined) {
+            orch.request.body.reasoningEffort = "low";
+          }
+          if (orch.request.body.textVerbosity === undefined) {
+            orch.request.body.textVerbosity = "low";
+          }
+          sanitized.agents = agents_cfg;
           fs.writeFileSync(configPath, JSON.stringify(sanitized, null, 2) + "\n");
           healed++;
-          console.log("HEALED  set agent.orchestra.mode=primary + low reasoning");
+          console.log("HEALED  set agents.orchestra.mode=primary + low reasoning");
         }
       } else {
         console.log("OK   default_agent orchestra with mode: primary");

@@ -98,7 +98,7 @@ check_config() {
         names.forEach(n => {
           const p = providers[n];
           const models = Object.keys(p.models || {});
-          const base = p.options?.baseURL || 'built-in';
+          const base = (p.settings || p.options)?.baseURL || 'built-in';
           console.log('  ' + n);
           console.log('    base: ' + base);
           console.log('    models: ' + (models.length > 0 ? models.join(', ') : '(none)'));
@@ -192,11 +192,11 @@ if not models:
     sys.exit("free-models cache empty — run update-free-models.sh --refresh first")
 cfg = {
     "$schema": "https://opencode.ai/config.json",
-    "provider": {
+    "providers": {
         "opencode-free-zen": {
-            "npm": "@ai-sdk/openai-compatible",
+            "package": "aisdk:@ai-sdk/openai-compatible",
             "name": "OpenCode Zen Free",
-            "options": {"baseURL": "https://opencode.ai/zen/v1"},
+            "settings": {"baseURL": "https://opencode.ai/zen/v1"},
             "models": {m: {} for m in models},
         }
     },
@@ -267,14 +267,14 @@ configure_multi_key() {
   echo "  Add these provider blocks to your opencode.json:"
   echo ""
   echo '  "opencode-go": {'
-  echo '    "options": { "baseURL": "http://localhost:18905" },'
+  echo '    "settings": { "baseURL": "http://localhost:18905" },'
   echo '    "models": { "deepseek-v4-flash": {} }'
   echo "  }"
   echo ""
   echo '  "multi-auth-zen": {'
-  echo '    "npm": "@ai-sdk/openai-compatible",'
+  echo '    "package": "aisdk:@ai-sdk/openai-compatible",'
   echo '    "name": "OpenCode Zen (multi-auth)",'
-  echo '    "options": { "baseURL": "http://localhost:18905/zen" },'
+  echo '    "settings": { "baseURL": "http://localhost:18905/zen" },'
   echo '    "models": {'
   local multi_cache="${OPENCODE_CONFIG_DIR}/state/free-models.json"
   if [[ -f "$multi_cache" ]] && command -v python3 &>/dev/null; then

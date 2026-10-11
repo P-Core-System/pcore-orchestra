@@ -103,16 +103,18 @@ check_config() {
     node -e "
       const cfg = JSON.parse(require('fs').readFileSync('$OPENCODE_CONFIG','utf8'));
       
-      // Model
+      // Model (V2: agents.title.model; V1: small_model)
       console.log('  Main model:  ' + (cfg.model || '(not set)'));
-      console.log('  Small model: ' + (cfg.small_model || '(not set)'));
+      const titleModel = (cfg.agents && cfg.agents.title && cfg.agents.title.model) || cfg.small_model;
+      console.log('  Title model: ' + (titleModel || '(not set)'));
       
-      // Compaction
+      // Compaction (V2: buffer; V1: reserved)
       const comp = cfg.compaction || {};
-      console.log('  Compaction:  auto=' + (comp.auto !== false) + ' prune=' + (comp.prune === true) + ' reserved=' + (comp.reserved || 10000));
+      const buffer = comp.buffer != null ? comp.buffer : comp.reserved;
+      console.log('  Compaction:  auto=' + (comp.auto !== false) + ' buffer=' + (buffer || 10000));
       
-      // Agents
-      const agents = cfg.agent || {};
+      // Agents (V2: agents; V1: agent)
+      const agents = cfg.agents || cfg.agent || {};
       const names = Object.keys(agents);
       console.log('  Agents:      ' + (names.length > 0 ? names.join(', ') : '(none configured)'));
       
@@ -122,16 +124,17 @@ check_config() {
         console.log('    ' + name + ': model=' + model + ' steps=' + steps);
       }
       
-      // Provider
-      const providers = Object.keys(cfg.provider || {});
+      // Provider (V2: providers; V1: provider)
+      const providers = Object.keys(cfg.providers || cfg.provider || {});
       console.log('  Providers:   ' + (providers.length > 0 ? providers.join(', ') : '(default)'));
       
       // Watcher
       const watch = cfg.watcher || {};
       console.log('  Watcher ignore: ' + (watch.ignore ? watch.ignore.length + ' patterns' : '(default)'));
       
-      // Snapshot
-      console.log('  Snapshot:    ' + (cfg.snapshot !== false ? 'enabled' : 'disabled'));
+      // Snapshot (V2: snapshots; V1: snapshot)
+      const snapshots = cfg.snapshots !== undefined ? cfg.snapshots : cfg.snapshot;
+      console.log('  Snapshot:    ' + (snapshots !== false ? 'enabled' : 'disabled'));
     " 2>/dev/null || info "Could not parse config"
   fi
 
@@ -198,44 +201,146 @@ generate_config() {
       config='{
   "$schema": "https://opencode.ai/config.json",
   "model": "opencode/mimo-v2.6-flash-free",
-  "small_model": "opencode/mimo-v2.6-flash-free",
-  "compaction": {
-    "auto": true,
-    "prune": true,
-    "reserved": 8000
-  },
-  "watcher": {
-    "ignore": ["node_modules/**", "dist/**", ".git/**", "build/**", "coverage/**"]
-  },
-  "snapshot": false,
-  "agent": {
+  "agents": {
     "orchestra": {
       "steps": 40,
-      "permission": { "task": "allow", "bash": "allow", "edit": "deny", "websearch": "allow", "webfetch": "allow" }
+      "permissions": [
+        {
+          "action": "subagent",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "shell",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "edit",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "websearch",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "webfetch",
+          "resource": "*",
+          "effect": "allow"
+        }
+      ]
     },
     "orchestra-planner": {
       "steps": 6,
-      "permission": { "edit": "deny", "bash": "allow", "websearch": "allow", "webfetch": "allow" }
+      "permissions": [
+        {
+          "action": "edit",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "shell",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "websearch",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "webfetch",
+          "resource": "*",
+          "effect": "allow"
+        }
+      ]
     },
     "orchestra-implementer": {
       "steps": 20
     },
     "orchestra-verifier": {
       "steps": 8,
-      "permission": { "edit": "deny", "bash": "allow", "websearch": "deny", "webfetch": "deny" }
+      "permissions": [
+        {
+          "action": "edit",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "shell",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "websearch",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "webfetch",
+          "resource": "*",
+          "effect": "deny"
+        }
+      ]
     },
     "orchestra-reviewer": {
       "steps": 4,
-      "permission": { "edit": "deny", "bash": "allow", "websearch": "allow", "webfetch": "allow" }
+      "permissions": [
+        {
+          "action": "edit",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "shell",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "websearch",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "webfetch",
+          "resource": "*",
+          "effect": "allow"
+        }
+      ]
+    },
+    "title": {
+      "model": "opencode/mimo-v2.6-flash-free"
     }
   },
-  "provider": {
+  "compaction": {
+    "auto": true,
+    "buffer": 8000
+  },
+  "watcher": {
+    "ignore": [
+      "node_modules/**",
+      "dist/**",
+      ".git/**",
+      "build/**",
+      "coverage/**"
+    ]
+  },
+  "snapshots": false,
+  "providers": {
     "opencode": {
       "models": {
         "mimo-v2.6-flash-free": {
-          "variants": {
-            "fast": { "reasoningEffort": "low", "textVerbosity": "low" }
-          }
+          "variants": [
+            {
+              "id": "fast",
+              "settings": {
+                "reasoningEffort": "low",
+                "textVerbosity": "low"
+              }
+            }
+          ]
         }
       }
     }
@@ -252,21 +357,27 @@ generate_config() {
       config='{
   "$schema": "https://opencode.ai/config.json",
   "model": "opencode/deepseek-v4-flash",
-  "small_model": "opencode/mimo-v2.6-flash-free",
-  "compaction": {
-    "auto": true,
-    "prune": true,
-    "reserved": 8000
-  },
-  "watcher": {
-    "ignore": ["node_modules/**", "dist/**", ".git/**", "build/**", "coverage/**"]
-  },
-  "snapshot": false,
-  "agent": {
+  "agents": {
     "orchestra-planner": {
       "model": "opencode/deepseek-v4-flash",
       "steps": 8,
-      "permission": { "edit": "deny", "bash": "allow", "websearch": "deny" }
+      "permissions": [
+        {
+          "action": "edit",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "shell",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "websearch",
+          "resource": "*",
+          "effect": "deny"
+        }
+      ]
     },
     "orchestra-implementer": {
       "model": "opencode/kimi-k2.5",
@@ -275,22 +386,82 @@ generate_config() {
     "orchestra-verifier": {
       "model": "opencode/deepseek-v4-flash",
       "steps": 10,
-      "permission": { "edit": "deny", "bash": "allow" }
+      "permissions": [
+        {
+          "action": "edit",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "shell",
+          "resource": "*",
+          "effect": "allow"
+        }
+      ]
     },
     "orchestra-reviewer": {
       "model": "opencode/deepseek-v4-flash",
       "steps": 5,
-      "permission": { "edit": "deny", "bash": "allow", "websearch": "deny", "webfetch": "deny" }
+      "permissions": [
+        {
+          "action": "edit",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "shell",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "websearch",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "webfetch",
+          "resource": "*",
+          "effect": "deny"
+        }
+      ]
+    },
+    "title": {
+      "model": "opencode/mimo-v2.6-flash-free"
     }
   },
-  "provider": {
+  "compaction": {
+    "auto": true,
+    "buffer": 8000
+  },
+  "watcher": {
+    "ignore": [
+      "node_modules/**",
+      "dist/**",
+      ".git/**",
+      "build/**",
+      "coverage/**"
+    ]
+  },
+  "snapshots": false,
+  "providers": {
     "opencode": {
       "models": {
         "deepseek-v4-flash": {
-          "variants": {
-            "fast": { "reasoningEffort": "low", "textVerbosity": "low" },
-            "thorough": { "reasoningEffort": "high" }
-          }
+          "variants": [
+            {
+              "id": "fast",
+              "settings": {
+                "reasoningEffort": "low",
+                "textVerbosity": "low"
+              }
+            },
+            {
+              "id": "thorough",
+              "settings": {
+                "reasoningEffort": "high"
+              }
+            }
+          ]
         }
       }
     }
@@ -308,21 +479,27 @@ generate_config() {
       config='{
   "$schema": "https://opencode.ai/config.json",
   "model": "opencode/claude-sonnet-5",
-  "small_model": "opencode/mimo-v2.6-flash-free",
-  "compaction": {
-    "auto": true,
-    "prune": true,
-    "reserved": 10000
-  },
-  "watcher": {
-    "ignore": ["node_modules/**", "dist/**", ".git/**", "build/**", "coverage/**"]
-  },
-  "snapshot": true,
-  "agent": {
+  "agents": {
     "orchestra-planner": {
       "model": "opencode/deepseek-v4-flash",
       "steps": 8,
-      "permission": { "edit": "deny", "bash": "allow", "websearch": "deny" }
+      "permissions": [
+        {
+          "action": "edit",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "shell",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "websearch",
+          "resource": "*",
+          "effect": "deny"
+        }
+      ]
     },
     "orchestra-implementer": {
       "model": "opencode/claude-sonnet-5",
@@ -331,31 +508,98 @@ generate_config() {
     "orchestra-verifier": {
       "model": "opencode/deepseek-v4-flash",
       "steps": 10,
-      "permission": { "edit": "deny", "bash": "allow" }
+      "permissions": [
+        {
+          "action": "edit",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "shell",
+          "resource": "*",
+          "effect": "allow"
+        }
+      ]
     },
     "orchestra-reviewer": {
       "model": "opencode/claude-sonnet-5",
       "steps": 5,
-      "permission": { "edit": "deny", "bash": "allow", "websearch": "deny", "webfetch": "deny" }
+      "permissions": [
+        {
+          "action": "edit",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "shell",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "websearch",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "webfetch",
+          "resource": "*",
+          "effect": "deny"
+        }
+      ]
+    },
+    "title": {
+      "model": "opencode/mimo-v2.6-flash-free"
     }
   },
-  "provider": {
+  "compaction": {
+    "auto": true,
+    "buffer": 10000
+  },
+  "watcher": {
+    "ignore": [
+      "node_modules/**",
+      "dist/**",
+      ".git/**",
+      "build/**",
+      "coverage/**"
+    ]
+  },
+  "snapshots": true,
+  "providers": {
     "opencode": {
       "models": {
         "claude-sonnet-5": {
-          "variants": {
-            "fast": {
-              "thinking": { "type": "enabled", "budgetTokens": 4000 }
+          "variants": [
+            {
+              "id": "fast",
+              "settings": {
+                "thinking": {
+                  "type": "enabled",
+                  "budgetTokens": 4000
+                }
+              }
             },
-            "thorough": {
-              "thinking": { "type": "enabled", "budgetTokens": 16000 }
+            {
+              "id": "thorough",
+              "settings": {
+                "thinking": {
+                  "type": "enabled",
+                  "budgetTokens": 16000
+                }
+              }
             }
-          }
+          ]
         },
         "deepseek-v4-flash": {
-          "variants": {
-            "fast": { "reasoningEffort": "low", "textVerbosity": "low" }
-          }
+          "variants": [
+            {
+              "id": "fast",
+              "settings": {
+                "reasoningEffort": "low",
+                "textVerbosity": "low"
+              }
+            }
+          ]
         }
       }
     }

@@ -1,19 +1,27 @@
 /**
  * Sanitize opencode.json for the installed OpenCode runtime.
  *
+ * Pipeline: migrate V1 → native V2 (lib/opencode-v2.js), then strip
+ * version-gated / unsupported keys and normalize instructions.
+ *
  * Keys in the online schema may arrive before the desktop sidecar / CLI build
- * accepts them. Unknown top-level keys cause ConfigInvalidError.
+ * accepts them. Unknown top-level keys cause ConfigInvalidError on strict
+ * builds, so dead V1 keys are removed here as well.
  */
 "use strict";
 
 const { getOpenCodeVersion, supportsToolOutput, MIN_TOOL_OUTPUT_VERSION } =
   require("./opencode-version.js");
+const { migrateConfig } = require("./opencode-v2.js");
 
 /** Keys gated by OpenCode version (not unconditionally unsupported). */
 const VERSION_GATED_KEYS = ["tool_output"];
 
+/** Dead V1 keys migrateConfig drops — reported for operator visibility. */
+const V1_ONLY_KEYS = ["hooks"];
+
 /**
- * OpenCode expects instructions as string[] (glob patterns), not a keyed object.
+ * OpenCode expects instructions as string[] (file paths), not a keyed object.
  * @param {unknown} value
  * @returns {string[] | undefined}
  */
@@ -51,13 +59,18 @@ function sanitizeOpenCodeConfig(cfg, opts = {}) {
   const toolOutputOk = supportsToolOutput(version);
   const removed = [];
   const fixed = [];
-  const config = { ...cfg };
+
+  // V1 → native V2 first (idempotent), reporting dead keys it drops.
+  for (const key of V1_ONLY_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(cfg, key)) removed.push(key);
+  }
+  let config = migrateConfig(cfg);
 
   for (const key of VERSION_GATED_KEYS) {
     if (key === "tool_output" && toolOutputOk) continue;
     if (Object.prototype.hasOwnProperty.call(config, key)) {
       delete config[key];
-      removed.push(key);
+      if (!removed.includes(key)) removed.push(key);
     }
   }
 
@@ -75,6 +88,7 @@ function sanitizeOpenCodeConfig(cfg, opts = {}) {
 
 module.exports = {
   VERSION_GATED_KEYS,
+  V1_ONLY_KEYS,
   MIN_TOOL_OUTPUT_VERSION,
   normalizeInstructions,
   sanitizeOpenCodeConfig,

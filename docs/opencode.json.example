@@ -1,13 +1,563 @@
 {
-  "$schema": "https://opencode.ai/config.json",
   "model": "opencode/big-pickle",
-  "small_model": "opencode/big-pickle",
-  "default_agent": "orchestra",
+  "agents": {
+    "orchestra": {
+      "description": "Orchestra conductor — plan → implement → verify → review via task tool",
+      "mode": "primary",
+      "steps": 500,
+      "permissions": [
+        {
+          "action": "subagent",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "subagent",
+          "resource": "orchestra-*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "agent-selector*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "project-type-classifier*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "workflow-orchestrator*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "product-owner*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "product-manager*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "project-manager*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "scrum-master*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "stakeholder-advocate*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "business-strategist*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "business-analyst*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "architect*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "tech-lead*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "adr-archivist*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "ui-ux-designer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "backend-engineer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "frontend-engineer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "mobile-engineer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "full-stack-engineer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "database-engineer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "ml-engineer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "data-engineer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "devops-engineer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "platform-engineer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "qa-engineer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "automation-engineer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "regression-tester*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "api-contract-validator*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "accessibility-reviewer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "performance-engineer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "model-evaluator*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "code-reviewer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "technical-debt-tracker*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "compliance-officer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "legal-advisor*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "security-executive-advisor*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "release-manager*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "ops-manager*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "documentation-writer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "sre*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "observer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "incident-responder*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "security-performance-reviewer*",
+          "effect": "allow"
+        },
+        {
+          "action": "shell",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "edit",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "websearch",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "webfetch",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "skill",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "skill",
+          "resource": "orchestra-loop",
+          "effect": "allow"
+        },
+        {
+          "action": "skill",
+          "resource": "prompt-intake",
+          "effect": "allow"
+        }
+      ],
+      "request": {
+        "body": {
+          "reasoningEffort": "low",
+          "textVerbosity": "low"
+        }
+      }
+    },
+    "orchestra-planner": {
+      "description": "Internal orchestra phase 1 — plan only",
+      "mode": "subagent",
+      "steps": 500,
+      "hidden": true,
+      "permissions": [
+        {
+          "action": "edit",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "shell",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "websearch",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "webfetch",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "skill",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "skill",
+          "resource": "orchestra-loop",
+          "effect": "allow"
+        },
+        {
+          "action": "skill",
+          "resource": "prompt-intake",
+          "effect": "allow"
+        }
+      ],
+      "request": {
+        "body": {
+          "reasoningEffort": "medium",
+          "textVerbosity": "medium"
+        }
+      }
+    },
+    "orchestra-implementer": {
+      "description": "Internal orchestra phase 2 — implement",
+      "mode": "subagent",
+      "steps": 500,
+      "hidden": true,
+      "permissions": [
+        {
+          "action": "edit",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "shell",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "websearch",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "webfetch",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "skill",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "skill",
+          "resource": "orchestra-loop",
+          "effect": "allow"
+        },
+        {
+          "action": "skill",
+          "resource": "verification-before-completion",
+          "effect": "allow"
+        }
+      ],
+      "request": {
+        "body": {
+          "reasoningEffort": "medium",
+          "textVerbosity": "medium"
+        }
+      }
+    },
+    "orchestra-verifier": {
+      "description": "Internal orchestra phase 3 — verify",
+      "mode": "subagent",
+      "steps": 500,
+      "hidden": true,
+      "permissions": [
+        {
+          "action": "edit",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "shell",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "websearch",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "webfetch",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "skill",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "skill",
+          "resource": "orchestra-loop",
+          "effect": "allow"
+        },
+        {
+          "action": "skill",
+          "resource": "verification-before-completion",
+          "effect": "allow"
+        }
+      ],
+      "request": {
+        "body": {
+          "reasoningEffort": "low",
+          "textVerbosity": "low"
+        }
+      }
+    },
+    "orchestra-reviewer": {
+      "description": "Internal orchestra phase 4 — review",
+      "mode": "subagent",
+      "steps": 500,
+      "hidden": true,
+      "permissions": [
+        {
+          "action": "edit",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "shell",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "websearch",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "webfetch",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "skill",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "skill",
+          "resource": "orchestra-loop",
+          "effect": "allow"
+        },
+        {
+          "action": "skill",
+          "resource": "verification-before-completion",
+          "effect": "allow"
+        }
+      ],
+      "request": {
+        "body": {
+          "reasoningEffort": "medium",
+          "textVerbosity": "low"
+        }
+      }
+    },
+    "general": {
+      "description": "General-purpose agent for researching complex questions and executing multi-step tasks",
+      "mode": "subagent",
+      "permissions": [
+        {
+          "action": "edit",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "shell",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "websearch",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "webfetch",
+          "resource": "*",
+          "effect": "allow"
+        }
+      ],
+      "steps": 300,
+      "request": {
+        "body": {
+          "reasoningEffort": "medium",
+          "textVerbosity": "low"
+        }
+      }
+    },
+    "explore": {
+      "description": "Fast agent specialized for codebase exploration",
+      "mode": "subagent",
+      "permissions": [
+        {
+          "action": "edit",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "shell",
+          "resource": "*",
+          "effect": "allow"
+        },
+        {
+          "action": "websearch",
+          "resource": "*",
+          "effect": "deny"
+        },
+        {
+          "action": "webfetch",
+          "resource": "*",
+          "effect": "deny"
+        }
+      ],
+      "steps": 100,
+      "request": {
+        "body": {
+          "reasoningEffort": "low",
+          "textVerbosity": "low"
+        }
+      }
+    },
+    "title": {
+      "model": "opencode/big-pickle"
+    }
+  },
   "compaction": {
     "auto": true,
-    "prune": true,
-    "reserved": 6000,
-    "tail_turns": 12
+    "buffer": 6000
   },
   "tool_output": {
     "max_lines": 300,
@@ -19,218 +569,249 @@
       "dist/**",
       ".git/**",
       "build/**",
-      "coverage/**",
-      "**/node_modules/**",
-      "**/dist/**",
-      "**/build/**",
-      "**/.next/**",
-      "**/.turbo/**",
-      "**/.vercel/**",
-      "**/vendor/**",
-      "**/venv/**",
-      "**/__pycache__/**",
-      "**/.pytest_cache/**"
+      "coverage/**"
     ]
   },
-  "snapshot": false,
+  "default_agent": "orchestra",
+  "snapshots": false,
   "instructions": [
-    "AGENTS.md",
-    "CLAUDE.md",
-    "context/project-overview.md",
-    "context/architecture.md",
-    "context/code-standards.md",
-    "context/progress-tracker.md"
+    "**/AGENTS.md",
+    "**/CLAUDE.md",
+    "**/context/project-overview.md",
+    "**/context/architecture.md",
+    "**/context/code-standards.md",
+    "**/context/progress-tracker.md"
   ],
-  "permission": {
-    "*": "allow",
-    "doom_loop": "deny",
-    "read": {
-      "*": "allow",
-      "*.env": "deny",
-      "*.env.*": "deny",
-      "*.env.example": "allow"
+  "permissions": [
+    {
+      "action": "*",
+      "resource": "*",
+      "effect": "allow"
     },
-    "edit": {
-      "*": "allow",
-      "*.env": "deny",
-      "*.env.*": "deny",
-      "**/.ssh/**": "deny",
-      "**/credentials.json": "deny"
+    {
+      "action": "doom_loop",
+      "resource": "*",
+      "effect": "deny"
     },
-    "bash": {
-      "*": "allow",
-      "git push --force *": "deny",
-      "git push -f *": "deny",
-      "git reset --hard *": "deny",
-      "rm -rf / *": "deny",
-      "rm -rf ~ *": "deny",
-      "git clean -fdx *": "deny",
-      "rm -rf /*": "deny",
-      "rm -rf ~/*": "deny",
-      "sudo rm -rf *": "deny",
-      "mkfs.*": "deny",
-      "dd if=* of=/dev/*": "deny",
-      "shred *": "deny",
-      ":(){ :|:& };:": "deny"
+    {
+      "action": "read",
+      "resource": "*",
+      "effect": "allow"
     },
-    "external_directory": {
-      "*": "allow",
-      "~/.cursor/hooks/**": "allow",
-      "~/.cursor/skills/**": "allow",
-      "~/.agents/skills/**": "allow",
-      "~/.config/opencode/**": "allow",
-      "~/Learning Web Development/**": "allow",
-      "~/Projects/**": "allow",
-      "~/Developer/**": "allow",
-      "~/code/**": "allow"
+    {
+      "action": "read",
+      "resource": "*.env",
+      "effect": "deny"
     },
-    "skill": {
-      "*": "deny",
-      "orchestra-loop": "allow",
-      "verification-before-completion": "allow",
-      "prompt-intake": "allow",
-      "greenfield-product": "allow",
-      "internal-*": "deny"
+    {
+      "action": "read",
+      "resource": "*.env.*",
+      "effect": "deny"
     },
-    "websearch": "allow",
-    "webfetch": "allow",
-    "task": "allow"
-  },
-  "agent": {
-    "orchestra": {
-      "description": "Orchestra conductor \u2014 plan \u2192 implement \u2192 verify \u2192 review via task tool",
-      "mode": "primary",
-      "reasoningEffort": "low",
-      "textVerbosity": "low",
-      "steps": 500,
-      "permission": {
-        "task": {
-          "*": "deny",
-          "orchestra-*": "allow",
-          "agent-selector*": "allow",
-          "project-type-classifier*": "allow",
-          "workflow-orchestrator*": "allow",
-          "product-owner*": "allow",
-          "product-manager*": "allow",
-          "project-manager*": "allow",
-          "scrum-master*": "allow",
-          "stakeholder-advocate*": "allow",
-          "business-strategist*": "allow",
-          "business-analyst*": "allow",
-          "architect*": "allow",
-          "tech-lead*": "allow",
-          "adr-archivist*": "allow",
-          "ui-ux-designer*": "allow",
-          "backend-engineer*": "allow",
-          "frontend-engineer*": "allow",
-          "mobile-engineer*": "allow",
-          "full-stack-engineer*": "allow",
-          "database-engineer*": "allow",
-          "ml-engineer*": "allow",
-          "data-engineer*": "allow",
-          "devops-engineer*": "allow",
-          "platform-engineer*": "allow",
-          "qa-engineer*": "allow",
-          "automation-engineer*": "allow",
-          "regression-tester*": "allow",
-          "api-contract-validator*": "allow",
-          "accessibility-reviewer*": "allow",
-          "performance-engineer*": "allow",
-          "model-evaluator*": "allow",
-          "code-reviewer*": "allow",
-          "technical-debt-tracker*": "allow",
-          "compliance-officer*": "allow",
-          "legal-advisor*": "allow",
-          "security-executive-advisor*": "allow",
-          "release-manager*": "allow",
-          "ops-manager*": "allow",
-          "documentation-writer*": "allow",
-          "sre*": "allow",
-          "observer*": "allow",
-          "incident-responder*": "allow",
-          "security-performance-reviewer*": "allow"
-        },
-        "bash": "allow",
-        "edit": "deny",
-        "websearch": "allow",
-        "webfetch": "allow"
-      }
+    {
+      "action": "read",
+      "resource": "*.env.example",
+      "effect": "allow"
     },
-    "orchestra-planner": {
-      "description": "Internal orchestra phase 1 \u2014 plan only",
-      "mode": "subagent",
-      "reasoningEffort": "low",
-      "textVerbosity": "low",
-      "steps": 500,
-      "hidden": true,
-      "permission": {
-        "edit": "deny",
-        "bash": "allow",
-        "websearch": "allow",
-        "webfetch": "allow",
-        "task": "deny"
-      }
+    {
+      "action": "edit",
+      "resource": "*",
+      "effect": "allow"
     },
-    "orchestra-implementer": {
-      "description": "Internal orchestra phase 2 \u2014 implement",
-      "mode": "subagent",
-      "reasoningEffort": "low",
-      "textVerbosity": "low",
-      "steps": 500,
-      "hidden": true,
-      "permission": {
-        "edit": "allow",
-        "bash": "allow",
-        "websearch": "allow",
-        "webfetch": "allow",
-        "task": "deny"
-      }
+    {
+      "action": "edit",
+      "resource": "*.env",
+      "effect": "deny"
     },
-    "orchestra-verifier": {
-      "description": "Internal orchestra phase 3 \u2014 verify",
-      "mode": "subagent",
-      "reasoningEffort": "low",
-      "textVerbosity": "low",
-      "steps": 500,
-      "hidden": true,
-      "permission": {
-        "edit": "deny",
-        "bash": "allow",
-        "websearch": "allow",
-        "webfetch": "allow",
-        "task": "deny"
-      }
+    {
+      "action": "edit",
+      "resource": "*.env.*",
+      "effect": "deny"
     },
-    "orchestra-reviewer": {
-      "description": "Internal orchestra phase 4 \u2014 review",
-      "mode": "subagent",
-      "reasoningEffort": "low",
-      "textVerbosity": "low",
-      "steps": 500,
-      "hidden": true,
-      "permission": {
-        "edit": "deny",
-        "bash": "allow",
-        "websearch": "allow",
-        "webfetch": "allow",
-        "task": "deny"
-      }
+    {
+      "action": "edit",
+      "resource": "**/.ssh/**",
+      "effect": "deny"
+    },
+    {
+      "action": "edit",
+      "resource": "**/credentials.json",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "*",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "git push --force *",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git push -f *",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git reset --hard *",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "rm -rf / *",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "rm -rf ~ *",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git clean -fdx *",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "rm -rf /*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "rm -rf ~/*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "sudo rm -rf *",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "mkfs.*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "dd if=* of=/dev/*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "shred *",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": ":(){ :|:& };:",
+      "effect": "deny"
+    },
+    {
+      "action": "external_directory",
+      "resource": "*",
+      "effect": "allow"
+    },
+    {
+      "action": "external_directory",
+      "resource": "~/.cursor/hooks/**",
+      "effect": "allow"
+    },
+    {
+      "action": "external_directory",
+      "resource": "~/.cursor/skills/**",
+      "effect": "allow"
+    },
+    {
+      "action": "external_directory",
+      "resource": "~/.agents/skills/**",
+      "effect": "allow"
+    },
+    {
+      "action": "external_directory",
+      "resource": "~/.config/opencode/**",
+      "effect": "allow"
+    },
+    {
+      "action": "external_directory",
+      "resource": "~/Learning Web Development/**",
+      "effect": "allow"
+    },
+    {
+      "action": "external_directory",
+      "resource": "~/Projects/**",
+      "effect": "allow"
+    },
+    {
+      "action": "external_directory",
+      "resource": "~/Developer/**",
+      "effect": "allow"
+    },
+    {
+      "action": "external_directory",
+      "resource": "~/code/**",
+      "effect": "allow"
+    },
+    {
+      "action": "skill",
+      "resource": "*",
+      "effect": "deny"
+    },
+    {
+      "action": "skill",
+      "resource": "orchestra-loop",
+      "effect": "allow"
+    },
+    {
+      "action": "skill",
+      "resource": "verification-before-completion",
+      "effect": "allow"
+    },
+    {
+      "action": "skill",
+      "resource": "prompt-intake",
+      "effect": "allow"
+    },
+    {
+      "action": "skill",
+      "resource": "greenfield-product",
+      "effect": "allow"
+    },
+    {
+      "action": "skill",
+      "resource": "internal-*",
+      "effect": "deny"
+    },
+    {
+      "action": "websearch",
+      "resource": "*",
+      "effect": "allow"
+    },
+    {
+      "action": "webfetch",
+      "resource": "*",
+      "effect": "allow"
+    },
+    {
+      "action": "subagent",
+      "resource": "*",
+      "effect": "allow"
     }
-  },
-  "provider": {
+  ],
+  "providers": {
     "opencode": {
       "models": {
         "big-pickle": {
-          "variants": {
-            "fast": {
-              "reasoningEffort": "low",
-              "textVerbosity": "low"
-            },
-            "quality": {
-              "reasoningEffort": "medium",
-              "textVerbosity": "medium"
+          "variants": [
+            {
+              "id": "fast",
+              "settings": {
+                "reasoningEffort": "low",
+                "textVerbosity": "low"
+              }
             }
-          }
+          ]
         }
       }
     }

@@ -91,7 +91,7 @@ agent frontmatter.
 
 | Role | Primary | Notes |
 |------|---------|--------|
-| all agents (inherit global) | global `model` (stability-ordered primary via `--apply`) | Inspect installed `opencode.json` top-level `model` / `small_model` |
+| all agents (inherit global) | global `model` (stability-ordered primary via `--apply`) | Inspect installed `opencode.json` top-level `model` / `agents.title.model` |
 | verifier / small_model | global `small_model` (same inherit) | Fast checks |
 | heavy fallback | heavy free pool head (set by `--apply` into `small_model` when distinct) | Used when primary errors |
 | Avoid as primary | any ID that `--check` marks DEAD | Not in live free cache (dead/region-blocked) |

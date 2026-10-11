@@ -9,6 +9,11 @@
  *
  * Preserves: Cursor auth/model caches; OpenCode mcp.* secrets.
  * Writes: permissions.json, sandbox.json; merges cli-config + opencode.json.
+ * The opencode.json side works in native V2 shapes only — both the bundle
+ * profile and the user's existing config are run through
+ * lib/opencode-v2.js (migrateConfig) before merging, so an install also
+ * upgrades a legacy V1 config in place (behavior-preserving; verified by
+ * scripts/test-opencode-v2.js oracle round-trips).
  */
 "use strict";
 
@@ -26,6 +31,7 @@ const {
   filterBroadInstructions,
   NARROW_INSTRUCTIONS,
 } = require("./lib/opencode-token-profile.js");
+const { migrateConfig, permissionReplaceActions } = require("./lib/opencode-v2.js");
 
 const ROOT = path.resolve(__dirname, "..");
 const CONFIG = path.join(ROOT, "bundle", "config");
@@ -263,10 +269,13 @@ function bareModel(model) {
  * Custom/paid non-opencode models are never touched.
  */
 function patchUnreliableAgentModels(dest, opencodeHome) {
-  const agents = dest.agent || {};
+  const agents = dest.agents || {};
   const cache = loadFreeModelCache(opencodeHome);
 
-  for (const [, cfg] of Object.entries(agents)) {
+  for (const [name, cfg] of Object.entries(agents)) {
+    // agents.title is the small/title model — owned by update-free-models,
+    // never inherit-stripped (V1 small_model was never touched either).
+    if (name === "title") continue;
     if (!cfg || typeof cfg !== "object" || !cfg.model) continue;
     const bare = bareModel(cfg.model);
     const isOpencodeFree =
@@ -294,11 +303,12 @@ function patchUnreliableAgentModels(dest, opencodeHome) {
 
 /** Offline fallback: prefer installed global model; else any free-tier agent ref. */
 function pickOfflineModels(dest) {
-  if (dest.model) return { primary: dest.model, heavy: dest.small_model || dest.model };
-  if (dest.small_model) return { primary: dest.small_model, heavy: dest.small_model };
+  const titleModel = dest.agents && dest.agents.title && dest.agents.title.model;
+  if (dest.model) return { primary: dest.model, heavy: titleModel || dest.model };
+  if (titleModel) return { primary: titleModel, heavy: titleModel };
   const models = new Set();
-  const agent = dest.agent || {};
-  for (const cfg of Object.values(agent)) {
+  const agents = dest.agents || {};
+  for (const cfg of Object.values(agents)) {
     if (cfg && cfg.model && String(cfg.model).startsWith("opencode/")) {
       models.add(cfg.model.split("/").pop());
     }
@@ -309,43 +319,51 @@ function pickOfflineModels(dest) {
 }
 
 function mergeOrchestraAgents(dest, patchAgents) {
-  dest.agent = dest.agent || {};
+  dest.agents = dest.agents || {};
   for (const [name, cfg] of Object.entries(patchAgents || {})) {
     if (name === "orchestra" || name.startsWith("orchestra-")) {
-      const existing = dest.agent[name] || {};
+      const existing = dest.agents[name] || {};
       const bundleSteps = cfg.steps || 200;
       const userSteps = existing.steps || 0;
       const { model: _ignoreModel, ...rest } = cfg || {};
-      dest.agent[name] = { ...rest, steps: Math.max(bundleSteps, userSteps) };
+      dest.agents[name] = { ...rest, steps: Math.max(bundleSteps, userSteps) };
       // Inherit: never pin conductor/phase agent models from the bundle
-      if (dest.agent[name].model && String(dest.agent[name].model).startsWith("opencode/")) {
-        delete dest.agent[name].model;
+      if (dest.agents[name].model && String(dest.agents[name].model).startsWith("opencode/")) {
+        delete dest.agents[name].model;
       }
     }
   }
 }
 
 function mergeOpenCodeAutonomy(opencodeHome) {
-  const patch = readJson(path.join(CONFIG, "opencode", "autonomy.json"));
-  if (!patch) throw new Error("missing bundle/config/opencode/autonomy.json");
+  const rawPatch = readJson(path.join(CONFIG, "opencode", "autonomy.json"));
+  if (!rawPatch) throw new Error("missing bundle/config/opencode/autonomy.json");
+  const patch = migrateConfig(rawPatch); // bundle profile → native V2 (idempotent)
   const destPath = path.join(opencodeHome, "opencode.json");
-  const dest = readJson(destPath, { $schema: "https://opencode.ai/config.json" });
+  const dest = migrateConfig(
+    readJson(destPath, { $schema: "https://opencode.ai/config.json" })
+  ); // user config → native V2 (legacy V1 upgraded in place)
   backup(destPath);
 
   // Preserve MCP / secrets entirely
   const mcp = dest.mcp;
 
   if (patch.model) dest.model = patch.model;
-  if (patch.small_model) dest.small_model = patch.small_model;
+  if (patch.agents && patch.agents.title) {
+    dest.agents = dest.agents || {};
+    dest.agents.title = { ...patch.agents.title };
+  }
   if (patch.default_agent) dest.default_agent = patch.default_agent;
   dest.compaction = { ...(dest.compaction || {}), ...(patch.compaction || {}) };
   if (patch.tool_output && supportsToolOutput()) {
     dest.tool_output = { ...(dest.tool_output || {}), ...patch.tool_output };
   }
   if (patch.watcher) dest.watcher = { ...(dest.watcher || {}), ...patch.watcher };
-  if (patch.snapshot !== undefined) dest.snapshot = patch.snapshot;
-  dest.permission = { ...(dest.permission || {}), ...(patch.permission || {}) };
-  mergeOrchestraAgents(dest, patch.agent);
+  if (patch.snapshots !== undefined) dest.snapshots = patch.snapshots;
+  // permissions[]: patch entries replace same-action groups in place —
+  // exactly the old {...dest.permission, ...patch.permission} semantics.
+  dest.permissions = permissionReplaceActions(dest.permissions, patch.permissions);
+  mergeOrchestraAgents(dest, patch.agents);
   patchUnreliableAgentModels(dest, opencodeHome);
 
   // Replace broad instruction globs (do not union — union kept **/templates/** forever)
@@ -360,12 +378,16 @@ function mergeOpenCodeAutonomy(opencodeHome) {
 
   const toolOk = supportsToolOutput();
   applyTokenProfile(dest, { supportsToolOutput: toolOk });
-  if (patch.provider) {
-    dest.provider = dest.provider || {};
-    for (const [k, v] of Object.entries(patch.provider)) {
-      dest.provider[k] = { ...(dest.provider[k] || {}), ...v };
-      if (v.models && dest.provider[k].models) {
-        dest.provider[k].models = { ...(dest.provider[k].models || {}), ...v.models };
+  if (patch.providers) {
+    dest.providers = dest.providers || {};
+    for (const [k, v] of Object.entries(patch.providers)) {
+      // Capture dest's models BEFORE the shallow spread: {...dest, ...v}
+      // would replace `models` wholesale, silently dropping user/profile
+      // model entries (the follow-up spread below then became a no-op).
+      const destModels = dest.providers[k] && dest.providers[k].models;
+      dest.providers[k] = { ...(dest.providers[k] || {}), ...v };
+      if (v.models) {
+        dest.providers[k].models = { ...(destModels || {}), ...v.models };
       }
     }
   }
