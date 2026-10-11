@@ -16,7 +16,7 @@ Install upgrades OpenCode CLI to latest (`scripts/ensure-opencode-latest.sh`) un
 | `~/.cursor/cli-config.json` | `bundle/config/cursor/cli-autonomy.json` | Merges allowlist + approval/web flags; **keeps** auth/model caches |
 | `~/.cursor/permissions.json` | `bundle/config/cursor/permissions.json` | Unions allowlists + autoRun instructions |
 | `~/.cursor/sandbox.json` | `bundle/config/cursor/sandbox.json` | Expands `$HOME`; unions paths/network |
-| `~/.config/opencode/opencode.json` | `bundle/config/opencode/autonomy.json` | Merges permission/agent/compaction; **keeps** `mcp` secrets; merges `tool_output` when OpenCode ≥ 1.19.0, else strips (ConfigInvalidError on older sidecar) |
+| `~/.config/opencode/opencode.json` | `bundle/config/opencode/autonomy.json` | Merges agents/permissions/compaction (native V2; legacy V1 configs migrated in place); **keeps** `mcp` secrets; merges `tool_output` when OpenCode ≥ 1.19.0, else strips (unsupported on older sidecar) |
 
 If OpenCode fails to start or **shows no response** after install/upgrade:
 
@@ -58,7 +58,7 @@ Set **Auto-review** in Cursor Settings after install, then reload.
 
 | Knob | Location | Purpose |
 |------|----------|---------|
-| Global permissions | `opencode.json` → `permission` | Allow with `.env` / force-push denies; `doom_loop: deny` (blocks identical tool+args repeated 3× — stops grep/read/find loops). |
+| Global permissions | `opencode.json` → `permissions[]` | Allow with `.env` / force-push denies; `doom_loop: deny` (blocks identical tool+args repeated 3× — stops grep/read/find loops). |
 | Orchestra agents | `agent.*` + markdown | Readonly: `edit: deny`, `bash: allow`. |
 | No-ask mode | `permission.external_directory.*: allow` | Folder/tool access never prompts — **no asks remain** (all `permission` values are `allow` or `deny`); `opencode --auto` redundant. |
 | Command guard | `permission.bash.*` | `bash: *: allow` (no prompt) with 13 hard denies: force-push / `reset --hard` / `clean -fdx` / `rm -rf /~/*` / `sudo rm -rf` / `mkfs` / `dd` to `/dev` / `shred` / fork bomb. |

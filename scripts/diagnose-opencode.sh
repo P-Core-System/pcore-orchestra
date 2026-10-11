@@ -73,13 +73,13 @@ if [[ -f "$OPENCODE/opencode.json" ]]; then
     const fs=require('fs');
     const p=process.argv[1];
     const c=JSON.parse(fs.readFileSync(p,'utf8'));
-    const orch=c.agent?.orchestra;
+    const orch=(c.agents||c.agent)?.orchestra;
     console.log('     default_agent:', c.default_agent||'(unset)');
     console.log('     model:', c.model||'(unset)');
     console.log('     orchestra.mode:', orch?.mode||'MISSING');
-    console.log('     instructions:', (c.instructions||[]).length, 'glob(s)');
+    console.log('     instructions:', (c.instructions||[]).length, 'file(s)');
     if (c.default_agent==='orchestra' && orch?.mode!=='primary') {
-      console.log('WARN orchestra default_agent requires agent.orchestra.mode=primary');
+      console.log('WARN orchestra default_agent requires agents.orchestra.mode=primary');
       process.exit(1);
     }
   " "$OPENCODE/opencode.json" && echo "OK   config basics" || echo "WARN config issue above"

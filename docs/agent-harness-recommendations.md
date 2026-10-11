@@ -205,7 +205,7 @@ sequenceDiagram
 | Subagents | `.cursor/agents/*.md` | `.config/opencode/agents/*.md` | `sync-opencode-agents.js` |
 | Always-on rules | `.mdc` rules | N/A | `orchestra-loop.mdc` |
 | Skills | `.cursor/skills/` | `.config/opencode/skills/` + `skill` tool | Mirrored bundle |
-| Permissions | `permissions.json` + Auto-review / CLI unrestricted | `opencode.json` `permission` + `--auto` | See `docs/autonomous-workflow.md`; `setup-opencode-optimal.sh` |
+| Permissions | `permissions.json` + Auto-review / CLI unrestricted | `opencode.json` `permissions[]` + `--auto` | See `docs/autonomous-workflow.md`; `setup-opencode-optimal.sh` |
 | Token prune | Manual | `compaction.prune` | Recommend balanced profile |
 | Step limits | Hook iterations | `agent.*.steps` | Align steps with max_iterations |
 

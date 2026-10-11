@@ -60,7 +60,7 @@
 | `bundle/skills/performance-engineering/` | Evidence-based performance investigation master prompt (measure → diagnose → optimize → verify) |
 | `bundle/skills/{ui-ux-pro-max,brand,design-system,ui-styling}/` | Vendored UI skills (real assets; MIT — see `THIRD_PARTY.md`) |
 | `bundle/config/cursor/` | CLI autonomy patch + `permissions.json` + `sandbox.json` |
-| `bundle/config/opencode/autonomy.json` | OpenCode permission/agent profile (install merges; preserves `mcp`) |
+| `bundle/config/opencode/autonomy.json` | OpenCode native-V2 profile — `agents` / `permissions[]` / `providers` (install merges via `scripts/lib/opencode-v2.js`; preserves `mcp`; legacy V1 configs are migrated in place) |
 | `scripts/merge-autonomy-config.js` | Install-time merge for Cursor + OpenCode autonomy (cache-backed free-model replacement; static deny-list offline fallback) |
 | `scripts/update-free-models.sh` | Free-model catalog ops: `--refresh` (fetch+generate pools), `--check` (DEAD/UNREACHABLE/STALE validation), `--apply` (global model only — primary = highest-stability probe-reachable free model via `KNOWN_FREE` + probes; strips agent frontmatter hardcodes in **bundle + installed** `~/.config/opencode/agents` for inherit), `--pools`, `--probe` (persist reachability/stability to probes.json), `--schedule` (weekly timer/cron) |
 | `scripts/systemd/pcore-free-models.{service,timer}` | Weekly user timer (`OnCalendar=weekly`) invoking `--refresh --apply`; unit template uses `@REPO_ROOT@` substituted by `--schedule`; cron fallback when systemd missing |

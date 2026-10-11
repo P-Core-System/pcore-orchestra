@@ -24,6 +24,9 @@ Six-File Context Methodology (JavaScript Mastery). Bootstrap with
 
 ## Instructions
 
-Monorepo globs are configured in `~/.config/opencode/opencode.json`
-(`instructions` field). Keep this file minimal — project context belongs in the
+The `instructions` field in `~/.config/opencode/opencode.json` is a flat list
+of entry/context files loaded for each session (root-relative, e.g.
+`AGENTS.md`, `context/architecture.md`) — it is not glob or scoping
+configuration. Monorepo scoping comes from this repo's `.ignore` files and the
+read order above. Keep this file minimal — project context belongs in the
 project, not here.

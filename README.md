@@ -388,7 +388,7 @@ bash scripts/watch-plan-signal.sh --once   # detect new plan/spec work → pendi
 | [`templates/architectures/27-system-design.md`](templates/architectures/27-system-design.md) | C4-lite system design document |
 | [`templates/AGENTS.authoring.md`](templates/AGENTS.authoring.md) | Authoring `AGENTS.md` across OpenCode / Cursor / Claude / Copilot / Codex |
 
-Agent-tool wiring: OpenCode global `AGENTS.md` + `opencode.json` instructions globs; repo-root `CLAUDE.md`; `.github/copilot-instructions.md`. See `templates/AGENTS.authoring.md`.
+Agent-tool wiring: OpenCode global `AGENTS.md` + `opencode.json` instructions file list; repo-root `CLAUDE.md`; `.github/copilot-instructions.md`. See `templates/AGENTS.authoring.md`.
 
 ---
 

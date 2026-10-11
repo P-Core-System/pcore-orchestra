@@ -97,9 +97,15 @@ Bootstrap templates: `bash scripts/init-context.sh <project-dir>`
 
 OpenCode uses a skill-driven approach instead of hooks:
 
+- **Config is native V2** (`agents`, `permissions[]`, `providers`, `snapshots`,
+  `mcp.servers`, `compaction.buffer`) — `bundle/config/opencode/autonomy.json`
+  ships V2; `scripts/lib/opencode-v2.js` migrates any legacy V1 config in
+  place during install/merge (behavior-preserving; oracle-tested via
+  `opencode debug config` in `scripts/test-opencode-v2.js`)
 - **Agents** are defined as markdown files in `~/.config/opencode/agents/`
 - **Conductor** `orchestra.md` is `default_agent`; phase agents are `hidden: true`
-- **Spawn:** OpenCode **`task`** tool + agent name (not Cursor **`Task`** + `subagent_type`)
+- **Spawn:** OpenCode **`subagent`** tool (V1 name: `task`) + agent name (not
+  Cursor **`Task`** + `subagent_type`)
 - **Skills** at `~/.config/opencode/skills/` — orchestra-loop + UI skills + Cloudflare
 - **State** at `~/.config/opencode/hooks/state/orchestra.json`
 - **External discovery** via symlinks under `~/.agents/skills/` (orchestra-loop, prompt-intake, verification-before-completion, ui-ux-pro-max, brand, design-system, ui-styling, web-design-master)

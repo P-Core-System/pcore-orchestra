@@ -2,9 +2,9 @@
 # update-free-models.sh — Validate and refresh free model list for OpenCode
 #
 # Modes:
-#   --check (default): validate model+small_model+every agent.*.model in
-#     BOTH ~/.config/opencode/opencode.json AND docs/opencode.json.example
-#     against cache -> print per-agent PASS/DEAD, exit 1 if any DEAD.
+#   --check (default): validate model + title (small) model + every agents.*.model
+#     in BOTH ~/.config/opencode/opencode.json AND docs/opencode.json.example
+#     against cache -> print per-model PASS/DEAD, exit 1 if any DEAD.
 #     Also verify each configured model exists in appropriate pool; report
 #     STALE-POOL warning if a configured model is no longer in any live pool.
 #     Offline -> use stale cache with warning.
@@ -14,8 +14,9 @@
 #     pools) + heavy fallback DYNAMICALLY from
 #     state/free-models.json + state/model-pools.json ordered by probes.json
 #     reachability/stability (no hardcoded IDs) and atomically rewrite ONLY
-#     global model/small_model in bundle/config/opencode/autonomy.json,
-#     docs/opencode.json.example, and installed opencode.json. Agents inherit
+#     global model + title (small) model in bundle/config/opencode/autonomy.json,
+#     docs/opencode.json.example, and installed opencode.json (native V2 shape;
+#     legacy V1 keys are updated too when present). Agents inherit
 #     the main model — per-agent model keys and frontmatter lines are stripped,
 #     not rewritten. Fetches first if cache empty; aborts only if fetch fails with no cache.
 #   --schedule: install weekly refresh+apply (systemd user timer; cron fallback).
@@ -266,23 +267,28 @@ import json, sys
 with open('$config_file') as f:
     cfg = json.load(f)
 models = set()
-for key in ('model', 'small_model'):
-    v = cfg.get(key, '')
-    if v:
-        mid = v.split('/')[-1] if '/' in v else v
-        models.add(mid)
-agents = cfg.get('agent', {})
+def add(v):
+    if isinstance(v, dict):
+        v = v.get('model', '')
+    if isinstance(v, str) and v:
+        models.add(v.split('/')[-1] if '/' in v else v)
+add(cfg.get('model'))
+add(cfg.get('small_model'))
+agents_v2 = cfg.get('agents') or {}
+add((agents_v2.get('title') or {}).get('model'))
+agents = agents_v2 or (cfg.get('agent') or {})
 for name, a in agents.items():
-    v = a.get('model', '')
-    if v:
-        mid = v.split('/')[-1] if '/' in v else v
-        models.add(mid)
+    if isinstance(a, dict):
+        add(a.get('model'))
 for m in sorted(models):
     print(m)
 "
   elif command -v jq &>/dev/null; then
     jq -r '
-      [.model, .small_model] + [(.agent // {} | to_entries[] | .value.model // empty)] |
+      [.model, .small_model, (.agents.title.model // empty)] +
+      [((.agents // .agent // {}) | to_entries[] | .value.model // empty)] |
+      map(if type == "object" then .model else . end) |
+      map(select(type == "string" and length > 0)) |
       map(split("/") | last) | sort | unique | .[]
     ' "$config_file" 2>/dev/null
   fi
@@ -419,17 +425,18 @@ with open(config_file) as f:
     cfg = json.load(f)
 
 model_ids = set()
-for key in ('model', 'small_model'):
-    v = cfg.get(key, '')
-    if v:
-        mid = v.split('/')[-1] if '/' in v else v
-        model_ids.add(mid)
-agents = cfg.get('agent', {})
-for name, a in agents.items():
-    v = a.get('model', '')
-    if v:
-        mid = v.split('/')[-1] if '/' in v else v
-        model_ids.add(mid)
+def add(v):
+    if isinstance(v, dict):
+        v = v.get('model', '')
+    if isinstance(v, str) and v:
+        model_ids.add(v.split('/')[-1] if '/' in v else v)
+add(cfg.get('model'))
+add(cfg.get('small_model'))
+agents_v2 = cfg.get('agents') or {}
+add((agents_v2.get('title') or {}).get('model'))
+for name, a in (agents_v2 or (cfg.get('agent') or {})).items():
+    if isinstance(a, dict):
+        add(a.get('model'))
 
 for mid in sorted(model_ids):
     if mid in all_pool_ids:
@@ -763,17 +770,31 @@ def apply_owned_config(path):
         return False
     with open(path, encoding='utf-8') as f:
         cfg = json.load(f)
-    for key in ('model', 'small_model'):
-        cfg[key] = primary_ref
+    # Global model refs: V2 keeps them on model + agents.title.model
+    # (V1 files: model + small_model).
+    cfg['model'] = primary_ref
+    if 'small_model' in cfg:
+        cfg['small_model'] = primary_ref
+    if 'agents' in cfg:
+        title = cfg['agents'].get('title')
+        if not isinstance(title, dict):
+            title = {}
+        title['model'] = primary_ref
+        cfg['agents']['title'] = title
     # Agents inherit the main model — never pin per-agent free IDs.
     stripped_agents = 0
-    for entry in (cfg.get('agent') or {}).values():
-        if isinstance(entry, dict) and 'model' in entry:
-            del entry['model']
-            stripped_agents += 1
+    for key in ('agent', 'agents'):
+        for name, entry in (cfg.get(key) or {}).items():
+            if name == 'title':
+                continue
+            if isinstance(entry, dict) and 'model' in entry:
+                del entry['model']
+                stripped_agents += 1
     if stripped_agents:
         print('  stripped %d agent model keys (inherit global)' % stripped_agents)
-    provider = (cfg.get('provider') or {}).get('opencode') or {}
+    root_key = 'providers' if 'providers' in cfg else 'provider'
+    prov_root = cfg.get(root_key)
+    provider = (prov_root or {}).get('opencode') or {}
     models_dict = provider.get('models')
     if isinstance(models_dict, dict) and models_dict:
         variants = None
@@ -782,7 +803,10 @@ def apply_owned_config(path):
                 variants = value
                 break
         if variants is None:
-            variants = {'variants': {'fast': {'reasoningEffort': 'low', 'textVerbosity': 'low'}}}
+            if root_key == 'providers':
+                variants = {'variants': [{'id': 'fast', 'settings': {'reasoningEffort': 'low', 'textVerbosity': 'low'}}]}
+            else:
+                variants = {'variants': {'fast': {'reasoningEffort': 'low', 'textVerbosity': 'low'}}}
         provider['models'] = {primary: variants}
     atomic_write(path, json.dumps(cfg, indent=2) + '\n')
     return True
@@ -802,19 +826,36 @@ if os.path.isfile(system_config):
     with open(system_config, encoding='utf-8') as f:
         cfg = json.load(f)
     changed = False
-    for key in ('model', 'small_model'):
-        if cfg.get(key) != primary_ref:
-            cfg[key] = primary_ref
+    is_v2 = 'agents' in cfg or 'providers' in cfg
+    if is_v2:
+        # V2: global model + title (small) model live on model / agents.title.
+        if cfg.get('model') != primary_ref:
+            cfg['model'] = primary_ref
             changed = True
-    stripped = 0
-    for entry in (cfg.get('agent') or {}).values():
-        if isinstance(entry, dict) and 'model' in entry:
-            # Only strip free-tier / opencode/* refs; leave deliberate paid overrides
-            val = entry['model']
-            if isinstance(val, str) and (val.startswith('opencode/') or bare(val).endswith('-free')):
-                del entry['model']
-                stripped += 1
+        title = (cfg.get('agents') or {}).get('title')
+        if not isinstance(title, dict) or title.get('model') != primary_ref:
+            cfg.setdefault('agents', {})['title'] = {
+                **(title if isinstance(title, dict) else {}),
+                'model': primary_ref,
+            }
+            changed = True
+    else:
+        for key in ('model', 'small_model'):
+            if cfg.get(key) != primary_ref:
+                cfg[key] = primary_ref
                 changed = True
+    stripped = 0
+    for agent_key in ('agent', 'agents'):
+        for name, entry in (cfg.get(agent_key) or {}).items():
+            if name == 'title':
+                continue
+            if isinstance(entry, dict) and 'model' in entry:
+                # Only strip free-tier / opencode/* refs; leave deliberate paid overrides
+                val = entry['model']
+                if isinstance(val, str) and (val.startswith('opencode/') or bare(val).endswith('-free')):
+                    del entry['model']
+                    stripped += 1
+                    changed = True
     if changed:
         atomic_write(system_config, json.dumps(cfg, indent=2) + '\n')
         print('  updated installed opencode.json (global=%s, stripped %d agent models)' % (primary_ref, stripped))
@@ -921,7 +962,8 @@ for dead/unreachable model IDs and STALE-POOL warnings. Exit code 1 if any found
 
 Model IDs are assigned DYNAMICALLY from free-models.json + model-pools.json
 ordered by probes.json reachability/stability — no hardcoded agent IDs.
-Agents inherit top-level model/small_model. Pools regenerate on every --refresh.
+Agents inherit the top-level model (title/small model = agents.title.model).
+Pools regenerate on every --refresh.
 
 Weekly schedule: scripts/systemd/pcore-free-models.{service,timer}
 (OnCalendar=weekly), installed via --schedule; cron fallback documented in README.

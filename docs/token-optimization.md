@@ -143,7 +143,7 @@ Verifier:  shell only — no file edits
 Reviewer:  read, diff — no web, no shell unless needed
 ```
 
-OpenCode `permission` blocks in `opencode.json` enforce this.
+OpenCode `permissions[]` entries in `opencode.json` enforce this.
 
 ### 3.3 Parallel vs sequential calls
 
@@ -271,7 +271,7 @@ Per-agent token budgets (design targets for subagent prompts + tool output):
 |---------|----------|---------|
 | Max fix iterations | `orchestra-subagent-stop.js` | Prevents VERIFY_FAIL loops |
 | Stall timeout | heartbeat monitor | 5 min → nudge; 2 stalls → abort |
-| Step limits | `opencode.json` `agent.*.steps` | 4–25 per phase |
+| Step limits | `opencode.json` `agents.*.steps` | 4–25 per phase |
 | Goal truncation | `orchestra.json` | 2000 chars |
 
 ---
