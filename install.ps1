@@ -215,7 +215,7 @@ function Install-OpenCode {
   $libDest = Join-Path $OpenCodeDir "hooks\lib"
   if (Test-Path $libDest) { Remove-Item $libDest -Recurse -Force }
   Copy-Item (Join-Path $Bundle "opencode\hooks\lib") $libDest -Recurse -Force
-  foreach ($libFile in @("opencode-config-sanitize.js", "opencode-version.js")) {
+  foreach ($libFile in @("opencode-config-sanitize.js", "opencode-v2.js", "opencode-version.js")) {
     $src = Join-Path (Join-Path $Root "scripts\lib") $libFile
     if (Test-Path $src) {
       Copy-Item $src (Join-Path $libDest $libFile) -Force

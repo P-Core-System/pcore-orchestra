@@ -2,7 +2,7 @@
   "model": "opencode/big-pickle",
   "agents": {
     "orchestra": {
-      "description": "Orchestra conductor — plan → implement → verify → review via task tool",
+      "description": "Orchestra conductor \u2014 plan \u2192 implement \u2192 verify \u2192 review via task tool",
       "mode": "primary",
       "steps": 500,
       "permissions": [
@@ -270,7 +270,7 @@
       }
     },
     "orchestra-planner": {
-      "description": "Internal orchestra phase 1 — plan only",
+      "description": "Internal orchestra phase 1 \u2014 plan only",
       "mode": "subagent",
       "steps": 500,
       "hidden": true,
@@ -324,7 +324,7 @@
       }
     },
     "orchestra-implementer": {
-      "description": "Internal orchestra phase 2 — implement",
+      "description": "Internal orchestra phase 2 \u2014 implement",
       "mode": "subagent",
       "steps": 500,
       "hidden": true,
@@ -378,7 +378,7 @@
       }
     },
     "orchestra-verifier": {
-      "description": "Internal orchestra phase 3 — verify",
+      "description": "Internal orchestra phase 3 \u2014 verify",
       "mode": "subagent",
       "steps": 500,
       "hidden": true,
@@ -432,7 +432,7 @@
       }
     },
     "orchestra-reviewer": {
-      "description": "Internal orchestra phase 4 — review",
+      "description": "Internal orchestra phase 4 \u2014 review",
       "mode": "subagent",
       "steps": 500,
       "hidden": true,
