@@ -1,5 +1,6 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { StateProvider, useStateContext } from './lib/StateContext';
+import { ThemeProvider, useTheme } from './lib/theme';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from './lib/queryKeys';
 import WorkflowPage from './pages/WorkflowPage';
@@ -7,6 +8,10 @@ import BoardPage from './pages/BoardPage';
 import RunsPage from './pages/RunsPage';
 import RunDetailPage from './pages/RunDetailPage';
 import TokensPage from './pages/TokensPage';
+import {
+  SunIcon,
+  MoonIcon,
+} from '@heroicons/react/24/outline';
 
 const navItems = [
   { path: '/', label: 'Workflow', icon: '📊' },
@@ -80,6 +85,19 @@ function WsStatusIndicator() {
   );
 }
 
+function ThemeToggle() {
+  const { theme, toggleTheme } = useTheme();
+  return (
+    <button
+      onClick={toggleTheme}
+      className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+      aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+    >
+      {theme === 'light' ? <MoonIcon className="w-5 h-5" /> : <SunIcon className="w-5 h-5" />}
+    </button>
+  );
+}
+
 function Sidebar() {
   const location = useLocation();
   return (
@@ -120,6 +138,7 @@ function Header() {
               {selectedStateDir.replace(/^.*[\\/]hooks[\\/]state[\\/]/, '').replace(/^.*[\\/]\.pcore[\\/]state[\\/]/, '')}
             </span>
           )}
+          <ThemeToggle />
           <WsStatusIndicator />
         </div>
       </div>
@@ -129,7 +148,7 @@ function Header() {
 
 function AppInner() {
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-100 dark:bg-gray-950">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header />
@@ -149,9 +168,11 @@ function AppInner() {
 
 function App() {
   return (
-    <StateProvider>
-      <AppInner />
-    </StateProvider>
+    <ThemeProvider>
+      <StateProvider>
+        <AppInner />
+      </StateProvider>
+    </ThemeProvider>
   );
 }
 

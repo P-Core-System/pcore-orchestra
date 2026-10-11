@@ -321,7 +321,7 @@ function Install-Studio {
   npm run build
   Pop-Location
 
-  # Copy dist to Cursor and OpenCode
+  # Copy dist to Cursor and OpenCode (for reference, though v2 server serves from repo)
   $cursorStudioDist = Join-Path $CursorDir "studio\dist"
   $opencodeStudioDist = Join-Path $OpenCodeDir "studio\dist"
   if (Test-Path $cursorStudioDist) { Remove-Item $cursorStudioDist -Recurse -Force }
@@ -329,35 +329,53 @@ function Install-Studio {
   $null = robocopy (Join-Path $Root "studio\dist") $cursorStudioDist /E /NDL /NJH /NJS /NP
   $null = robocopy (Join-Path $Root "studio\dist") $opencodeStudioDist /E /NDL /NJH /NJS /NP
 
-  # Create launcher script
+  # Install and configure service manager
+  Write-Host "  Installing service manager..."
+  $dryRunArg = if ($DryRun) { "--dry-run" } else { "" }
+  $serviceScript = Join-Path $Root "scripts\studio-service.sh"
+  if ($DryRun) {
+    Write-Host "  DRY RUN: Would run: bash $serviceScript install --port 3110 --dry-run"
+  } else {
+    bash $serviceScript install --port 3110 $dryRunArg
+  }
+
+  # Create shim launcher that delegates to service manager (via WSL/Git Bash).
+  # '__REPO_ROOT__' is substituted with this install's repo path so the shim is
+  # not tied to one machine; PCORE_ORCHESTRA_REPO still overrides at runtime.
   $localBin = Join-Path $env:USERPROFILE ".local\bin"
   if (-not (Test-Path $localBin)) { New-Item -ItemType Directory -Force -Path $localBin | Out-Null }
   
   $launcherPath = Join-Path $localBin "orchestra-studio.ps1"
   $launcherContent = @'
 #!/usr/bin/env pwsh
-# Orchestra Studio launcher (PowerShell)
-# Starts the Studio dashboard via npx serve
+# Orchestra Studio v2 launcher (PowerShell shim)
+# Delegates to studio-service.sh via bash (WSL/Git Bash)
 
-$distDir = if ($env:OPENCODE_CONFIG_DIR) { Join-Path $env:OPENCODE_CONFIG_DIR "studio\dist" } else { Join-Path $env:USERPROFILE ".config\opencode\studio\dist" }
-if (-not (Test-Path $distDir)) {
-  $distDir = if ($env:CURSOR_HOME) { Join-Path $env:CURSOR_HOME "studio\dist" } else { Join-Path $env:USERPROFILE ".cursor\studio\dist" }
-}
+$repoRoot = $env:PCORE_ORCHESTRA_REPO
+if (-not $repoRoot) { $repoRoot = '__REPO_ROOT__' }
+$serviceScript = Join-Path $repoRoot "scripts\studio-service.sh"
 
-if (-not (Test-Path $distDir)) {
-  Write-Error "ERROR: Studio not installed. Run 'powershell -File install.ps1 -Studio' first."
+if (-not (Test-Path $serviceScript)) {
+  Write-Error "ERROR: Service script not found. Run 'powershell -File install.ps1 -Studio' first."
   exit 1
 }
 
-Set-Location $distDir
-Write-Host "Starting Orchestra Studio at http://localhost:3000"
-Write-Host "Press Ctrl+C to stop"
-npx serve -l 0
+# Bare invocation = start
+if ($args.Count -eq 0) {
+  bash $serviceScript start
+  exit $LASTEXITCODE
+}
+
+# Pass through subcommands
+bash $serviceScript $args
+exit $LASTEXITCODE
 '@
+  $launcherContent = $launcherContent.Replace('__REPO_ROOT__', $Root)
   Set-Content -Path $launcherPath -Value $launcherContent -Encoding UTF8
-  Write-Host "  Launcher:        $localBin\orchestra-studio.ps1"
-  Write-Host "  Studio dist:     $CursorDir\studio\dist (Cursor)"
-  Write-Host "  Studio dist:     $OpenCodeDir\studio\dist (OpenCode)"
+  Write-Host "  Launcher:        $localBin\orchestra-studio.ps1 (shim -> studio-service.sh via bash)"
+  Write-Host "  Service:         studio-service.sh install|start|stop|status|logs|uninstall"
+  Write-Host "  Studio dist:     $CursorDir\studio\dist (Cursor, reference)"
+  Write-Host "  Studio dist:     $OpenCodeDir\studio\dist (OpenCode, reference)"
 }
 
 ###############################################################################

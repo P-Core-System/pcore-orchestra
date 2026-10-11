@@ -1,0 +1,18 @@
+[Unit]
+Description=Orchestra Studio Dashboard
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/peter/Documents/Project/pcore/pcore-orchestra
+ExecStart=/home/peter/.nvm/versions/node/v24.21.0/bin/node /home/peter/Documents/Project/pcore/pcore-orchestra/server/studio-api.js --port 3110
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGTERM
+StandardOutput=journal
+StandardError=journal
+Environment=NODE_ENV=production
+Environment=PATH=/home/peter/.nvm/versions/node/v24.21.0/bin:/usr/bin:/bin
+
+[Install]
+WantedBy=default.target

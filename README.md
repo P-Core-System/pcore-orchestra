@@ -180,15 +180,24 @@ bash install.sh --studio
 ### Launch Studio
 
 ```bash
-# Via launcher (created at ~/.local/bin/orchestra-studio)
-orchestra-studio
+orchestra-studio                    # start service (or `orchestra-studio start`)
+orchestra-studio status             # check if running (exit 0=healthy, 1=not running)
+orchestra-studio stop               # stop service
+orchestra-studio restart            # restart service
+orchestra-studio logs               # follow logs (journalctl or file)
+orchestra-studio uninstall          # remove service + cleanup
+orchestra-studio enable-autostart   # enable autostart on login (systemd/launchd)
+orchestra-studio disable-autostart  # disable autostart
+orchestra-studio --foreground       # run server directly (dev mode)
 
-# Or manually
+# Or bypass the service and serve the built SPA by hand:
 npx serve -l 0 ~/.config/opencode/studio/dist
 # Or Cursor: npx serve -l 0 ~/.cursor/studio/dist
 ```
 
-Studio serves on **http://localhost:3000** by default.
+The service runs on **http://localhost:3110** by default (`install.sh --studio`
+installs it with `--port 3110`); the manual `npx serve` fallback picks its own
+port and prints it.
 
 ### Studio Features
 

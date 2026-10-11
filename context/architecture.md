@@ -33,6 +33,7 @@
 | `bundle/hooks/lib/context-detector.js` | Six-file workspace context detection |
 | `bundle/hooks/lib/greenfield-scaffold.js` | Greenfield auto-scaffold (empty repo → init-project instruction) |
 | `bundle/hooks/lib/version-manager.js` | Semver, changelog, release automation |
+| `scripts/studio-service.sh`       | Studio v2 service manager (systemd/launchd/nohup)           |
 | `bundle/hooks/lib/evidence-runner.js` | Command-evidence checks for quality gates |
 | `bundle/hooks/lib/domain/constants.js` | Domain vocabulary: TICKET_STATES (10), additive-only ALLOWED_TRANSITIONS, SESSION_STATES/ACTIONS, DOMAIN_EVENT_TYPES (incl. `phase.outcome`), DOMAIN_EVENT_CAP |
 | `bundle/hooks/lib/domain/entities.js` | 11 entity factories (`createTicket/Plan/Task/Session/AgentRun/Event/Evidence/Verification/Review/Checkpoint/MemoryRef`) + `validateEntity` + `appendRing` |
@@ -77,6 +78,7 @@
 | Conductor runs | `~/.config/opencode/hooks/state/conductor-runs/<ws>/<sid>/<tid>.json` | One atomic JSON per orchestra run; keyed by workspace (slug) + session + 12-hex task id (`conductor-state.js`) |
 | Conductor run index | `~/.config/opencode/hooks/state/conductor-runs/index.json` | `{ version, updated_at, runs: { "<ws>/<sid>/<tid>": {...} } }` registry of live sessions/tasks for `who`/`resume`/stall detection |
 | Long-term memory | `~/.cursor/hooks/state/orchestra-memory.json` | Persistent across sessions, capped at 100 goals |
+| Studio service PID/port/log | `~/.local/state/orchestra-studio/` + `~/.local/log/orchestra-studio/` | Managed by studio-service.sh |
 | Token usage | `~/.cursor/hooks/state/orchestra-tokens.json` | Per-run estimates, aggregates, improvement tips |
 | Plan artifact | `<project>/.cursor/orchestra-plan.md` | Approved plan for implement→verify→review (gitignored) |
 | Agent registry | `bundle/agent-registry.json` | Generated SSOT (160 agent files, 27 hook agents, 160/side coverage) — also regenerates the conductor `permission.task` allowlist; `--check` gate in CI |

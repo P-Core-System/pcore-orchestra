@@ -24,6 +24,7 @@ const express = require("express");
 const readers = require("./readers.js");
 const { buildRunGraph } = require("./graph-builder.js");
 const store = require("../bundle/hooks/lib/domain/store.js");
+const { discoverStateDirs } = require("./state-dirs.js");
 const entities = require("../bundle/hooks/lib/domain/entities.js");
 const { ALLOWED_TRANSITIONS } = require("../bundle/hooks/lib/domain/constants.js");
 
@@ -124,6 +125,10 @@ function createApp() {
         transitions: item.transitions.concat([{ from: item.state, to: target, at }]),
       }),
     });
+  });
+
+  app.get("/api/state-dirs", (req, res) => {
+    res.json(discoverStateDirs());
   });
 
   app.get("/api/tokens/aggregates", (req, res) => {

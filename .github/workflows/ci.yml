@@ -19,7 +19,7 @@ jobs:
           node-version: "20"
       - run: |
           shopt -s globstar
-          for f in scripts/*.js scripts/lib/*.js bundle/hooks/**/*.js bundle/opencode/hooks/**/*.js templates/**/*.js; do
+          for f in scripts/*.js scripts/lib/*.js bundle/hooks/**/*.js bundle/opencode/hooks/**/*.js templates/**/*.js server/*.js; do
             if [ -f "$f" ]; then node --check "$f" && echo "OK: $f"; fi
           done
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
@@ -38,7 +38,7 @@ jobs:
           node-version: "20"
       - name: Agent registry in sync
         run: node scripts/gen-agent-registry.js --check
-      - name: Hook suites (safe-write, state, conductor, outcome, registry, handshake, mirrors, permissions, adaptive, domain, evidence, review queue, security scanner)
+      - name: Hook suites (safe-write, state, conductor, outcome, registry, handshake, mirrors, permissions, adaptive, domain, evidence, review queue, security scanner, studio service)
         run: |
           set -e
           node scripts/test-safe-write.js
@@ -58,3 +58,4 @@ jobs:
           node scripts/test-evidence-runner.js
           node scripts/test-review-queue.js
           node scripts/test-security-scanner.js
+          bash scripts/test-studio-service.sh

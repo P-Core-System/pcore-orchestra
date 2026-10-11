@@ -49,6 +49,7 @@ node scripts/test-domain-evidence.js
 node scripts/test-domain-state-dir.js
 node scripts/test-evidence-runner.js
 node scripts/test-review-queue.js
+bash scripts/test-studio-service.sh
 node scripts/test-security-scanner.js
 node scripts/gen-agent-registry.js --check
 node scripts/scan-secrets.js --dir . --fail-on=high
