@@ -227,3 +227,14 @@ export function patchWorkItemState(
 export function fetchTokenAggregates(): Promise<TokenAggregates> {
   return request<TokenAggregates>("/api/tokens/aggregates");
 }
+
+/** `GET /api/state-dirs` — discover global and worktree state directories. */
+export interface StateDirInfo {
+  path: string;
+  isWorktree: boolean;
+  runId?: string;
+}
+
+export function fetchStateDirs(): Promise<StateDirInfo[]> {
+  return request<StateDirInfo[]>("/api/state-dirs");
+}

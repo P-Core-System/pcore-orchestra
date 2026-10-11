@@ -45,12 +45,16 @@ function normalizePhaseState(status) {
   switch (status) {
     case "active":
     case "running":
+    case "in_progress":
       return "running";
     case "completed":
+    case "success":
       return "completed";
     case "failed":
+    case "error":
       return "failed";
     case "blocked":
+    case "stalled":
       return "blocked";
     default:
       return "idle";
@@ -58,7 +62,7 @@ function normalizePhaseState(status) {
 }
 
 function isLiveStatus(status) {
-  return status === undefined || status === null || status === "active" || status === "in_progress";
+  return status === undefined || status === null || status === "active" || status === "in_progress" || status === "running";
 }
 
 /** `{ phase, decision }` from either a raw domain event or a bare payload. */
@@ -115,6 +119,8 @@ function normalizeEvidence(evidence) {
 function derivePhases(run, outcomes) {
   const source = run && typeof run === "object" ? run : {};
   const list = Array.isArray(source.phases) ? source.phases : [];
+  
+  // If run file has detailed phases, use them
   if (list.length > 0) {
     return list.map((phase) => {
       const p = phase && typeof phase === "object" ? phase : {};
@@ -129,6 +135,7 @@ function derivePhases(run, outcomes) {
     });
   }
 
+  // Otherwise, derive from current phase and outcomes
   const decisions = new Map();
   for (const outcome of normalizeOutcomes(outcomes)) {
     if (outcome.phase) decisions.set(outcome.phase, outcome.decision);

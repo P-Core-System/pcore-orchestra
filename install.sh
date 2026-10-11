@@ -406,42 +406,52 @@ install_studio() {
 
   # Build studio
   echo "  Building Studio..."
-  (cd "$ROOT/studio" && npm ci && npm run build)
-
-  # Copy dist to Cursor and OpenCode
-  mkdir -p "$CURSOR/studio"
+  (cd "$ROOT/studio" && npm install --legacy-peer-deps && npm run build)
   mkdir -p "$OPENCODE/studio"
   rm -rf "$CURSOR/studio/dist"
   rm -rf "$OPENCODE/studio/dist"
   cp -rf "$ROOT/studio/dist" "$CURSOR/studio/"
   cp -rf "$ROOT/studio/dist" "$OPENCODE/studio/"
 
-  # Create launcher script
+  # Install and configure service manager
+  echo "  Installing service manager..."
+  local dry_run_arg=""
+  [[ "$DRY_RUN" -eq 1 ]] && dry_run_arg="--dry-run"
+  bash "$ROOT/scripts/studio-service.sh" install --port 3110 $dry_run_arg
+
+  # Create shim launcher that delegates to service manager.
+  # Header is unquoted so the install-time repo path is baked in; the body is
+  # quoted so `$#`/`$1`/`$@` survive as runtime expansions.
   mkdir -p "$HOME/.local/bin"
-  cat > "$HOME/.local/bin/orchestra-studio" <<'LAUNCHER'
+  {
+    cat <<HEADER
 #!/usr/bin/env bash
-# Orchestra Studio launcher
-# Starts the Studio dashboard via npx serve
+# Orchestra Studio v2 launcher (shim)
+# Delegates to studio-service.sh for service management.
+# Repo recorded at install time; override with PCORE_ORCHESTRA_REPO.
+SERVICE_SCRIPT="\${PCORE_ORCHESTRA_REPO:-$ROOT}/scripts/studio-service.sh"
+HEADER
+    cat <<'LAUNCHER'
 
-DIST_DIR="${OPENCODE_CONFIG_DIR:-$HOME/.config/opencode}/studio/dist"
-if [[ ! -d "$DIST_DIR" ]]; then
-  DIST_DIR="${CURSOR_HOME:-$HOME/.cursor}/studio/dist"
-fi
-
-if [[ ! -d "$DIST_DIR" ]]; then
-  echo "ERROR: Studio not installed. Run 'bash install.sh --studio' first."
+if [[ ! -f "$SERVICE_SCRIPT" ]]; then
+  echo "ERROR: Service script not found. Run 'bash install.sh --studio' first."
   exit 1
 fi
 
-cd "$DIST_DIR"
-echo "Starting Orchestra Studio at http://localhost:3000"
-echo "Press Ctrl+C to stop"
-exec npx serve -l 0
+# Bare invocation = start
+if [[ $# -eq 0 ]]; then
+  exec "$SERVICE_SCRIPT" start
+fi
+
+# Pass through subcommands
+exec "$SERVICE_SCRIPT" "$@"
 LAUNCHER
+  } > "$HOME/.local/bin/orchestra-studio"
   chmod +x "$HOME/.local/bin/orchestra-studio"
-  echo "  Launcher:        ~/.local/bin/orchestra-studio"
-  echo "  Studio dist:     $CURSOR/studio/dist (Cursor)"
-  echo "  Studio dist:     $OPENCODE/studio/dist (OpenCode)"
+  echo "  Launcher:        ~/.local/bin/orchestra-studio (shim -> studio-service.sh)"
+  echo "  Service:         studio-service.sh install|start|stop|status|logs|uninstall"
+  echo "  Studio dist:     $CURSOR/studio/dist (Cursor, reference)"
+  echo "  Studio dist:     $OPENCODE/studio/dist (OpenCode, reference)"
 }
 
 ###############################################################################

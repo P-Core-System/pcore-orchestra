@@ -365,12 +365,15 @@ function loadRunDetail(id, dir) {
 
 /**
  * Board projection of `ticket.created` / `ticket.transitioned` events.
+ * Also synthesizes WorkItems from runs that don't have explicit tickets.
  * Returns `id/goal/agent/state/runId/updatedAt/ageMs` per the architecture §3
  * WorkItem shape.
  */
 function deriveWorkItems(events, now) {
   const clock = typeof now === "number" ? now : Date.now();
   const items = new Map();
+
+  // First: explicit ticket events
   for (const event of events || []) {
     if (event.type !== "ticket.created" && event.type !== "ticket.transitioned") continue;
     const payload = payloadOf(event);
