@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # ensure-opencode-latest.sh — install or upgrade OpenCode CLI to latest (or channel).
 #
+# Targets @opencode/cli (OpenCode v2). The legacy `opencode-ai` npm package is
+# the v1 line and is never installed over a v2 CLI (downgrade guard below).
+#
 # Usage:
 #   bash scripts/ensure-opencode-latest.sh
 #   OPENCODE_CHANNEL=beta bash scripts/ensure-opencode-latest.sh
 #   bash scripts/ensure-opencode-latest.sh --check
 #
-# Channels: stable (default), beta, dev (npm dist-tags on opencode-ai)
+# Channels: stable (default), beta, dev (npm dist-tags on @opencode/cli)
 set -euo pipefail
 
 CHANNEL="${OPENCODE_CHANNEL:-stable}"
@@ -45,9 +48,25 @@ npm_tag_for_channel() {
   esac
 }
 
+# OpenCode v2 ships as @opencode/cli. The legacy opencode-ai package tops out
+# at 1.x — installing it over a v2 CLI clobbers the `opencode` bin and is a
+# downgrade, so always target the v2 package and never step down a major.
+PKG="@opencode/cli"
+
 BEFORE="$(parse_version || true)"
 TAG="$(npm_tag_for_channel)"
-TARGET="$(npm view "opencode-ai@${TAG}" version 2>/dev/null || true)"
+TARGET="$(npm view "${PKG}@${TAG}" version 2>/dev/null || true)"
+
+# Refuse auto-downgrades (e.g. npm `latest` pointing at the v1 line).
+if [[ -n "$BEFORE" && -n "$TARGET" ]]; then
+  BEFORE_MAJOR="${BEFORE%%.*}"
+  TARGET_MAJOR="${TARGET%%.*}"
+  if (( 10#$BEFORE_MAJOR > 10#$TARGET_MAJOR )); then
+    echo "WARN refusing downgrade: $BEFORE -> $TARGET ($PKG@$TAG) — keeping $BEFORE"
+    echo "    (v2 lives in $PKG; v1 lives in opencode-ai — check the npm tag)"
+    exit 1
+  fi
+fi
 
 echo "==> OpenCode CLI (channel: $CHANNEL, npm tag: $TAG)"
 if [[ -n "$BEFORE" ]]; then
@@ -73,15 +92,15 @@ fi
 
 installed=0
 if command -v bun >/dev/null 2>&1; then
-  echo "    Upgrading via bun (opencode-ai@${TAG})..."
-  if bun install -g "opencode-ai@${TAG}"; then
+  echo "    Upgrading via bun (${PKG}@${TAG})..."
+  if bun install -g "${PKG}@${TAG}"; then
     installed=1
   fi
 fi
 
 if [[ "$installed" -eq 0 ]] && command -v npm >/dev/null 2>&1; then
-  echo "    Upgrading via npm (opencode-ai@${TAG})..."
-  npm install -g "opencode-ai@${TAG}"
+  echo "    Upgrading via npm (${PKG}@${TAG})..."
+  npm install -g "${PKG}@${TAG}"
   installed=1
 fi
 

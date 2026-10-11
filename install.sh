@@ -254,7 +254,7 @@ PY
   cp -f "$BUNDLE/opencode/hooks/"orchestra-*.js "$OPENCODE/hooks/"
   rm -rf "$OPENCODE/hooks/lib"
   cp -rf "$BUNDLE/opencode/hooks/lib" "$OPENCODE/hooks/lib"
-  cp -f "$ROOT/scripts/lib/opencode-config-sanitize.js" "$ROOT/scripts/lib/opencode-version.js" \
+  cp -f "$ROOT/scripts/lib/opencode-config-sanitize.js" "$ROOT/scripts/lib/opencode-v2.js" "$ROOT/scripts/lib/opencode-version.js" \
     "$OPENCODE/hooks/lib/" 2>/dev/null || true
 
   # MCP server (if requested)
