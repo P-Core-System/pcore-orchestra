@@ -11,25 +11,25 @@ interface BoardColumnProps {
 export function BoardColumn({ state, title, items }: BoardColumnProps) {
   const getStateColor = (state: string): string => {
     const colors: Record<string, string> = {
-      TRIAGE: 'bg-gray-100 text-gray-700 border-gray-300',
-      READY: 'bg-blue-100 text-blue-700 border-blue-300',
-      PLANNED: 'bg-indigo-100 text-indigo-700 border-indigo-300',
-      IN_PROGRESS: 'bg-yellow-100 text-yellow-700 border-yellow-300',
-      VERIFYING: 'bg-purple-100 text-purple-700 border-purple-300',
-      REVIEW_PENDING: 'bg-orange-100 text-orange-700 border-orange-300',
-      COMPLETED: 'bg-green-100 text-green-700 border-green-300',
-      NEEDS_HUMAN: 'bg-red-100 text-red-700 border-red-300',
-      CANCELLED: 'bg-gray-200 text-gray-500 border-gray-400',
-      FAILED: 'bg-red-200 text-red-800 border-red-400',
+      TRIAGE: 'bg-neutral text-neutral-fg border-neutral-line',
+      READY: 'bg-info text-info-fg border-info-line',
+      PLANNED: 'bg-plan text-plan-fg border-plan-line',
+      IN_PROGRESS: 'bg-progress text-progress-fg border-progress-line',
+      VERIFYING: 'bg-verify text-verify-fg border-verify-line',
+      REVIEW_PENDING: 'bg-review text-review-fg border-review-line',
+      COMPLETED: 'bg-ok text-ok-fg border-ok-line',
+      NEEDS_HUMAN: 'bg-err text-err-fg border-err-line',
+      CANCELLED: 'bg-neutral text-neutral-fg border-neutral-line',
+      FAILED: 'bg-err text-err-fg border-err-line',
     };
-    return colors[state] || 'bg-gray-100 text-gray-700 border-gray-300';
+    return colors[state] || 'bg-neutral text-neutral-fg border-neutral-line';
   };
 
   return (
-    <div className="flex-1 min-w-[280px] max-w-[320px] bg-gray-50 rounded-lg border border-gray-200 flex flex-col">
-      <div className="p-3 border-b border-gray-200">
+    <div className="flex-1 min-w-[280px] max-w-[320px] bg-sunken rounded-lg border border-line flex flex-col">
+      <div className="p-3 border-b border-line">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900">{title}</h3>
+          <h3 className="font-semibold text-default">{title}</h3>
           <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getStateColor(state)}`}>
             {items.length}
           </span>
@@ -37,7 +37,7 @@ export function BoardColumn({ state, title, items }: BoardColumnProps) {
       </div>
       <div className="flex-1 overflow-y-auto p-2 space-y-2 min-h-[400px]">
         {items.length === 0 ? (
-          <div className="text-center text-gray-400 text-sm py-8">Drop items here</div>
+          <div className="text-center text-muted text-sm py-8">Drop items here</div>
         ) : (
           items.map((item) => <BoardWorkItemCard key={item.ticketId} item={item} />)
         )}
@@ -73,29 +73,29 @@ function BoardWorkItemCard({ item }: BoardWorkItemCardProps) {
     <div
       ref={setNodeRef}
       style={style}
-      className="bg-white rounded border border-gray-200 p-3 shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing"
+      className="bg-surface rounded border border-line p-3 shadow-sm hover:shadow-md dark:shadow-none dark:hover:shadow-lg transition-shadow cursor-grab active:cursor-grabbing"
       {...attributes}
       {...listeners}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-mono text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+            <span className="font-mono text-xs text-muted bg-sunken px-1.5 py-0.5 rounded">
               {item.ticketId.slice(0, 8)}
             </span>
             {item.agent && (
-              <span className="text-xs text-gray-400 font-medium">{item.agent}</span>
+              <span className="text-xs text-muted font-medium">{item.agent}</span>
             )}
           </div>
-          <h4 className="text-sm font-medium text-gray-900 truncate">
+          <h4 className="text-sm font-medium text-default truncate">
             {item.title || item.goal || 'Untitled'}
           </h4>
-          <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+          <div className="flex items-center gap-2 mt-1 text-xs text-muted">
             <span>Created: {formatDate(item.createdAt || Date.now())}</span>
             <span>Updated: {formatTime(item.updatedAt)}</span>
           </div>
           {item.transitions && item.transitions.length > 0 && (
-            <div className="mt-1 text-xs text-gray-400">
+            <div className="mt-1 text-xs text-muted">
               Transitions: {item.transitions.length}
             </div>
           )}

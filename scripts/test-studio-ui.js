@@ -159,6 +159,14 @@ async function testApiContract() {
       r.call && r.call.url
     );
 
+    r = await run(() => api.fetchStateDirs());
+    ok(
+      r.call && r.call.url === "/api/state-dirs",
+      "fetchStateDirs() \u2192 GET /api/state-dirs (server-owned discovery)",
+      r.call && r.call.url
+    );
+    ok(r.call && (!r.call.init.method || r.call.init.method === "GET"), "fetchStateDirs uses GET");
+
     r = await run(() => api.patchWorkItemState("wi-7", "REVIEW_PENDING"));
     ok(r.call && r.call.url === "/api/workitems/wi-7", "patchWorkItemState \u2192 PATCH /api/workitems/:id", r.call && r.call.url);
     ok(r.call && r.call.init.method === "PATCH", "patchWorkItemState uses PATCH method");
@@ -363,13 +371,16 @@ function writeGraphFixture() {
   return JSON.parse(fs.readFileSync(file, "utf8"));
 }
 
-/** Spec §7 design token expected per node state. */
+/**
+ * Semantic state token expected per node state (design spec §7, now themed via
+ * CSS custom properties instead of raw Tailwind palette names).
+ */
 const STATE_TOKEN = {
-  idle: "zinc",
-  running: "sky",
-  completed: "emerald",
-  failed: "red",
-  blocked: "amber",
+  idle: "neutral",
+  running: "info",
+  completed: "ok",
+  failed: "err",
+  blocked: "warn",
 };
 
 async function testGraphPage() {
@@ -415,19 +426,19 @@ async function testGraphPage() {
     const gating = fixture.edges.find((e) => e.kind === "gating");
     const gatingCls = styles.edgeStateClass(gating.state);
     ok(
-      typeof gatingCls === "string" && gatingCls.includes("red"),
-      "gating edge inherits the failed target state color",
+      typeof gatingCls === "string" && gatingCls.includes("err"),
+      "gating edge inherits the failed (err) target state token",
       gatingCls
     );
     ok(
-      typeof styles.edgeStateClass("running") === "string" && styles.edgeStateClass("running").includes("sky"),
-      "sequence edge class tracks the running state color"
+      typeof styles.edgeStateClass("running") === "string" && styles.edgeStateClass("running").includes("info"),
+      "sequence edge class tracks the running (info) state token"
     );
     const fix = fixture.edges.find((e) => e.kind === "fix-loop");
     const fixCls = styles.fixLoopEdgeClass(fix.state);
     ok(
-      typeof fixCls === "string" && /dash/i.test(fixCls) && fixCls.includes("amber"),
-      "fix-loop edge is dashed + amber (visually distinct from sequencing)",
+      typeof fixCls === "string" && /dash/i.test(fixCls) && fixCls.includes("warn"),
+      "fix-loop edge is dashed + warn (visually distinct from sequencing)",
       fixCls
     );
   } else {
@@ -436,8 +447,8 @@ async function testGraphPage() {
       "fixture nodes map to §7 state tokens",
       "pulse animation applies only to running nodes",
       "unknown/missing state degrades to the idle class (spec §3, never crashes)",
-      "gating edge inherits the failed target state color",
-      "fix-loop edge is dashed + amber (visually distinct from sequencing)",
+      "gating edge inherits the failed (err) target state token",
+      "fix-loop edge is dashed + warn (visually distinct from sequencing)",
     ]) {
       ok(false, m, "lib/graphStyles.ts missing");
     }
@@ -462,12 +473,187 @@ async function testGraphPage() {
 }
 
 
+// ================================================ T3 — light/dark theme system
+
+/**
+ * Any hardcoded Tailwind palette utility (`bg-gray-800`, `text-white`,
+ * `border-zinc-700`, ...). Studio must theme through CSS custom properties
+ * instead, so these are a bug, not a style choice.
+ */
+const PALETTE_CLASS_RE =
+  /(?:^|[\s"'`/])(?:bg|text|border|ring|divide|from|via|to|placeholder|outline|decoration|accent|shadow)-(?:gray|slate|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}(?:\/\d{2,3})?/g;
+
+/** Every .ts/.tsx source under studio/src, excluding the stylesheet itself. */
+function studioSourceFiles() {
+  const out = [];
+  (function walk(dir) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const abs = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(abs);
+      else if (/\.(ts|tsx)$/.test(entry.name)) out.push(abs);
+    }
+  })(SRC);
+  return out;
+}
+
+async function testThemeSystem() {
+  console.log("\nT3: light/dark theme — tokens, useTheme hook, header toggle, no hardcoded palette");
+
+  // ---- styles.css: single source of truth ----------------------------------
+  const css = read("styles.css");
+  ok(css !== null, "src/styles.css exists");
+  if (css) {
+    has(css, "@import \"tailwindcss\"", "styles.css imports tailwindcss (v4)");
+    has(
+      css,
+      "@theme inline",
+      "Tailwind v4 `@theme inline` maps semantic utilities onto the CSS variables"
+    );
+    has(css, ":root", "light tokens are the :root default");
+
+    // Dark override must exist and be reachable from the DOM class the hook toggles.
+    const darkBlock = /\.dark\b[\s\S]*?\{[\s\S]*?--studio-/.test(css) ||
+      /:root\[data-theme=["']dark["']\][\s\S]*?\{[\s\S]*?--studio-/.test(css);
+    ok(darkBlock, "dark token block exists (.dark and/or [data-theme=\"dark\"])");
+
+    // The six semantic utilities the shell relies on must be declared.
+    for (const token of [
+      "--color-surface",
+      "--color-elevated",
+      "--color-default",
+      "--color-muted",
+      "--color-line",
+      "--color-accent",
+    ]) {
+      has(css, token, `@theme declares ${token} (-> ${token.replace("--color-", "")}-* utility)`);
+    }
+    // Semantic utilities, not palette utilities, must be the ones the @theme maps.
+    ok(
+      !/:\s*var\(--color-[a-z-]+\);?\s*\n\s*--color-/.test(css) &&
+        !/@theme\s*\{/.test(css.replace(/@theme inline/g, "")),
+      "no self-referential @theme var aliases (the old build-time-baked bug)"
+    );
+
+    has(css, "prefers-reduced-motion", "prefers-reduced-motion guard preserved");
+  }
+
+  // ---- no hardcoded palette classes anywhere in studio/src -----------------
+  const offenders = [];
+  for (const file of studioSourceFiles()) {
+    const content = fs.readFileSync(file, "utf8");
+    const hits = new Set((content.match(PALETTE_CLASS_RE) || []).map((h) => h.trim()));
+    if (hits.size) {
+      offenders.push(`${path.relative(SRC, file).replace(/\\/g, "/")}: ${[...hits].join(" ")}`);
+    }
+  }
+  ok(
+    offenders.length === 0,
+    "zero hardcoded Tailwind palette classes in studio/src (token-driven theming)",
+    offenders.join(" | ")
+  );
+
+  // `dark:` variants must actually be used somewhere, or the toggle is a no-op
+  // for anything that is not covered by a token.
+  const darkVariantFiles = studioSourceFiles().filter((f) =>
+    /(?:^|[\s"'`])dark:/.test(fs.readFileSync(f, "utf8"))
+  );
+  ok(
+    darkVariantFiles.length > 0,
+    "`dark:` variants are used in studio/src",
+    darkVariantFiles.map((f) => path.relative(SRC, f)).join(" ")
+  );
+
+  // ---- `!important` stays limited to the chart-gridline exception ----------
+  const importantOffenders = [];
+  for (const file of [...studioSourceFiles(), path.join(SRC, "styles.css")]) {
+    const content = fs.readFileSync(file, "utf8");
+    if (content.includes("!important") && !content.includes("chart-gridline")) {
+      importantOffenders.push(path.relative(SRC, file).replace(/\\/g, "/"));
+    }
+  }
+  ok(
+    importantOffenders.length === 0,
+    "`!important` only in the chart-gridline exception",
+    importantOffenders.join(" ")
+  );
+
+  // ---- useTheme hook ------------------------------------------------------
+  const hookPath = path.join(SRC, "hooks", "useTheme.ts");
+  ok(fs.existsSync(hookPath), "src/hooks/useTheme.ts exists");
+  const hook = read("hooks/useTheme.ts");
+  has(hook, "orchestra-studio-theme", "useTheme persists under localStorage key orchestra-studio-theme");
+  has(hook, "prefers-color-scheme", "useTheme falls back to prefers-color-scheme");
+  has(hook, "matchMedia", "useTheme reads the system preference via matchMedia");
+  has(hook, "classList", "useTheme toggles documentElement.classList('dark')");
+  has(hook, "'change'", "useTheme listens for system colour-scheme changes");
+  hasAny(hook, ["toggleTheme", "setTheme"], "useTheme exposes a toggle");
+
+  const hookMod = await loadTs("hooks/useTheme.ts", tsCache);
+  if (hookMod && typeof hookMod.resolveTheme === "function") {
+    ok(hookMod.THEME_STORAGE_KEY === "orchestra-studio-theme", "THEME_STORAGE_KEY exported");
+    ok(hookMod.resolveTheme(null, true) === "dark", "no stored preference + dark system -> dark");
+    ok(hookMod.resolveTheme(null, false) === "light", "no stored preference + light system -> light");
+    ok(hookMod.resolveTheme("light", true) === "light", "stored light overrides a dark system");
+    ok(hookMod.resolveTheme("dark", false) === "dark", "stored dark overrides a light system");
+    ok(hookMod.resolveTheme("nonsense", false) === "light", "unparseable stored value falls back");
+  } else {
+    for (const m of [
+      "THEME_STORAGE_KEY exported",
+      "no stored preference + dark system -> dark",
+      "no stored preference + light system -> light",
+      "stored light overrides a dark system",
+      "stored dark overrides a light system",
+      "unparseable stored value falls back",
+    ]) {
+      ok(false, m, "hooks/useTheme.ts not importable / resolveTheme missing");
+    }
+  }
+
+  // ---- header toggle in App.tsx -------------------------------------------
+  const app = read("App.tsx");
+  has(app, "useTheme", "App.tsx uses the useTheme hook");
+  has(app, "toggleTheme", "App.tsx renders a theme toggle");
+  has(app, "aria-label", "theme toggle has an accessible label");
+  has(app, "aria-pressed", "theme toggle exposes aria-pressed state");
+
+  // ---- node states stay distinguishable + keep their text label -----------
+  const styles = await loadTs("lib/graphStyles.ts", tsCache);
+  if (styles) {
+    const classes = Object.values(styles.NODE_STATE_CLASSES || {});
+    ok(
+      new Set(classes).size === classes.length && classes.length === 5,
+      "all 5 node states use distinct token classes (distinguishable in both themes)",
+      classes.join(" | ")
+    );
+    const labels = styles.NODE_STATE_LABELS || {};
+    ok(
+      ["idle", "running", "completed", "failed", "blocked"].every((s) => typeof labels[s] === "string" && labels[s].length),
+      "every node state keeps its non-colour text label (design spec §7)"
+    );
+    const strokes = Object.values(styles.EDGE_STATE_STROKES || {});
+    ok(
+      strokes.length === 5 && strokes.every((s) => typeof s === "string" && s.includes("var(--")),
+      "edge strokes reference theme CSS variables, not hardcoded hex",
+      strokes.join(" | ")
+    );
+  } else {
+    for (const m of [
+      "all 5 node states use distinct token classes (distinguishable in both themes)",
+      "every node state keeps its non-colour text label (design spec §7)",
+      "edge strokes reference theme CSS variables, not hardcoded hex",
+    ]) {
+      ok(false, m, "lib/graphStyles.ts missing");
+    }
+  }
+}
+
 async function main_() {
   console.log("\n=== Studio v2 UI tests (RED phase) ===");
   await testApiContract();
   await testQueryKeys();
   testClientWiring();
   await testGraphPage();
+  await testThemeSystem();
 
   console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);
   process.exit(failed > 0 ? 1 : 0);

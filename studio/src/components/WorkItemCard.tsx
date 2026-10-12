@@ -16,26 +16,26 @@ export function WorkItemCard({ item }: WorkItemCardProps) {
   };
 
   return (
-    <div className="bg-white rounded border border-gray-200 p-3 shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-surface rounded border border-line p-3 shadow-sm hover:shadow-md dark:shadow-none dark:hover:shadow-lg transition-shadow">
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-mono text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+            <span className="font-mono text-xs text-muted bg-sunken px-1.5 py-0.5 rounded">
               {item.ticketId.slice(0, 8)}
             </span>
             {item.agent && (
-              <span className="text-xs text-gray-400 font-medium">{item.agent}</span>
+              <span className="text-xs text-muted font-medium">{item.agent}</span>
             )}
           </div>
-          <h4 className="text-sm font-medium text-gray-900 truncate">
+          <h4 className="text-sm font-medium text-default truncate">
             {item.title || item.goal || 'Untitled'}
           </h4>
-          <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+          <div className="flex items-center gap-2 mt-1 text-xs text-muted">
             <span>Created: {formatDate(item.createdAt)}</span>
             <span>Updated: {formatTime(item.updatedAt)}</span>
           </div>
           {item.transitions.length > 0 && (
-            <div className="mt-1 text-xs text-gray-400">
+            <div className="mt-1 text-xs text-muted">
               Transitions: {item.transitions.length}
             </div>
           )}

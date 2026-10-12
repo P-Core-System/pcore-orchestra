@@ -96,9 +96,9 @@ export function ReviewInbox({ events }: ReviewInboxProps) {
   if (reviewItems.length === 0) {
     return (
       <div className="p-8 text-center">
-        <div className="text-gray-400 text-6xl mb-4">📭</div>
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Nothing to triage</h3>
-        <p className="text-gray-500">All reviews resolved — nothing queued for human triage</p>
+        <div className="text-muted text-6xl mb-4">📭</div>
+        <h3 className="text-lg font-medium text-default mb-2">Nothing to triage</h3>
+        <p className="text-muted">All reviews resolved — nothing queued for human triage</p>
       </div>
     );
   }
@@ -106,8 +106,8 @@ export function ReviewInbox({ events }: ReviewInboxProps) {
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Human Review Inbox</h2>
-        <span className="px-3 py-1 bg-red-100 text-red-700 text-sm font-medium rounded-full">
+        <h2 className="text-2xl font-bold text-default">Human Review Inbox</h2>
+        <span className="px-3 py-1 bg-err text-err-fg text-sm font-medium rounded-full">
           {reviewItems.length} pending
         </span>
       </div>

@@ -31,12 +31,12 @@ export default function RunsPage() {
 
   const getStatusBadge = (status: RunSummary['status']) => {
     const styles: Record<RunSummary['status'], string> = {
-      running: 'bg-blue-100 text-blue-700',
-      completed: 'bg-green-100 text-green-700',
-      failed: 'bg-red-100 text-red-700',
-      blocked: 'bg-yellow-100 text-yellow-700',
+      running: 'bg-info text-info-fg',
+      completed: 'bg-ok text-ok-fg',
+      failed: 'bg-err text-err-fg',
+      blocked: 'bg-warn text-warn-fg',
     };
-    return styles[status] || 'bg-gray-100 text-gray-700';
+    return styles[status] || 'bg-neutral text-neutral-fg';
   };
 
   const getStatusIcon = (status: RunSummary['status']) => {
@@ -56,7 +56,7 @@ export default function RunsPage() {
 
   if (runsQuery.isLoading) {
     return (
-      <div className="p-6 text-center text-gray-500">
+      <div className="p-6 text-center text-muted">
         Loading runs…
       </div>
     );
@@ -64,7 +64,7 @@ export default function RunsPage() {
 
   if (runsQuery.isError) {
     return (
-      <div className="p-6 text-center text-red-500">
+      <div className="p-6 text-center text-err-fg">
         Failed to load runs: {runsQuery.error?.message}
       </div>
     );
@@ -74,8 +74,8 @@ export default function RunsPage() {
     <div className="p-6">
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Conductor Runs</h2>
-          <p className="text-gray-500 mt-1">{runs.length} total runs</p>
+          <h2 className="text-2xl font-bold text-default">Conductor Runs</h2>
+          <p className="text-muted mt-1">{runs.length} total runs</p>
         </div>
         <div className="flex gap-2">
           {statuses.map((status) => (
@@ -84,8 +84,8 @@ export default function RunsPage() {
               onClick={() => setStatusFilter(statusFilter === status ? '' : status)}
               className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
                 statusFilter === status
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-accent text-on-accent'
+                  : 'bg-neutral text-neutral-fg hover:bg-sunken'
               }`}
             >
               {getStatusIcon(status)} {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -95,48 +95,48 @@ export default function RunsPage() {
       </div>
 
       {filteredRuns.length === 0 ? (
-        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center text-gray-500">
+        <div className="bg-surface rounded-lg border border-line p-12 text-center text-muted">
           {runs.length === 0 ? 'No runs found in the state directory.' : `No runs with status "${statusFilter}".`}
         </div>
       ) : (
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="bg-surface rounded-lg border border-line overflow-hidden">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-sunken border-b border-line">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Run ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Goal</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phase</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Started</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">Run ID</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">Goal</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">Agent</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">Phase</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">Started</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">Duration</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-line">
               {filteredRuns.map((run) => (
-                <tr key={run.id} className="hover:bg-gray-50">
+                <tr key={run.id} className="hover:bg-sunken">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(run.status)}`}>
                       {getStatusIcon(run.status)} {run.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap font-mono text-sm text-default">
                     {run.id.length > 32 ? run.id.slice(0, 32) + '…' : run.id}
                   </td>
                   <td className="px-6 py-4 max-w-md">
-                    <div className="text-sm text-gray-900 truncate" title={run.goal}>{run.goal || 'No goal'}</div>
+                    <div className="text-sm text-default truncate" title={run.goal}>{run.goal || 'No goal'}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{run.agent}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{run.phase || '—'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatTimestamp(run.startedAt)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">{run.agent}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">{run.phase || '—'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">{formatTimestamp(run.startedAt)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-muted">
                     {run.updatedAt && run.startedAt ? formatDuration(new Date(run.updatedAt).getTime() - new Date(run.startedAt).getTime()) : '—'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <Link
                       to={`/runs/${encodeURIComponent(run.id)}`}
-                      className="text-blue-600 hover:text-blue-900 font-medium"
+                      className="text-accent-text hover:text-accent-text-hover font-medium"
                     >
                       View
                     </Link>

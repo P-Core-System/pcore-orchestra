@@ -28,18 +28,18 @@ export function RunList({ runs, onSelect, selectedRunId, loading }: RunListProps
 
   const getStatusBadge = (run: RunEntry): { label: string; className: string } => {
     if (run.status === 'in_progress') {
-      return { label: 'Active', className: 'bg-blue-100 text-blue-700' };
+      return { label: 'Active', className: 'bg-info text-info-fg' };
     }
     if (run.status === 'completed') {
-      return { label: 'Completed', className: 'bg-green-100 text-green-700' };
+      return { label: 'Completed', className: 'bg-ok text-ok-fg' };
     }
     if (run.status === 'failed') {
-      return { label: 'Failed', className: 'bg-red-100 text-red-700' };
+      return { label: 'Failed', className: 'bg-err text-err-fg' };
     }
     if (run.status === 'stalled') {
-      return { label: 'Stalled', className: 'bg-yellow-100 text-yellow-700' };
+      return { label: 'Stalled', className: 'bg-warn text-warn-fg' };
     }
-    return { label: run.status, className: 'bg-gray-100 text-gray-700' };
+    return { label: run.status, className: 'bg-neutral text-neutral-fg' };
   };
 
   const truncate = (str: string, len: number): string => {
@@ -49,7 +49,7 @@ export function RunList({ runs, onSelect, selectedRunId, loading }: RunListProps
 
   if (loading) {
     return (
-      <div className="p-8 text-center text-gray-500">
+      <div className="p-8 text-center text-muted">
         Loading runs...
       </div>
     );
@@ -57,7 +57,7 @@ export function RunList({ runs, onSelect, selectedRunId, loading }: RunListProps
 
   if (runs.length === 0) {
     return (
-      <div className="p-8 text-center text-gray-500">
+      <div className="p-8 text-center text-muted">
         No runs found. Check state directory configuration.
       </div>
     );
@@ -67,14 +67,14 @@ export function RunList({ runs, onSelect, selectedRunId, loading }: RunListProps
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-gray-200 bg-gray-50">
-            <th className="px-4 py-3 text-left font-medium text-gray-500">Run ID</th>
-            <th className="px-4 py-3 text-left font-medium text-gray-500">Goal</th>
-            <th className="px-4 py-3 text-left font-medium text-gray-500">Status</th>
-            <th className="px-4 py-3 text-left font-medium text-gray-500">Phase</th>
-            <th className="px-4 py-3 text-left font-medium text-gray-500">Started</th>
-            <th className="px-4 py-3 text-left font-medium text-gray-500">Duration</th>
-            <th className="px-4 py-3 text-left font-medium text-gray-500">Workspace</th>
+          <tr className="border-b border-line bg-sunken">
+            <th className="px-4 py-3 text-left font-medium text-muted">Run ID</th>
+            <th className="px-4 py-3 text-left font-medium text-muted">Goal</th>
+            <th className="px-4 py-3 text-left font-medium text-muted">Status</th>
+            <th className="px-4 py-3 text-left font-medium text-muted">Phase</th>
+            <th className="px-4 py-3 text-left font-medium text-muted">Started</th>
+            <th className="px-4 py-3 text-left font-medium text-muted">Duration</th>
+            <th className="px-4 py-3 text-left font-medium text-muted">Workspace</th>
           </tr>
         </thead>
         <tbody>
@@ -85,14 +85,14 @@ export function RunList({ runs, onSelect, selectedRunId, loading }: RunListProps
               <tr
                 key={run.key}
                 onClick={() => onSelect(run.runId)}
-                className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
-                  selectedRunId === run.runId ? 'bg-blue-50' : ''
+                className={`border-b border-line hover:bg-sunken cursor-pointer transition-colors ${
+                  selectedRunId === run.runId ? 'bg-info' : ''
                 }`}
               >
-                <td className="px-4 py-3 font-mono text-xs text-gray-600">
+                <td className="px-4 py-3 font-mono text-xs text-muted">
                   {run.runId.slice(0, 12)}
                 </td>
-                <td className="px-4 py-3 text-gray-900 max-w-xs truncate" title={run.goal}>
+                <td className="px-4 py-3 text-default max-w-xs truncate" title={run.goal}>
                   {truncate(run.goal, 50)}
                 </td>
                 <td className="px-4 py-3">
@@ -100,10 +100,10 @@ export function RunList({ runs, onSelect, selectedRunId, loading }: RunListProps
                     {status.label}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-gray-600">{run.phase}</td>
-                <td className="px-4 py-3 text-gray-500">{formatTime(run.startedAt)}</td>
-                <td className="px-4 py-3 text-gray-500 font-mono">{duration}</td>
-                <td className="px-4 py-3 text-gray-500">{run.workspace}</td>
+                <td className="px-4 py-3 text-muted">{run.phase}</td>
+                <td className="px-4 py-3 text-muted">{formatTime(run.startedAt)}</td>
+                <td className="px-4 py-3 text-muted font-mono">{duration}</td>
+                <td className="px-4 py-3 text-muted">{run.workspace}</td>
               </tr>
             );
           })}

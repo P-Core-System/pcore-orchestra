@@ -26,13 +26,16 @@ import {
 } from '../lib/api';
 import { queryKeys } from '../lib/queryKeys';
 import {
-  EDGE_STATE_STROKES,
   FIX_LOOP_DASHARRAY,
   FIX_LOOP_STROKE,
   NODE_STATE_LABELS,
   edgeStateClass,
   edgeStroke,
+  edgeStrokeColor,
   fixLoopEdgeClass,
+  graphDotColor,
+  graphHandleColor,
+  graphMaskColor,
   isKnownState,
   nodeState,
   nodeStateClass,
@@ -78,17 +81,17 @@ function StateNode({ data }: NodeProps<StateFlowNode>) {
         type="target"
         position={Position.Left}
         className="studio-handle"
-        style={{ background: '#52525b' }}
+        style={{ background: graphHandleColor() }}
       />
       <div className="text-[10px] uppercase tracking-wider opacity-70">{node.kind}</div>
       <div className="text-sm font-semibold text-inherit">{node.label}</div>
       <div className="text-[11px]">{NODE_STATE_LABELS[nodeState(node.state)]}</div>
-      {node.stale && <div className="text-[10px] font-medium text-amber-400">stale</div>}
+      {node.stale && <div className="text-[10px] font-medium text-warn-fg">stale</div>}
       <Handle
         type="source"
         position={Position.Right}
         className="studio-handle"
-        style={{ background: '#52525b' }}
+        style={{ background: graphHandleColor() }}
       />
     </div>
   );
@@ -172,10 +175,10 @@ function NodeDetailPanel({
   const endMs = toMs(node.data?.endedAt);
 
   return (
-    <aside className="w-80 shrink-0 overflow-y-auto border-l border-zinc-800 bg-zinc-900 p-4 text-zinc-200">
+    <aside className="w-80 shrink-0 overflow-y-auto border-l border-line bg-surface p-4 text-default">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <div className="text-[10px] uppercase tracking-wider text-zinc-500">{node.type}</div>
+          <div className="text-[10px] uppercase tracking-wider text-subtle">{node.type}</div>
           <div className="text-lg font-semibold">{node.label}</div>
           <span
             className={`mt-1 inline-block rounded px-2 py-0.5 text-[11px] ${nodeStateClass(state)}`}
@@ -187,34 +190,34 @@ function NodeDetailPanel({
           type="button"
           onClick={onClose}
           aria-label="Close detail panel"
-          className="rounded px-2 py-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+          className="rounded px-2 py-1 text-muted hover:bg-hover hover:text-default"
         >
           ✕
         </button>
       </div>
 
-      <div className="mt-3 space-y-1 border-t border-zinc-800 pt-3 text-xs text-zinc-400">
+      <div className="mt-3 space-y-1 border-t border-line pt-3 text-xs text-muted">
         <div>Started: {formatTimestamp(node.data?.startedAt)}</div>
         <div>Ended: {formatTimestamp(node.data?.endedAt)}</div>
         <div>Duration: {formatDuration(endMs - startMs)}</div>
       </div>
 
       <section className="mt-4">
-        <h4 className="mb-1 text-xs font-semibold uppercase tracking-wider text-zinc-500">Gates</h4>
+        <h4 className="mb-1 text-xs font-semibold uppercase tracking-wider text-subtle">Gates</h4>
         {gates.length === 0 ? (
-          <p className="text-xs text-zinc-500">No gates recorded for this node.</p>
+          <p className="text-xs text-subtle">No gates recorded for this node.</p>
         ) : (
           <ul className="space-y-1">
             {gates.map((gate) => (
               <li key={gate.id} className="flex items-center gap-2 text-xs">
                 <span
                   className={
-                    gate.result === 'pass' ? 'font-semibold text-emerald-500' : 'font-semibold text-red-500'
+                    gate.result === 'pass' ? 'font-semibold text-ok-fg' : 'font-semibold text-err-fg'
                   }
                 >
                   {gate.result === 'pass' ? 'pass' : 'fail'}
                 </span>
-                <span className="text-zinc-300">{gate.name || gate.id}</span>
+                <span className="text-default">{gate.name || gate.id}</span>
               </li>
             ))}
           </ul>
@@ -222,15 +225,15 @@ function NodeDetailPanel({
       </section>
 
       <section className="mt-4">
-        <h4 className="mb-1 text-xs font-semibold uppercase tracking-wider text-zinc-500">Evidence</h4>
-        <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap break-all rounded bg-zinc-950 p-2 font-mono text-[11px] text-zinc-400">
+        <h4 className="mb-1 text-xs font-semibold uppercase tracking-wider text-subtle">Evidence</h4>
+        <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap break-all rounded bg-code p-2 font-mono text-[11px] text-muted">
           {excerpt || 'No evidence excerpt for this node.'}
         </pre>
       </section>
 
       <section className="mt-4">
-        <h4 className="mb-1 text-xs font-semibold uppercase tracking-wider text-zinc-500">Handoff</h4>
-        <p className="text-xs text-zinc-400">
+        <h4 className="mb-1 text-xs font-semibold uppercase tracking-wider text-subtle">Handoff</h4>
+        <p className="text-xs text-muted">
           {handoff ? clampExcerpt(handoff.evidenceDigest) : 'No handoff recorded for this phase.'}
         </p>
       </section>
@@ -281,8 +284,8 @@ export default function WorkflowPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex flex-wrap items-center gap-3 border-b border-zinc-800 bg-zinc-900 px-4 py-2">
-        <label htmlFor="workflow-run-select" className="text-xs uppercase tracking-wider text-zinc-400">
+      <div className="flex flex-wrap items-center gap-3 border-b border-line bg-surface px-4 py-2">
+        <label htmlFor="workflow-run-select" className="text-xs uppercase tracking-wider text-muted">
           Run
         </label>
         <select
@@ -292,7 +295,7 @@ export default function WorkflowPage() {
             setSelectedRunId(event.target.value);
             setSelectedNodeId(null);
           }}
-          className="max-w-md rounded border border-zinc-700 bg-zinc-950 px-2 py-1 text-sm text-zinc-200"
+          className="max-w-md rounded border border-line-strong bg-code px-2 py-1 text-sm text-default"
         >
           {runs.length === 0 && <option value="">No runs yet</option>}
           {runs.map((run) => (
@@ -301,12 +304,12 @@ export default function WorkflowPage() {
             </option>
           ))}
         </select>
-        {graphQuery.isFetching && <span className="text-xs text-zinc-500">syncing…</span>}
+        {graphQuery.isFetching && <span className="text-xs text-subtle">syncing…</span>}
         {runs.length === 0 && !runsQuery.isFetching && (
-          <span className="text-xs text-zinc-500">No runs in the state dir yet.</span>
+          <span className="text-xs text-subtle">No runs in the state dir yet.</span>
         )}
         {graphQuery.isError && (
-          <span className="text-xs text-red-400">graph unavailable — retrying</span>
+          <span className="text-xs text-err-fg">graph unavailable — retrying</span>
         )}
       </div>
 
@@ -326,17 +329,17 @@ export default function WorkflowPage() {
               nodesConnectable={false}
               elementsSelectable
             >
-              <Background color="#3f3f46" gap={18} size={1} />
+              <Background color={graphDotColor()} gap={18} size={1} />
               <Controls showInteractive={false} />
               <MiniMap
                 pannable
                 zoomable
-                nodeColor={(rfNode) => EDGE_STATE_STROKES[nodeState(rfNode.data?.state)]}
-                maskColor="rgba(9, 9, 11, 0.7)"
+                nodeColor={(rfNode) => edgeStrokeColor(rfNode.data?.state)}
+                maskColor={graphMaskColor()}
               />
             </ReactFlow>
           ) : (
-            <div className="p-6 text-sm text-zinc-500">Waiting for runs…</div>
+            <div className="p-6 text-sm text-subtle">Waiting for runs…</div>
           )}
         </div>
 

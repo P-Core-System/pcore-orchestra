@@ -23,8 +23,8 @@ export function WorkItemBoard({ events, filter }: WorkItemBoardProps) {
     <div className="p-6">
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">WorkItem Board</h2>
-          <p className="text-gray-500 mt-1">
+          <h2 className="text-2xl font-bold text-default">WorkItem Board</h2>
+          <p className="text-muted mt-1">
             {boardData.totalItems} items across {TICKET_STATES.length} states
           </p>
         </div>
@@ -32,7 +32,7 @@ export function WorkItemBoard({ events, filter }: WorkItemBoardProps) {
           <select
             value={workspaceFilter}
             onChange={(e) => setWorkspaceFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="px-3 py-2 border border-line-strong rounded-lg text-sm focus:ring-2 focus:ring-accent focus:border-accent"
           >
             <option value="">All Workspaces</option>
             <option value="default">default</option>
@@ -41,7 +41,7 @@ export function WorkItemBoard({ events, filter }: WorkItemBoardProps) {
           <select
             value={sessionFilter}
             onChange={(e) => setSessionFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="px-3 py-2 border border-line-strong rounded-lg text-sm focus:ring-2 focus:ring-accent focus:border-accent"
           >
             <option value="">All Sessions</option>
             {/* Sessions would be populated from state */}

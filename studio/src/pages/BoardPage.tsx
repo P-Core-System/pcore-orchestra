@@ -130,17 +130,17 @@ export default function BoardPage() {
     <div className="p-6">
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">WorkItem Board</h2>
-          <p className="text-gray-500 mt-1">
+          <h2 className="text-2xl font-bold text-default">WorkItem Board</h2>
+          <p className="text-muted mt-1">
             {boardData.totalItems} items across {TICKET_STATES.length} states
-            {mutation.isPending && <span className="ml-2 text-sm text-blue-600">(syncing…)</span>}
+            {mutation.isPending && <span className="ml-2 text-sm text-accent-text">(syncing…)</span>}
           </p>
         </div>
         <div className="flex gap-4 flex-wrap">
           <select
             value={workspaceFilter}
             onChange={(e) => setWorkspaceFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="px-3 py-2 border border-line-strong rounded-lg text-sm focus:ring-2 focus:ring-accent focus:border-accent"
           >
             <option value="">All States</option>
             {TICKET_STATES.map((s) => (
@@ -150,7 +150,7 @@ export default function BoardPage() {
           <select
             value={sessionFilter}
             onChange={(e) => setSessionFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="px-3 py-2 border border-line-strong rounded-lg text-sm focus:ring-2 focus:ring-accent focus:border-accent"
           >
             <option value="">All Agents</option>
             {/* Agents would be populated from work items */}
@@ -180,7 +180,7 @@ export default function BoardPage() {
       </DndContext>
 
       {mutation.isError && (
-        <div className="fixed bottom-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg shadow-lg animate-slide-in">
+        <div className="fixed bottom-4 right-4 bg-err border border-err-line text-err-fg px-4 py-3 rounded-lg shadow-lg dark:shadow-black/50 animate-slide-in">
           Failed to move item: {mutation.error?.message}
         </div>
       )}

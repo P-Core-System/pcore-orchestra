@@ -130,6 +130,13 @@ function createApp() {
     res.json(readers.getTokenAggregates());
   });
 
+  // State-dir discovery for the sidebar selector. The browser must never run
+  // `git worktree list` or touch fs itself (architecture §2, invariants 35/36),
+  // so `discoverStateDirs()` lives server-side and the SPA reads it from here.
+  app.get("/api/state-dirs", (req, res) => {
+    res.json(readers.discoverStateDirs());
+  });
+
   // --------------------------------------------------- static SPA + fallback
   if (fs.existsSync(INDEX_HTML)) {
     app.use(express.static(DIST_DIR, { index: "index.html" }));

@@ -1,16 +1,22 @@
 /**
  * StateContext - React context for managing state directory selection
  * Provides discovered state dirs and selected state dir to all data layers
+ *
+ * State dirs are discovered by the server (`GET /api/state-dirs`) — the
+ * browser never touches the filesystem (architecture invariants 35/36).
+ * `discoverStateDirs()` stays wired as the browser-safe local fallback, so a
+ * failed/missing API can never leave the provider throwing.
  */
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { discoverStateDirs, StateDirInfo } from './stateResolver';
+import { fetchStateDirs } from './api';
 
 interface StateContextValue {
   stateDirs: StateDirInfo[];
   selectedStateDir: string | null;
   setSelectedStateDir: (path: string | null) => void;
-  refreshStateDirs: () => void;
+  refreshStateDirs: () => Promise<void>;
 }
 
 const StateContext = createContext<StateContextValue | null>(null);
@@ -19,21 +25,29 @@ export function StateProvider({ children }: { children: ReactNode }) {
   const [stateDirs, setStateDirs] = useState<StateDirInfo[]>([]);
   const [selectedStateDir, setSelectedStateDir] = useState<string | null>(null);
 
-  const refreshStateDirs = () => {
-    const dirs = discoverStateDirs();
+  const refreshStateDirs = async () => {
+    let dirs: StateDirInfo[] = [];
+    try {
+      dirs = await fetchStateDirs();
+    } catch {
+      // API unreachable: browser-safe discoverStateDirs() returns [] instead
+      // of crashing the module graph.
+      dirs = discoverStateDirs();
+    }
     setStateDirs(dirs);
 
-    // Auto-select first available dir if none selected
-    if (!selectedStateDir && dirs.length > 0) {
-      setSelectedStateDir(dirs[0].path);
-    } else if (selectedStateDir && !dirs.some((d) => d.path === selectedStateDir)) {
-      // Selected dir no longer exists, pick first available
-      setSelectedStateDir(dirs.length > 0 ? dirs[0].path : null);
-    }
+    // Auto-select first available dir if none selected; drop a stale selection.
+    setSelectedStateDir((prev) => {
+      if (!prev && dirs.length > 0) return dirs[0].path;
+      if (prev && !dirs.some((d) => d.path === prev)) {
+        return dirs.length > 0 ? dirs[0].path : null;
+      }
+      return prev;
+    });
   };
 
   useEffect(() => {
-    refreshStateDirs();
+    void refreshStateDirs();
   }, []);
 
   return (

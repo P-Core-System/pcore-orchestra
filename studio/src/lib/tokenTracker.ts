@@ -21,10 +21,33 @@ export type {
   RunTokens,
 } from './types';
 
-const DEFAULT_STATE_DIR = path.join(os.homedir(), '.config', 'opencode', 'hooks', 'state');
+// Default global state dir: .config/opencode/hooks/state
+// Lazy + browser-guarded: a top-level `os.homedir()` runs at import time and
+// crashes any browser bundle (Vite externalizes `os` → homedir is undefined).
+// Home resolution order (Node only): PCORE_STATE_DIR → HOME → USERPROFILE →
+// os.homedir(). The browser has no filesystem, so this degrades to ''.
+function defaultStateDir(): string {
+  if (typeof window !== 'undefined') return '';
+  try {
+    const env = typeof process !== 'undefined' && process.env ? process.env : {};
+    const home = env.HOME || env.USERPROFILE || os.homedir();
+    if (!home) return '';
+    // normalize() before join(): never concatenate a drive letter with a '/'.
+    return path.join(path.normalize(home), '.config', 'opencode', 'hooks', 'state');
+  } catch {
+    return '';
+  }
+}
 
 function getEnvStateDir(): string {
-  return process.env.PCORE_STATE_DIR || DEFAULT_STATE_DIR;
+  try {
+    if (typeof process !== 'undefined' && process.env && process.env.PCORE_STATE_DIR) {
+      return process.env.PCORE_STATE_DIR;
+    }
+  } catch {
+    // no process in the browser
+  }
+  return defaultStateDir();
 }
 
 function resolveTokensPath(stateDir: string): string {

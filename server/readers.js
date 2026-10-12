@@ -22,6 +22,7 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { execSync } = require("node:child_process");
 
 const graphBuilder = require("./graph-builder.js");
 
@@ -42,11 +43,58 @@ const TICKET_STATES = [
   "FAILED",
 ];
 
-const DEFAULT_STATE_DIR = path.join(os.homedir(), ".config", "opencode", "hooks", "state");
+/** Relative segments of the default global state dir under the user's home. */
+const GLOBAL_STATE_SEGMENTS = [".config", "opencode", "hooks", "state"];
 
-/** Resolved state dir; `PCORE_STATE_DIR` always wins (tests use a temp dir). */
+/**
+ * Canonicalise a state dir path (bug: HOME/PATH portability).
+ *
+ * `path.resolve`/`normalize` are used rather than string concatenation so a
+ * drive letter is never glued to a `/` (`C:\Users\x` + `/...` -> `C:\Users\x/...`),
+ * and mixed separators collapse to the host's. `path.win32` handles `C:\...`
+ * and UNC (`\\server\share`), `path.posix` handles `/mnt/c/Users/x`.
+ */
+function canonicalStateDir(value) {
+  if (typeof value !== "string" || value.length === 0) return "";
+  try {
+    // Drive-letter and UNC paths keep Windows semantics even when a POSIX host
+    // (WSL) reads them; everything else follows the running host.
+    const isWindowsStyle = /^[a-zA-Z]:[\\/]/.test(value) || /^[\\/]{2}[^\\/]/.test(value);
+    return path.normalize(isWindowsStyle ? path.win32.resolve(value) : path.resolve(value));
+  } catch {
+    return value;
+  }
+}
+
+/**
+ * Home directory resolution order (bug 2): `HOME` -> `USERPROFILE` ->
+ * `os.homedir()`. Node only — callers in the browser bundle must not get here.
+ */
+function homeDir() {
+  const fromEnv = process.env.HOME || process.env.USERPROFILE;
+  if (typeof fromEnv === "string" && fromEnv.length > 0) return canonicalStateDir(fromEnv);
+  try {
+    return canonicalStateDir(os.homedir());
+  } catch {
+    return "";
+  }
+}
+
+/** `PCORE_STATE_DIR` if set, else the canonical `~/.config/opencode/hooks/state`. */
+function defaultStateDir() {
+  if (process.env.PCORE_STATE_DIR) return canonicalStateDir(process.env.PCORE_STATE_DIR);
+  const home = homeDir();
+  return home ? canonicalStateDir(path.join(home, ...GLOBAL_STATE_SEGMENTS)) : "";
+}
+
+/**
+ * Resolved state dir. An explicit `dir` argument wins (tests use a temp dir),
+ * then `PCORE_STATE_DIR`, then the portable home chain. The result is always
+ * canonicalised, so every path this module hands out — including
+ * `/api/state-dirs` — is an absolute path the client can treat as opaque.
+ */
 function stateDir(dir) {
-  return dir || process.env.PCORE_STATE_DIR || DEFAULT_STATE_DIR;
+  return canonicalStateDir(dir || defaultStateDir());
 }
 
 function runsDir(dir) {
@@ -59,6 +107,66 @@ function domainEventsPath(dir) {
 
 function tokensPath(dir) {
   return path.join(stateDir(dir), "orchestra-tokens.json");
+}
+
+// ------------------------------------------------- state dir discovery
+// Ported from `studio/src/lib/stateResolver.ts` so the browser never runs
+// `git worktree list` or touches fs (architecture §2, invariants 35/36).
+// READ-ONLY: one `git worktree list --porcelain` query + existence checks.
+
+/** Worktree-partitioned state dir: `<worktree>/.pcore/state`. */
+function worktreeStateDir(worktreePath) {
+  return path.join(worktreePath, ".pcore", "state");
+}
+
+/** runId from a worktree path of the pattern `.pcore/worktrees/<runId>/`. */
+function runIdOfWorktree(worktreePath) {
+  const match = worktreePath.match(/\.pcore[\\/]worktrees[\\/]([^\\/]+)/);
+  return match ? match[1] : undefined;
+}
+
+/** Linked worktrees of the repo this server serves (main worktree excluded). */
+function listLinkedWorktrees() {
+  try {
+    const output = execSync("git worktree list --porcelain", {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      cwd: path.join(__dirname, ".."),
+    });
+    const paths = [];
+    for (const line of output.trim().split("\n")) {
+      if (line.startsWith("worktree ")) paths.push(line.slice("worktree ".length).trim());
+    }
+    // Porcelain always lists the main worktree first; only linked worktrees
+    // partition state (the main worktree uses the global PCORE_STATE_DIR).
+    return paths.slice(1);
+  } catch {
+    // git not available, not a repo, or no linked worktrees
+    return [];
+  }
+}
+
+/**
+ * All state dirs the Studio selector can pick: the global dir (PCORE_STATE_DIR
+ * or `~/.config/opencode/hooks/state`) plus every existing linked-worktree
+ * `.pcore/state`. Returns `[{ path, isWorktree, runId? }]`, read-only.
+ */
+function discoverStateDirs(dir) {
+  const dirs = [];
+
+  const globalDir = stateDir(dir);
+  if (fs.existsSync(globalDir)) {
+    dirs.push({ path: globalDir, isWorktree: false });
+  }
+
+  for (const worktreePath of listLinkedWorktrees()) {
+    const wtDir = worktreeStateDir(worktreePath);
+    if (fs.existsSync(wtDir)) {
+      dirs.push({ path: wtDir, isWorktree: true, runId: runIdOfWorktree(worktreePath) });
+    }
+  }
+
+  return dirs;
 }
 
 // ------------------------------------------------------------ read cache
@@ -575,6 +683,12 @@ module.exports = {
   runsDir,
   domainEventsPath,
   tokensPath,
+  discoverStateDirs,
+  worktreeStateDir,
+  runIdOfWorktree,
+  canonicalStateDir,
+  defaultStateDir,
+  homeDir,
   invalidate,
   payloadOf,
   atMs,

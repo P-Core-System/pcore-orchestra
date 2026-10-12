@@ -711,6 +711,27 @@ async function main() {
       }
     }
 
+    // ------------------------------------------ Test 13: GET /api/state-dirs
+    console.log("\nTest 13: GET /api/state-dirs (server-owned state discovery)");
+    const dirs = await request(port, "GET", "/api/state-dirs");
+    ok(dirs.status === 200, "200 OK", dirs.status);
+    ok(Array.isArray(dirs.json), "returns an array", typeof dirs.json);
+    if (Array.isArray(dirs.json)) {
+      const global = dirs.json.find((d) => d && d.path === stateDir);
+      ok(Boolean(global), "includes the PCORE_STATE_DIR fixture dir", JSON.stringify(dirs.json));
+      ok(global && global.isWorktree === false, "fixture dir is flagged isWorktree:false", global && global.isWorktree);
+      ok(
+        dirs.json.every((d) => d && typeof d.path === "string" && typeof d.isWorktree === "boolean"),
+        "every entry is {path, isWorktree}",
+        JSON.stringify(dirs.json)
+      );
+      ok(
+        dirs.json.every((d) => !d || d.isWorktree === false || typeof d.runId === "string" || d.runId === undefined),
+        "worktree entries carry an optional string runId",
+        JSON.stringify(dirs.json)
+      );
+    }
+
     server.child.kill("SIGTERM");
     await sleep(200);
     if (server.child.exitCode === null) server.child.kill("SIGKILL");

@@ -371,6 +371,14 @@ if (fs.existsSync(stateResolverPath)) {
   assert(content.includes('StateDirInfo'), 'Uses StateDirInfo type');
   assert(content.includes('isWorktree'), 'Includes isWorktree flag');
   assert(content.includes('runId'), 'Includes optional runId');
+  // White-screen regression guard: discovery must never run os.homedir() at
+  // module scope (Vite externalizes `os` → homedir undefined → import throws).
+  assert(content.includes('typeof window'), 'Browser-guarded (typeof window)');
+  assert(
+    !content.includes('const DEFAULT_STATE_DIR = path.join(os.homedir()'),
+    'No top-level os.homedir() at module scope'
+  );
+  assert(content.includes('return []'), 'Returns a safe [] default in the browser');
 }
 
 // Test 24: StateContext.tsx - React context for state directory selection
@@ -390,6 +398,8 @@ if (fs.existsSync(stateContextPath)) {
   assert(content.includes('setSelectedStateDir'), 'Provides setSelectedStateDir');
   assert(content.includes('refreshStateDirs'), 'Provides refreshStateDirs');
   assert(content.includes('discoverStateDirs'), 'Calls discoverStateDirs on mount');
+  assert(content.includes('fetchStateDirs'), 'Loads state dirs from GET /api/state-dirs');
+  assert(content.includes('./api'), 'Imports the api client (no fs in the browser)');
 }
 
 // Test 25: App.tsx - StateProvider wired at root, sidebar has selector

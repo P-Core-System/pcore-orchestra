@@ -128,18 +128,18 @@ export function filterWorkItemsByState(workItems: WorkItem[], state: TicketState
 
 export function getStateColor(state: TicketState): string {
   const colors: Record<TicketState, string> = {
-    TRIAGE: 'bg-gray-100 text-gray-700 border-gray-300',
-    READY: 'bg-blue-100 text-blue-700 border-blue-300',
-    PLANNED: 'bg-indigo-100 text-indigo-700 border-indigo-300',
-    IN_PROGRESS: 'bg-yellow-100 text-yellow-700 border-yellow-300',
-    VERIFYING: 'bg-purple-100 text-purple-700 border-purple-300',
-    REVIEW_PENDING: 'bg-orange-100 text-orange-700 border-orange-300',
-    COMPLETED: 'bg-green-100 text-green-700 border-green-300',
-    NEEDS_HUMAN: 'bg-red-100 text-red-700 border-red-300',
-    CANCELLED: 'bg-gray-200 text-gray-500 border-gray-400',
-    FAILED: 'bg-red-200 text-red-800 border-red-400',
+    TRIAGE: 'bg-neutral text-neutral-fg border-neutral-line',
+    READY: 'bg-info text-info-fg border-info-line',
+    PLANNED: 'bg-plan text-plan-fg border-plan-line',
+    IN_PROGRESS: 'bg-progress text-progress-fg border-progress-line',
+    VERIFYING: 'bg-verify text-verify-fg border-verify-line',
+    REVIEW_PENDING: 'bg-review text-review-fg border-review-line',
+    COMPLETED: 'bg-ok text-ok-fg border-ok-line',
+    NEEDS_HUMAN: 'bg-err text-err-fg border-err-line',
+    CANCELLED: 'bg-neutral text-neutral-fg border-neutral-line',
+    FAILED: 'bg-err text-err-fg border-err-line',
   };
-  return colors[state] || 'bg-gray-100 text-gray-700 border-gray-300';
+  return colors[state] || 'bg-neutral text-neutral-fg border-neutral-line';
 }
 
 export function getStateOrder(state: TicketState): number {

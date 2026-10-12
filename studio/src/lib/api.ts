@@ -14,6 +14,8 @@
 
 // ------------------------------------------------------------------ shapes
 
+import type { StateDirInfo } from './types';
+
 export type RunStatus = "running" | "completed" | "failed" | "blocked";
 
 export type NodeState = "idle" | "running" | "completed" | "failed" | "blocked";
@@ -226,4 +228,13 @@ export function patchWorkItemState(
 /** `GET /api/tokens/aggregates` — totals by run / phase / agent + time buckets. */
 export function fetchTokenAggregates(): Promise<TokenAggregates> {
   return request<TokenAggregates>("/api/tokens/aggregates");
+}
+
+/**
+ * `GET /api/state-dirs` — global + worktree state dirs, discovered by the
+ * server (invariants 35/36: the browser never runs `git worktree list` or
+ * reads the filesystem itself).
+ */
+export function fetchStateDirs(): Promise<StateDirInfo[]> {
+  return request<StateDirInfo[]>("/api/state-dirs");
 }

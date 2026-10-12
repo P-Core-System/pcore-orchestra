@@ -77,7 +77,7 @@ export default function TokensPage() {
 
   if (tokensQuery.isLoading) {
     return (
-      <div className="p-6 text-center text-gray-500">
+      <div className="p-6 text-center text-muted">
         Loading token aggregates…
       </div>
     );
@@ -85,7 +85,7 @@ export default function TokensPage() {
 
   if (tokensQuery.isError) {
     return (
-      <div className="p-6 text-center text-red-500">
+      <div className="p-6 text-center text-err-fg">
         Failed to load token data: {tokensQuery.error?.message}
       </div>
     );
@@ -93,7 +93,7 @@ export default function TokensPage() {
 
   if (!aggregates) {
     return (
-      <div className="p-6 text-center text-gray-500">
+      <div className="p-6 text-center text-muted">
         No token data available
       </div>
     );
@@ -107,37 +107,37 @@ export default function TokensPage() {
   return (
     <div className="p-6 space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Token & Cost Charts</h1>
-        <p className="text-gray-500 mt-1">Aggregated token usage across runs, phases, and agents</p>
+        <h1 className="text-2xl font-bold text-default">Token & Cost Charts</h1>
+        <p className="text-muted mt-1">Aggregated token usage across runs, phases, and agents</p>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="text-sm text-gray-500">Total Tokens</div>
-          <div className="text-3xl font-bold font-mono text-gray-900 mt-1">{totalTokens.toLocaleString()}</div>
+        <div className="bg-surface rounded-lg border border-line p-4">
+          <div className="text-sm text-muted">Total Tokens</div>
+          <div className="text-3xl font-bold font-mono text-default mt-1">{totalTokens.toLocaleString()}</div>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="text-sm text-gray-500">Total Budget</div>
-          <div className="text-3xl font-bold font-mono text-gray-900 mt-1">{totalBudget.toLocaleString()}</div>
+        <div className="bg-surface rounded-lg border border-line p-4">
+          <div className="text-sm text-muted">Total Budget</div>
+          <div className="text-3xl font-bold font-mono text-default mt-1">{totalBudget.toLocaleString()}</div>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="text-sm text-gray-500">Runs Over Budget</div>
-          <div className="text-3xl font-bold font-mono text-red-600 mt-1">{overBudgetRuns}</div>
+        <div className="bg-surface rounded-lg border border-line p-4">
+          <div className="text-sm text-muted">Runs Over Budget</div>
+          <div className="text-3xl font-bold font-mono text-err-fg mt-1">{overBudgetRuns}</div>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="text-sm text-gray-500">Utilization</div>
-          <div className="text-3xl font-bold font-mono text-gray-900 mt-1">
+        <div className="bg-surface rounded-lg border border-line p-4">
+          <div className="text-sm text-muted">Utilization</div>
+          <div className="text-3xl font-bold font-mono text-default mt-1">
             {totalBudget > 0 ? `${((totalTokens / totalBudget) * 100).toFixed(1)}%` : '—'}
           </div>
         </div>
       </div>
 
       {/* By Phase - Bar Chart */}
-      <section className="bg-white rounded-lg border border-gray-200">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="font-semibold text-gray-900">Tokens by Phase</h2>
-          <p className="text-sm text-gray-500 mt-1">Total tokens consumed per phase across all runs</p>
+      <section className="bg-surface rounded-lg border border-line">
+        <div className="p-4 border-b border-line">
+          <h2 className="font-semibold text-default">Tokens by Phase</h2>
+          <p className="text-sm text-muted mt-1">Total tokens consumed per phase across all runs</p>
         </div>
         <div className="p-4">
           <div dangerouslySetInnerHTML={{ __html: renderBarChart(byPhaseBars, { width: 800, height: 300 }) }} />
@@ -145,10 +145,10 @@ export default function TokensPage() {
       </section>
 
       {/* By Agent - Bar Chart */}
-      <section className="bg-white rounded-lg border border-gray-200">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="font-semibold text-gray-900">Tokens by Agent</h2>
-          <p className="text-sm text-gray-500 mt-1">Total tokens consumed per agent across all runs</p>
+      <section className="bg-surface rounded-lg border border-line">
+        <div className="p-4 border-b border-line">
+          <h2 className="font-semibold text-default">Tokens by Agent</h2>
+          <p className="text-sm text-muted mt-1">Total tokens consumed per agent across all runs</p>
         </div>
         <div className="p-4">
           <div dangerouslySetInnerHTML={{ __html: renderBarChart(byAgentBars, { width: 800, height: 300 }) }} />
@@ -156,10 +156,10 @@ export default function TokensPage() {
       </section>
 
       {/* By Run - Bar Chart */}
-      <section className="bg-white rounded-lg border border-gray-200">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="font-semibold text-gray-900">Tokens by Run</h2>
-          <p className="text-sm text-gray-500 mt-1">Total tokens per conductor run</p>
+      <section className="bg-surface rounded-lg border border-line">
+        <div className="p-4 border-b border-line">
+          <h2 className="font-semibold text-default">Tokens by Run</h2>
+          <p className="text-sm text-muted mt-1">Total tokens per conductor run</p>
         </div>
         <div className="p-4">
           <div dangerouslySetInnerHTML={{ __html: renderBarChart(byRunBars, { width: 800, height: 300 }) }} />
@@ -167,10 +167,10 @@ export default function TokensPage() {
       </section>
 
       {/* Trend - Line Chart */}
-      <section className="bg-white rounded-lg border border-gray-200">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="font-semibold text-gray-900">Token Trend Over Time</h2>
-          <p className="text-sm text-gray-500 mt-1">Token consumption trend across time buckets</p>
+      <section className="bg-surface rounded-lg border border-line">
+        <div className="p-4 border-b border-line">
+          <h2 className="font-semibold text-default">Token Trend Over Time</h2>
+          <p className="text-sm text-muted mt-1">Token consumption trend across time buckets</p>
         </div>
         <div className="p-4">
           <div dangerouslySetInnerHTML={{ __html: renderLineChart(trendPoints, { width: 800, height: 250, color: '#38bdf8' }) }} />
@@ -180,32 +180,32 @@ export default function TokensPage() {
       {/* Raw Data Tables */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* By Phase Table */}
-        <section className="bg-white rounded-lg border border-gray-200">
-          <div className="p-4 border-b border-gray-200">
-            <h2 className="font-semibold text-gray-900">Phase Breakdown</h2>
+        <section className="bg-surface rounded-lg border border-line">
+          <div className="p-4 border-b border-line">
+            <h2 className="font-semibold text-default">Phase Breakdown</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-sunken border-b border-line">
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phase</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Input</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Output</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Budget</th>
-                  <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted uppercase tracking-wider">Phase</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-muted uppercase tracking-wider">Total</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-muted uppercase tracking-wider">Input</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-muted uppercase tracking-wider">Output</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-muted uppercase tracking-wider">Budget</th>
+                  <th className="px-4 py-2 text-center text-xs font-medium text-muted uppercase tracking-wider">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-line">
                 {aggregates.byPhase.map((p: TokenRow & { phase: string }) => (
-                  <tr key={p.phase} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 text-sm font-medium text-gray-900">{p.phase}</td>
-                    <td className="px-4 py-2 text-sm font-mono text-right text-gray-900">{p.total.toLocaleString()}</td>
-                    <td className="px-4 py-2 text-sm font-mono text-right text-gray-500">{p.input.toLocaleString()}</td>
-                    <td className="px-4 py-2 text-sm font-mono text-right text-gray-500">{p.output.toLocaleString()}</td>
-                    <td className="px-4 py-2 text-sm font-mono text-right text-gray-500">{(p.budget || 0).toLocaleString()}</td>
+                  <tr key={p.phase} className="hover:bg-sunken">
+                    <td className="px-4 py-2 text-sm font-medium text-default">{p.phase}</td>
+                    <td className="px-4 py-2 text-sm font-mono text-right text-default">{p.total.toLocaleString()}</td>
+                    <td className="px-4 py-2 text-sm font-mono text-right text-muted">{p.input.toLocaleString()}</td>
+                    <td className="px-4 py-2 text-sm font-mono text-right text-muted">{p.output.toLocaleString()}</td>
+                    <td className="px-4 py-2 text-sm font-mono text-right text-muted">{(p.budget || 0).toLocaleString()}</td>
                     <td className="px-4 py-2 text-center">
-                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${p.total > (p.budget || 0) ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${p.total > (p.budget || 0) ? 'bg-err text-err-fg' : 'bg-ok text-ok-fg'}`}>
                         {p.total > (p.budget || 0) ? 'OVER' : 'OK'}
                       </span>
                     </td>
@@ -217,32 +217,32 @@ export default function TokensPage() {
         </section>
 
         {/* By Agent Table */}
-        <section className="bg-white rounded-lg border border-gray-200">
-          <div className="p-4 border-b border-gray-200">
-            <h2 className="font-semibold text-gray-900">Agent Breakdown</h2>
+        <section className="bg-surface rounded-lg border border-line">
+          <div className="p-4 border-b border-line">
+            <h2 className="font-semibold text-default">Agent Breakdown</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-sunken border-b border-line">
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Input</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Output</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Budget</th>
-                  <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted uppercase tracking-wider">Agent</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-muted uppercase tracking-wider">Total</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-muted uppercase tracking-wider">Input</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-muted uppercase tracking-wider">Output</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-muted uppercase tracking-wider">Budget</th>
+                  <th className="px-4 py-2 text-center text-xs font-medium text-muted uppercase tracking-wider">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-line">
                 {aggregates.byAgent.map((a: TokenRow & { agent: string }) => (
-                  <tr key={a.agent} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 text-sm font-medium text-gray-900">{a.agent}</td>
-                    <td className="px-4 py-2 text-sm font-mono text-right text-gray-900">{a.total.toLocaleString()}</td>
-                    <td className="px-4 py-2 text-sm font-mono text-right text-gray-500">{a.input.toLocaleString()}</td>
-                    <td className="px-4 py-2 text-sm font-mono text-right text-gray-500">{a.output.toLocaleString()}</td>
-                    <td className="px-4 py-2 text-sm font-mono text-right text-gray-500">{(a.budget || 0).toLocaleString()}</td>
+                  <tr key={a.agent} className="hover:bg-sunken">
+                    <td className="px-4 py-2 text-sm font-medium text-default">{a.agent}</td>
+                    <td className="px-4 py-2 text-sm font-mono text-right text-default">{a.total.toLocaleString()}</td>
+                    <td className="px-4 py-2 text-sm font-mono text-right text-muted">{a.input.toLocaleString()}</td>
+                    <td className="px-4 py-2 text-sm font-mono text-right text-muted">{a.output.toLocaleString()}</td>
+                    <td className="px-4 py-2 text-sm font-mono text-right text-muted">{(a.budget || 0).toLocaleString()}</td>
                     <td className="px-4 py-2 text-center">
-                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${a.total > (a.budget || 0) ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${a.total > (a.budget || 0) ? 'bg-err text-err-fg' : 'bg-ok text-ok-fg'}`}>
                         {a.total > (a.budget || 0) ? 'OVER' : 'OK'}
                       </span>
                     </td>
