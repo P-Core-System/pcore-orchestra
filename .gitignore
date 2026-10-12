@@ -22,3 +22,8 @@ bundle/opencode/hooks/lib/state/
 
 # Studio v2 server deps (commit package.json + package-lock.json only)
 server/node_modules/
+
+# studio build output + deps (the root ignore only covered server/)
+studio/node_modules/
+studio/dist/
+
