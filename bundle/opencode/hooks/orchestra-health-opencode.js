@@ -244,6 +244,39 @@ for (const name of libModules) {
 }
 console.log("    Lib modules:", libOk + "/" + libModules.length);
 
+// --- Harness observability (report-only: never affects health status) ---
+console.log("\n--- Harness observability (report-only) ---");
+try {
+  const obsModulePath = path.join(LIB_DIR, "harness-observability.js");
+  let obs = null;
+  if (fs.existsSync(obsModulePath)) {
+    try {
+      obs = require(obsModulePath);
+    } catch (e) {
+      console.log("INFO lib/harness-observability.js present but not loadable:", e.message);
+    }
+  } else {
+    console.log("INFO lib/harness-observability.js not installed — re-run bash install.sh --opencode");
+  }
+  if (obs) {
+    console.log("OK   lib/harness-observability.js loaded");
+    const summary = obs.summarizeRecentEvents();
+    const kinds = Object.entries(summary.byKind)
+      .map(([kind, n]) => `${kind}=${n}`)
+      .join(" ");
+    console.log("INFO events (last 24h):", summary.total, kinds ? `- ${kinds}` : "(none)");
+    const denied = obs.countRecentPermissionDenials();
+    console.log(denied.count > 0 ? "INFO" : "OK  ", "permission.denied (last 24h):", denied.count);
+    for (const event of denied.events) {
+      const d = event.data || {};
+      console.log("      ", event.at, "-", d.scope || "?", d.rule || "?", d.subject || "", d.reason || "");
+    }
+    console.log("INFO log file:", obs.observabilityPath());
+  }
+} catch (e) {
+  console.log("INFO observability report skipped:", e.message);
+}
+
 // --- Skill ---
 console.log("\n--- Skill ---");
 const skillExists = fs.existsSync(SKILL_PATH);

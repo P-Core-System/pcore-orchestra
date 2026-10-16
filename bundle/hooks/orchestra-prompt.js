@@ -30,6 +30,39 @@ try {
   ({ start: mcpServerStart } = require("./lib/mcp-server.js"));
 } catch {}
 
+// Harness observability — lazy + guarded for fail-open (never breaks the hook)
+let harnessObs = null;
+try {
+  harnessObs = require("./lib/harness-observability.js");
+} catch {}
+
+/** Record a received input — additive-only, never throws. */
+function observeInput(input, prompt, sessionId, state) {
+  try {
+    harnessObs?.recordInputReceived({
+      prompt,
+      cwd: input?.cwd || input?.workspace_root || input?.workspaceRoot || undefined,
+      sessionId,
+      runId: state?.sessionId || sessionId,
+    });
+  } catch {
+    /* observability must never break the hook */
+  }
+}
+
+/** Record the classifier decision — additive-only, never throws. */
+function observeClassification(classified, sessionId, state) {
+  try {
+    harnessObs?.recordInputClassification({
+      classification: classified,
+      sessionId,
+      runId: state?.sessionId || sessionId,
+    });
+  } catch {
+    /* observability must never break the hook */
+  }
+}
+
 function handleDisable(state, sessionId) {
   const session = getSessionState(state, sessionId);
   session.ambient = false;
@@ -126,6 +159,7 @@ async function main() {
   const sessionId = getSessionId();
   const state = loadRootState(null, sessionId);
   const prompt = extractPrompt(input);
+  observeInput(input, prompt, sessionId, state);
 
   if (/\b(disable orchestra|orchestra off)\b/i.test(prompt)) {
     handleDisable(state, sessionId);
@@ -167,6 +201,7 @@ async function main() {
     informal,
     greenfield,
   } = classified;
+  observeClassification(classified, sessionId, state);
   const isGreenfield = !!(greenfield || intake?.greenfield);
   const ctxBlock = buildContextInjection(detectContextInWorkspaces(input));
 

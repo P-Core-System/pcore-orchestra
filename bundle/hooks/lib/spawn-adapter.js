@@ -9,6 +9,13 @@ const fs = require("node:fs");
 const path = require("node:path");
 const cp = require("node:child_process");
 
+// Harness observability — lazy + guarded for fail-open: an observability
+// load or emission failure must never break the spawn path.
+let harnessObs = null;
+try {
+  harnessObs = require("./harness-observability.js");
+} catch {}
+
 const SUPPORTED_HOSTS = ["cursor", "opencode", "claude-code", "codex"];
 const PHASE_AGENTS = [
   "orchestra-planner",
@@ -96,6 +103,65 @@ function normalizeResponse(success, result, error, artifacts) {
 }
 
 /**
+ * Derive spawn provenance for observability without touching payload
+ * semantics. runId falls back to the worktree basename
+ * (`.pcore/worktrees/<runId>/`); fromAgent/phase come from optional payload
+ * conventions set by callers that know them.
+ */
+function buildSpawnProvenance(agentId, payload, worktreePath, host) {
+  const data = payload && typeof payload === "object" ? payload : {};
+  return {
+    host: typeof host === "string" ? host : null,
+    toAgent: typeof agentId === "string" ? agentId : null,
+    fromAgent: typeof data.fromAgent === "string" && data.fromAgent ? data.fromAgent : null,
+    phase: typeof data.phase === "string" && data.phase ? data.phase : null,
+    runId:
+      typeof data.runId === "string" && data.runId ? data.runId : deriveRunIdFromWorktree(worktreePath),
+    payloadKeys: Object.keys(data).sort(),
+  };
+}
+
+/** `.pcore/worktrees/<runId>/` -> `<runId>`; anything else -> its basename. */
+function deriveRunIdFromWorktree(worktreePath) {
+  if (typeof worktreePath !== "string" || worktreePath.length === 0) return null;
+  const base = path.basename(worktreePath);
+  return base.length > 0 ? base : null;
+}
+
+/** Emit an observability event — fail-open by contract, never throws. */
+function observeEmission(emitFn, payload) {
+  if (typeof emitFn !== "function") return;
+  try {
+    emitFn(payload);
+  } catch {
+    /* observability is additive-only: never break the spawn path */
+  }
+}
+
+/** Record a spawn-path denial (unknown host/agent = deny-first allowlist hit). */
+function observeDenial(provenance, host, agentId, err) {
+  const message = err && err.message ? String(err.message) : "";
+  const isHost = message.includes("Unknown host");
+  observeEmission(harnessObs && harnessObs.recordPermissionDenied, {
+    ...provenance,
+    scope: "spawn",
+    rule: isHost ? "spawn.host-allowlist" : "spawn.agent-allowlist",
+    subject: isHost ? host : agentId,
+    reason: message,
+  });
+}
+
+/** Record the spawn outcome (ok|error) with the attempt's provenance. */
+function observeResult(provenance, ok, error, artifacts) {
+  observeEmission(harnessObs && harnessObs.recordSpawnResult, {
+    ...provenance,
+    ok,
+    error,
+    artifacts: Array.isArray(artifacts) ? artifacts.length : 0,
+  });
+}
+
+/**
  * Spawn a subagent on the specified host.
  * @param {string} agentId - Agent identifier (e.g., "orchestra-planner")
  * @param {object} payload - Payload to pass to the agent
@@ -104,14 +170,36 @@ function normalizeResponse(success, result, error, artifacts) {
  * @returns {Promise<{success: boolean, result: any, error: string|null, artifacts: string[]}>}
  */
 async function spawn(agentId, payload, worktreePath, host) {
-  validateHost(host);
-  validateAgent(agentId);
-  
+  const provenance = buildSpawnProvenance(agentId, payload, worktreePath, host);
+  observeEmission(harnessObs && harnessObs.recordSpawnAttempted, provenance);
+  try {
+    validateHost(host);
+    validateAgent(agentId);
+  } catch (err) {
+    // Deny-first allowlist hit — record it, but rethrow unchanged: this is
+    // additive logging only, permission semantics stay exactly as before.
+    observeDenial(provenance, host, agentId, err);
+    observeResult(provenance, false, err && err.message, []);
+    throw err;
+  }
+
   const fullPayload = {
     ...payload,
     worktreePath: worktreePath || null,
   };
-  
+
+  try {
+    const response = await dispatchSpawn(agentId, fullPayload, host);
+    observeResult(provenance, response.success, response.error, response.artifacts);
+    return response;
+  } catch (err) {
+    observeResult(provenance, false, err && err.message, []);
+    throw err;
+  }
+}
+
+/** Host dispatch — pure routing, no observability. */
+function dispatchSpawn(agentId, fullPayload, host) {
   switch (host) {
     case "cursor":
       return spawnCursor(agentId, fullPayload);
