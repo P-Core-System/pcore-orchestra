@@ -81,9 +81,41 @@ function scanAgentDir(dir) {
   return uniqSorted(names);
 }
 
+/**
+ * Path-derived namespaced agent IDs for the OpenCode tree.
+ *
+ * Real OpenCode agent IDs are directory-namespaced (`dir/name`, one level
+ * deep — e.g. `03-architecture/tech-lead`), while the conductor allowlist
+ * historically carried only bare globs (`tech-lead*`) that never match them.
+ * Derived from the FILE PATH (relative, `.md` stripped) — never from
+ * frontmatter `name:` — so counts stay pinned at 160/160 (invariant 17).
+ * Root-level agents (no directory) are omitted: their bare globs already
+ * cover them. Reference docs without a frontmatter `name:` are skipped.
+ *
+ * @returns {string[]} sorted `dir/name` ids.
+ */
+function scanNamespacedIds(dir) {
+  const ids = [];
+  const walk = (d) => {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (e.name.endsWith(".md")) {
+        const rel = path.relative(dir, p).split(path.sep).join("/");
+        if (!rel.includes("/")) continue; // root-level: bare globs cover it
+        if (!frontmatterName(fs.readFileSync(p, "utf8"))) continue; // docs, not agents
+        ids.push(rel.replace(/\.md$/, ""));
+      }
+    }
+  };
+  walk(dir);
+  return uniqSorted(ids);
+}
+
 function buildRegistry(roster) {
   const cursor = scanAgentDir(AGENT_DIRS[0]);
   const opencode = scanAgentDir(AGENT_DIRS[1]);
+  const namespacedIds = scanNamespacedIds(AGENT_DIRS[1]);
   
   // Independence metadata: files, gates, stateKeys each agent touches
   const INDEPENDENCE_MAP = {
@@ -388,6 +420,14 @@ function buildRegistry(roster) {
       cursorAgents: cursor.length,
       opencodeAgents: opencode.length,
     },
+    // ADDITIONAL output (invariant 17, additive-only): OpenCode's real agent
+    // IDs are path-namespaced (`dir/name`) and never match the bare globs in
+    // the conductor allowlist — these are their glob forms, derived from the
+    // file path so `counts.opencodeAgents` stays pinned at 160/160.
+    opencodeNamespaced: {
+      count: namespacedIds.length,
+      globs: namespacedIds.map((id) => id + "*"),
+    },
     agents: cursor,
     agentDetails,
   };
@@ -424,9 +464,15 @@ function ruleCovers(ruleLine, agent) {
  * one `<agent>*: allow` per registered agent so nothing in the registry is
  * unspawnable. The block is wrapped in BEGIN/END markers.
  *
+ * When `namespacedGlobs` is provided (OpenCode conductor only), each
+ * `dir/name*` glob is appended after the bare globs — strictly additive,
+ * never replacing a bare glob: OpenCode's real agent IDs are path-namespaced
+ * (`03-architecture/tech-lead`) and a bare `tech-lead*` never matches them.
+ * The Cursor conductor passes nothing and regenerates byte-identical.
+ *
  * Returns the rewritten file text, or null when there is no task block.
  */
-function rewriteTaskBlock(text, agents) {
+function rewriteTaskBlock(text, agents, namespacedGlobs) {
   const eol = /\r\n/.test(text) ? "\r\n" : "\n";
   const lines = text.split(/\r?\n/);
   const start = lines.findIndex((l) => /^  task:\s*$/.test(l));
@@ -453,6 +499,17 @@ function rewriteTaskBlock(text, agents) {
   for (const agent of agents) {
     if (!ordered.some((r) => ruleCovers(r, agent))) {
       ordered.push(`"${agent}*": allow`);
+    }
+  }
+
+  // ADDITIVE ONLY: path-namespaced globs alongside the bare globs. Bare
+  // prefixes (`tech-lead*`) never match namespaced IDs
+  // (`03-architecture/tech-lead`), which left every specialist unspawnable.
+  // Skip any glob an existing rule already covers (idempotent regeneration).
+  for (const glob of namespacedGlobs || []) {
+    const id = glob.endsWith("*") ? glob.slice(0, -1) : glob;
+    if (!ordered.some((r) => ruleCovers(r, id))) {
+      ordered.push(`"${glob}": allow`);
     }
   }
 
@@ -507,9 +564,16 @@ function plan(roster, registry) {
     stale: regCurrent !== regExpected,
   });
 
+  const namespacedGlobs =
+    (registry.opencodeNamespaced && registry.opencodeNamespaced.globs) || [];
+
   for (const file of CONDUCTORS) {
     const current = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : null;
-    const expected = current === null ? null : rewriteTaskBlock(current, registry.agents);
+    // OpenCode conductor gets the path-namespaced globs in addition to the
+    // bare ones; the Cursor conductor must regenerate byte-identical.
+    const isOpencode = path.relative(ROOT, file).split(path.sep).join("/").startsWith("bundle/opencode/");
+    const expected =
+      current === null ? null : rewriteTaskBlock(current, registry.agents, isOpencode ? namespacedGlobs : null);
     jobs.push({
       path: file,
       rel: path.relative(ROOT, file),
@@ -562,6 +626,7 @@ module.exports = {
   rewriteTaskBlock,
   frontmatterName,
   scanAgentDir,
+  scanNamespacedIds,
   plan,
   main,
   HOOKS_COPIES,
