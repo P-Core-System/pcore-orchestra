@@ -23,7 +23,17 @@
         },
         {
           "action": "subagent",
+          "resource": "00-workflow/agent-selector*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
           "resource": "project-type-classifier*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "00-workflow/project-type-classifier*",
           "effect": "allow"
         },
         {
@@ -33,7 +43,17 @@
         },
         {
           "action": "subagent",
+          "resource": "00-workflow/workflow-orchestrator*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
           "resource": "product-owner*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "02-requirements/product-owner*",
           "effect": "allow"
         },
         {
@@ -43,7 +63,17 @@
         },
         {
           "action": "subagent",
+          "resource": "02-requirements/product-manager*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
           "resource": "project-manager*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "04-planning/project-manager*",
           "effect": "allow"
         },
         {
@@ -53,7 +83,17 @@
         },
         {
           "action": "subagent",
+          "resource": "04-planning/scrum-master*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
           "resource": "stakeholder-advocate*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "01-idea/stakeholder-advocate*",
           "effect": "allow"
         },
         {
@@ -63,7 +103,17 @@
         },
         {
           "action": "subagent",
+          "resource": "00-business/business-strategist*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
           "resource": "business-analyst*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "01-idea/business-analyst*",
           "effect": "allow"
         },
         {
@@ -73,7 +123,17 @@
         },
         {
           "action": "subagent",
+          "resource": "03-architecture/architect*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
           "resource": "tech-lead*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "03-architecture/tech-lead*",
           "effect": "allow"
         },
         {
@@ -83,7 +143,17 @@
         },
         {
           "action": "subagent",
+          "resource": "03-architecture/adr-archivist*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
           "resource": "ui-ux-designer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "05-implementation/ui-ux-designer*",
           "effect": "allow"
         },
         {
@@ -93,7 +163,17 @@
         },
         {
           "action": "subagent",
+          "resource": "05-implementation/backend-engineer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
           "resource": "frontend-engineer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "05-implementation/frontend-engineer*",
           "effect": "allow"
         },
         {
@@ -103,7 +183,17 @@
         },
         {
           "action": "subagent",
+          "resource": "05-implementation/mobile-engineer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
           "resource": "full-stack-engineer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "05-implementation/full-stack-engineer*",
           "effect": "allow"
         },
         {
@@ -113,7 +203,17 @@
         },
         {
           "action": "subagent",
+          "resource": "05-implementation/database-engineer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
           "resource": "ml-engineer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "11-data/ml-engineer*",
           "effect": "allow"
         },
         {
@@ -123,7 +223,17 @@
         },
         {
           "action": "subagent",
+          "resource": "11-data/data-engineer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
           "resource": "devops-engineer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "08-deployment/devops-engineer*",
           "effect": "allow"
         },
         {
@@ -133,7 +243,17 @@
         },
         {
           "action": "subagent",
+          "resource": "08-deployment/platform-engineer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
           "resource": "qa-engineer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "06-testing/qa-engineer*",
           "effect": "allow"
         },
         {
@@ -143,7 +263,17 @@
         },
         {
           "action": "subagent",
+          "resource": "06-testing/automation-engineer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
           "resource": "regression-tester*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "06-testing/regression-tester*",
           "effect": "allow"
         },
         {
@@ -153,7 +283,17 @@
         },
         {
           "action": "subagent",
+          "resource": "06-testing/api-contract-validator*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
           "resource": "accessibility-reviewer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "06-testing/accessibility-reviewer*",
           "effect": "allow"
         },
         {
@@ -163,7 +303,17 @@
         },
         {
           "action": "subagent",
+          "resource": "06-testing/performance-engineer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
           "resource": "model-evaluator*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "11-ai-ml/model-evaluator*",
           "effect": "allow"
         },
         {
@@ -173,7 +323,17 @@
         },
         {
           "action": "subagent",
+          "resource": "10-review/code-reviewer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
           "resource": "technical-debt-tracker*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "10-review/technical-debt-tracker*",
           "effect": "allow"
         },
         {
@@ -183,7 +343,17 @@
         },
         {
           "action": "subagent",
+          "resource": "00-business/compliance-officer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
           "resource": "legal-advisor*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "00-business/legal-advisor*",
           "effect": "allow"
         },
         {
@@ -193,7 +363,17 @@
         },
         {
           "action": "subagent",
+          "resource": "07-orange-team/security-executive-advisor*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
           "resource": "release-manager*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "08-deployment/release-manager*",
           "effect": "allow"
         },
         {
@@ -203,7 +383,17 @@
         },
         {
           "action": "subagent",
+          "resource": "08-deployment/ops-manager*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
           "resource": "documentation-writer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "08-deployment/documentation-writer*",
           "effect": "allow"
         },
         {
@@ -213,7 +403,17 @@
         },
         {
           "action": "subagent",
+          "resource": "09-observability/sre*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
           "resource": "observer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "09-observability/observer*",
           "effect": "allow"
         },
         {
@@ -223,7 +423,17 @@
         },
         {
           "action": "subagent",
+          "resource": "09-observability/incident-responder*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
           "resource": "security-performance-reviewer*",
+          "effect": "allow"
+        },
+        {
+          "action": "subagent",
+          "resource": "07-security/security-performance-reviewer*",
           "effect": "allow"
         },
         {
