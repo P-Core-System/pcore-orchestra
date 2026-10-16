@@ -183,7 +183,8 @@ function Install-OpenCode {
     (Join-Path $OpenCodeDir "hooks\lib"),
     (Join-Path $OpenCodeDir "agents"),
     (Join-Path $OpenCodeDir "skills"),
-    (Join-Path $OpenCodeDir "state")
+    (Join-Path $OpenCodeDir "state"),
+    (Join-Path $OpenCodeDir "plugins")
   ) | ForEach-Object { New-Item -ItemType Directory -Force -Path $_ | Out-Null }
 
   # Agents (orchestra core + enterprise)
@@ -210,6 +211,14 @@ function Install-OpenCode {
 
   # Hooks (all orchestra-*.js)
   Copy-Item (Join-Path $Bundle "opencode\hooks\orchestra-*.js") (Join-Path $OpenCodeDir "hooks\") -Force
+
+  # Plugins (ambient system-prompt policy; default-export V2)
+  $pluginsSrc = Join-Path $Bundle "opencode\plugins"
+  if (Test-Path $pluginsSrc) {
+    $pluginsDest = Join-Path $OpenCodeDir "plugins"
+    New-Item -ItemType Directory -Force -Path $pluginsDest | Out-Null
+    Copy-Item (Join-Path $pluginsSrc "*.js") $pluginsDest -Force
+  }
 
   # Lib modules (shared with Cursor)
   $libDest = Join-Path $OpenCodeDir "hooks\lib"
@@ -304,6 +313,7 @@ function Install-OpenCode {
   Write-Host "  OpenCode lib:     $OpenCodeDir\hooks\lib\ (21 modules)"
   Write-Host "  OpenCode skills:  $OpenCodeDir\skills\ (orchestra-loop + UI + Cloudflare)"
   Write-Host "  OpenCode state:   $OpenCodeDir\state\orchestra.json"
+  Write-Host "  OpenCode plugins: $OpenCodeDir\plugins\ (orchestra-ambient default export)"
   Write-Host "  OpenCode autonomy:$OpenCodeDir\opencode.json (permission + agents; mcp preserved)"
   Write-Host "  OpenCode CLI:     opencode --version - restart desktop app after upgrade"
 }

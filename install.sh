@@ -204,7 +204,7 @@ install_opencode() {
     echo "WARN free-model refresh/apply failed (offline first-run?) — keeping existing model IDs"
   fi
 
-  mkdir -p "$OPENCODE/agents" "$OPENCODE/skills" "$OPENCODE/state" "$OPENCODE/hooks"
+  mkdir -p "$OPENCODE/agents" "$OPENCODE/skills" "$OPENCODE/state" "$OPENCODE/hooks" "$OPENCODE/plugins"
 
   # Copy OpenCode agents (conductor + core + enterprise category dirs)
   cp -f "$BUNDLE/opencode/agents/orchestra.md" "$OPENCODE/agents/" 2>/dev/null || true
@@ -257,6 +257,9 @@ PY
   cp -f "$ROOT/scripts/lib/opencode-config-sanitize.js" "$ROOT/scripts/lib/opencode-v2.js" "$ROOT/scripts/lib/opencode-version.js" \
     "$OPENCODE/hooks/lib/" 2>/dev/null || true
 
+  # Copy OpenCode plugins (ambient system-prompt policy; default-export V2)
+  cp -f "$BUNDLE/opencode/plugins/"*.js "$OPENCODE/plugins/" 2>/dev/null || true
+
   # MCP server (if requested)
   if [[ "$INSTALL_MCP" -eq 1 ]]; then
     echo "==> Installing MCP server dependencies"
@@ -300,6 +303,7 @@ PY
   echo "  OpenCode agents:  $OPENCODE/agents/ (core + enterprise)"
   echo "  OpenCode skills:  $OPENCODE/skills/ (orchestra-loop + intake/verify + UI + Cloudflare)"
   echo "  OpenCode state:   $OPENCODE/state/orchestra.json"
+  echo "  OpenCode plugins: $OPENCODE/plugins/ (orchestra-ambient default export)"
   echo "  OpenCode autonomy:$OPENCODE/opencode.json (permission + agents; mcp preserved)"
   echo "  OpenCode CLI:     run 'opencode --version' — restart desktop app after upgrade"
 }
