@@ -45,8 +45,8 @@ const BUNDLE_PLUGIN = path.join(
   "orchestra-ambient.js"
 );
 const ORACLE_CMD = "opencode";
-const ORACLE_RETRIES = 10;
-const ORACLE_SLEEP_MS = 700;
+const ORACLE_RETRIES = 15;
+const ORACLE_SLEEP_MS = 2000;
 
 let passed = 0;
 let failed = 0;
@@ -83,13 +83,18 @@ function sleep(ms) {
  */
 function runOracle() {
   let lastErr;
+  const tmpFile = path.join(os.tmpdir(), `opencode-oracle-${process.pid}-${Date.now()}.json`);
   for (let i = 0; i < ORACLE_RETRIES; i++) {
     let out;
     try {
-      out = execFileSync(ORACLE_CMD, ["debug", "agents"], {
+      // Use shell redirection to a temp file instead of execFileSync's maxBuffer,
+      // which truncates/corrupts the large oracle JSON (~1.3MB, "Unterminated
+      // string at position 984994"). Read back from the file path.
+      execFileSync("bash", ["-c", ORACLE_CMD + " debug agents > " + tmpFile + " 2>/dev/null"], {
         encoding: "utf8",
         maxBuffer: 4 * 1024 * 1024,
       });
+      out = fs.readFileSync(tmpFile, "utf8");
     } catch (err) {
       lastErr = `exec failed: ${err.message}`;
       sleep(ORACLE_SLEEP_MS);
@@ -104,10 +109,20 @@ function runOracle() {
       continue;
     }
     if (Array.isArray(parsed) && parsed.length > 0) {
+      try {
+        fs.unlinkSync(tmpFile);
+      } catch {
+        /* best-effort cleanup */
+      }
       return parsed;
     }
     lastErr = `oracle returned ${Array.isArray(parsed) ? parsed.length : "non-array"} agents`;
     sleep(ORACLE_SLEEP_MS);
+  }
+  try {
+    fs.unlinkSync(tmpFile);
+  } catch {
+    /* best-effort cleanup */
   }
   throw new Error(
     `FAIL LOUD (trap 2): oracle returned 0 agents after ${ORACLE_RETRIES} retries (last: ${lastErr})`
