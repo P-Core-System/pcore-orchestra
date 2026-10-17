@@ -19,7 +19,7 @@ jobs:
           node-version: "20"
       - run: |
           shopt -s globstar
-          for f in scripts/*.js scripts/lib/*.js bundle/hooks/**/*.js bundle/opencode/hooks/**/*.js templates/**/*.js server/*.js; do
+          for f in scripts/*.js scripts/lib/*.js bundle/hooks/**/*.js bundle/opencode/hooks/**/*.js bundle/opencode/plugins/*.js templates/**/*.js server/*.js; do
             if [ -f "$f" ]; then node --check "$f" && echo "OK: $f"; fi
           done
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
