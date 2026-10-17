@@ -8,6 +8,11 @@ description: >-
   is active.
 mode: subagent
 steps: 200
+permission:
+  edit: allow
+  shell: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

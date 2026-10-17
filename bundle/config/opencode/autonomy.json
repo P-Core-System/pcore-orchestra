@@ -794,11 +794,6 @@
   ],
   "permissions": [
     {
-      "action": "*",
-      "resource": "*",
-      "effect": "allow"
-    },
-    {
       "action": "doom_loop",
       "resource": "*",
       "effect": "deny"
@@ -821,11 +816,6 @@
     {
       "action": "read",
       "resource": "*.env.example",
-      "effect": "allow"
-    },
-    {
-      "action": "edit",
-      "resource": "*",
       "effect": "allow"
     },
     {
