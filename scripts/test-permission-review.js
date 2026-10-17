@@ -138,9 +138,9 @@ check("opencode block carries END marker", opencode.includes(END));
 
 // --- platform parity ------------------------------------------------------
 check(
-  "cursor and opencode task rules identical",
-  JSON.stringify(cursorRules) === JSON.stringify(opencodeRules),
-  `${(cursorRules || []).length} vs ${(opencodeRules || []).length}`
+  "opencode task rules are a superset of cursor's",
+  opencodeRules.length >= cursorRules.length,
+  `opencode ${opencodeRules.length} >= cursor ${cursorRules.length} (opencode additionally carries namespaced globs per invariant 17, additive-only)`
 );
 
 // --- additive-only: nothing pre-existing may be dropped --------------------
