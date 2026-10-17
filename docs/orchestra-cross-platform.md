@@ -55,6 +55,22 @@ On `VERIFY_FAIL` / `FIX_REQUIRED`: implementer → verifier again (max 3 loops).
 | Skills | `~/.cursor/skills/orchestra-loop/` | `~/.config/opencode/skills/orchestra-loop/` |
 | MCP | Cursor MCP | `opencode.json` mcp (disable remote if startup hangs) |
 
+### OpenCode permission fix scope (RC1–RC5)
+
+The OpenCode permission surface was reworked across five release candidates (verified
+via `opencode debug agents` at `v2.0.29`):
+
+- **RC1 — ID-namespaced conductor allowlist.** Bare-name globs matched 0/42 specialists; namespaced `dir/*` globs achieve 160/160. The conductor `permission.task` allowlist is regenerated from `bundle/agent-registry.json`.
+- **RC2 — Frontmatter syntax standard.** V1 `permission:` objects in agent frontmatter are the reliable per-agent form (V2 arrays are dropped when `name:` is present, and all 160 agents carry `name:`). `tools:` is deprecated and unused.
+- **RC3 — Deny-first root strip.** `"*": deny` first rule, keep `read*` allow + `shell* allow` (builtin bash default is ask; stripping read/shell causes prompt loops).
+- **RC4 — Default-export ambient plugin.** `{id, setup}` via `ctx.session.hook("context")` + SystemPart; `install.sh`/`install.ps1` MUST copy `bundle/opencode/plugins/`.
+- **RC5 — Fail-open observability log.** `harness-observability.js` logs `input.received`, `input.classified`, `spawn.attempted`, `spawn.result`, `permission.denied` to `harness-observability.json` (ring-capped, fail-open, `PCORE_STATE_DIR`-aware).
+
+**Agents covered:** all 160 OpenCode agents (`bundle/opencode/agents/`), including the conductor `orchestra` and the four hidden phase agents
+`orchestra-planner`, `orchestra-implementer`, `orchestra-verifier`, `orchestra-reviewer`.
+
+**Cursor side:** byte-identical (`bundle/agents/**`, `bundle/hooks/**`, `bundle/config/cursor/**`) — kept working, no changes.
+
 ## Models by platform
 
 ### Cursor

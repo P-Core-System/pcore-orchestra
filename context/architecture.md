@@ -12,6 +12,7 @@
 | Install | Bash + PowerShell | `install.sh`, `install.ps1`, `scripts/init-context.*`, `scripts/merge-autonomy-config.js` |
 | Free-model ops | Bash + systemd/cron | `scripts/update-free-models.sh` (`--refresh`/`--apply`/`--check`/`--schedule`), `scripts/systemd/pcore-free-models.{service,timer}` (weekly OnCalendar; cron fallback) |
 | Repo scoping | `.ignore` + `.cursorignore` + `.gitignore` | Cross-tool ignore files prevent scanning `node_modules/`, `vendor/`, `venv/`, caches |
+| Harness observability | Node.js + JSON | `bundle/hooks/lib/harness-observability.js` — fail-open input/spawn/permission event log (`input.received`, `input.classified`, `spawn.attempted`, `spawn.result`, `permission.denied`), ring-capped `harness-observability.json`, `PCORE_STATE_DIR`-aware; byte-identical Cursor/OpenCode mirrors (invariant 18) |
 | Scoping scripts | Bash | `scripts/setup-repo-scoping.sh` (auto-detect single vs monorepo), `scripts/opencode-maintenance.sh` (DB/log housekeeping) |
 
 ## System boundaries
