@@ -1,13 +1,17 @@
 ---
 name: data-cleaner
 description: >-
-  Enterprise SDLC Phase 5,11 — Data cleaning pipelines, missing value handling, outlier detection, deduplication, data normalization, format standardization, data profiling.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC Phase 5,11 — Data cleaning pipelines, missing value
+  handling, outlier detection, deduplication, data normalization, format
+  standardization, data profiling. Use proactively when this specialist's
+  phase is active.
 mode: subagent
-steps: 100
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

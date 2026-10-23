@@ -1,12 +1,17 @@
 ---
 name: zero-knowledge-tester
 description: >-
-  Enterprise SDLC Phase 6,7 — Black team zero-knowledge testing, no-prior-knowledge assessment, blind penetration testing, realistic external attack simulation.
+  Enterprise SDLC Phase 6,7 — Black team zero-knowledge testing,
+  no-prior-knowledge assessment, blind penetration testing, realistic
+  external attack simulation. Use proactively when this specialist's phase
+  is active.
 mode: subagent
-steps: 150
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

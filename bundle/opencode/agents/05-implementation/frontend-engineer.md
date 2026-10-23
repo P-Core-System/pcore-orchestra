@@ -1,16 +1,16 @@
 ---
 name: frontend-engineer
 description: >-
-  Enterprise SDLC Phase 18 — Frontend implementation. Builds UI components,
-  pages, interactions for web AND mobile. Supports React, Next.js, Vue,
-  Svelte, Ionic, Capacitor, and React Native. Follows project design system
-  and accessibility standards. Use proactively when this specialist's phase
-  is active.
+  Enterprise SDLC Phase 18 — Frontend implementation. Builds UI
+  components, pages, interactions for web AND mobile. Supports React,
+  Next.js, Vue, Svelte, Ionic, Capacitor, and React Native. Follows
+  project design system and accessibility standards. Use proactively when
+  this specialist's phase is active.
 mode: subagent
 steps: 200
 permission:
-  edit: allow
-  shell: allow
+  edit: deny
+  bash: allow
   websearch: allow
   webfetch: allow
 ---

@@ -1,12 +1,16 @@
 ---
 name: shadow-it-auditor
 description: >-
-  Enterprise SDLC Phase 6,7 — Shadow IT discovery, unauthorized system detection, SaaS sprawl analysis, unmanaged device identification, compliance gaps.
+  Enterprise SDLC Phase 6,7 — Shadow IT discovery, unauthorized system
+  detection, SaaS sprawl analysis, unmanaged device identification,
+  compliance gaps. Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 150
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

@@ -2,14 +2,16 @@
 name: incident-responder
 description: >-
   Enterprise SDLC Phase 28 — Incident triage, root cause analysis (RCA),
-  postmortem creation, and runbook generation. Manages production incidents
-  and prevents recurrence.
-  Use proactively when this specialist's phase is active.
+  postmortem creation, and runbook generation. Manages production
+  incidents and prevents recurrence. Use proactively when this
+  specialist's phase is active.
 mode: subagent
-steps: 150
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

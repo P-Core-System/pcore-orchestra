@@ -1,16 +1,18 @@
 ---
 name: security-performance-reviewer
 description: >-
-  Enterprise SDLC Phase 23-24 — Combined security audit, performance profiling,
-  reliability review, and abuse/failure mode analysis. Single gate for
-  production readiness. Complements separate security-engineer and
-  performance-engineer for deep-dive work.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC Phase 23-24 — Combined security audit, performance
+  profiling, reliability review, and abuse/failure mode analysis. Single
+  gate for production readiness. Complements separate security-engineer
+  and performance-engineer for deep-dive work. Use proactively when this
+  specialist's phase is active.
 mode: subagent
-steps: 150
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

@@ -1,12 +1,17 @@
 ---
 name: shift-left-engineer
 description: >-
-  Enterprise SDLC Phase 0,2,5 — Shift-left security, early security integration, security requirements in design, developer security training, security champions.
+  Enterprise SDLC Phase 0,2,5 — Shift-left security, early security
+  integration, security requirements in design, developer security
+  training, security champions. Use proactively when this specialist's
+  phase is active.
 mode: subagent
 steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

@@ -1,12 +1,16 @@
 ---
 name: threat-hunter
 description: >-
-  Enterprise SDLC Phase 6,9 — Proactive threat hunting, hypothesis-driven investigation, anomaly detection, threat landscape analysis, IOC/IOA development.
+  Enterprise SDLC Phase 6,9 — Proactive threat hunting, hypothesis-driven
+  investigation, anomaly detection, threat landscape analysis, IOC/IOA
+  development. Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 150
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

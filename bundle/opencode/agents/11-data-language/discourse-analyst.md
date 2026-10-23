@@ -1,13 +1,16 @@
 ---
 name: discourse-analyst
 description: >-
-  Enterprise SDLC Phase 5,11 — Discourse structure analysis, coreference resolution, discourse relations, topic segmentation, coherence analysis.
+  Enterprise SDLC Phase 5,11 — Discourse structure analysis, coreference
+  resolution, discourse relations, topic segmentation, coherence analysis.
   Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 120
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

@@ -3,13 +3,15 @@ name: api-contract-validator
 description: >-
   Enterprise SDLC Phase 16,20 — API contract testing, schema validation,
   breaking change detection. Ensures API backward compatibility and
-  OpenAPI/GraphQL schema compliance.
-  Use proactively when this specialist's phase is active.
+  OpenAPI/GraphQL schema compliance. Use proactively when this
+  specialist's phase is active.
 mode: subagent
-steps: 150
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

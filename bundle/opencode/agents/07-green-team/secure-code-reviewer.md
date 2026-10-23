@@ -1,12 +1,16 @@
 ---
 name: secure-code-reviewer
 description: >-
-  Enterprise SDLC Phase 6 — Security-focused code review, vulnerability detection, secure coding standards, code audit.
+  Enterprise SDLC Phase 6 — Security-focused code review, vulnerability
+  detection, secure coding standards, code audit. Use proactively when
+  this specialist's phase is active.
 mode: subagent
-steps: 150
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

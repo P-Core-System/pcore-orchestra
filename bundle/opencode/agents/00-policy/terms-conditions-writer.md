@@ -1,13 +1,16 @@
 ---
 name: terms-conditions-writer
 description: >-
-  Enterprise SDLC Phase 0,24 — Terms of Service design, Terms & Conditions drafting, user agreements, EULA creation, license agreements, contract templates.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC Phase 0,24 — Terms of Service design, Terms & Conditions
+  drafting, user agreements, EULA creation, license agreements, contract
+  templates. Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 100
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

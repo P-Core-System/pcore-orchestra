@@ -1,12 +1,17 @@
 ---
 name: exercise-controller
 description: >-
-  Enterprise SDLC Phase 6,7 — White team exercise control, scenario management, rules of engagement enforcement, safe-word handling, exercise coordination, timeline management.
+  Enterprise SDLC Phase 6,7 — White team exercise control, scenario
+  management, rules of engagement enforcement, safe-word handling,
+  exercise coordination, timeline management. Use proactively when this
+  specialist's phase is active.
 mode: subagent
-steps: 100
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

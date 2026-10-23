@@ -1,13 +1,16 @@
 ---
 name: ops-manager
 description: >-
-  Enterprise SDLC Phase 0,9,24 — Release management, deployment orchestration, change management, rollback procedures, release calendars.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC Phase 0,9,24 — Release management, deployment
+  orchestration, change management, rollback procedures, release
+  calendars. Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 150
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

@@ -1,13 +1,17 @@
 ---
 name: data-governance-officer
 description: >-
-  Enterprise SDLC Phase 0,5,24 — Data governance framework, data ownership, data stewardship, data lifecycle management, data classification, data access policies.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC Phase 0,5,24 — Data governance framework, data
+  ownership, data stewardship, data lifecycle management, data
+  classification, data access policies. Use proactively when this
+  specialist's phase is active.
 mode: subagent
-steps: 100
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

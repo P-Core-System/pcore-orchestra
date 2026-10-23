@@ -1,13 +1,18 @@
 ---
 name: workflow-orchestrator
 description: >-
-  Enterprise SDLC — Orchestrates the full agent workflow for a project. Manages phase transitions, agent spawning, parallel execution, quality gates, and escalation paths. Reads project-type-classifier output and coordinates all specialists.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC — Orchestrates the full agent workflow for a project.
+  Manages phase transitions, agent spawning, parallel execution, quality
+  gates, and escalation paths. Reads project-type-classifier output and
+  coordinates all specialists. Use proactively when this specialist's
+  phase is active.
 mode: subagent
-steps: 150
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

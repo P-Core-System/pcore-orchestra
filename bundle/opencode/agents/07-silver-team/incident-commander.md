@@ -1,12 +1,16 @@
 ---
 name: incident-commander
 description: >-
-  Enterprise SDLC Phase 6,9 — Incident command, crisis management, communication coordination, stakeholder management, post-incident review.
+  Enterprise SDLC Phase 6,9 — Incident command, crisis management,
+  communication coordination, stakeholder management, post-incident
+  review. Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 150
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

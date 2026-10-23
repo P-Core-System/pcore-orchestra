@@ -1,13 +1,16 @@
 ---
 name: content-strategist
 description: >-
-  Enterprise SDLC Phase 0,15,24 — Content planning, SEO strategy, messaging frameworks, editorial calendar, content governance, brand voice.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC Phase 0,15,24 — Content planning, SEO strategy,
+  messaging frameworks, editorial calendar, content governance, brand
+  voice. Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 120
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

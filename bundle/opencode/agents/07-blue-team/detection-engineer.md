@@ -1,12 +1,16 @@
 ---
 name: detection-engineer
 description: >-
-  Enterprise SDLC Phase 6,9 — Detection rule engineering, SIGMA/YARA/Snort rules, detection-as-code, detection coverage, gap analysis, rule optimization.
+  Enterprise SDLC Phase 6,9 — Detection rule engineering, SIGMA/YARA/Snort
+  rules, detection-as-code, detection coverage, gap analysis, rule
+  optimization. Use proactively when this specialist's phase is active.
 mode: subagent
 steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

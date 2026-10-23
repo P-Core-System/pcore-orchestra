@@ -1,13 +1,17 @@
 ---
 name: prompt-engineer
 description: >-
-  Enterprise SDLC Phase 0,5,11 — Prompt design, chain-of-thought prompting, few-shot examples, prompt optimization, prompt testing, system prompt architecture, prompt versioning.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC Phase 0,5,11 — Prompt design, chain-of-thought
+  prompting, few-shot examples, prompt optimization, prompt testing,
+  system prompt architecture, prompt versioning. Use proactively when this
+  specialist's phase is active.
 mode: subagent
 steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

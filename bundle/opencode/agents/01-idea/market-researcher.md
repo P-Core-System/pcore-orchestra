@@ -2,10 +2,10 @@
 name: market-researcher
 description: >-
   Enterprise SDLC Phase 1-2 — Competitive analysis, user research, market
-  sizing, trend analysis. Provides data-driven input for product decisions.
-  Use proactively when this specialist's phase is active.
+  sizing, trend analysis. Provides data-driven input for product
+  decisions. Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 120
+steps: 200
 permission:
   edit: deny
   bash: allow

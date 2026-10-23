@@ -1,12 +1,16 @@
 ---
 name: social-engineer
 description: >-
-  Enterprise SDLC Phase 6,7 — Social engineering assessment, phishing simulation, pretexting, physical security testing, human vulnerability assessment.
+  Enterprise SDLC Phase 6,7 — Social engineering assessment, phishing
+  simulation, pretexting, physical security testing, human vulnerability
+  assessment. Use proactively when this specialist's phase is active.
 mode: subagent
 steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

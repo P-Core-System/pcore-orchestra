@@ -8,7 +8,7 @@ mode: subagent
 steps: 200
 permission:
   edit: allow
-  shell: allow
+  bash: allow
   websearch: allow
   webfetch: allow
 ---

@@ -1,15 +1,18 @@
 ---
 name: stakeholder-advocate
 description: >-
-  Enterprise SDLC Phase 2-3 — Represents business, operations, and customer
-  perspectives. Reviews impact of proposed changes on stakeholders. Never
-  fabricates stakeholder approval — only reports actual stakeholder input.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC Phase 2-3 — Represents business, operations, and
+  customer perspectives. Reviews impact of proposed changes on
+  stakeholders. Never fabricates stakeholder approval — only reports
+  actual stakeholder input. Use proactively when this specialist's phase
+  is active.
 mode: subagent
-steps: 100
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

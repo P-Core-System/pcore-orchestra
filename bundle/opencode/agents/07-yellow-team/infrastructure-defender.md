@@ -1,12 +1,16 @@
 ---
 name: infrastructure-defender
 description: >-
-  Enterprise SDLC Phase 6,8 — Infrastructure security, network defense, firewall management, IDS/IPS tuning, DDoS protection, infrastructure hardening.
+  Enterprise SDLC Phase 6,8 — Infrastructure security, network defense,
+  firewall management, IDS/IPS tuning, DDoS protection, infrastructure
+  hardening. Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 100
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

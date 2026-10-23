@@ -1,13 +1,17 @@
 ---
 name: policy-maker
 description: >-
-  Enterprise SDLC Phase 0,24 — Policy design, organizational policy creation, governance frameworks, policy enforcement mechanisms, policy versioning, policy compliance monitoring.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC Phase 0,24 — Policy design, organizational policy
+  creation, governance frameworks, policy enforcement mechanisms, policy
+  versioning, policy compliance monitoring. Use proactively when this
+  specialist's phase is active.
 mode: subagent
-steps: 100
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

@@ -1,12 +1,16 @@
 ---
 name: covert-ops-planner
 description: >-
-  Enterprise SDLC Phase 6,7 — Covert operation planning, stealth techniques, long-term persistence, advanced OPSEC, multi-stage campaigns.
+  Enterprise SDLC Phase 6,7 — Covert operation planning, stealth
+  techniques, long-term persistence, advanced OPSEC, multi-stage
+  campaigns. Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 100
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models
