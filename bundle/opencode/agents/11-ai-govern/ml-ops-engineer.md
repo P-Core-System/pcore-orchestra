@@ -1,13 +1,17 @@
 ---
 name: ml-ops-engineer
 description: >-
-  Enterprise SDLC Phase 5,9,11 — ML pipeline automation, experiment tracking, model registry, CI/CD for ML, feature stores, model monitoring, automated retraining.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC Phase 5,9,11 — ML pipeline automation, experiment
+  tracking, model registry, CI/CD for ML, feature stores, model
+  monitoring, automated retraining. Use proactively when this specialist's
+  phase is active.
 mode: subagent
 steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

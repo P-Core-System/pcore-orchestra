@@ -1,15 +1,17 @@
 ---
 name: scrum-master
 description: >-
-  Enterprise SDLC Phase 4,10 — Sprint planning, velocity tracking, impediment
-  removal, retrospective facilitation. Manages agile process, coordinates
-  hybrid human-AI teams, tracks capacity and token budgets.
+  Enterprise SDLC Phase 4,10 — Sprint planning, velocity tracking,
+  impediment removal, retrospective facilitation. Manages agile process,
+  coordinates hybrid human-AI teams, tracks capacity and token budgets.
   Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 100
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

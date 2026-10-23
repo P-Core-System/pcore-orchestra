@@ -1,13 +1,16 @@
 ---
 name: data-analyst
 description: >-
-  Enterprise SDLC Phase 0,10 — Analytics dashboards, KPI tracking, data visualization, business intelligence, A/B test analysis, metric definitions.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC Phase 0,10 — Analytics dashboards, KPI tracking, data
+  visualization, business intelligence, A/B test analysis, metric
+  definitions. Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 120
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

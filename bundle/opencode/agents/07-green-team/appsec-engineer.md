@@ -1,12 +1,16 @@
 ---
 name: appsec-engineer
 description: >-
-  Enterprise SDLC Phase 2,5,6 — Application security engineering, secure design review, threat modeling, security requirements, security architecture.
+  Enterprise SDLC Phase 2,5,6 — Application security engineering, secure
+  design review, threat modeling, security requirements, security
+  architecture. Use proactively when this specialist's phase is active.
 mode: subagent
 steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

@@ -1,13 +1,16 @@
 ---
 name: research-scientist
 description: >-
-  Enterprise SDLC Phase 0,5 — Research design, experimentation, proof of concept, literature review, hypothesis testing, statistical analysis.
+  Enterprise SDLC Phase 0,5 — Research design, experimentation, proof of
+  concept, literature review, hypothesis testing, statistical analysis.
   Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 100
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

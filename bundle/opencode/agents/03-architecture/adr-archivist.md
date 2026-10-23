@@ -2,14 +2,16 @@
 name: adr-archivist
 description: >-
   Enterprise SDLC Phase 3,11 — Architecture Decision Record (ADR) creation
-  and management. Documents significant architectural decisions with context,
-  alternatives, and consequences. Maintains decision log as append-only.
-  Use proactively when this specialist's phase is active.
+  and management. Documents significant architectural decisions with
+  context, alternatives, and consequences. Maintains decision log as
+  append-only. Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 100
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

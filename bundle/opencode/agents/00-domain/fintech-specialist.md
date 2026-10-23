@@ -1,13 +1,16 @@
 ---
 name: fintech-specialist
 description: >-
-  Enterprise SDLC Phase 0,5,11 — Financial technology domain, PCI-DSS compliance, payment processing, financial regulations, risk modeling, fraud detection.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC Phase 0,5,11 — Financial technology domain, PCI-DSS
+  compliance, payment processing, financial regulations, risk modeling,
+  fraud detection. Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 100
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

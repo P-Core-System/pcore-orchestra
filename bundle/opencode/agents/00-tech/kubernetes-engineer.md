@@ -1,13 +1,16 @@
 ---
 name: kubernetes-engineer
 description: >-
-  Enterprise SDLC Phase 5,8,9 — Kubernetes cluster design, pod scheduling, service mesh, Helm charts, Kustomize, resource management, cluster autoscaling.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC Phase 5,8,9 — Kubernetes cluster design, pod scheduling,
+  service mesh, Helm charts, Kustomize, resource management, cluster
+  autoscaling. Use proactively when this specialist's phase is active.
 mode: subagent
 steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

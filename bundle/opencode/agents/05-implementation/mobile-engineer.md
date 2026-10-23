@@ -3,13 +3,15 @@ name: mobile-engineer
 description: >-
   Enterprise SDLC Phase 19 — Mobile/cross-platform implementation. Builds
   Ionic, React Native, Capacitor, and native mobile apps. Handles platform
-  APIs, push notifications, offline sync, and app store deployment.
-  Use proactively when this specialist's phase is active.
+  APIs, push notifications, offline sync, and app store deployment. Use
+  proactively when this specialist's phase is active.
 mode: subagent
 steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

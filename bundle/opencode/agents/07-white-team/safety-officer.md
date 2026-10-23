@@ -1,12 +1,17 @@
 ---
 name: safety-officer
 description: >-
-  Enterprise SDLC Phase 6,7 — Safety oversight during exercises, collateral damage prevention, critical system protection, safety threshold monitoring.
+  Enterprise SDLC Phase 6,7 — Safety oversight during exercises,
+  collateral damage prevention, critical system protection, safety
+  threshold monitoring. Use proactively when this specialist's phase is
+  active.
 mode: subagent
-steps: 100
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

@@ -1,12 +1,16 @@
 ---
 name: attack-simulator
 description: >-
-  Enterprise SDLC Phase 6,7 — Automated attack simulation, Atomic Red Team, MITRE ATT&CK mapping, attack path validation, breach and attack simulation.
+  Enterprise SDLC Phase 6,7 — Automated attack simulation, Atomic Red
+  Team, MITRE ATT&CK mapping, attack path validation, breach and attack
+  simulation. Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 100
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

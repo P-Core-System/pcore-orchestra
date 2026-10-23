@@ -1,15 +1,18 @@
 ---
 name: ui-ux-designer
 description: >-
-  Enterprise SDLC Phase 12-15 — User experience design, information architecture,
-  interaction patterns, accessibility, responsive design. Creates design before
-  implementation. Complements frontend-engineer who implements the design.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC Phase 12-15 — User experience design, information
+  architecture, interaction patterns, accessibility, responsive design.
+  Creates design before implementation. Complements frontend-engineer who
+  implements the design. Use proactively when this specialist's phase is
+  active.
 mode: subagent
 steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

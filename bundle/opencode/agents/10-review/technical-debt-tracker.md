@@ -1,15 +1,17 @@
 ---
 name: technical-debt-tracker
 description: >-
-  Enterprise SDLC Phase 10,27 — Technical debt identification, classification,
-  prioritization, and paydown planning. Tracks debt across codebase, creates
-  debt inventory, and plans remediation sprints.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC Phase 10,27 — Technical debt identification,
+  classification, prioritization, and paydown planning. Tracks debt across
+  codebase, creates debt inventory, and plans remediation sprints. Use
+  proactively when this specialist's phase is active.
 mode: subagent
-steps: 100
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

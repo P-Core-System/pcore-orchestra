@@ -1,13 +1,17 @@
 ---
 name: model-evaluator
 description: >-
-  Enterprise SDLC Phase 5,6,11 — Model evaluation design, benchmark selection, A/B testing for models, performance metrics, fairness evaluation, robustness testing, model comparison.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC Phase 5,6,11 — Model evaluation design, benchmark
+  selection, A/B testing for models, performance metrics, fairness
+  evaluation, robustness testing, model comparison. Use proactively when
+  this specialist's phase is active.
 mode: subagent
-steps: 100
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

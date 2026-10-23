@@ -1,13 +1,17 @@
 ---
 name: vector-db-engineer
 description: >-
-  Enterprise SDLC Phase 5,11 — Vector database design, indexing strategies (HNSW/IVF/flat), vector storage optimization, hybrid search, vector database migration, scaling.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC Phase 5,11 — Vector database design, indexing strategies
+  (HNSW/IVF/flat), vector storage optimization, hybrid search, vector
+  database migration, scaling. Use proactively when this specialist's
+  phase is active.
 mode: subagent
 steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

@@ -1,13 +1,17 @@
 ---
 name: dataset-curator
 description: >-
-  Enterprise SDLC Phase 0,5,11 — Dataset curation, data selection strategies, dataset documentation, dataset cards, data sheets, dataset composition analysis, representativeness assessment.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC Phase 0,5,11 — Dataset curation, data selection
+  strategies, dataset documentation, dataset cards, data sheets, dataset
+  composition analysis, representativeness assessment. Use proactively
+  when this specialist's phase is active.
 mode: subagent
-steps: 100
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

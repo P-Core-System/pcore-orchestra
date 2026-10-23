@@ -1,13 +1,16 @@
 ---
 name: legal-advisor
 description: >-
-  Enterprise SDLC Phase 0,24 — IP protection, licensing compliance, contract review, legal risk assessment, open-source license auditing.
+  Enterprise SDLC Phase 0,24 — IP protection, licensing compliance,
+  contract review, legal risk assessment, open-source license auditing.
   Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 100
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

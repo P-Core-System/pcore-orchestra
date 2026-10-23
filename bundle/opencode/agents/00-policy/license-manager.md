@@ -1,13 +1,17 @@
 ---
 name: license-manager
 description: >-
-  Enterprise SDLC Phase 0,5,24 — Software licensing, open-source license management, license compliance, license scanning, SBOM generation, attribution requirements.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC Phase 0,5,24 — Software licensing, open-source license
+  management, license compliance, license scanning, SBOM generation,
+  attribution requirements. Use proactively when this specialist's phase
+  is active.
 mode: subagent
-steps: 150
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

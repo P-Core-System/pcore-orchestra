@@ -1,12 +1,16 @@
 ---
 name: rule-enforcer
 description: >-
-  Enterprise SDLC Phase 6,7 — Rules of engagement enforcement, scope boundary monitoring, violation detection, legal compliance during exercises.
+  Enterprise SDLC Phase 6,7 — Rules of engagement enforcement, scope
+  boundary monitoring, violation detection, legal compliance during
+  exercises. Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 100
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

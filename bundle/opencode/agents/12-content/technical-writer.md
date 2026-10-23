@@ -1,13 +1,16 @@
 ---
 name: technical-writer
 description: >-
-  Enterprise SDLC Phase 9,15 — API documentation, user guides, tutorials, knowledge base, developer onboarding, changelog management.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC Phase 9,15 — API documentation, user guides, tutorials,
+  knowledge base, developer onboarding, changelog management. Use
+  proactively when this specialist's phase is active.
 mode: subagent
-steps: 100
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

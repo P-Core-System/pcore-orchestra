@@ -2,14 +2,16 @@
 name: regression-tester
 description: >-
   Enterprise SDLC Phase 21-22 — Regression test suite management, flaky
-  test detection, test maintenance, and coverage analysis. Ensures existing
-  functionality remains intact after changes.
-  Use proactively when this specialist's phase is active.
+  test detection, test maintenance, and coverage analysis. Ensures
+  existing functionality remains intact after changes. Use proactively
+  when this specialist's phase is active.
 mode: subagent
-steps: 150
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

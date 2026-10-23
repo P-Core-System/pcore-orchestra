@@ -1,13 +1,17 @@
 ---
 name: data-harvester
 description: >-
-  Enterprise SDLC Phase 0,5,11 — Multi-source data harvesting, data lake population, ETL from heterogeneous sources, batch and streaming ingestion, data format conversion.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC Phase 0,5,11 — Multi-source data harvesting, data lake
+  population, ETL from heterogeneous sources, batch and streaming
+  ingestion, data format conversion. Use proactively when this
+  specialist's phase is active.
 mode: subagent
-steps: 100
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

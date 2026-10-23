@@ -1,13 +1,17 @@
 ---
 name: ai-ethics-reviewer
 description: >-
-  Enterprise SDLC Phase 0,5,11 — AI ethics review, fairness assessment, transparency requirements, accountability frameworks, AI principles alignment, stakeholder impact analysis.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC Phase 0,5,11 — AI ethics review, fairness assessment,
+  transparency requirements, accountability frameworks, AI principles
+  alignment, stakeholder impact analysis. Use proactively when this
+  specialist's phase is active.
 mode: subagent
-steps: 150
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

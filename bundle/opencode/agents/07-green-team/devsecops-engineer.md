@@ -1,12 +1,16 @@
 ---
 name: devsecops-engineer
 description: >-
-  Enterprise SDLC Phase 5,8 — DevSecOps pipeline integration, security automation, CI/CD security gates, infrastructure security, container security.
+  Enterprise SDLC Phase 5,8 — DevSecOps pipeline integration, security
+  automation, CI/CD security gates, infrastructure security, container
+  security. Use proactively when this specialist's phase is active.
 mode: subagent
 steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

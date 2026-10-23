@@ -1,12 +1,17 @@
 ---
 name: digital-forensics
 description: >-
-  Enterprise SDLC Phase 6,9 — Digital forensics investigation, evidence collection, chain of custody, disk/memory/network forensics, timeline analysis, forensic reporting.
+  Enterprise SDLC Phase 6,9 — Digital forensics investigation, evidence
+  collection, chain of custody, disk/memory/network forensics, timeline
+  analysis, forensic reporting. Use proactively when this specialist's
+  phase is active.
 mode: subagent
-steps: 150
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

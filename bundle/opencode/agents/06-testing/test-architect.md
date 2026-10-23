@@ -1,13 +1,16 @@
 ---
 name: test-architect
 description: >-
-  Enterprise SDLC Phase 6 — Test strategy design, test pyramid planning, test automation architecture, quality gates, test environment management.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC Phase 6 — Test strategy design, test pyramid planning,
+  test automation architecture, quality gates, test environment
+  management. Use proactively when this specialist's phase is active.
 mode: subagent
 steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

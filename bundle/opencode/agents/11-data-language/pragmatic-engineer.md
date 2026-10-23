@@ -1,13 +1,17 @@
 ---
 name: pragmatic-engineer
 description: >-
-  Enterprise SDLC Phase 5,11 — Pragmatic analysis, speech act detection, implicature analysis, politeness strategies, context-dependent meaning, intent detection.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC Phase 5,11 — Pragmatic analysis, speech act detection,
+  implicature analysis, politeness strategies, context-dependent meaning,
+  intent detection. Use proactively when this specialist's phase is
+  active.
 mode: subagent
 steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

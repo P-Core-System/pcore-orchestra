@@ -1,13 +1,17 @@
 ---
 name: project-type-classifier
 description: >-
-  Enterprise SDLC — Classifies incoming projects into workflow templates. Analyzes project description, tech stack, and requirements to recommend the optimal agent pipeline, phase sequence, and specialist team.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC — Classifies incoming projects into workflow templates.
+  Analyzes project description, tech stack, and requirements to recommend
+  the optimal agent pipeline, phase sequence, and specialist team. Use
+  proactively when this specialist's phase is active.
 mode: subagent
-steps: 100
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models

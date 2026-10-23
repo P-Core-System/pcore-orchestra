@@ -1,14 +1,18 @@
 ---
 name: documentation-writer
 description: >-
-  Enterprise SDLC Phase 25-26 — Documentation generation, analytics instrumentation,
-  support notes, metrics dashboards, and measurement. Covers README, API docs,
-  changelogs, deployment guides, AND telemetry/analytics setup.
-  Use proactively when this specialist's phase is active.
+  Enterprise SDLC Phase 25-26 — Documentation generation, analytics
+  instrumentation, support notes, metrics dashboards, and measurement.
+  Covers README, API docs, changelogs, deployment guides, AND
+  telemetry/analytics setup. Use proactively when this specialist's phase
+  is active.
 mode: subagent
+steps: 200
 permission:
   edit: deny
   bash: allow
+  websearch: allow
+  webfetch: allow
 ---
 
 ## Models
