@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 /**
  * Studio Integration Test - RED phase
- * Tests data layers with real fixtures from orchestra state directory
- * This test should FAIL initially because the file doesn't exist yet.
+ * Tests data layers against deterministic fixtures written to a temp dir.
+ * The suite is hermetic: it never reads the developer's real ~/.config state,
+ * so local and CI runs validate identical data.
  */
 
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { execSync } = require('child_process');
 
 let passed = 0;
 let failed = 0;
@@ -30,85 +30,113 @@ console.log('Test 1: Integration test file exists');
 const testPath = path.join(__dirname, 'test-studio-integration.js');
 assert(fs.existsSync(testPath), 'test-studio-integration.js exists');
 
-// Test 2: Create temp fixtures from real state
-console.log('\nTest 2: Create temp fixtures from real state');
+// Test 2: Create deterministic temp fixtures
+console.log('\nTest 2: Create deterministic temp fixtures');
 let tmpDir = '';
 try {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'studio-test-'));
   
-  // Copy conductor-runs
-  const srcConductorRuns = path.join(os.homedir(), '.config', 'opencode', 'hooks', 'state', 'conductor-runs');
+  // Write deterministic conductor-runs fixture (real ~/.config state varies
+  // per machine — the suite must validate the same data locally and in CI)
   const dstConductorRuns = path.join(tmpDir, 'conductor-runs');
-  if (fs.existsSync(srcConductorRuns)) {
-    execSync(`cp -r "${srcConductorRuns}" "${dstConductorRuns}"`);
-    assert(fs.existsSync(path.join(dstConductorRuns, 'index.json')), 'conductor-runs/index.json copied');
-  } else {
-    assert(false, 'source conductor-runs not found');
-  }
-  
-  // Copy domain-events.json
-  const srcDomainEvents = path.join(os.homedir(), '.config', 'opencode', 'hooks', 'state', 'domain-events.json');
-  const dstDomainEvents = path.join(tmpDir, 'domain-events.json');
-  if (fs.existsSync(srcDomainEvents)) {
-    execSync(`cp "${srcDomainEvents}" "${dstDomainEvents}"`);
-    assert(fs.existsSync(dstDomainEvents), 'domain-events.json copied');
-  } else {
-    assert(false, 'source domain-events.json not found');
-  }
-  
-  // Create orchestra-tokens.json if not exists (minimal valid structure)
-  const tokensPath = path.join(tmpDir, 'orchestra-tokens.json');
-  if (!fs.existsSync(path.join(os.homedir(), '.config', 'opencode', 'hooks', 'state', 'orchestra-tokens.json'))) {
-    const tokenFixture = {
-      runs: [
-        {
-          runId: 'test-run-1',
-          timestamp: Date.now(),
-          byAgent: [{ agent: 'orchestra-planner', total: 1500, average: 1500, budget: 2000, overBudget: false, runs: 1 }],
-          byPhase: [{ phase: 'plan', total: 1500, average: 1500, budget: 2000, runs: 1 }],
-          total: 1500,
-          budget: 2000,
-          overBudget: false
-        }
-      ],
-      aggregated: {
-        byAgent: [{ agent: 'orchestra-planner', total: 1500, average: 1500, budget: 2000, overBudget: false, runs: 1 }],
-        byPhase: [{ phase: 'plan', total: 1500, average: 1500, budget: 2000, runs: 1 }],
-        byRun: [],
-        trend: []
-      }
+  {
+    const now = Date.now();
+    const runEntry = {
+      runId: 'test-ws:test-session:test-task',
+      workspace: 'test-workspace',
+      sessionId: 'test-session',
+      taskId: 'test-task',
+      goal: 'Test goal',
+      status: 'completed',
+      phase: 'review',
+      startedAt: now - 100000,
+      updatedAt: now,
     };
-    fs.writeFileSync(tokensPath, JSON.stringify(tokenFixture, null, 2));
-    assert(fs.existsSync(tokensPath), 'orchestra-tokens.json fixture created');
+    fs.mkdirSync(dstConductorRuns, { recursive: true });
+    fs.writeFileSync(path.join(dstConductorRuns, 'index.json'), JSON.stringify({ version: 1, runs: { 'test-ws:test-session:test-task': runEntry } }, null, 2));
+    assert(fs.existsSync(path.join(dstConductorRuns, 'index.json')), 'conductor-runs/index.json fixture created');
   }
   
-  // Create orchestra-history.json if not exists (minimal valid structure)
-  const historyPath = path.join(tmpDir, 'orchestra-history.json');
-  if (!fs.existsSync(path.join(os.homedir(), '.config', 'opencode', 'hooks', 'state', 'orchestra-history.json'))) {
-    const historyFixture = [
+  // Write deterministic domain-events fixture (same rationale as above)
+  const dstDomainEvents = path.join(tmpDir, 'domain-events.json');
+  {
+    const now = Date.now();
+    const eventsFixture = [
+      {
+        id: 'evt-1',
+        type: 'evidence.run',
+        at: now - 50000,
+        payload: {
+          runId: 'test-ws:test-session:test-task',
+          records: [{ gate: 'build', ok: true, exitCode: 0 }],
+        },
+      },
+      {
+        id: 'evt-2',
+        type: 'ticket.created',
+        at: now - 40000,
+        payload: { ticketId: 'ticket-1', title: 'Test ticket', state: 'TRIAGE' },
+      },
+      {
+        id: 'evt-3',
+        type: 'ticket.transitioned',
+        at: now - 30000,
+        payload: { ticketId: 'ticket-1', fromState: 'TRIAGE', toState: 'READY' },
+      },
+    ];
+    fs.writeFileSync(dstDomainEvents, JSON.stringify(eventsFixture, null, 2));
+    assert(fs.existsSync(dstDomainEvents), 'domain-events.json fixture created');
+  }
+  
+  // Write deterministic token fixture (real state uses the sessions[] shape)
+  const tokensPath = path.join(tmpDir, 'orchestra-tokens.json');
+  const tokenFixture = {
+    runs: [
       {
         runId: 'test-run-1',
-        workspace: 'test-workspace',
-        sessionId: 'test-session',
-        taskId: 'test-task',
-        goal: 'Test goal',
-        status: 'completed',
-        phase: 'review',
-        startedAt: Date.now() - 100000,
-        updatedAt: Date.now(),
-        durationMs: 100000,
-        phases: [
-          { name: 'plan', status: 'completed', startedAt: Date.now() - 100000, completedAt: Date.now() - 80000, durationMs: 20000 },
-          { name: 'implement', status: 'completed', startedAt: Date.now() - 80000, completedAt: Date.now() - 40000, durationMs: 40000 },
-          { name: 'verify', status: 'completed', startedAt: Date.now() - 40000, completedAt: Date.now() - 20000, durationMs: 20000 },
-          { name: 'review', status: 'completed', startedAt: Date.now() - 20000, completedAt: Date.now(), durationMs: 20000 }
-        ],
-        worktreePath: undefined
+        timestamp: Date.now(),
+        byAgent: [{ agent: 'orchestra-planner', total: 1500, average: 1500, budget: 2000, overBudget: false, runs: 1 }],
+        byPhase: [{ phase: 'plan', total: 1500, average: 1500, budget: 2000, runs: 1 }],
+        total: 1500,
+        budget: 2000,
+        overBudget: false
       }
-    ];
-    fs.writeFileSync(historyPath, JSON.stringify(historyFixture, null, 2));
-    assert(fs.existsSync(historyPath), 'orchestra-history.json fixture created');
-  }
+    ],
+    aggregated: {
+      byAgent: [{ agent: 'orchestra-planner', total: 1500, average: 1500, budget: 2000, overBudget: false, runs: 1 }],
+      byPhase: [{ phase: 'plan', total: 1500, average: 1500, budget: 2000, runs: 1 }],
+      byRun: [],
+      trend: []
+    }
+  };
+  fs.writeFileSync(tokensPath, JSON.stringify(tokenFixture, null, 2));
+  assert(fs.existsSync(tokensPath), 'orchestra-tokens.json fixture created');
+  
+  // Write deterministic history fixture (real state may not exist on this machine)
+  const historyPath = path.join(tmpDir, 'orchestra-history.json');
+  const historyFixture = [
+    {
+      runId: 'test-run-1',
+      workspace: 'test-workspace',
+      sessionId: 'test-session',
+      taskId: 'test-task',
+      goal: 'Test goal',
+      status: 'completed',
+      phase: 'review',
+      startedAt: Date.now() - 100000,
+      updatedAt: Date.now(),
+      durationMs: 100000,
+      phases: [
+        { name: 'plan', status: 'completed', startedAt: Date.now() - 100000, completedAt: Date.now() - 80000, durationMs: 20000 },
+        { name: 'implement', status: 'completed', startedAt: Date.now() - 80000, completedAt: Date.now() - 40000, durationMs: 40000 },
+        { name: 'verify', status: 'completed', startedAt: Date.now() - 40000, completedAt: Date.now() - 20000, durationMs: 20000 },
+        { name: 'review', status: 'completed', startedAt: Date.now() - 20000, completedAt: Date.now(), durationMs: 20000 }
+      ],
+      worktreePath: undefined
+    }
+  ];
+  fs.writeFileSync(historyPath, JSON.stringify(historyFixture, null, 2));
+  assert(fs.existsSync(historyPath), 'orchestra-history.json fixture created');
   
   console.log(`  Temp fixtures created at: ${tmpDir}`);
   assert(fs.existsSync(tmpDir), 'Temp directory exists');
@@ -330,29 +358,32 @@ try {
   assert(false, `workItems data layer failed: ${e.message}`);
 }
 
-// Test 8: Load via stateResolver
-console.log('\nTest 8: Load via stateResolver');
+// Test 8: State dir discovery via server/state-dirs.js (client stateResolver.ts was
+// deleted in Studio v2 — discovery runs server-side and is served at /api/state-dirs)
+console.log('\nTest 8: Discover state dirs via server/state-dirs.js');
 try {
-  // Test discoverStateDirs with the temp dir
-  const stateDirs = [
-    { path: tmpDir, isWorktree: false },
-    { path: path.join(tmpDir, 'conductor-runs'), isWorktree: false }
-  ];
-  
-  // The actual discoverStateDirs function uses git worktree list
-  // For test, verify we can create StateDirInfo objects
-  const StateDirInfo = { path: tmpDir, isWorktree: false, runId: undefined };
-  assert(StateDirInfo.path === tmpDir, 'StateDirInfo has path');
-  assert(StateDirInfo.isWorktree === false, 'StateDirInfo has isWorktree');
-  
-  const worktreeInfo = { path: path.join(tmpDir, 'worktree'), isWorktree: true, runId: 'test-run-123' };
-  assert(worktreeInfo.isWorktree === true, 'Worktree StateDirInfo has isWorktree true');
-  assert(worktreeInfo.runId === 'test-run-123', 'Worktree StateDirInfo has runId');
-  
-  console.log('  StateDirInfo shape verified');
-  
+  const stateDirs = require(path.join(__dirname, '..', 'server', 'state-dirs.js'));
+  assert(typeof stateDirs.discoverStateDirs === 'function', 'discoverStateDirs exported');
+  assert(typeof stateDirs.getEnvStateDir === 'function', 'getEnvStateDir exported');
+
+  const prevEnv = process.env.PCORE_STATE_DIR;
+  try {
+    process.env.PCORE_STATE_DIR = tmpDir;
+    assert(stateDirs.getEnvStateDir() === path.normalize(tmpDir), 'getEnvStateDir honors PCORE_STATE_DIR');
+    const dirs = stateDirs.discoverStateDirs();
+    assert(Array.isArray(dirs), 'discoverStateDirs returns an array');
+    const globalDir = dirs.find(d => path.normalize(d.path) === path.normalize(tmpDir));
+    assert(!!globalDir, 'discoverStateDirs includes the fixture state dir');
+    assert(globalDir && globalDir.isWorktree === false, 'Fixture state dir has isWorktree false');
+  } finally {
+    if (prevEnv === undefined) delete process.env.PCORE_STATE_DIR;
+    else process.env.PCORE_STATE_DIR = prevEnv;
+  }
+
+  console.log('  State dir discovery verified via server module');
+
 } catch (e) {
-  assert(false, `stateResolver data layer failed: ${e.message}`);
+  assert(false, `state-dirs discovery failed: ${e.message}`);
 }
 
 // Test 9: Verify UI data shapes match domain types

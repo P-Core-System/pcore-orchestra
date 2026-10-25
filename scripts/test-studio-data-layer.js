@@ -56,14 +56,14 @@ assert(fs.existsSync(studioPkgPath), 'studio/package.json exists');
 if (fs.existsSync(studioPkgPath)) {
   const pkg = JSON.parse(fs.readFileSync(studioPkgPath, 'utf8'));
   assert(pkg.name === 'pcore-orchestra-studio', 'package name is pcore-orchestra-studio');
-  assert(pkg.dependencies?.react === '^19.3.0', 'react ^19.3.0');
-  assert(pkg.dependencies?.['react-dom'] === '^19.3.0', 'react-dom ^19.3.0');
+  assert(pkg.dependencies?.react === '^19.3.1', 'react ^19.3.1');
+  assert(pkg.dependencies?.['react-dom'] === '^19.3.1', 'react-dom ^19.3.1');
   assert(pkg.devDependencies?.typescript === '^7.0.2', 'typescript ^7.0.2');
-  assert(pkg.devDependencies?.vite === '^8.3.2', 'vite ^8.3.2');
+  assert(pkg.devDependencies?.vite === '^8.3.5', 'vite ^8.3.5');
   assert(pkg.devDependencies?.tailwindcss === '^4.3.3', 'tailwindcss ^4.3.3');
-  assert(pkg.devDependencies?.postcss === '^8.5.28', 'postcss ^8.5.28');
+  assert(pkg.devDependencies?.postcss === '^8.5.31', 'postcss ^8.5.31');
   assert(pkg.devDependencies?.autoprefixer === '^10.6.1', 'autoprefixer ^10.6.1');
-  assert(pkg.devDependencies?.vitest === '^5.0.3', 'vitest ^5.0.3');
+  assert(pkg.devDependencies?.vitest === '^5.0.5', 'vitest ^5.0.5');
   assert(pkg.devDependencies?.['@testing-library/react'] === '^16.3.3', '@testing-library/react ^16.3.3');
   assert(pkg.devDependencies?.jsdom === '^30.1.1', 'jsdom ^30.1.1');
 }
@@ -353,24 +353,44 @@ if (fs.existsSync(evidenceVisualizerPath)) {
   assert(content.includes('EvidenceTable') && content.includes('EvidenceDetail'), 'Composes EvidenceTable and EvidenceDetail');
 }
 
-// Test 23: stateResolver.ts - worktree-aware state discovery (T8 - RED phase)
-console.log('\nTest 23: stateResolver.ts - worktree-aware state discovery');
-const stateResolverPath = path.join(studioLibDir, 'stateResolver.ts');
-assert(fs.existsSync(stateResolverPath), 'stateResolver.ts exists');
+// Test 23: server/state-dirs.js - state discovery (moved server-side in Studio v2)
+console.log('\nTest 23: server/state-dirs.js - worktree-aware state discovery');
+try {
+  const stateDirs = require(path.join(studioDir, '..', 'server', 'state-dirs.js'));
+  assert(typeof stateDirs.discoverStateDirs === 'function', 'discoverStateDirs exported');
+  assert(typeof stateDirs.getEnvStateDir === 'function', 'getEnvStateDir exported');
 
-if (fs.existsSync(stateResolverPath)) {
-  const content = fs.readFileSync(stateResolverPath, 'utf8');
-  assert(content.includes('export function discoverStateDirs'), 'discoverStateDirs exported');
-  assert(content.includes('export function getGlobalStateDir'), 'getGlobalStateDir exported');
-  assert(content.includes('export function getWorktreeStateDirs'), 'getWorktreeStateDirs exported');
-  assert(content.includes('export function resolveStateDirForRun'), 'resolveStateDirForRun exported');
-  assert(content.includes('PCORE_STATE_DIR'), 'Uses PCORE_STATE_DIR env');
-  assert(content.includes('.config/opencode/hooks/state'), 'Default global state dir');
-  assert(content.includes('.pcore/state'), 'Worktree state dir pattern');
-  assert(content.includes('git worktree list --porcelain'), 'Parses git worktree list');
-  assert(content.includes('StateDirInfo'), 'Uses StateDirInfo type');
-  assert(content.includes('isWorktree'), 'Includes isWorktree flag');
-  assert(content.includes('runId'), 'Includes optional runId');
+  const prevEnv = process.env.PCORE_STATE_DIR;
+  const prevHome = process.env.HOME;
+  const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), 'studio-fakehome-'));
+  const fakeState = path.join(fakeHome, 'state');
+  fs.mkdirSync(fakeState, { recursive: true });
+  try {
+    process.env.PCORE_STATE_DIR = fakeState;
+    assert(stateDirs.getEnvStateDir() === path.normalize(fakeState), 'PCORE_STATE_DIR env override honored');
+    const dirs = stateDirs.discoverStateDirs();
+    assert(Array.isArray(dirs) && dirs.some((d) => path.normalize(d.path) === path.normalize(fakeState) && d.isWorktree === false),
+      'discoverStateDirs includes the env state dir as global');
+    delete process.env.PCORE_STATE_DIR;
+    process.env.HOME = fakeHome;
+    assert(stateDirs.getEnvStateDir() === path.normalize(path.join(fakeHome, '.config', 'opencode', 'hooks', 'state')),
+      'Default global state dir is ~/.config/opencode/hooks/state');
+  } finally {
+    if (prevEnv === undefined) delete process.env.PCORE_STATE_DIR;
+    else process.env.PCORE_STATE_DIR = prevEnv;
+    if (prevHome === undefined) delete process.env.HOME;
+    else process.env.HOME = prevHome;
+    fs.rmSync(fakeHome, { recursive: true, force: true });
+  }
+
+  // Worktree patterns live in studio-api route + client contract
+  const apiSource = fs.readFileSync(path.join(studioDir, '..', 'server', 'studio-api.js'), 'utf8');
+  assert(apiSource.includes('"/api/state-dirs"'), 'studio-api serves GET /api/state-dirs');
+  const clientApiSource = fs.readFileSync(path.join(studioLibDir, 'api.ts'), 'utf8');
+  assert(clientApiSource.includes('fetchStateDirs') && clientApiSource.includes('/api/state-dirs'),
+    'api.ts exposes fetchStateDirs against /api/state-dirs');
+} catch (e) {
+  assert(false, `server/state-dirs.js loadable: ${e.message}`);
 }
 
 // Test 24: StateContext.tsx - React context for state directory selection
@@ -389,7 +409,7 @@ if (fs.existsSync(stateContextPath)) {
   assert(content.includes('selectedStateDir'), 'Provides selectedStateDir');
   assert(content.includes('setSelectedStateDir'), 'Provides setSelectedStateDir');
   assert(content.includes('refreshStateDirs'), 'Provides refreshStateDirs');
-  assert(content.includes('discoverStateDirs'), 'Calls discoverStateDirs on mount');
+  assert(content.includes('fetchStateDirs'), 'Calls fetchStateDirs (server API) on mount');
 }
 
 // Test 25: App.tsx - StateProvider wired at root, sidebar has selector

@@ -2,7 +2,8 @@
 
 /**
  * State directory discovery for Studio v2 server.
- * Mirrors studio/src/lib/stateResolver.ts logic but runs server-side.
+ * Sole owner of state-dir discovery (the old client-side
+ * studio/src/lib/stateResolver.ts was deleted; served via /api/state-dirs).
  */
 
 const fs = require("node:fs");
