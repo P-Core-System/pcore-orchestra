@@ -53,7 +53,7 @@ function checkPhaseCommitGate(state, options = {}) {
       clean: true,
       blocking: [],
       allowed: [],
-      message: `Git status unavailable (${error || "unknown"}) — skip commit gate.`,
+      message: `Git status unavailable (${error || "unknown"}) — commit gate SKIPPED; verify the working tree is clean manually before verify/review.`,
       skipped: true,
     };
   }
@@ -85,8 +85,8 @@ function checkPhaseCommitGate(state, options = {}) {
   return { clean, blocking, allowed, message, skipped: false };
 }
 
-function buildCommitGateHandoff(state, nextAgentId) {
-  const gate = checkPhaseCommitGate(state);
+function buildCommitGateHandoff(state, nextAgentId, options = {}) {
+  const gate = checkPhaseCommitGate(state, options);
   const lines = [
     "Phase-boundary git rule:",
     "- Each phase that changes files MUST commit before the next phase starts.",
@@ -95,7 +95,11 @@ function buildCommitGateHandoff(state, nextAgentId) {
   ];
 
   if (nextAgentId === "orchestra-verifier" || nextAgentId === "orchestra-reviewer") {
-    lines.push(gate.message);
+    lines.push(
+      gate.skipped
+        ? "Commit gate SKIPPED (git status unavailable) — verify the working tree is clean manually before launching this phase."
+        : gate.message
+    );
   } else if (nextAgentId === "orchestra-implementer") {
     lines.push(
       "After IMPLEMENT_DONE: commit ALL plan files before verifier. No uncommitted code into verify."

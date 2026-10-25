@@ -423,6 +423,19 @@ function startOrchestra(goal, state, source, options) {
   session.memory = {
     phases_completed: [], files_changed: [], errors: [], decisions: [], context_summary: "",
   };
+  // Work-item identity for the domain lane: every run owns a ticket id so
+  // review-queue items, handoffs, and phase.outcome events share one key.
+  // acCount is filled later from the plan's "## Done when" section.
+  // Fail-open: a domain outage must never block the loop (invariant 19).
+  session.memory.acCount = 0;
+  try {
+    const { createTicket } = require("./domain/entities.js");
+    session.memory.ticketId = createTicket({
+      title: goal || "(no goal)",
+      goal: goal || null,
+      humanReview: { required: false },
+    }).id;
+  } catch {}
   session.resumable = {
     paused: false, paused_at: null, pause_reason: null, checkpoint: null, last_save: null,
   };

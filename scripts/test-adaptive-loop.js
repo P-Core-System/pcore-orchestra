@@ -106,6 +106,14 @@ test("startOrchestra core starts at plan", () => {
   assert.equal(state.phase, "plan");
 });
 
+test("startOrchestra mints a domain ticket and zeroes acCount", () => {
+  const state = structuredClone(DEFAULT_STATE);
+  startOrchestra("fix login bug", state, "ambient", { route: LOOP_MODE_CORE });
+  assert.equal(typeof state.memory.ticketId, "string");
+  assert.match(state.memory.ticketId, /^ticket_/);
+  assert.equal(state.memory.acCount, 0);
+});
+
 test("startOrchestra enterprise starts at idea", () => {
   const state = structuredClone(DEFAULT_STATE);
   startOrchestra("security audit", state, "ambient", { route: LOOP_MODE_ENTERPRISE });
@@ -333,6 +341,26 @@ test("savePlanArtifact writes workspace plan file", () => {
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 
+test("savePlanArtifact counts Done-when bullets into memory.acCount", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "orch-ac-"));
+  const state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  state.goal = "ac count";
+  state.tokens = { run_id: "run-testac" };
+  state.project.identityFile = path.join(tmp, "project.yaml");
+  fs.writeFileSync(state.project.identityFile, "project:\n  name: t\n");
+  state.memory = { phases_completed: [], files_changed: [], errors: [], decisions: [], context_summary: "" };
+
+  savePlanArtifact(state, {
+    output: "## Plan\nSteps\n\n## Done when\n- tests pass\n- lint clean\n\n## Notes\n- ignored bullet\n",
+  });
+  assert.equal(state.memory.acCount, 2);
+
+  // Section absent -> acCount keeps its previous value (never clobbered to 0)
+  savePlanArtifact(state, { output: "## Plan\nNo criteria section here\n" });
+  assert.equal(state.memory.acCount, 2);
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
+
 test("writeCycleReport creates cycle json", () => {
   const state = JSON.parse(JSON.stringify(DEFAULT_STATE));
   state.goal = "cycle test";
@@ -345,12 +373,27 @@ test("writeCycleReport creates cycle json", () => {
   assert.ok(listed.some((r) => r.run_id === "run-cycletest"));
 });
 
-const { checkPhaseCommitGate } = require("../bundle/hooks/lib/phase-commit-gate.js");
+const {
+  checkPhaseCommitGate,
+  buildCommitGateHandoff,
+} = require("../bundle/hooks/lib/phase-commit-gate.js");
 
 test("phase commit gate passes on clean tree", () => {
   const gate = checkPhaseCommitGate({}, { cwd: path.join(__dirname, "..") });
   assert.equal(typeof gate.clean, "boolean");
   assert.ok(gate.message);
+});
+
+test("phase commit gate reports SKIPPED when git status is unavailable", () => {
+  const gate = checkPhaseCommitGate({}, { cwd: "/no-such-dir-pcore-test" });
+  assert.equal(gate.skipped, true);
+  assert.equal(gate.clean, true);
+  assert.match(gate.message, /SKIPPED/);
+});
+
+test("commit-gate handoff honors the skip for verifier", () => {
+  const out = buildCommitGateHandoff({}, "orchestra-verifier", { cwd: "/no-such-dir-pcore-test" });
+  assert.match(out, /SKIPPED/);
 });
 
 test("greenfield build a note app routes enterprise with intake", () => {
