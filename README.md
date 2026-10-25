@@ -1,12 +1,13 @@
 # P-Core Orchestra
 
-> Ambient multi-agent orchestration for **Cursor IDE** and **OpenCode CLI**
+> Ambient multi-agent orchestration for **Cursor IDE**, **OpenCode CLI**, and **Qoder CLI**
 > plan → implement → verify → review — automatically on build/fix/refactor prompts
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js 18+](https://img.shields.io/badge/Node.js-18+-339933.svg)](https://nodejs.org/)
 [![Cursor IDE](https://img.shields.io/badge/Cursor-IDE-000000.svg)](https://cursor.com)
 [![OpenCode](https://img.shields.io/badge/OpenCode-CLI-FF6B35.svg)](https://opencode.ai)
+[![Qoder CLI](https://img.shields.io/badge/Qoder-CLI-6C5CE7.svg)](https://qoder.com)
 
 **Repository:** [github.com/P-Core-System/pcore-orchestra](https://github.com/P-Core-System/pcore-orchestra)
 
@@ -27,6 +28,7 @@ bash install.sh
 
 # 2. Restart Cursor → Settings → Agents → Approvals → Auto-review
 #    OpenCode: restart desktop app + opencode --auto
+#    Qoder: restart sessions + qoder --agent orchestra
 
 # 3. Use it (no special commands)
 fix the login bug
@@ -45,6 +47,7 @@ Orchestra auto-runs: **planner → implementer → verifier → reviewer**.
 | Node.js | 18+ | Hook scripts |
 | Cursor IDE | Latest | Agent mode (for Cursor) |
 | OpenCode CLI | Latest ([install](https://opencode.ai)) | Optional; `install.sh` upgrades CLI automatically |
+| Qoder CLI | Latest | Optional; installs to `~/.qoder` (agents, skills, hooks in settings.json) |
 | Git | 2.x | Version control |
 | Python 3 | Optional | Only for `ui-ux-pro-max` / design-system `search.py` scripts — not required for orchestra hooks |
 
@@ -95,7 +98,7 @@ Orchestra auto-detects `project.yaml` in any workspace and injects its identity 
 | **6 Hooks** | Session, prompt, stop, heartbeat, lifecycle, subagent-stop |
 | **Six-File Context** | Stable grounding across sessions (JavaScript Mastery methodology) |
 | **Free Model Support** | OpenCode Zen free models + multi-key rotation + weekly dynamic refresh (`--schedule`) |
-| **Works With** | Cursor IDE, OpenCode CLI, any Node.js project |
+| **Works With** | Cursor IDE, OpenCode CLI, Qoder CLI, any Node.js project |
 
 ---
 
@@ -145,6 +148,16 @@ User: "fix the login bug"
 └── state/
     ├── orchestra.json        # runtime state
     └── conductor-runs/       # per-run conductor state + registry (begin/save/who/resume)
+```
+
+### Qoder CLI
+```
+~/.qoder/
+├── hooks/                    # 6 event hooks (shared with Cursor; lib/io.js normalizes agent_type)
+├── agents/                   # 160 converted agent definitions (scripts/sync-qoder-agents.js)
+├── skills/orchestra-loop/    # orchestration skill
+├── ORCHESTRA.md              # entry doc
+└── settings.json             # hooks merged under SessionStart/UserPromptSubmit/SubagentStop/Stop
 ```
 
 ### Per-project (with context/)

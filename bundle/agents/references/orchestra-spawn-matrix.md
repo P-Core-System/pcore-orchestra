@@ -1,4 +1,4 @@
-# Orchestra spawn matrix (Cursor + OpenCode)
+# Orchestra spawn matrix (Cursor + OpenCode + Qoder)
 
 ## Cursor IDE
 
@@ -19,6 +19,14 @@ If `Task` rejects `subagent_type=orchestra-*` (enum / unknown agent), the parent
 - **Chain:** `orchestra` conductor calls task once per phase — no hooks
 - **Entry:** `default_agent: orchestra` only
 - **Phase agents:** `hidden: true` — not in @ menu
+
+## Qoder CLI
+
+- **Spawn:** `Agent` tool, `subagent_type="orchestra-planner"` (etc.)
+- **Chain:** Hooks in `~/.qoder/settings.json` — PascalCase events (`SessionStart`, `UserPromptSubmit`, `SubagentStop`, `Stop`) advance phases when markers appear
+- **Entry:** Ambient parent agent OR `orchestra` conductor agent (`qoder --agent orchestra`)
+- **Agents:** `~/.qoder/agents/` — converted frontmatter via `scripts/sync-qoder-agents.js`
+- **Hook input:** stdin JSON carries `agent_type`; `lib/io.js` `normalizeHookInput()` maps it to `subagent_type` so the shared Cursor hooks work unchanged
 
 ## Core Phase Agents (4)
 
