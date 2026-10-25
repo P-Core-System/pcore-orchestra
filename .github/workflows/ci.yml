@@ -35,7 +35,17 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # Node 24: test-studio-ui/test-studio-data-layer import pure .ts
+          # modules via native type stripping (Node >= 23)
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
+      - name: Install root deps (@modelcontextprotocol/sdk for MCP suites)
+        run: npm ci
+      - name: Install server deps (express + ws for Studio server suite)
+        run: npm ci --prefix server
       - name: Agent registry in sync
         run: node scripts/gen-agent-registry.js --check
       - name: Hook suites (safe-write, state, conductor, outcome, registry, handshake, mirrors, permissions, adaptive, domain, evidence, review queue, security scanner, studio service)
@@ -60,3 +70,24 @@ jobs:
           node scripts/test-security-scanner.js
           node scripts/test-opencode-v2.js
           bash scripts/test-studio-service.sh
+      - name: Studio suites (data layer, UI, server, integration)
+        run: |
+          set -e
+          node scripts/test-studio-data-layer.js
+          node scripts/test-studio-ui.js
+          node scripts/test-studio-server.js
+          node scripts/test-studio-integration.js
+      # Phase 5: worktree isolation, spawn adapter, MCP server, parallelism
+      - name: Orchestration suites (worktree, spawn adapter, MCP, parallel, six-file, memory, handoff, review producer)
+        run: |
+          set -e
+          node scripts/test-worktree-isolation.js
+          node scripts/test-spawn-adapter.js
+          node scripts/test-spawn-adapter-integration.js
+          node scripts/test-mcp-server.js
+          node scripts/test-mcp-lifecycle.js
+          node scripts/test-parallel-execution.js
+          node scripts/test-sixfile-validation.js
+          node scripts/test-memory-retrieval.js
+          node scripts/test-handoff-enforcer.js
+          node scripts/test-review-queue-producer.js
