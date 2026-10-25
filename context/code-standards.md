@@ -49,14 +49,31 @@ node scripts/test-domain-evidence.js
 node scripts/test-domain-state-dir.js
 node scripts/test-evidence-runner.js
 node scripts/test-review-queue.js
-bash scripts/test-studio-service.sh
 node scripts/test-security-scanner.js
+node scripts/test-opencode-v2.js
+bash scripts/test-studio-service.sh
+node scripts/test-studio-data-layer.js
+node scripts/test-studio-ui.js
+node scripts/test-studio-server.js
+node scripts/test-studio-integration.js
+node scripts/test-worktree-isolation.js
+node scripts/test-spawn-adapter.js
+node scripts/test-spawn-adapter-integration.js
+node scripts/test-mcp-server.js
+node scripts/test-mcp-lifecycle.js
+node scripts/test-parallel-execution.js
+node scripts/test-sixfile-validation.js
+node scripts/test-memory-retrieval.js
+node scripts/test-handoff-enforcer.js
+node scripts/test-review-queue-producer.js
 node scripts/gen-agent-registry.js --check
 node scripts/scan-secrets.js --dir . --fail-on=high
 ```
 
 All must exit 0. `.github/workflows/ci.yml` runs the same list on every PR (the
-secret scan is a required CI step — see invariant 24).
+secret scan is a required CI step — see invariant 24). `test-studio-ui.js` and
+`test-studio-data-layer.js` import pure `.ts` modules via native type stripping
+and need Node >= 23 (CI uses Node 24).
 
 ## Agent markdown
 
