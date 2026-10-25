@@ -87,6 +87,12 @@ Structure prompts so **static content comes first** (system prompt, tool schemas
 - Anthropic `cache_control: ephemeral` — ~90% off cached input tokens
 - OpenAI cached prefixes — similar for stable system blocks
 - **Orchestra win:** Identical subagent system prompts across cycles
+- **Measured, not guessed:** when a host reports usage, the token tracker stamps
+  `cache_read_tokens` + `cache_hit_rate` per phase and per run
+  (`orchestra-tokens.json` → Studio `/tokens` "Prompt Cache Reads" / "Cache Hit
+  Rate" cards). A low hit rate means the injected prefix churns — keep
+  session-start injection cache-shaped (static parts first, volatile tail last)
+  and avoid timestamps/random ids inside the stable prefix.
 
 ### 2.6 Rolling summarization
 

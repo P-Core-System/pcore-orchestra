@@ -583,6 +583,7 @@ async function main() {
     s.iteration = (s.iteration || 0) + 1;
 
     endPhaseTimer(s, "completed");
+    if (!s.host) s.host = detectHost(s);
     recordPhaseTokens(s, input, subagentType);
     emitLifecycleEvent(s, "phase_complete", s.currentPhase, {
       subagent: subagentType,

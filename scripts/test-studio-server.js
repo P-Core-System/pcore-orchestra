@@ -74,6 +74,7 @@ function buildFixture(stateDir) {
         phase: "review",
         status: "active",
         agent: "orchestra-implementer",
+        host: "cursor",
         startedAt,
         lastHeartbeat: startedAt,
         lastUpdatedAt: startedAt,
@@ -241,6 +242,32 @@ function buildFixture(stateDir) {
       },
     ],
     aggregated: { byAgent: [], byPhase: [], byRun: [], trend: [] },
+    // Hook shape coexists with the studio shape (tokenRecords reads both
+    // branches): carries the cache fields the token-tracker now stamps.
+    sessions: {
+      "sess-hook": {
+        runs: [
+          {
+            run_id: "run-hook-1",
+            completed_at: "2026-10-03T09:59:00.000Z",
+            total_estimated: 8000,
+            total_reported: 8000,
+            cache_read_tokens: 6000,
+            host: "cursor",
+            phases: [
+              {
+                phase: "implement",
+                agent: "orchestra-implementer",
+                timestamp: "2026-10-03T09:30:00.000Z",
+                estimated_tokens: 8000,
+                cache_read_tokens: 6000,
+                reported: { prompt_tokens: 2000, completion_tokens: 1000, total_tokens: 8000 },
+              },
+            ],
+          },
+        ],
+      },
+    },
   });
 }
 
@@ -390,6 +417,7 @@ async function main() {
         const r1 = runs.json.find((r) => r.id === RUN1);
         const r2 = runs.json.find((r) => r.id === RUN2);
         ok(Boolean(r1), "run list carries fixture run id", JSON.stringify(runs.json.map((r) => r.id)));
+        ok(r1 && r1.host === "cursor", "run list carries host from the conductor index", JSON.stringify(r1 && r1.host));
         ok(Boolean(r2), "run list carries the completed run too");
         if (r1) {
           ok(typeof r1.goal === "string" && r1.goal.length > 0, "entry has goal", r1.goal);
@@ -485,6 +513,13 @@ async function main() {
         }
         ok((agg.json.byPhase || []).some((p) => p.phase === "plan"), "byPhase has plan", JSON.stringify(agg.json.byPhase));
         ok((agg.json.byAgent || []).some((a) => a.agent === "orchestra-implementer"), "byAgent has implementer", JSON.stringify(agg.json.byAgent));
+        const hookRun = (agg.json.byRun || []).find((r) => r.runId === "run-hook-1");
+        ok(Boolean(hookRun), "byRun carries the hook-shape run", JSON.stringify(agg.json.byRun));
+        if (hookRun) {
+          ok(hookRun.cacheRead === 6000, "hook-shape run carries cacheRead", hookRun.cacheRead);
+        }
+        const implAgent = (agg.json.byAgent || []).find((a) => a.agent === "orchestra-implementer");
+        ok(implAgent && implAgent.cacheRead === 6000, "byAgent aggregates phase cacheRead", JSON.stringify(implAgent));
         ok(
           (agg.json.buckets || []).every((b) => typeof b.at === "string" && typeof b.total === "number"),
           "buckets carry at/total",

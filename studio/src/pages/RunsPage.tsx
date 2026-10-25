@@ -274,6 +274,7 @@ export default function RunsPage() {
                                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Goal</th>
                                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Agent</th>
                                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Phase</th>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Host</th>
                                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Started</th>
                                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Duration</th>
                                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
@@ -295,6 +296,13 @@ export default function RunsPage() {
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{run.agent || '—'}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{run.phase || '—'}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                      {run.host ? (
+                                        <span className="px-2 py-0.5 text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded">{run.host}</span>
+                                      ) : (
+                                        <span className="text-gray-500 dark:text-gray-400">—</span>
+                                      )}
+                                    </td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{formatTimestamp(run.startedAt)}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm font-mono text-gray-500 dark:text-gray-400">
                                       {run.updatedAt && run.startedAt ? formatMs(new Date(run.updatedAt).getTime() - new Date(run.startedAt).getTime()) : '—'}
