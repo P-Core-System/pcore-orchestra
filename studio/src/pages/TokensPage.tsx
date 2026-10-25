@@ -103,6 +103,13 @@ export default function TokensPage() {
   const totalTokens = aggregates.byRun.reduce((sum, r) => sum + r.total, 0);
   const totalBudget = aggregates.byRun.reduce((sum, r) => sum + (r.budget || 0), 0);
   const overBudgetRuns = aggregates.byRun.filter((r) => r.total > (r.budget || 0)).length;
+  const totalCacheRead = aggregates.byRun.reduce((sum, r) => sum + (r.cacheRead || 0), 0);
+  const totalFreshInput = aggregates.byRun.reduce((sum, r) => sum + (r.input || 0), 0);
+  const cacheHitRate =
+    totalCacheRead + totalFreshInput > 0
+      ? (totalCacheRead / (totalCacheRead + totalFreshInput)) * 100
+      : null;
+  const hasCache = totalCacheRead > 0;
 
   return (
     <div className="p-6 space-y-8">
@@ -131,6 +138,20 @@ export default function TokensPage() {
             {totalBudget > 0 ? `${((totalTokens / totalBudget) * 100).toFixed(1)}%` : '—'}
           </div>
         </div>
+        {hasCache && (
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="text-sm text-gray-500">Prompt Cache Reads</div>
+            <div className="text-3xl font-bold font-mono text-emerald-600 mt-1">{totalCacheRead.toLocaleString()}</div>
+          </div>
+        )}
+        {hasCache && (
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="text-sm text-gray-500">Cache Hit Rate</div>
+            <div className="text-3xl font-bold font-mono text-emerald-600 mt-1">
+              {cacheHitRate != null ? `${cacheHitRate.toFixed(1)}%` : '—'}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* By Phase - Bar Chart */}
@@ -192,6 +213,7 @@ export default function TokensPage() {
                   <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                   <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Input</th>
                   <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Output</th>
+                  {hasCache && <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Cache</th>}
                   <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Budget</th>
                   <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 </tr>
@@ -203,6 +225,7 @@ export default function TokensPage() {
                     <td className="px-4 py-2 text-sm font-mono text-right text-gray-900">{p.total.toLocaleString()}</td>
                     <td className="px-4 py-2 text-sm font-mono text-right text-gray-500">{p.input.toLocaleString()}</td>
                     <td className="px-4 py-2 text-sm font-mono text-right text-gray-500">{p.output.toLocaleString()}</td>
+                    {hasCache && <td className="px-4 py-2 text-sm font-mono text-right text-emerald-600">{(p.cacheRead || 0).toLocaleString()}</td>}
                     <td className="px-4 py-2 text-sm font-mono text-right text-gray-500">{(p.budget || 0).toLocaleString()}</td>
                     <td className="px-4 py-2 text-center">
                       <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${p.total > (p.budget || 0) ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
@@ -229,6 +252,7 @@ export default function TokensPage() {
                   <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                   <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Input</th>
                   <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Output</th>
+                  {hasCache && <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Cache</th>}
                   <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Budget</th>
                   <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 </tr>
@@ -240,6 +264,7 @@ export default function TokensPage() {
                     <td className="px-4 py-2 text-sm font-mono text-right text-gray-900">{a.total.toLocaleString()}</td>
                     <td className="px-4 py-2 text-sm font-mono text-right text-gray-500">{a.input.toLocaleString()}</td>
                     <td className="px-4 py-2 text-sm font-mono text-right text-gray-500">{a.output.toLocaleString()}</td>
+                    {hasCache && <td className="px-4 py-2 text-sm font-mono text-right text-emerald-600">{(a.cacheRead || 0).toLocaleString()}</td>}
                     <td className="px-4 py-2 text-sm font-mono text-right text-gray-500">{(a.budget || 0).toLocaleString()}</td>
                     <td className="px-4 py-2 text-center">
                       <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${a.total > (a.budget || 0) ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>

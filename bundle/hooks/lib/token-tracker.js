@@ -26,6 +26,7 @@ const DEFAULT_SESSION_TOKENS = {
     total_runs: 0,
     total_tokens_estimated: 0,
     total_tokens_reported: 0,
+    total_cache_read: 0,
     by_agent: {},
     by_phase: {},
   },
@@ -85,6 +86,18 @@ function extractOutputText(input) {
 function extractReportedUsage(input) {
   if (!input || typeof input !== "object") return null;
 
+  // Cache fields follow the Anthropic-style usage shape most hosts pass
+  // through: `cache_read_input_tokens` counts tokens served from prompt
+  // cache (billed at a discount), `cache_creation_input_tokens` tokens
+  // written to it. Hit rate is read/(read + fresh prompt).
+  const readOf = (usage) =>
+    usage.cache_read_input_tokens ??
+    usage.cacheReadInputTokens ??
+    usage.cached_tokens ??
+    0;
+  const creationOf = (usage) =>
+    usage.cache_creation_input_tokens ?? usage.cacheCreationInputTokens ?? 0;
+
   const candidates = [
     input.usage,
     input.token_usage,
@@ -110,6 +123,8 @@ function extractReportedUsage(input) {
         prompt_tokens: prompt ?? 0,
         completion_tokens: completion ?? 0,
         total_tokens: total ?? 0,
+        cache_read_tokens: readOf(usage),
+        cache_creation_tokens: creationOf(usage),
         source: "reported",
       };
     }
@@ -123,6 +138,8 @@ function extractReportedUsage(input) {
       prompt_tokens: prompt ?? 0,
       completion_tokens: completion ?? 0,
       total_tokens: total ?? (prompt ?? 0) + (completion ?? 0),
+      cache_read_tokens: readOf(input),
+      cache_creation_tokens: creationOf(input),
       source: "reported",
     };
   }
@@ -162,6 +179,7 @@ function getAggregatedTokenState(tokenState) {
       aggregated.aggregates.total_runs += agg.total_runs || 0;
       aggregated.aggregates.total_tokens_estimated += agg.total_tokens_estimated || 0;
       aggregated.aggregates.total_tokens_reported += agg.total_tokens_reported || 0;
+      aggregated.aggregates.total_cache_read += agg.total_cache_read || 0;
 
       for (const [agent, data] of Object.entries(agg.by_agent || {})) {
         if (!aggregated.aggregates.by_agent[agent]) {
@@ -250,6 +268,7 @@ function initRunTokens(state) {
     phases: [],
     total_estimated: 0,
     total_reported: 0,
+    total_cache_read: 0,
     source: "estimated",
   };
 }
@@ -293,6 +312,8 @@ function recordPhaseTokens(state, input, subagentType) {
   const phaseTokens = reported?.total_tokens > 0 ? reported.total_tokens : outputEst;
   const budget = resolveAgentBudget(subagentType, state);
   const durationMs = getLastPhaseDurationMs(state);
+  const cacheRead = reported ? reported.cache_read_tokens || 0 : 0;
+  const cacheDenom = cacheRead + (reported ? reported.prompt_tokens || 0 : 0);
 
   const entry = {
     phase: state.currentPhase,
@@ -302,12 +323,15 @@ function recordPhaseTokens(state, input, subagentType) {
     output_chars: outputText.length,
     estimated_tokens: phaseTokens,
     reported: reported || null,
+    cache_read_tokens: cacheRead,
+    cache_hit_rate: cacheDenom > 0 ? Math.round((cacheRead / cacheDenom) * 100) : null,
     over_budget: budget != null ? phaseTokens > budget : null,
     budget,
   };
 
   state.tokens.phases.push(entry);
   state.tokens.total_estimated += phaseTokens;
+  state.tokens.total_cache_read = (state.tokens.total_cache_read || 0) + cacheRead;
   if (reported?.total_tokens > 0) {
     state.tokens.total_reported += reported.total_tokens;
     state.tokens.source = "mixed";
@@ -403,6 +427,16 @@ function generateImprovementTips(run, aggregates, priorRuns, cycleBudget) {
     });
   }
 
+  if (run.cache_hit_rate != null && run.cache_hit_rate > 0 && run.cache_hit_rate < 40) {
+    tips.push({
+      priority: "medium",
+      agent: null,
+      phase: "cache",
+      message: `Prompt cache hit rate ${run.cache_hit_rate}% — the injected prefix is churning and paying full input price.`,
+      action: "Keep injection cache-shaped: static context first, volatile state last (docs/token-optimization.md §2.5).",
+    });
+  }
+
   return tips;
 }
 
@@ -445,18 +479,35 @@ function finalizeRunTokens(state, outcome, sessionId) {
     cycle_budget: cycleBudget,
   };
 
+  const reportedPromptTotal = run.phases.reduce(
+    (s, p) => s + (p.reported?.prompt_tokens || 0),
+    0
+  );
+  const cacheReadTotal = state.tokens.total_cache_read || 0;
+
+  const runRecord = Object.assign(run, {
+    host: state.host || null,
+    cache_read_tokens: cacheReadTotal,
+    cache_hit_rate:
+      cacheReadTotal + reportedPromptTotal > 0
+        ? Math.round((cacheReadTotal / (cacheReadTotal + reportedPromptTotal)) * 100)
+        : null,
+  });
+
   const tips = generateImprovementTips(
-    run,
+    runRecord,
     sessionTokens.aggregates,
     sessionTokens.runs,
     cycleBudget
   );
-  run.tips = tips;
+  runRecord.tips = tips;
 
-  sessionTokens.runs.push(run);
+  sessionTokens.runs.push(runRecord);
   sessionTokens.aggregates.total_runs++;
-  sessionTokens.aggregates.total_tokens_estimated += run.total_estimated;
-  sessionTokens.aggregates.total_tokens_reported += run.total_reported;
+  sessionTokens.aggregates.total_tokens_estimated += runRecord.total_estimated;
+  sessionTokens.aggregates.total_tokens_reported += runRecord.total_reported;
+  sessionTokens.aggregates.total_cache_read =
+    (sessionTokens.aggregates.total_cache_read || 0) + cacheReadTotal;
 
   for (const p of run.phases) {
     bumpAggregate(
@@ -501,6 +552,12 @@ function formatRunSummary(run, tips) {
   if (run.total_reported > 0) {
     lines.push(`  Reported API total: ${run.total_reported.toLocaleString()}`);
   }
+  if (run.cache_read_tokens > 0) {
+    lines.push(
+      `  Prompt cache reads: ${run.cache_read_tokens.toLocaleString()} tokens` +
+        (run.cache_hit_rate != null ? ` (${run.cache_hit_rate}% of input served from cache)` : "")
+    );
+  }
   for (const p of run.phases) {
     const flag = p.over_budget ? " ⚠ over budget" : "";
     lines.push(
@@ -532,6 +589,11 @@ function buildTokenContextForSession(sessionId) {
     `Last run: ~${(last.total_estimated || 0).toLocaleString()} tokens (${last.outcome})`,
     `Recent ${recent.length}-run avg: ~${Math.round(avg).toLocaleString()} (cycle budget ${CYCLE_BUDGET.toLocaleString()})`,
   ];
+  if (last.cache_hit_rate != null) {
+    lines.push(
+      `Last run prompt-cache hit rate: ${last.cache_hit_rate}% — keep the stable prefix first, volatile content last.`
+    );
+  }
 
   const hotAgents = Object.entries(aggregated.aggregates.by_agent || {})
     .sort((a, b) => b[1].avg_tokens - a[1].avg_tokens)

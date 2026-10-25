@@ -38,6 +38,7 @@ export interface RunSummary {
   goal: string;
   agent: string;
   phase?: string | null;
+  host?: string | null;
   workspaceSlug?: string;
   sessionId?: string;
   taskId?: string;
@@ -143,6 +144,8 @@ export interface TokenRow {
   output: number;
   total: number;
   budget?: number;
+  /** Prompt-cache read tokens summed by the server (0/undefined = no cache data). */
+  cacheRead?: number;
 }
 
 export interface TokenAggregates {

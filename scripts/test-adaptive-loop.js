@@ -414,6 +414,42 @@ test("greenfield stack briefing includes recommended", () => {
   assert.match(brief, /Intake questions/i);
 });
 
+const tokenTracker = require("../bundle/hooks/lib/token-tracker.js");
+
+test("token tracker records prompt-cache reads and hit rate", () => {
+  const usage = tokenTracker.extractReportedUsage({
+    usage: { input_tokens: 2000, output_tokens: 500, cache_read_input_tokens: 6000, cache_creation_input_tokens: 100 },
+  });
+  assert.equal(usage.cache_read_tokens, 6000);
+  assert.equal(usage.cache_creation_tokens, 100);
+
+  const state = structuredClone(DEFAULT_STATE);
+  startOrchestra("cache tracking goal", state, "test", { route: LOOP_MODE_CORE });
+  state.currentPhase = "implement";
+  const entry = tokenTracker.recordPhaseTokens(
+    state,
+    { usage: { input_tokens: 2000, output_tokens: 500, cache_read_input_tokens: 6000 }, summary: "ok" },
+    "orchestra-implementer"
+  );
+  assert.equal(entry.cache_read_tokens, 6000);
+  assert.equal(entry.cache_hit_rate, 75); // 6000 / (6000 + 2000)
+  assert.equal(state.tokens.total_cache_read, 6000);
+
+  // Reported input but nothing cached -> honest 0%
+  const entry2 = tokenTracker.recordPhaseTokens(
+    state,
+    { usage: { input_tokens: 100, output_tokens: 50 }, summary: "ok" },
+    "orchestra-implementer"
+  );
+  assert.equal(entry2.cache_read_tokens, 0);
+  assert.equal(entry2.cache_hit_rate, 0);
+
+  // Estimated-only phase (no usage object) -> rate stays null, never a fake number
+  const entry3 = tokenTracker.recordPhaseTokens(state, { summary: "no usage" }, "orchestra-implementer");
+  assert.equal(entry3.cache_read_tokens, 0);
+  assert.equal(entry3.cache_hit_rate, null);
+});
+
 if (!process.exitCode) {
   console.log("\nAll adaptive loop tests passed.");
 }

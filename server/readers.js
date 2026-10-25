@@ -211,6 +211,7 @@ function listRuns(dir) {
         goal: entry.goal || "",
         agent: agent || "",
         phase: entry.phase || null,
+        host: entry.host || null,
         workspaceSlug: entry.workspaceSlug || String(key).split("/")[0],
         sessionId: entry.sessionId || String(key).split("/")[1],
         taskId: entry.taskId || String(key).split("/").slice(2).join("/"),
@@ -441,12 +442,13 @@ function pushGroup(bucket, key, record) {
   if (!key) return;
   let row = bucket.get(key);
   if (!row) {
-    row = { input: 0, output: 0, total: 0 };
+    row = { input: 0, output: 0, total: 0, cacheRead: 0 };
     bucket.set(key, row);
   }
   row.input += record.input;
   row.output += record.output;
   row.total += record.total;
+  row.cacheRead += record.cacheRead || 0;
 }
 
 /**
@@ -506,6 +508,7 @@ function tokenRecords(dir) {
           input,
           output: Math.max(0, total - input),
           total,
+          cacheRead: num(run.cache_read_tokens),
         });
         for (const phase of Array.isArray(run.phases) ? run.phases : []) {
           if (!phase || typeof phase !== "object") continue;
@@ -520,6 +523,7 @@ function tokenRecords(dir) {
             input: phaseInput,
             output: reported.output_tokens !== undefined ? num(reported.output_tokens) : Math.max(0, phaseTotal - phaseInput),
             total: phaseTotal,
+            cacheRead: num(phase.cache_read_tokens),
           });
         }
       }
@@ -548,7 +552,7 @@ function getTokenAggregates(dir) {
     if (isRunLevel) {
       pushGroup(byRun, record.runId, record);
       const bucket = hourBucket(record.at);
-      if (bucket) pushGroup(buckets, bucket, { input: record.input, output: record.output, total: record.total });
+      if (bucket) pushGroup(buckets, bucket, { input: record.input, output: record.output, total: record.total, cacheRead: record.cacheRead || 0 });
     } else if (record.phase && !record.agent) {
       pushGroup(byPhase, record.phase, record);
     } else if (record.agent) {
@@ -558,7 +562,7 @@ function getTokenAggregates(dir) {
 
   const toRows = (map, keyName) =>
     Array.from(map.entries())
-      .map(([key, value]) => ({ [keyName]: key, input: value.input, output: value.output, total: value.total }))
+      .map(([key, value]) => ({ [keyName]: key, input: value.input, output: value.output, total: value.total, cacheRead: value.cacheRead }))
       .sort((a, b) => String(a[keyName]).localeCompare(String(b[keyName])));
 
   return {
@@ -566,7 +570,7 @@ function getTokenAggregates(dir) {
     byPhase: toRows(byPhase, "phase"),
     byAgent: toRows(byAgent, "agent"),
     buckets: Array.from(buckets.entries())
-      .map(([at, value]) => ({ at, input: value.input, output: value.output, total: value.total }))
+      .map(([at, value]) => ({ at, input: value.input, output: value.output, total: value.total, cacheRead: value.cacheRead }))
       .sort((a, b) => a.at.localeCompare(b.at)),
   };
 }

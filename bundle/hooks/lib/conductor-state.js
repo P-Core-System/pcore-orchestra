@@ -69,6 +69,15 @@ function resolveTaskId(goal, startedAt) {
   return h.slice(0, 12);
 }
 
+/** Which CLI host is driving this run (null when the env says nothing). */
+function detectHostFromEnv() {
+  if (process.env.CURSOR_TRACE_ID) return "cursor";
+  if (process.env.OPENCODE_SESSION_ID) return "opencode";
+  if (process.env.CLAUDE_CODE_SESSION_ID) return "claude-code";
+  if (process.env.CODEX_SESSION_ID) return "codex";
+  return null;
+}
+
 function runKeyParts(key) {
   const parts = String(key).split("/");
   if (parts.length < 3) return null;
@@ -158,6 +167,7 @@ function saveRun(run, worktreePath) {
     goal: run.goal,
     phase: run.phase,
     status: run.status,
+    host: run.host || null,
     startedAt: run.startedAt,
     lastHeartbeat: run.lastHeartbeat,
     lastUpdatedAt: new Date().toISOString(),
@@ -203,6 +213,7 @@ function beginRun(opts) {
     run = existing;
     run.goal = opts.goal || run.goal;
     run.phase = opts.phase || run.phase;
+    if (!run.host) run.host = detectHostFromEnv();
     resumed = true;
   } else {
     run = {
@@ -213,6 +224,7 @@ function beginRun(opts) {
       goal: opts.goal || "",
       phase: opts.phase || "plan",
       status: "active",
+      host: opts.host || detectHostFromEnv(),
       startedAt: existing ? existing.startedAt : startedAt,
       lastHeartbeat: startedAt,
       completedAt: null,
