@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Install Orchestra bundle to ~/.cursor AND ~/.config/opencode (global, all projects)
+# Install Orchestra bundle to ~/.cursor, ~/.config/opencode, AND ~/.qoder (global, all projects)
 # Usage:
-#   bash install.sh              # install both Cursor + OpenCode (default)
+#   bash install.sh              # install Cursor + OpenCode + Qoder (default)
 #   bash install.sh --all        # same as default
 #   bash install.sh --cursor     # Cursor only
 #   bash install.sh --opencode   # OpenCode only
+#   bash install.sh --qoder      # Qoder CLI only
 #   bash install.sh --project    # also install project bridge in current repo
 #   bash install.sh --all --project
 #   bash install.sh --skip-opencode-upgrade   # skip npm/bun OpenCode CLI upgrade
@@ -16,10 +17,12 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 BUNDLE="$ROOT/bundle"
 CURSOR="${CURSOR_HOME:-$HOME/.cursor}"
 OPENCODE="${OPENCODE_CONFIG_DIR:-$HOME/.config/opencode}"
+QODER="${QODER_CONFIG_DIR:-$HOME/.qoder}"
 AGENTS_SKILLS="${AGENTS_SKILLS:-$HOME/.agents/skills}"
 
 INSTALL_CURSOR=0
 INSTALL_OPENCODE=0
+INSTALL_QODER=0
 INSTALL_PROJECT=0
 SKIP_OPENCODE_UPGRADE=0
 INSTALL_MCP=0
@@ -28,9 +31,10 @@ DRY_RUN=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --all)        INSTALL_CURSOR=1; INSTALL_OPENCODE=1; shift ;;
+    --all)        INSTALL_CURSOR=1; INSTALL_OPENCODE=1; INSTALL_QODER=1; shift ;;
     --cursor)     INSTALL_CURSOR=1; shift ;;
     --opencode)   INSTALL_OPENCODE=1; shift ;;
+    --qoder)      INSTALL_QODER=1; shift ;;
     --project)    INSTALL_PROJECT=1; shift ;;
     --mcp)        INSTALL_MCP=1; shift ;;
     --studio)     INSTALL_STUDIO=1; shift ;;
@@ -38,12 +42,13 @@ while [[ $# -gt 0 ]]; do
     --skip-opencode-upgrade) SKIP_OPENCODE_UPGRADE=1; shift ;;
     -h|--help)
       cat <<'HELP'
-Usage: bash install.sh [--all|--cursor|--opencode] [--project] [--mcp] [--studio] [--dry-run] [--skip-opencode-upgrade]
+Usage: bash install.sh [--all|--cursor|--opencode|--qoder] [--project] [--mcp] [--studio] [--dry-run] [--skip-opencode-upgrade]
 
 Options:
-  --all        Install for both Cursor and OpenCode (default)
+  --all        Install for Cursor, OpenCode, and Qoder CLI (default)
   --cursor     Install for Cursor IDE only
   --opencode   Install for OpenCode CLI only
+  --qoder      Install for Qoder CLI only
   --project    Also install project bridge (.cursor/) in current repo
   --mcp        Install MCP server dependencies (npm install @modelcontextprotocol/sdk)
   --studio     Install Studio dashboard (build + launcher)
@@ -63,14 +68,15 @@ HELP
   esac
 done
 
-# Default: both
-if [[ "$INSTALL_CURSOR" -eq 0 && "$INSTALL_OPENCODE" -eq 0 ]]; then
+# Default: all
+if [[ "$INSTALL_CURSOR" -eq 0 && "$INSTALL_OPENCODE" -eq 0 && "$INSTALL_QODER" -eq 0 ]]; then
   INSTALL_CURSOR=1
   INSTALL_OPENCODE=1
+  INSTALL_QODER=1
 fi
 
 echo "============================================"
-echo " Orchestra Installer (Cursor + OpenCode)"
+echo " Orchestra Installer (Cursor + OpenCode + Qoder)"
 echo "============================================"
 echo ""
 
@@ -96,9 +102,12 @@ install_cursor() {
     cp -f "$BUNDLE/hooks/lib/mcp-server.js" "$CURSOR/hooks/lib/"
   fi
 
-  # Default state (don't overwrite)
+  # Default state (don't overwrite). Source the tracked template — the
+  # bundle/hooks/state copy is gitignored runtime state and absent on fresh clones.
   if [[ ! -f "$CURSOR/hooks/state/orchestra.json" ]]; then
-    cp -f "$BUNDLE/hooks/state/orchestra.json" "$CURSOR/hooks/state/orchestra.json"
+    cp -f "$BUNDLE/opencode/state/orchestra.json" "$CURSOR/hooks/state/orchestra.json" 2>/dev/null || \
+      cp -f "$BUNDLE/hooks/state/orchestra.json" "$CURSOR/hooks/state/orchestra.json" 2>/dev/null || \
+      echo '{}' > "$CURSOR/hooks/state/orchestra.json"
   fi
 
   # Agents, rule, docs
@@ -309,6 +318,66 @@ PY
 }
 
 ###############################################################################
+# Qoder CLI installation
+###############################################################################
+install_qoder() {
+  echo "==> Installing Qoder Orchestra to $QODER"
+
+  command -v node >/dev/null 2>&1 || { echo "ERROR: 'node' required (install Node.js 18+)"; exit 1; }
+
+  mkdir -p "$QODER/hooks/state" "$QODER/agents" "$QODER/skills"
+
+  # Hook scripts + lib modules (replace lib entirely — cp -rf into existing dir nests lib/lib/)
+  cp -f "$BUNDLE/hooks/"orchestra-*.js "$QODER/hooks/"
+  rm -rf "$QODER/hooks/lib"
+  cp -rf "$BUNDLE/hooks/lib" "$QODER/hooks/lib"
+
+  # Default state (don't overwrite). Source the tracked template — the
+  # bundle/hooks/state copy is gitignored runtime state and absent on fresh clones.
+  if [[ ! -f "$QODER/hooks/state/orchestra.json" ]]; then
+    cp -f "$BUNDLE/opencode/state/orchestra.json" "$QODER/hooks/state/orchestra.json" 2>/dev/null || \
+      cp -f "$BUNDLE/hooks/state/orchestra.json" "$QODER/hooks/state/orchestra.json" 2>/dev/null || \
+      echo '{}' > "$QODER/hooks/state/orchestra.json"
+  fi
+
+  # Agents: generated Qoder tree (scripts/sync-qoder-agents.js) when present,
+  # else fall back to the Cursor sources (Qoder tolerates extra frontmatter keys)
+  if [[ -d "$BUNDLE/qoder/agents" ]]; then
+    rm -rf "$QODER/agents"
+    mkdir -p "$QODER/agents"
+    cp -rf "$BUNDLE/qoder/agents/." "$QODER/agents/"
+  else
+    echo "WARN: bundle/qoder/agents missing — run 'node scripts/sync-qoder-agents.js' first; copying Cursor agents as fallback"
+    cp -f "$BUNDLE/agents/orchestra.md" "$QODER/agents/" 2>/dev/null || true
+    cp -f "$BUNDLE/agents/"orchestra-*.md "$QODER/agents/"
+    for agent_dir in "$BUNDLE/agents"/*/; do
+      [ -d "$agent_dir" ] || continue
+      dir_name=$(basename "$agent_dir")
+      mkdir -p "$QODER/agents/$dir_name"
+      cp -rf "$agent_dir"* "$QODER/agents/$dir_name/"
+    done
+  fi
+
+  # Skills (SKILL.md format is Qoder-compatible as-is)
+  for skill_dir in "$BUNDLE/skills"/*/; do
+    skill_name=$(basename "$skill_dir")
+    rm -rf "$QODER/skills/$skill_name"
+    mkdir -p "$QODER/skills/$skill_name"
+    cp -rf "$skill_dir"* "$QODER/skills/$skill_name/"
+  done
+
+  cp -f "$BUNDLE/ORCHESTRA.md" "$QODER/ORCHESTRA.md"
+
+  # Merge hooks into ~/.qoder/settings.json (preserves model/security/mcpServers)
+  node "$ROOT/scripts/merge-qoder-settings.js" --qoder-home "$QODER"
+
+  echo "  Qoder agents:    $QODER/agents/ (conductor + phase + specialists)"
+  echo "  Qoder hooks:     $QODER/hooks/ (registered in $QODER/settings.json)"
+  echo "  Qoder skills:    $QODER/skills/ (orchestra-loop + intake/verify + UI + Cloudflare)"
+  echo "  Qoder spawn:     Agent tool + subagent_type (see docs/orchestra-cross-platform.md)"
+}
+
+###############################################################################
 # Health checks
 ###############################################################################
 health_cursor() {
@@ -465,6 +534,7 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   echo "DRY RUN: Would install:"
   [[ "$INSTALL_CURSOR" -eq 1 ]] && echo "  - Cursor"
   [[ "$INSTALL_OPENCODE" -eq 1 ]] && echo "  - OpenCode"
+  [[ "$INSTALL_QODER" -eq 1 ]] && echo "  - Qoder CLI"
   [[ "$INSTALL_PROJECT" -eq 1 ]] && echo "  - Project bridge"
   [[ "$INSTALL_MCP" -eq 1 ]] && echo "  - MCP server"
   [[ "$INSTALL_STUDIO" -eq 1 ]] && echo "  - Studio dashboard"
@@ -477,6 +547,10 @@ fi
 
 if [[ "$INSTALL_OPENCODE" -eq 1 ]]; then
   install_opencode
+fi
+
+if [[ "$INSTALL_QODER" -eq 1 ]]; then
+  install_qoder
 fi
 
 if [[ "$INSTALL_PROJECT" -eq 1 ]]; then
@@ -515,6 +589,12 @@ if [[ "$INSTALL_OPENCODE" -eq 1 ]]; then
   echo "  OpenCode tip:    opencode --auto  (session auto-approve; denies still bind)"
   echo "  OpenCode test:   node $OPENCODE/hooks/orchestra-health-opencode.js"
   echo "  Free models:     bash scripts/update-free-models.sh --refresh --apply (weekly via systemd/cron)"
+fi
+if [[ "$INSTALL_QODER" -eq 1 ]]; then
+  echo "  Qoder global:    $QODER"
+  echo "  Qoder hooks:     merged into $QODER/settings.json (SessionStart/UserPromptSubmit/SubagentStop/Stop)"
+  echo "  Qoder test:      node $QODER/hooks/orchestra-enable.js status"
+  echo "  Qoder tip:       qoder --agent orchestra  (conductor as session agent)"
 fi
 if [[ "$INSTALL_MCP" -eq 1 ]]; then
   echo "  MCP server:     @modelcontextprotocol/sdk installed; mcp-server.js in hooks/lib/"

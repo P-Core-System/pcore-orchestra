@@ -1,9 +1,10 @@
-# Install Orchestra bundle to ~/.cursor AND ~/.config/opencode (global)
+# Install Orchestra bundle to ~/.cursor, ~/.config/opencode AND ~/.qoder (global)
 # Usage:
 #   powershell -ExecutionPolicy Bypass -File install.ps1              # both
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -All         # same
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -Cursor      # Cursor only
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -OpenCode    # OpenCode only
+#   powershell -ExecutionPolicy Bypass -File install.ps1 -Qoder       # Qoder CLI only
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -Project     # + project bridge
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -Studio      # install Studio dashboard
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -DryRun      # show what would be installed
@@ -11,6 +12,7 @@ param(
   [switch]$All,
   [switch]$Cursor,
   [switch]$OpenCode,
+  [switch]$Qoder,
   [switch]$Project,
   [switch]$SkipOpenCodeUpgrade,
   [switch]$Studio,
@@ -22,19 +24,21 @@ $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Bundle = Join-Path $Root "bundle"
 $CursorDir = if ($env:CURSOR_HOME) { $env:CURSOR_HOME } else { Join-Path $env:USERPROFILE ".cursor" }
 $OpenCodeDir = if ($env:OPENCODE_CONFIG_DIR) { $env:OPENCODE_CONFIG_DIR } else { Join-Path $env:USERPROFILE ".config\opencode" }
+$QoderDir = if ($env:QODER_CONFIG_DIR) { $env:QODER_CONFIG_DIR } else { Join-Path $env:USERPROFILE ".qoder" }
 $AgentsSkills = if ($env:AGENTS_SKILLS) { $env:AGENTS_SKILLS } else { Join-Path $env:USERPROFILE ".agents\skills" }
 
-# Default: both if no flag
-if (-not $Cursor -and -not $OpenCode) {
+# Default: all if no flag
+if (-not $Cursor -and -not $OpenCode -and -not $Qoder) {
   $All = $true
 }
 if ($All) {
   $Cursor = $true
   $OpenCode = $true
+  $Qoder = $true
 }
 
 Write-Host "============================================"
-Write-Host " Orchestra Installer (Cursor + OpenCode)"
+Write-Host " Orchestra Installer (Cursor + OpenCode + Qoder)"
 Write-Host "============================================"
 Write-Host ""
 
@@ -62,7 +66,17 @@ function Install-Cursor {
   Copy-Item (Join-Path $Bundle "hooks\lib") $libDest -Recurse -Force
   $stateDest = Join-Path $CursorDir "hooks\state\orchestra.json"
   if (-not (Test-Path $stateDest)) {
-    Copy-Item (Join-Path $Bundle "hooks\state\orchestra.json") $stateDest -Force
+    # Fresh clones lack bundle\hooks\state\orchestra.json (gitignored runtime
+    # state); fall back to the tracked template, then an empty object.
+    $trackedState = Join-Path $Bundle "opencode\state\orchestra.json"
+    $hooksState = Join-Path $Bundle "hooks\state\orchestra.json"
+    if (Test-Path $trackedState) {
+      Copy-Item $trackedState $stateDest -Force
+    } elseif (Test-Path $hooksState) {
+      Copy-Item $hooksState $stateDest -Force
+    } else {
+      Set-Content -Path $stateDest -Value '{}' -Encoding UTF8
+    }
   }
   Copy-Item (Join-Path $Bundle "agents\orchestra.md") (Join-Path $CursorDir "agents\") -Force -ErrorAction SilentlyContinue
   Copy-Item (Join-Path $Bundle "agents\orchestra-*.md") (Join-Path $CursorDir "agents\") -Force
@@ -319,6 +333,75 @@ function Install-OpenCode {
 }
 
 ###############################################################################
+# Qoder CLI installation
+###############################################################################
+function Install-Qoder {
+  Write-Host "==> Installing Qoder CLI Orchestra to $QoderDir"
+
+  if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+    Write-Error "Node.js 18+ required. Install from https://nodejs.org"
+  }
+
+  @(
+    (Join-Path $QoderDir "hooks\state"),
+    (Join-Path $QoderDir "agents"),
+    (Join-Path $QoderDir "skills")
+  ) | ForEach-Object { New-Item -ItemType Directory -Force -Path $_ | Out-Null }
+
+  # Hooks (same orchestra-*.js entrypoints as Cursor; stdin JSON normalized
+  # by lib/io.js normalizeHookInput for Qoder's agent_type field)
+  Copy-Item (Join-Path $Bundle "hooks\orchestra-*.js") (Join-Path $QoderDir "hooks\") -Force
+  $libDest = Join-Path $QoderDir "hooks\lib"
+  if (Test-Path $libDest) { Remove-Item $libDest -Recurse -Force }
+  Copy-Item (Join-Path $Bundle "hooks\lib") $libDest -Recurse -Force
+
+  # State (fresh clones lack the gitignored runtime file; use tracked template)
+  $stateDest = Join-Path $QoderDir "hooks\state\orchestra.json"
+  if (-not (Test-Path $stateDest)) {
+    $trackedState = Join-Path $Bundle "opencode\state\orchestra.json"
+    $hooksState = Join-Path $Bundle "hooks\state\orchestra.json"
+    if (Test-Path $trackedState) {
+      Copy-Item $trackedState $stateDest -Force
+    } elseif (Test-Path $hooksState) {
+      Copy-Item $hooksState $stateDest -Force
+    } else {
+      Set-Content -Path $stateDest -Value '{}' -Encoding UTF8
+    }
+  }
+
+  # Agents (pre-converted Qoder frontmatter tree; fall back to Cursor source)
+  $agentsDest = Join-Path $QoderDir "agents"
+  if (Test-Path $agentsDest) { Remove-Item $agentsDest -Recurse -Force }
+  New-Item -ItemType Directory -Force -Path $agentsDest | Out-Null
+  $qoderAgentsSrc = Join-Path $Bundle "qoder\agents"
+  if (Test-Path $qoderAgentsSrc) {
+    $null = robocopy $qoderAgentsSrc $agentsDest /E /NDL /NJH /NJS /NP
+  } else {
+    Write-Host "WARN bundle\qoder\agents missing - falling back to Cursor agent source"
+    Write-Host "WARN (run: node scripts\sync-qoder-agents.js to regenerate)"
+    $null = robocopy (Join-Path $Bundle "agents") $agentsDest /E /NDL /NJH /NJS /NP
+  }
+
+  # Skills (Qoder reads ~/.qoder/skills/{name}/SKILL.md - same layout as Cursor)
+  $skillDirs = Get-ChildItem -Path (Join-Path $Bundle "skills") -Directory
+  foreach ($skillDir in $skillDirs) {
+    $destDir = Join-Path (Join-Path $QoderDir "skills") $skillDir.Name
+    if (Test-Path $destDir) { Remove-Item $destDir -Recurse -Force }
+    $null = robocopy $skillDir.FullName $destDir /E /NDL /NJH /NJS /NP
+  }
+
+  Copy-Item (Join-Path $Bundle "ORCHESTRA.md") (Join-Path $QoderDir "ORCHESTRA.md") -Force
+
+  # Merge hooks into settings.json (PascalCase events, absolutized commands)
+  node (Join-Path $Root "scripts\merge-qoder-settings.js") --qoder-home $QoderDir
+
+  Write-Host "  Qoder agents:  $QoderDir\agents\ (160 converted)"
+  Write-Host "  Qoder hooks:   $QoderDir\hooks\ + settings.json (SessionStart/UserPromptSubmit/SubagentStop/Stop)"
+  Write-Host "  Qoder skills:  $QoderDir\skills\ (orchestra-loop + UI + Cloudflare)"
+  Write-Host "  Qoder CLI:     qoder --agent orchestra (restart any running sessions)"
+}
+
+###############################################################################
 # Studio installation
 ###############################################################################
 function Install-Studio {
@@ -395,6 +478,7 @@ if ($DryRun) {
   Write-Host "DRY RUN: Would install:"
   if ($Cursor) { Write-Host "  - Cursor" }
   if ($OpenCode) { Write-Host "  - OpenCode" }
+  if ($Qoder) { Write-Host "  - Qoder CLI" }
   if ($Project) { Write-Host "  - Project bridge" }
   if ($Studio) { Write-Host "  - Studio dashboard" }
   exit 0
@@ -402,6 +486,7 @@ if ($DryRun) {
 
 if ($Cursor) { Install-Cursor }
 if ($OpenCode) { Install-OpenCode }
+if ($Qoder) { Install-Qoder }
 
 if ($Project) {
   $RepoRoot = (Get-Location).Path
@@ -434,6 +519,10 @@ if ($Cursor) {
 if ($OpenCode) {
   Write-Host "  OpenCode: $OpenCodeDir"
   Write-Host "            Restart OpenCode; prefer: opencode --auto"
+}
+if ($Qoder) {
+  Write-Host "  Qoder:    $QoderDir"
+  Write-Host "            Restart Qoder sessions; try: qoder --agent orchestra"
 }
 if ($Cursor) {
   Write-Host "  Autonomy: Settings ? Agents ? Approvals ? Auto-review"
