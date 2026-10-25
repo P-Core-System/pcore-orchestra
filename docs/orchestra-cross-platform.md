@@ -1,4 +1,4 @@
-# Orchestra — Cursor vs OpenCode
+# Orchestra — Cursor vs OpenCode vs Qoder
 
 Same four phases, different spawn syntax and chaining.
 
@@ -8,6 +8,7 @@ Same four phases, different spawn syntax and chaining.
 |----------|----------------------|--------------|
 | **Cursor** | Main Agent (hooks ambient) or `orchestra` conductor | `orchestra-*` via Task |
 | **OpenCode** | `orchestra` conductor only (`default_agent`) | Hidden `orchestra-*` via **task** tool |
+| **Qoder CLI** | Main Agent (hooks ambient) or `orchestra` conductor | `orchestra-*` via **Agent** tool |
 
 Never @-mention or pick `orchestra-planner` / implementer / verifier / reviewer on OpenCode — they are `hidden: true`.
 
@@ -33,6 +34,17 @@ task(agent="orchestra-planner", prompt="Goal: …\nHandoff: …")
 - Parameter: **agent** = same four names
 - **No hooks** — the `orchestra` conductor must call **task** for each phase in order and wait for markers
 
+### Qoder CLI
+
+```text
+Agent(subagent_type="orchestra-planner", prompt="Goal: …\nHandoff: …")
+```
+
+- Tool name: **Agent**
+- Parameter: **subagent_type** = same four names (agents live in `~/.qoder/agents/`)
+- Hooks registered in `~/.qoder/settings.json` under PascalCase events (`SessionStart`, `UserPromptSubmit`, `SubagentStop`, `Stop`) — **auto-chain** like Cursor
+- Hook stdin carries `agent_type` (not `subagent_type`); `bundle/hooks/lib/io.js` `normalizeHookInput()` maps it so the shared Cursor hooks work unchanged
+
 ## Phase flow (shared)
 
 ```text
@@ -46,14 +58,16 @@ On `VERIFY_FAIL` / `FIX_REQUIRED`: implementer → verifier again (max 3 loops).
 
 ## Tools & permissions
 
-| Capability | Cursor | OpenCode |
-|------------|--------|----------|
-| Spawn subagent | Task + subagent_type | task + agent name |
-| Conductor | Optional `~/.cursor/agents/orchestra.md` | Required `~/.config/opencode/agents/orchestra.md` |
-| Auto phase chain | `subagentStop` hooks | Conductor task loop |
-| Web / docs | Settings + permissions.json | `websearch` / `webfetch` in agent permission |
-| Skills | `~/.cursor/skills/orchestra-loop/` | `~/.config/opencode/skills/orchestra-loop/` |
-| MCP | Cursor MCP | `opencode.json` mcp (disable remote if startup hangs) |
+| Capability | Cursor | OpenCode | Qoder CLI |
+|------------|--------|----------|-----------|
+| Spawn subagent | Task + subagent_type | task + agent name | Agent + subagent_type |
+| Conductor | Optional `~/.cursor/agents/orchestra.md` | Required `~/.config/opencode/agents/orchestra.md` | Optional `~/.qoder/agents/orchestra.md` |
+| Auto phase chain | `subagentStop` hooks | Conductor task loop | `SubagentStop` hooks (settings.json) |
+| Web / docs | Settings + permissions.json | `websearch` / `webfetch` in agent permission | WebSearch / WebFetch tools (agent `tools:` frontmatter) |
+| Skills | `~/.cursor/skills/orchestra-loop/` | `~/.config/opencode/skills/orchestra-loop/` | `~/.qoder/skills/orchestra-loop/` |
+| MCP | Cursor MCP | `opencode.json` mcp (disable remote if startup hangs) | `settings.json` mcpServers or `.mcp.json` |
+| Hooks config | `~/.cursor/hooks.json` | none (conductor-driven) | `~/.qoder/settings.json` `hooks` (PascalCase events) |
+| Agent frontmatter | Cursor format | `permission:` V1 objects, `hidden:` | Qoder format (`disallowedTools`, `maxTurns`, `permissionMode`, `effort`) via `scripts/sync-qoder-agents.js` |
 
 ### OpenCode permission fix scope (RC1–RC5)
 
@@ -144,14 +158,26 @@ node ~/.cursor/hooks/orchestra-health.js
 # Restart Cursor
 ```
 
+### Qoder CLI
+
+```bash
+bash install.sh --qoder
+node scripts/merge-qoder-settings.js --qoder-home ~/.qoder --dry-run   # inspect hook merge
+node ~/.qoder/hooks/orchestra-health.js
+# Restart any running qoder sessions
+```
+
 ## Install / sync
 
 ```bash
-bash install.sh --all          # Cursor + OpenCode bundle
+bash install.sh --all          # Cursor + OpenCode + Qoder bundle
 bash install.sh --cursor       # hooks, agents, skills, rules
 bash install.sh --opencode     # agents, skills, opencode.json merge
+bash install.sh --qoder        # hooks, converted agents, skills, settings.json merge
 
 node scripts/sync-opencode-agents.js   # Cursor → OpenCode markdown (optional; core skipped by default)
+node scripts/sync-qoder-agents.js      # Cursor → Qoder frontmatter (bundle/qoder/agents/; --check for drift)
+node scripts/merge-qoder-settings.js   # merge orchestra hooks into ~/.qoder/settings.json (idempotent)
 ```
 
 Reference: `bundle/agents/references/orchestra-spawn-matrix.md`

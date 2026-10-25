@@ -1,6 +1,6 @@
 # Global Orchestra Loop (ambient)
 
-Machine-wide agent orchestration — **runs automatically** in both **Cursor IDE** and **OpenCode CLI**. No `/orchestra` required.
+Machine-wide agent orchestration — **runs automatically** in **Cursor IDE**, **OpenCode CLI**, and **Qoder CLI**. No `/orchestra` required.
 
 ## How it works
 
@@ -28,7 +28,19 @@ orchestra → task(orchestra-planner) → task(implementer) → task(verifier) �
 Conductor waits for each phase marker (no Cursor hooks)
 ```
 
-> **Spawn syntax:** Cursor uses **Task** + `subagent_type`. OpenCode uses **task** + agent name. See `docs/orchestra-cross-platform.md`.
+### Qoder CLI (hooks-driven)
+
+```
+You: "fix the signal bot import error"
+        ↓
+UserPromptSubmit hook (settings.json) → auto-starts orchestra
+        ↓
+Agent → orchestra (conductor) → planner → implementer → verifier → reviewer
+        ↓
+hooks chain each phase (SubagentStop)
+```
+
+> **Spawn syntax:** Cursor uses **Task** + `subagent_type`. OpenCode uses **task** + agent name. Qoder uses **Agent** + `subagent_type`. See `docs/orchestra-cross-platform.md`.
 
 ## What triggers auto-orchestration
 
