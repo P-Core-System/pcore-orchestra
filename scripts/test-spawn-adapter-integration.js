@@ -188,10 +188,36 @@ async function runTests() {
     }
   }
 
+  // Test 9b: Qoder CLI host works correctly (Agent tool + subagent_type)
+  if (spawnAdapter) {
+    const originalWrite = process.stdout.write;
+    try {
+      let capturedOutput = "";
+      process.stdout.write = (chunk) => {
+        capturedOutput += chunk;
+        return true;
+      };
+
+      const result = await spawnAdapter.spawn("orchestra-reviewer", { goal: "test" }, "/tmp/worktree", "qoder");
+
+      process.stdout.write = originalWrite;
+
+      assert(result.success === true, "qoder spawn returns success=true");
+      assert(result.result.taskCall.tool === "Agent", "qoder taskCall has correct tool");
+      assert(result.result.taskCall.subagent_type === "orchestra-reviewer", "qoder taskCall has correct subagent_type");
+      assert(capturedOutput.includes('"tool":"Agent"'), "qoder emitted Agent tool call on stdout");
+      passed += 4;
+    } catch (e) {
+      process.stdout.write = originalWrite;
+      console.log(`  ✗ qoder host: ${e.message}`);
+      failed += 4;
+    }
+  }
+
   // Test 10: All hosts return normalized {success, result, error, artifacts}
   if (spawnAdapter) {
     try {
-      const hosts = ["cursor", "opencode", "claude-code", "codex"];
+      const hosts = ["cursor", "opencode", "claude-code", "codex", "qoder"];
       for (const host of hosts) {
         const result = await spawnAdapter.spawn("orchestra-planner", { goal: "test" }, null, host);
         assert(typeof result.success === "boolean", `${host}: result.success is boolean`);

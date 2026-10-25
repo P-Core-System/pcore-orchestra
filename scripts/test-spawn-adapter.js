@@ -98,10 +98,25 @@ async function runTests() {
     }
   }
 
+  // Test 5b: spawn works for Qoder CLI (Agent tool + subagent_type)
+  if (spawnAdapter) {
+    try {
+      const result = await spawnAdapter.spawn("orchestra-reviewer", { goal: "test" }, null, "qoder");
+      assert(result !== undefined, "spawn returns result for qoder");
+      assert(result.success === true, "qoder spawn succeeds");
+      assertEqual(result.result.taskCall.tool, "Agent", "qoder taskCall uses Agent tool");
+      assertEqual(result.result.taskCall.subagent_type, "orchestra-reviewer", "qoder taskCall has subagent_type");
+      passed += 2;
+    } catch (e) {
+      console.log(`  ✗ spawn qoder: ${e.message}`);
+      failed += 2;
+    }
+  }
+
   // Test 6: Response normalization - all hosts return {success, result, error, artifacts}
   if (spawnAdapter) {
     try {
-      const hosts = ["cursor", "opencode", "claude-code", "codex"];
+      const hosts = ["cursor", "opencode", "claude-code", "codex", "qoder"];
       for (const host of hosts) {
         const result = await spawnAdapter.spawn("orchestra-planner", { goal: "test" }, null, host);
         assert(typeof result.success === "boolean", `${host}: result.success is boolean`);
