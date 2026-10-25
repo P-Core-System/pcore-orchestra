@@ -1,5 +1,17 @@
 "use strict";
 
+// Qoder CLI sends agent_type/agent_id on SubagentStop; Cursor sends
+// subagent_type. Normalize at the IO boundary so hooks stay host-agnostic.
+function normalizeHookInput(input) {
+  if (input && typeof input === "object") {
+    if (!input.subagent_type && !input.subagentType) {
+      if (input.agent_type) input.subagent_type = input.agent_type;
+      else if (input.agentType) input.subagent_type = input.agentType;
+    }
+  }
+  return input;
+}
+
 function readStdinJson() {
   return new Promise((resolve) => {
     let data = "";
@@ -9,7 +21,7 @@ function readStdinJson() {
     });
     process.stdin.on("end", () => {
       try {
-        resolve(data ? JSON.parse(data) : {});
+        resolve(normalizeHookInput(data ? JSON.parse(data) : {}));
       } catch {
         resolve({});
       }
@@ -21,4 +33,4 @@ function emit(obj) {
   process.stdout.write(JSON.stringify(obj));
 }
 
-module.exports = { readStdinJson, emit };
+module.exports = { readStdinJson, emit, normalizeHookInput };

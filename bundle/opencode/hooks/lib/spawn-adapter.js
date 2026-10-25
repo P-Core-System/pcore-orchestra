@@ -1,7 +1,7 @@
 "use strict";
 
 /**
- * Host-agnostic spawn adapter for Cursor, OpenCode, Claude Code, and Codex.
+ * Host-agnostic spawn adapter for Cursor, OpenCode, Claude Code, Codex, and Qoder CLI.
  * Normalizes subagent spawning across platforms.
  */
 
@@ -16,7 +16,7 @@ try {
   harnessObs = require("./harness-observability.js");
 } catch {}
 
-const SUPPORTED_HOSTS = ["cursor", "opencode", "claude-code", "codex"];
+const SUPPORTED_HOSTS = ["cursor", "opencode", "claude-code", "codex", "qoder"];
 const PHASE_AGENTS = [
   "orchestra-planner",
   "orchestra-implementer",
@@ -166,7 +166,7 @@ function observeResult(provenance, ok, error, artifacts) {
  * @param {string} agentId - Agent identifier (e.g., "orchestra-planner")
  * @param {object} payload - Payload to pass to the agent
  * @param {string|null} worktreePath - Optional worktree path for isolation
- * @param {string} host - Target host: "cursor", "opencode", "claude-code", "codex"
+ * @param {string} host - Target host: "cursor", "opencode", "claude-code", "codex", "qoder"
  * @returns {Promise<{success: boolean, result: any, error: string|null, artifacts: string[]}>}
  */
 async function spawn(agentId, payload, worktreePath, host) {
@@ -209,6 +209,8 @@ function dispatchSpawn(agentId, fullPayload, host) {
       return spawnClaudeCode(agentId, fullPayload);
     case "codex":
       return spawnCodex(agentId, fullPayload);
+    case "qoder":
+      return spawnQoder(agentId, fullPayload);
     default:
       throw new Error(`Unsupported host: ${host}`);
   }
@@ -300,6 +302,24 @@ function spawnCodex(agentId, payload) {
     process.stdout.write(JSON.stringify(mcpCall) + "\n");
     
     resolve(normalizeResponse(true, { mcpCall }, null, []));
+  });
+}
+
+/**
+ * Spawn via Qoder CLI Agent tool (subagent_type selection).
+ */
+function spawnQoder(agentId, payload) {
+  return new Promise((resolve) => {
+    // In Qoder CLI, the conductor spawns via the Agent tool with subagent_type
+    const taskCall = {
+      tool: "Agent",
+      subagent_type: agentId,
+      prompt: JSON.stringify(payload),
+    };
+
+    process.stdout.write(JSON.stringify(taskCall) + "\n");
+
+    resolve(normalizeResponse(true, { taskCall }, null, []));
   });
 }
 
