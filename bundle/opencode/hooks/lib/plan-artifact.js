@@ -41,6 +41,26 @@ function hasPlanReady(text) {
 }
 
 /**
+ * Count acceptance-criteria bullets under the planner's `## Done when`
+ * section. Bullets are `-`/`*`/`1.`-style lines until the next `##` heading.
+ * @returns {number} 0 when the section is absent
+ */
+function countAcceptanceCriteria(text) {
+  const lines = String(text || "").split(/\r?\n/);
+  let inSection = false;
+  let count = 0;
+  for (const line of lines) {
+    if (/^##\s/.test(line)) {
+      if (inSection) break;
+      inSection = /^##\s+done when\b/i.test(line);
+      continue;
+    }
+    if (inSection && /^\s*(?:[-*]|\d+[.)])\s+\S/.test(line)) count++;
+  }
+  return count;
+}
+
+/**
  * Persist planner output to workspace + global state backup.
  * @returns {{ path: string, globalPath: string, run_id: string, saved_at: string } | null}
  */
@@ -78,6 +98,10 @@ function savePlanArtifact(state, input) {
     saved_at: savedAt,
     plan_ready: hasPlanReady(text),
   };
+  // Feed the work-item AC count into memory so the handoff/verifier can
+  // check "AC: n"; an absent "## Done when" section never clobbers it.
+  const acCount = countAcceptanceCriteria(text);
+  if (acCount > 0 && state.memory) state.memory.acCount = acCount;
   saveState(state);
   return state.planArtifact;
 }
@@ -118,6 +142,7 @@ module.exports = {
   workspacePlanPath,
   extractSubagentOutput,
   hasPlanReady,
+  countAcceptanceCriteria,
   savePlanArtifact,
   loadPlanArtifact,
   buildPlanHandoffLine,

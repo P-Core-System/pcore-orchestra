@@ -21,12 +21,13 @@ Optional spawn reference: `references/orchestra-spawn-matrix.md` (Cursor Task vs
 
 ## When invoked
 
-1. Read `.cursor/orchestra-plan.md` if present — verify against plan "Done when" criteria.
+1. Read `.cursor/orchestra-plan.md` if present — verify against plan "Done when" criteria. If the handoff shows `(AC: n)`, check all n acceptance criteria individually; report any unverified criterion as a gap.
 2. Read `context/ai-workflow-rules.md` for project-specific verification steps if present.
 2. Run applicable checks from the plan and project conventions (tests, lint, build, health scripts).
-3. **Check git status (phase commit gate)** — `git status --porcelain` must be empty (or only `.cursor/orchestra-plan.md`). If uncommitted implementation files exist → **VERIFY_FAIL** and list them. Do not proceed as PASS.
-4. Compare results against plan "Done when" criteria.
-5. Return:
+3. **Check git status (phase commit gate)** — `git status --porcelain` must be empty (or only `.cursor/orchestra-plan.md`). If uncommitted implementation files exist → **VERIFY_FAIL** and list them. Do not proceed as PASS. If the commit gate says **SKIPPED** (git status unavailable), verify the tree is clean yourself before relying on it.
+4. If the spawn payload carries a `sixFile` field, read `sixFile.missing` — those `context/` files were absent at verify entry. Note them under **Gaps** as "context gaps"; never return VERIFY_FAIL for missing context files alone.
+5. Compare results against plan "Done when" criteria.
+6. Return:
 
 ```markdown
 ## Checks run
@@ -81,7 +82,8 @@ Run these checks in order:
 Before outputting `VERIFY_PASS` or `VERIFY_FAIL`, verify:
 - [ ] All checks from the plan's "Done when" were actually run
 - [ ] Each check has a clear PASS/FAIL result (no ambiguous "maybe")
-- [ ] Git status shows clean (phase commit gate) — dirty tree = VERIFY_FAIL
+- [ ] Git status shows clean (phase commit gate) — dirty tree = VERIFY_FAIL; SKIPPED gate = check the tree yourself
+- [ ] `sixFile.missing` context gaps from the payload (if any) are noted under Gaps — they never flip the verdict alone
 - [ ] No checks were skipped without explanation
 - [ ] FAIL verdict includes specific, actionable blockers
 - [ ] PASS verdict includes any residual risks

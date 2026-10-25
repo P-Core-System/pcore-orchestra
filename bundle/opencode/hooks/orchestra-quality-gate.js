@@ -49,6 +49,26 @@ function humanReviewQueueBlock(state) {
 }
 
 /**
+ * Markdown block listing `context/` files the verify-entry scan found
+ * missing. Informational only — it never changes a gate verdict; the
+ * verifier decides whether the gaps matter for the run.
+ */
+function sixFileGapBlock(state) {
+  const missing = state && state.qualityGates && Array.isArray(state.qualityGates.missingContext)
+    ? state.qualityGates.missingContext
+    : [];
+  if (missing.length === 0) return "";
+  const lines = [
+    "## Six-file context gaps",
+    "",
+    "The verify-entry scan found these `context/` files missing:",
+  ];
+  for (const f of missing) lines.push(`- ${f}`);
+  lines.push("Confirm they are intentionally absent or create them — do not VERIFY_FAIL on absence alone.");
+  return lines.join("\n");
+}
+
+/**
  * The documentation file referenced by this run, as a FULL path.
  *
  * `progress-tracker.md` anywhere in the summary (or in
@@ -157,6 +177,8 @@ async function main() {
     const contextParts = [report, "", generateGatesReport(state)];
     const reviewQueueBlock = humanReviewQueueBlock(state);
     if (reviewQueueBlock) contextParts.push("", reviewQueueBlock);
+    const contextGapBlock = sixFileGapBlock(state);
+    if (contextGapBlock) contextParts.push("", contextGapBlock);
     emit({
       additional_context: contextParts.join("\n"),
     });

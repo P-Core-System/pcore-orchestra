@@ -510,6 +510,7 @@ async function handlePhaseComplete(state, chain) {
       handoff: enrichedHandoff,
       commitGate: commitGateBlock,
       evidence: evidenceBlock,
+      sixFile: sixFileValidation || null,
     };
     await Promise.all([
       spawnSubagent(nextAgentId, payload, state.worktreePath, host),
@@ -527,6 +528,7 @@ async function handlePhaseComplete(state, chain) {
     handoff: enrichedHandoff,
     commitGate: commitGateBlock,
     evidence: evidenceBlock,
+    sixFile: sixFileValidation || null,
   };
   const spawnResult = await spawnSubagent(nextAgentId, payload, state.worktreePath, host);
   

@@ -176,6 +176,81 @@ async function runTests() {
     failed += 2;
   }
 
+  // Test 7: block + memory.ticketId -> phase.outcome carries ticketId and a
+  // review.requested event lands in the domain log (producer side of the queue)
+  try {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "orch-review-producer-"));
+    process.env.PCORE_STATE_DIR = tmpDir;
+    const state = {
+      currentPhase: "verify",
+      goal: "Test goal",
+      sessionId: "s7",
+      memory: { ticketId: "t7" },
+    };
+    const outcome = { phase: "verify", decision: "block", reason: "failed-gates", token: null };
+    const event = domain.recordPhaseOutcome(state, outcome, "orchestra-verifier");
+    assert(event.type === "phase.outcome", "T7 return value is still the phase.outcome event");
+    assert(event.payload.ticketId === "t7", "T7 phase.outcome payload carries memory.ticketId");
+    const events = domain.store.loadEvents();
+    const request = events.find((e) => e.type === "review.requested");
+    assert(request !== undefined, "T7 block appends review.requested");
+    assert(request.payload.ticketId === "t7", "T7 review.requested keyed to the same ticketId");
+    assert(request.payload.humanReview && request.payload.humanReview.required === true, "T7 review.requested marks humanReview required");
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    delete process.env.PCORE_STATE_DIR;
+    passed += 5;
+  } catch (e) {
+    console.log(`  ✗ T7 block produces review.requested: ${e.message}`);
+    failed += 5;
+  }
+
+  // Test 8: advance decision -> no review.requested
+  try {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "orch-review-advance-"));
+    process.env.PCORE_STATE_DIR = tmpDir;
+    const state = { currentPhase: "verify", goal: "g8", sessionId: "s8", memory: { ticketId: "t8" } };
+    const event = domain.recordPhaseOutcome(state, { phase: "verify", decision: "advance", reason: "token-matched" }, "orchestra-verifier");
+    assert(event.payload.ticketId === "t8", "T8 advance still carries ticketId");
+    const requests = domain.store.loadEvents().filter((e) => e.type === "review.requested");
+    assert(requests.length === 0, "T8 advance does not queue a review");
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    delete process.env.PCORE_STATE_DIR;
+    passed += 2;
+  } catch (e) {
+    console.log(`  ✗ T8 advance no review.requested: ${e.message}`);
+    failed += 2;
+  }
+
+  // Test 9: block without memory.ticketId -> a fresh ticket is minted
+  try {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "orch-review-mint-"));
+    process.env.PCORE_STATE_DIR = tmpDir;
+    const state = { currentPhase: "review", goal: "g9", sessionId: "s9" };
+    const event = domain.recordPhaseOutcome(state, { phase: "review", decision: "block", reason: "token-missing" }, "orchestra-reviewer");
+    assert(typeof event.payload.ticketId === "string" && event.payload.ticketId.startsWith("ticket_"), "T9 block mints a ticket_ id when memory has none");
+    const request = domain.store.loadEvents().find((e) => e.type === "review.requested");
+    assert(request !== undefined && request.payload.ticketId === event.payload.ticketId, "T9 review.requested uses the minted ticket id");
+    // queue projection: exactly one open item for the ticket (dedup by key)
+    const items = domain.pendingReview();
+    assert(items.length === 1 && items[0].ticketId === event.payload.ticketId, "T9 pendingReview shows one deduped item for the ticket");
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    delete process.env.PCORE_STATE_DIR;
+    passed += 3;
+  } catch (e) {
+    console.log(`  ✗ T9 block mints ticket: ${e.message}`);
+    failed += 3;
+  }
+
+  // Test 10: domain vocabulary includes the review event types
+  try {
+    assert(domain.DOMAIN_EVENT_TYPES.includes("review.requested"), "DOMAIN_EVENT_TYPES has review.requested");
+    assert(domain.DOMAIN_EVENT_TYPES.includes("review.resolved"), "DOMAIN_EVENT_TYPES has review.resolved");
+    passed += 2;
+  } catch (e) {
+    console.log(`  ✗ T10 review vocabulary: ${e.message}`);
+    failed += 2;
+  }
+
   console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);
   process.exit(failed > 0 ? 1 : 0);
 }
