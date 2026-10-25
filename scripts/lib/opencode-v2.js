@@ -20,7 +20,8 @@
  *                      @ai-sdk/*), options→settings; model.id→modelID;
  *                      variants{} → variants[{id,settings}]
  *   mcp{}             → mcp.servers{}; enabled→disabled (inverted, always
- *                      explicit); timeout number → {catalog,execution}
+ *                      explicit); timeout number → {startup,catalog,execution};
+ *                      legacy partial {catalog,execution} backfills startup)
  *   agent{} + small_model → agents{}; small_model → agents.title.model
  *   skills{}          → skills[] (invalid object shape normalizes to [])
  *   command{}         → commands{}
@@ -153,7 +154,18 @@ function migrateMcp(mcp) {
     for (const [k, v] of Object.entries(srv)) {
       if (k === "enabled") continue; // inverted below
       if (k === "timeout" && typeof v === "number") {
-        entry.timeout = { catalog: v, execution: v };
+        entry.timeout = { startup: v, catalog: v, execution: v };
+        continue;
+      }
+      if (k === "timeout" && isPlainObject(v) && v.startup === undefined
+        && (typeof v.catalog === "number" || typeof v.execution === "number")) {
+        // Legacy partial shape written by the pre-startup migrator
+        // ({catalog:N, execution:N} from a V1 number): backfill startup with
+        // the user's original value so re-running migrateConfig self-heals
+        // persisted configs. Hand-written V2 timeouts that already carry
+        // `startup` are passed through untouched.
+        entry.timeout = deepCopy(v);
+        entry.timeout.startup = typeof v.catalog === "number" ? v.catalog : v.execution;
         continue;
       }
       entry[k] = deepCopy(v);

@@ -127,11 +127,25 @@ t("mcp → mcp.servers with enabled→disabled inversion + timeout split", () =>
   assert.deepStrictEqual(out.mcp.servers.cf, {
     type: "remote",
     url: "https://y",
-    timeout: { catalog: 5000, execution: 5000 },
+    timeout: { startup: 5000, catalog: 5000, execution: 5000 },
     disabled: false,
   });
   assert.deepStrictEqual(out.mcp.servers.plain, { type: "local", command: "npx" });
   assert.ok(!("enabled" in out.mcp.servers.neon));
+});
+
+t("mcp legacy partial timeout (pre-startup migrator shape) backfills startup", () => {
+  const legacy = migrateConfig({
+    mcp: { servers: { cf: { type: "remote", url: "https://y", timeout: { catalog: 5000, execution: 5000 } } } },
+  });
+  assert.deepStrictEqual(legacy.mcp.servers.cf.timeout, { catalog: 5000, execution: 5000, startup: 5000 });
+  // Idempotent: re-migrating the healed config does not change it
+  assert.deepStrictEqual(migrateConfig(legacy).mcp.servers.cf.timeout, { catalog: 5000, execution: 5000, startup: 5000 });
+  // execution-only partial heals too; explicit startup is never touched
+  const execOnly = migrateConfig({ mcp: { servers: { s: { timeout: { execution: 9000 } } } } });
+  assert.deepStrictEqual(execOnly.mcp.servers.s.timeout, { execution: 9000, startup: 9000 });
+  const kept = migrateConfig({ mcp: { servers: { s: { timeout: { startup: 7000 } } } } });
+  assert.deepStrictEqual(kept.mcp.servers.s.timeout, { startup: 7000 });
 });
 
 t("provider → providers: npm→package (aisdk:), options→settings, variants→array, id→modelID", () => {
