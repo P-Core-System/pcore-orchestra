@@ -131,8 +131,7 @@ try {
         { name: 'implement', status: 'completed', startedAt: Date.now() - 80000, completedAt: Date.now() - 40000, durationMs: 40000 },
         { name: 'verify', status: 'completed', startedAt: Date.now() - 40000, completedAt: Date.now() - 20000, durationMs: 20000 },
         { name: 'review', status: 'completed', startedAt: Date.now() - 20000, completedAt: Date.now(), durationMs: 20000 }
-      ],
-      worktreePath: undefined
+      ]
     }
   ];
   fs.writeFileSync(historyPath, JSON.stringify(historyFixture, null, 2));

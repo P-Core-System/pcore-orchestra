@@ -35,8 +35,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          # Node 24: test-studio-ui/test-studio-data-layer import pure .ts
-          # modules via native type stripping (Node >= 23)
+          # Node 24: test-studio-ui imports pure .ts modules via native
+          # type stripping (Node >= 23)
           node-version: "24"
           cache: npm
           cache-dependency-path: |
@@ -91,3 +91,11 @@ jobs:
           node scripts/test-memory-retrieval.js
           node scripts/test-handoff-enforcer.js
           node scripts/test-review-queue-producer.js
+
+      # Qoder host: settings merge, agent conversion drift
+      - name: Qoder suites (settings merge, agent sync)
+        run: |
+          set -e
+          node scripts/test-merge-qoder-settings.js
+          node scripts/test-qoder-sync.js
+          node scripts/sync-qoder-agents.js --check

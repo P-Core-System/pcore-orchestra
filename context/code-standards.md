@@ -66,14 +66,17 @@ node scripts/test-sixfile-validation.js
 node scripts/test-memory-retrieval.js
 node scripts/test-handoff-enforcer.js
 node scripts/test-review-queue-producer.js
+node scripts/test-merge-qoder-settings.js
+node scripts/test-qoder-sync.js
+node scripts/sync-qoder-agents.js --check
 node scripts/gen-agent-registry.js --check
 node scripts/scan-secrets.js --dir . --fail-on=high
 ```
 
 All must exit 0. `.github/workflows/ci.yml` runs the same list on every PR (the
-secret scan is a required CI step — see invariant 24). `test-studio-ui.js` and
-`test-studio-data-layer.js` import pure `.ts` modules via native type stripping
-and need Node >= 23 (CI uses Node 24).
+secret scan is a required CI step — see invariant 24). `test-studio-ui.js`
+imports pure `.ts` modules via native type stripping and needs Node >= 23
+(CI uses Node 24).
 
 ## Agent markdown
 
