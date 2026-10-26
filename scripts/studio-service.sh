@@ -543,7 +543,7 @@ main() {
 
   # Override port from args if provided after command
   for ((i=1; i<${#args[@]}; i++)); do
-    if [[ "${args[i]}" == "--port" && $((i+1)) < ${#args[@]} ]]; then
+    if [[ "${args[i]}" == "--port" && $((i+1)) -lt ${#args[@]} ]]; then
       port="${args[i+1]}"
     fi
   done
