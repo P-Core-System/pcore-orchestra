@@ -47,6 +47,8 @@ User prompt → classify → startOrchestra
 
 Hook: `lib/phase-commit-gate.js` — injected into phase handoffs.
 
+Verdicts: **PASS** (clean, or only the plan file dirty), **FAIL** (uncommitted changes), **FAIL — git-error** (git exists but `status` failed: fail closed per invariant 24), **SKIPPED** (the working directory is not a git repo).
+
 ---
 
 ## Production checklist (each cycle)

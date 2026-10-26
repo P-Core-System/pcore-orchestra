@@ -396,6 +396,31 @@ test("commit-gate handoff honors the skip for verifier", () => {
   assert.match(out, /SKIPPED/);
 });
 
+test("phase commit gate fails closed when git cannot run inside an existing repo", () => {
+  const realPath = process.env.PATH;
+  process.env.PATH = path.join(os.tmpdir(), "pcore-no-git-on-path");
+  try {
+    const gate = checkPhaseCommitGate({}, { cwd: path.join(__dirname, "..") });
+    assert.equal(gate.gitError, true);
+    assert.equal(gate.clean, false);
+    assert.equal(gate.skipped, false);
+    assert.match(gate.message, /git-error/);
+  } finally {
+    process.env.PATH = realPath;
+  }
+});
+
+test("phase commit gate skips an existing directory outside any repo", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pcore-no-repo-"));
+  try {
+    const gate = checkPhaseCommitGate({}, { cwd: dir });
+    assert.equal(gate.notGitRepo, true);
+    assert.equal(gate.skipped, true);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("greenfield build a note app routes enterprise with intake", () => {
   const r = classifyPrompt("let's build a note app", { ambient: true });
   assert.equal(r.activate, true);

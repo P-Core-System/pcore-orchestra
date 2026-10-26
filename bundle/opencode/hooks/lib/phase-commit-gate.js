@@ -1,5 +1,6 @@
 "use strict";
 
+const fs = require("node:fs");
 const { spawnSync } = require("node:child_process");
 const path = require("node:path");
 
@@ -19,6 +20,7 @@ function runGit(args, cwd) {
     ok: r.status === 0,
     stdout: (r.stdout || "").trim(),
     stderr: (r.stderr || "").trim(),
+    spawnError: r.error || null,
   };
 }
 
@@ -30,8 +32,22 @@ function detectRepoRoot(state) {
 }
 
 function porcelainLines(cwd) {
-  const r = runGit(["status", "--porcelain"], cwd);
-  if (!r.ok) return { ok: false, lines: [], error: r.stderr || r.stdout };
+  const dir = cwd || process.cwd();
+  const r = runGit(["status", "--porcelain"], dir);
+  if (!r.ok) {
+    const detail = [r.stderr, r.stdout, r.spawnError && r.spawnError.message]
+      .filter(Boolean)
+      .join(" — ");
+    // A missing working directory is the same as having no repo to gate.
+    if (!fs.existsSync(dir)) {
+      return { ok: false, lines: [], error: detail || "cwd does not exist", notGitRepo: true };
+    }
+    // Git ran but errored (ownership, lock, corrupt index) -> tool error, fail closed.
+    if (!/not a git repository/i.test(detail)) {
+      return { ok: false, lines: [], error: detail || "git status failed", gitError: true };
+    }
+    return { ok: false, lines: [], error: detail, notGitRepo: true };
+  }
   const lines = r.stdout ? r.stdout.split("\n").filter(Boolean) : [];
   return { ok: true, lines };
 }
