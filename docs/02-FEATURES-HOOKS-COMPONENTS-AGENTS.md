@@ -395,7 +395,8 @@ IMPLEMENT_RE = /\b(add|implement|build|create|fix|refactor|update|deploy|install
 
 ## Agent Overview
 
-4 specialized subagents execute in sequence:
+4 specialized subagents execute the core loop in sequence (the enterprise route
+additionally routes to the 155 specialist agents in `bundle/agents/<category>/`):
 
 | Agent | Phase | Readonly | End Marker | Token Budget |
 |-------|-------|----------|------------|--------------|

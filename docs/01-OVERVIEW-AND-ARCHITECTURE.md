@@ -268,6 +268,7 @@ pcore-orchestra/
 │       ├── agents/                      # 165 files (mirror of bundle/agents)
 │       ├── hooks/orchestra-health-opencode.js
 │       ├── hooks/lib/                   # byte-identical mirror of hooks/lib
+│       ├── plugins/orchestra-ambient.js # injects the orchestra policy into sessions
 │       ├── skills/                      # 39 skills (+ setup, OpenCode-only)
 │       └── state/orchestra.json
 │
