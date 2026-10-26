@@ -97,7 +97,7 @@ Orchestra auto-detects `project.yaml` in any workspace and injects its identity 
 | **Production Checklist Gate** | `ORCHESTRA_COMPLETE` blocked until build/tests/lint/security/reviewer-approval/docs-updated/memory-updated green, security clean, progress-tracker referenced, six-file context present |
 | **Token Budgets** | planner:10k, implementer:30k, verifier:15k, reviewer:8k |
 | **Model Routing** | Cursor: `composer-2.5` default, `grok-4.6` for hard tasks; OpenCode: free models only, dynamically assigned weekly (`--apply`) |
-| **6 Hooks** | Session, prompt, stop, heartbeat, lifecycle, subagent-stop |
+| **8 Hook Commands** | Session, prompt, subagent-stop, lifecycle, memory, quality-gate, stop, heartbeat |
 | **Six-File Context** | Stable grounding across sessions (JavaScript Mastery methodology) |
 | **Free Model Support** | OpenCode Zen free models + multi-key rotation + weekly dynamic refresh (`--schedule`) |
 | **Works With** | Cursor IDE, OpenCode CLI, Qoder CLI, any Node.js project |
@@ -134,8 +134,8 @@ User: "fix the login bug"
 ### Cursor IDE (global)
 ```
 ~/.cursor/
-├── hooks/                    # 6 event hooks
-├── agents/                   # 4 subagent definitions
+├── hooks/                    # 8 hook commands + lib/
+├── agents/                   # 4 core subagents + 155 specialists + references
 ├── skills/orchestra-loop/    # orchestration skill
 ├── rules/orchestra-loop.mdc  # always-on rule
 └── hooks.json                # event bindings
@@ -144,9 +144,10 @@ User: "fix the login bug"
 ### OpenCode CLI
 ```
 ~/.config/opencode/
-├── agents/                   # 4 subagent definitions
+├── agents/                   # conductor + 4 core subagents + 155 specialists
 ├── skills/orchestra-loop/    # orchestration skill
-├── hooks/                    # health check
+├── hooks/                    # byte-identical hook mirror + health check
+├── plugins/orchestra-ambient.js  # session policy injection
 └── state/
     ├── orchestra.json        # runtime state
     └── conductor-runs/       # per-run conductor state + registry (begin/save/who/resume)
@@ -155,8 +156,8 @@ User: "fix the login bug"
 ### Qoder CLI
 ```
 ~/.qoder/
-├── hooks/                    # 6 event hooks (shared with Cursor; lib/io.js normalizes agent_type)
-├── agents/                   # 160 converted agent definitions (scripts/sync-qoder-agents.js)
+├── hooks/                    # 8 hook commands (shared with Cursor; lib/io.js normalizes agent_type)
+├── agents/                   # 161 converted files (core + specialists + spawn matrix)
 ├── skills/orchestra-loop/    # orchestration skill
 ├── ORCHESTRA.md              # entry doc
 └── settings.json             # hooks merged under SessionStart/UserPromptSubmit/SubagentStop/Stop
