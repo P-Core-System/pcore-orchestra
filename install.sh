@@ -365,6 +365,10 @@ install_qoder() {
     rm -rf "$QODER/agents"
     mkdir -p "$QODER/agents"
     cp -rf "$BUNDLE/qoder/agents/." "$QODER/agents/"
+    # Qoder parses every *.md under agents/ as an agent config — the shared
+    # references doc has no frontmatter and becomes a load error ("Operation
+    # aborted" in headless). Keep it in the bundle mirror, not the install.
+    rm -rf "$QODER/agents/references"
   else
     echo "WARN: bundle/qoder/agents missing — run 'node scripts/sync-qoder-agents.js' first; copying Cursor agents as fallback"
     cp -f "$BUNDLE/agents/orchestra.md" "$QODER/agents/" 2>/dev/null || true
@@ -372,6 +376,7 @@ install_qoder() {
     for agent_dir in "$BUNDLE/agents"/*/; do
       [ -d "$agent_dir" ] || continue
       dir_name=$(basename "$agent_dir")
+      [ "$dir_name" = "references" ] && continue
       mkdir -p "$QODER/agents/$dir_name"
       cp -rf "$agent_dir"* "$QODER/agents/$dir_name/"
     done

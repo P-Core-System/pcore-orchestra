@@ -132,7 +132,9 @@ if (fs.existsSync(path.join(QODER, "agents"))) {
     const walk = (p, base) => {
       for (const e of fs.readdirSync(p, { withFileTypes: true })) {
         const q = path.join(p, e.name);
-        if (e.isDirectory()) walk(q, base);
+        // references/ stays bundle-only: Qoder parses every installed *.md
+        // as an agent config, and the shared docs have no frontmatter.
+        if (e.isDirectory()) { if (e.name !== "references") walk(q, base); }
         else if (e.name.endsWith(".md")) out.push(path.relative(base, q).split(path.sep).join("/"));
       }
     };
