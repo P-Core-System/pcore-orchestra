@@ -187,9 +187,8 @@ A separate read-only React/Vite dashboard that visualizes orchestra runs, WorkIt
 # Install with Studio (builds dashboard + creates launcher)
 bash install.sh --studio
 
-# Or install Studio separately (requires existing orchestra install)
-bash install.sh --studio --dry-run   # verify flags
-bash install.sh --studio
+# Preview what the installer would do
+bash install.sh --studio --dry-run
 ```
 
 ### Launch Studio

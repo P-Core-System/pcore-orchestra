@@ -17,13 +17,15 @@
 
 ## Overview
 
-P-Core Orchestra has **no database**. All persistence is through local JSON files:
+P-Core Orchestra has **no server database**. Persistence is local JSON state plus one **derived, rebuildable** SQLite FTS5 index (built-in `node:sqlite`) that only mirrors the goal index for faster recall — losing it costs nothing but recall sharpness:
 
 | File | Location | Purpose | Max Size |
 |------|----------|---------|----------|
 | `orchestra.json` | `~/.cursor/hooks/state/` | Active orchestration state (V2) | ~2KB |
 | `orchestra-memory.json` | `~/.cursor/hooks/state/` | Long-term memory | ~10KB |
 | `orchestra-history.json` | `~/.cursor/hooks/state/` | Run history (auto-created) | ~20KB |
+| `memory-index.json` | `~/.cursor/hooks/state/` | Inverted index over completed goals (capped at 500 entries) | ~100KB |
+| `memory-fts.db` (+ `-wal`/`-shm`) | `~/.cursor/hooks/state/` | FTS5 mirror of `memory-index.json`; fused with it by reciprocal rank fusion. Best-effort: absent `node:sqlite`, an unwritable state dir, or `PCORE_FTS_DISABLE=1` leaves recall JSON-only | a few hundred KB |
 
 OpenCode stores state at `~/.config/opencode/state/orchestra.json`.
 

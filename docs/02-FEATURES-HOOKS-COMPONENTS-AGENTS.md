@@ -122,6 +122,8 @@ STALL_ATTEMPTS_ABORT_THRESHOLD = 2;     // abort after 2 consecutive
 - `recent_files[]` — max 50, tracks modification count
 - `error_patterns[]` — max 50, tracks recurrence
 
+**Recall:** completed goals are also indexed in `memory-index.json` (JSON inverted index, capped at 500) and mirrored into `memory-fts.db` (SQLite FTS5 via the built-in `node:sqlite`). `searchMemoryIndex` fuses both rankings with reciprocal rank fusion; each hit carries `score` and `sources` (`json`/`fts`). The FTS half is best-effort — `PCORE_FTS_DISABLE=1`, a missing `node:sqlite`, or an unwritable state dir degrades recall to the JSON index without failing the write.
+
 **Flush:** On completion/abort/max-iterations, short-term is flushed to long-term via `flushShortToLong()`. Memory is injected at session start, orchestration start, and first implementer invocation.
 
 **CLI:** `node ~/.cursor/hooks/orchestra-enable.js memory [clear]`
