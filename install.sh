@@ -81,7 +81,7 @@ fi
 # drift, re-verify. Skipped for --dry-run (read-only) and without node.
 if [[ "$DRY_RUN" -eq 0 ]] && command -v node >/dev/null 2>&1; then
   echo "== bundle freshness =="
-  for guard in "scripts/sync-qoder-agents.js" "scripts/enrich-agent-capabilities.js" "scripts/gen-agent-registry.js"; do
+  for guard in "scripts/enrich-agent-capabilities.js" "scripts/sync-qoder-agents.js" "scripts/gen-agent-registry.js"; do
     if ! (cd "$ROOT" && node "$guard" --check >/dev/null 2>&1); then
       echo "  drift in $guard -- regenerating"
       (cd "$ROOT" && node "$guard" >/dev/null) || { echo "  ERROR: $guard failed to regenerate"; exit 1; }

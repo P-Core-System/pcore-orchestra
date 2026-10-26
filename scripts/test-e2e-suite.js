@@ -21,6 +21,10 @@ const ROOT = path.resolve(__dirname, "..");
 const TIMEOUT_MS = parseInt(process.env.SUITE_TIMEOUT_MS || "240000", 10);
 
 const onlyIdx = process.argv.indexOf("--only");
+if (onlyIdx !== -1 && !process.argv[onlyIdx + 1]) {
+  console.error("--only requires a comma-separated list of suite stems");
+  process.exit(2);
+}
 const only = onlyIdx !== -1 ? new Set(process.argv[onlyIdx + 1].split(",")) : null;
 
 const suites = fs
@@ -39,7 +43,7 @@ const results = [];
 for (const file of suites) {
   const started = Date.now();
   process.stdout.write(`▶ ${file} ... `);
-  let r, ms = 0, attempts = 0;
+  let r, ms = 0, spent = 0, attempts = 0;
   do {
     attempts++;
     const t0 = Date.now();
@@ -50,16 +54,17 @@ for (const file of suites) {
       maxBuffer: 32 * 1024 * 1024,
     });
     ms = Date.now() - t0;
+    spent += ms;
   } while (r.status !== 0 && attempts < 2 && process.env.SUITE_RETRY !== "0");
   const ok = r.status === 0;
   if (attempts > 1 && ok) process.stdout.write(`ok-after-retry `);
-  console.log(ok ? `ok (${ms}ms)` : `FAILED (exit=${r.status ?? "signal"} ${ms}ms)`);
+  console.log(ok ? `ok (${spent}ms)` : `FAILED (exit=${r.status ?? "signal"} ${spent}ms)`);
   if (!ok) {
     const out = (r.stdout || "") + (r.stderr || "");
     const tail = out.trim().split("\n").filter((l) => /FAIL|Error|error:/i.test(l)).slice(0, 8);
     (tail.length ? tail : out.trim().split("\n").slice(-8)).forEach((l) => console.log("    " + l));
   }
-  results.push({ file, ok, ms });
+  results.push({ file, ok, ms: spent });
 }
 
 const failed = results.filter((r) => !r.ok);

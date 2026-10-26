@@ -75,6 +75,7 @@ function detectHostFromEnv() {
   if (process.env.OPENCODE_SESSION_ID) return "opencode";
   if (process.env.CLAUDE_CODE_SESSION_ID) return "claude-code";
   if (process.env.CODEX_SESSION_ID) return "codex";
+  if (process.env.QODER_CLI || process.env.QODER_PID || process.env.QODER_SESSION_ID) return "qoder";
   return null;
 }
 

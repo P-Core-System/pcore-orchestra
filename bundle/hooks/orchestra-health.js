@@ -131,6 +131,7 @@ function checkLibs() {
 
 function checkHooksJson() {
   const hooksJson = path.join(ROOT, "hooks.json");
+  const settingsJson = path.join(ROOT, "settings.json");
   if (fs.existsSync(hooksJson)) {
     console.log("OK  hooks.json");
     try {
@@ -155,8 +156,35 @@ function checkHooksJson() {
       console.log("BAD hooks.json parse:", e.message);
       ok = false;
     }
+  } else if (fs.existsSync(settingsJson)) {
+    console.log("OK  settings.json (Qoder)");
+    try {
+      const cfg = JSON.parse(fs.readFileSync(settingsJson, "utf8"));
+      const events = cfg.hooks || {};
+      console.log("    events:", Object.keys(events).join(", "));
+      const flatten = (event) =>
+        (events[event] || []).flatMap((entry) =>
+          entry.hooks ? entry.hooks.map((h) => ({ ...h, matcher: entry.matcher })) : [entry]);
+      const subagentHooks = flatten("SubagentStop");
+      const stopHooks = flatten("Stop");
+      const hasLifecycle = subagentHooks.some((h) => h.command?.includes("orchestra-lifecycle"));
+      const hasMemory = subagentHooks.some((h) => h.command?.includes("orchestra-memory"));
+      const hasHeartbeat = stopHooks.some((h) => h.command?.includes("orchestra-heartbeat"));
+      const hasQualityGate = subagentHooks.some((h) => h.command?.includes("orchestra-quality-gate"));
+      console.log("    lifecycle hook:", hasLifecycle ? "OK" : "MISSING");
+      console.log("    memory hook:", hasMemory ? "OK" : "MISSING");
+      console.log("    heartbeat hook:", hasHeartbeat ? "OK" : "MISSING");
+      console.log("    quality gate hook:", hasQualityGate ? "OK" : "MISSING");
+      const agentPatterns = (events.SubagentStop?.[0]?.matcher) || "";
+      const agentCount = agentPatterns.split("|").length;
+      console.log("    subagent patterns:", agentCount);
+      if (!hasLifecycle || !hasMemory || !hasHeartbeat) ok = false;
+    } catch (e) {
+      console.log("BAD settings.json parse:", e.message);
+      ok = false;
+    }
   } else {
-    console.log("MISSING hooks.json");
+    console.log("MISSING hooks.json / settings.json");
     ok = false;
   }
 }

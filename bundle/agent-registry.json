@@ -424,8 +424,8 @@
       "id": "adr-archivist",
       "category": "03-architecture",
       "capabilities": {
-        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
-        "readonly": true,
+        "tools": "Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch",
+        "readonly": false,
         "model": "composer-2.5",
         "effort": null
       },
@@ -1554,8 +1554,8 @@
       "id": "frontend-engineer",
       "category": "05-implementation",
       "capabilities": {
-        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
-        "readonly": true,
+        "tools": "Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch",
+        "readonly": false,
         "model": "composer-2.5",
         "effort": null
       },
@@ -1944,8 +1944,8 @@
       "id": "mobile-engineer",
       "category": "05-implementation",
       "capabilities": {
-        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
-        "readonly": true,
+        "tools": "Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch",
+        "readonly": false,
         "model": "composer-2.5",
         "effort": null
       },
@@ -3229,8 +3229,8 @@
       "id": "ui-ux-designer",
       "category": "05-implementation",
       "capabilities": {
-        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
-        "readonly": true,
+        "tools": "Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch",
+        "readonly": false,
         "model": "composer-2.5",
         "effort": null
       },

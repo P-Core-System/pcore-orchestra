@@ -118,6 +118,8 @@ function resolveSessionId() {
     process.env.OPENCODE_SESSION_ID ||
     process.env.CLAUDE_SESSION_ID ||
     process.env.CURSOR_TRACE_ID ||
+    process.env.QODER_SESSION_ID ||
+    process.env.QODER_PID ||
     `pid-${process.pid}`
   );
 }

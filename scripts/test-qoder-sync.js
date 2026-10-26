@@ -7,6 +7,7 @@
 
 const path = require("node:path");
 const fs = require("node:fs");
+const os = require("node:os");
 const crypto = require("node:crypto");
 const { execFileSync } = require("node:child_process");
 
@@ -205,6 +206,70 @@ function runTests() {
     passed += 2;
   } catch (e) {
     console.log(`  ✗ --check: ${e.message}`);
+    failed++;
+  }
+
+  // Test 5: Qoder hook event surface — payload normalization, stable session,
+  // host detection, and spawn shape across two hook processes.
+  try {
+    const io = require(path.join(ROOT, "bundle", "hooks", "lib", "io.js"));
+    const sm = require(path.join(ROOT, "bundle", "hooks", "lib", "state-manager.js"));
+
+    const mapped = io.normalizeHookInput({ agent_type: "orchestra-planner" });
+    assert(mapped.subagent_type === "orchestra-planner", "agent_type normalizes to subagent_type");
+
+    const savedEnv = {};
+    for (const k of ["PCORE_SESSION_ID", "OPENCODE_SESSION_ID", "CLAUDE_SESSION_ID", "CURSOR_TRACE_ID", "QODER_SESSION_ID", "QODER_PID"]) {
+      savedEnv[k] = process.env[k];
+      delete process.env[k];
+    }
+    try {
+      process.env.QODER_PID = "424242";
+      assert(sm.getSessionId() === "424242", "Qoder falls back to QODER_PID when no session id");
+      process.env.CURSOR_TRACE_ID = "cursor-trace";
+      assert(sm.getSessionId() === "cursor-trace", "native Cursor trace id outranks Qoder env");
+    } finally {
+      for (const [k, v] of Object.entries(savedEnv)) {
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+      }
+    }
+
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "qoder-hook-"));
+    const ws = path.join(tmp, "ws");
+    const stateDir = path.join(tmp, "state");
+    fs.mkdirSync(ws, { recursive: true });
+    const env = { ...process.env, PCORE_STATE_DIR: stateDir, QODER_CLI: "1", QODER_PID: "777777" };
+    delete env.CURSOR_TRACE_ID;
+    delete env.OPENCODE_SESSION_ID;
+    delete env.CLAUDE_SESSION_ID;
+    delete env.PCORE_SESSION_ID;
+
+    execFileSync(process.execPath, [path.join(ROOT, "bundle", "hooks", "orchestra-prompt.js")], {
+      cwd: ws,
+      input: JSON.stringify({ prompt: "fix login bug", cwd: ws }),
+      env,
+      encoding: "utf8",
+      stdio: "pipe",
+    });
+    const stopOut = execFileSync(process.execPath, [path.join(ROOT, "bundle", "hooks", "orchestra-subagent-stop.js")], {
+      cwd: ws,
+      input: JSON.stringify({ status: "completed", agent_type: "orchestra-planner", cwd: ws, summary: "PLAN_READY" }),
+      env,
+      encoding: "utf8",
+      stdio: "pipe",
+    });
+    const root = JSON.parse(fs.readFileSync(path.join(stateDir, "orchestra.json"), "utf8"));
+    const session = root.sessions["777777"];
+    assert(Boolean(session), "both hook processes share the QODER_PID session key");
+    assert(session.host === "qoder", "subagentStop records host=qoder");
+    assert(session.currentPhase === "implement", "planner stop advances plan -> implement");
+    assert(stopOut.includes('"tool":"Agent"') && stopOut.includes('"subagent_type":"orchestra-implementer"'),
+      "spawn emits Qoder Agent + subagent_type");
+    passed += 5;
+    fs.rmSync(tmp, { recursive: true, force: true });
+  } catch (e) {
+    console.log(`  ✗ Qoder hook surface: ${e.message}`);
     failed++;
   }
 

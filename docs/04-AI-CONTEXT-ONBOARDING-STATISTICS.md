@@ -559,22 +559,22 @@ node bundle/hooks/orchestra-health.js
 | `evidence-runner.js` | 752 | Build/test/lint/security evidence gates |
 | `project-identity.js` | 709 | `project.yaml` identity resolution |
 | `token-tracker.js` | 703 | Token budgets, cache-hit metrics, tips |
-| `state-manager.js` | 537 | State load/save/migrate (V2) |
+| `state-manager.js` | 539 | State load/save/migrate (V2) |
 | `project-manager.js` | 490 | Epics, milestones, stories, backlog |
 | `mcp-server.js` | 485 | MCP server surface |
 | `memory-manager.js` | 482 | Short/long-term memory, hybrid recall injection |
 | `security-scanner.js` | 467 | Secret/vulnerability scan rules |
-| `conductor-state.js` | 388 | OpenCode conductor lifecycle |
+| `conductor-state.js` | 389 | OpenCode conductor lifecycle |
 | `version-manager.js` | 361 | Semver, changelog, release notes |
-| **Total flat `lib/`** | **10,679** | 43 files |
+| **Total flat `lib/`** | **10,703** | 43 files |
 | **`lib/domain/` package** | **955** | 8 files (domain model, store, evidence, completion, state dir) |
 
 ## Hook entry points
 
 | Hook | Lines | Trigger |
 |------|-------|---------|
-| `orchestra-subagent-stop.js` | 716 | `subagentStop` — phase advance, gates, evidence, memory flush |
-| `orchestra-health.js` | 389 | CLI — install/health report |
+| `orchestra-subagent-stop.js` | 719 | `subagentStop` — phase advance, gates, evidence, memory flush |
+| `orchestra-health.js` | 417 | CLI — install/health report |
 | `orchestra-prompt.js` | 372 | `beforeSubmitPrompt` / `preSendPrompt` |
 | `orchestra-enable.js` | 267 | CLI — enable/memory recall |
 | `orchestra-quality-gate.js` | 248 | Final review quality gate |
@@ -584,7 +584,7 @@ node bundle/hooks/orchestra-health.js
 | `orchestra-stop.js` | 69 | `stop` |
 | `orchestra-lib.js` | 45 | Shared helpers |
 | `orchestra-memory.js` | 33 | Memory injection (`subagentStop`) |
-| **Total hooks** | **2,392** | 11 entry points |
+| **Total hooks** | **2,423** | 11 entry points |
 
 ## Infrastructure
 

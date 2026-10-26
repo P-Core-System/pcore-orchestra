@@ -218,17 +218,25 @@ pattern: async main() → process → emit → .catch(() => emit({}))
 Three further entry points are not hook events: `orchestra-enable.js` (manual activation
 CLI), `orchestra-health.js` (self-check), and `orchestra-lib.js` (shared helpers).
 
-## Hook Input Fields (from Cursor)
+## Hook Input Fields (from hosts)
 
 | Field | Type | Events |
 |-------|------|--------|
 | `prompt` | string | `beforeSubmitPrompt` |
 | `status` | string | `subagentStop`, `stop` |
 | `subagent_type` / `subagentType` | string | `subagentStop` |
+| `agent_type` / `agentType` | string | `subagentStop` (normalized to `subagent_type` on Qoder) |
+| `session_id` / `sessionId` | string | All (seeds `PCORE_SESSION_ID` when no native host id is set) |
 | `workspace_roots` / `workspaceRoots` | string[] | `sessionStart`, `beforeSubmitPrompt` |
 | `loop_count` | number | `stop` |
 | `summary` / `result` / `output` / `final_text` | string | `subagentStop` |
 | `error` / `error_message` | string | `subagentStop` |
+
+Host detection order is Cursor (`CURSOR_TRACE_ID`), OpenCode (`OPENCODE_SESSION_ID`),
+Claude Code, Codex, then Qoder (`QODER_CLI` / `QODER_PID` / `QODER_SESSION_ID`, or an
+installed `~/.qoder` hook path). Session ids follow the same precedence and fall back to
+`QODER_PID` before `pid-<process>`, so Qoder hook processes share one state session instead
+of creating a new one per event.
 
 ## Hook Output Fields
 
@@ -302,10 +310,10 @@ Key modules:
 
 | Module | Lines | Responsibility | Exports |
 |--------|-------|----------------|---------|
-| `io.js` | 36 | stdin/stdout JSON + Qoder input normalization | `readStdinJson()`, `emit()`, `normalizeHookInput()` |
+| `io.js` | 45 | stdin/stdout JSON + Qoder input normalization | `readStdinJson()`, `emit()`, `normalizeHookInput()` |
 | `constants.js` | 205 | All numeric constants | 55 named constants |
-| `state-manager.js` | 537 | Session-scoped state CRUD, V2 deep merge | `loadState()`, `saveState()`, `startOrchestra()`, `getSessionState()` |
-| `conductor-state.js` | 388 | Per-run conductor state, atomic + isolation-keyed | `beginRun()`, `saveRun()`, `listRuns()`, `heartbeat()`, `completeRun()` |
+| `state-manager.js` | 539 | Session-scoped state CRUD, V2 deep merge | `loadState()`, `saveState()`, `startOrchestra()`, `getSessionState()` |
+| `conductor-state.js` | 389 | Per-run conductor state, atomic + isolation-keyed | `beginRun()`, `saveRun()`, `listRuns()`, `heartbeat()`, `completeRun()` |
 | `prompt-classifier.js` | 247 | Prompt extraction + classification | `extractPrompt()`, `classifyPrompt()`, `selectRoute()` |
 | `phase-engine.js` | 242 | Phase chains, categories, transitions | `getPhasesForMode()`, `getAgentForPhase()`, `advancePhase()`, `reviewerNeedsFix()` |
 | `memory-manager.js` | 482 | Long-term memory CRUD + context builders | `loadLongTermMemory()`, `flushShortToLong()`, `buildMemoryContext()`, `buildPatternContext()` |

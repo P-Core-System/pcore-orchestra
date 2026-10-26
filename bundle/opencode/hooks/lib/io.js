@@ -8,6 +8,15 @@ function normalizeHookInput(input) {
       if (input.agent_type) input.subagent_type = input.agent_type;
       else if (input.agentType) input.subagent_type = input.agentType;
     }
+    if (
+      !process.env.PCORE_SESSION_ID &&
+      !process.env.OPENCODE_SESSION_ID &&
+      !process.env.CLAUDE_SESSION_ID &&
+      !process.env.CURSOR_TRACE_ID
+    ) {
+      const sid = input.session_id || input.sessionId;
+      if (sid) process.env.PCORE_SESSION_ID = String(sid);
+    }
   }
   return input;
 }
