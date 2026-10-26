@@ -35,130 +35,83 @@ This section is designed to be read directly by AI agents (Cursor, Claude, OpenC
 ```
 ./
 ├── bundle/
-│   ├── hooks/          # 9 Node.js hook scripts (Cursor)
-│   ├── agents/         # 4 Cursor subagent .md files
-│   ├── skills/         # Cursor skills (orchestra-loop + Cloudflare)
-│   ├── skills-cursor/  # Cursor built-in skills
-│   ├── rules/          # Cursor always-on .mdc rules
-│   ├── opencode/
-│   │   ├── hooks/      # 1 OpenCode health check
-│   │   ├── agents/     # 4 OpenCode subagent .md files
-│   │   ├── skills/     # OpenCode skills (orchestra-loop + Cloudflare)
-│   │   └── state/      # Default orchestra.json
-│   └── lib/            # 11 shared Node.js modules (engine core)
+│   ├── hooks/            # 11 hook entry points + lib/ (43 modules) + domain/ (event log, tickets)
+│   ├── opencode/         # OpenCode mirror: hooks/ (byte-identical lib), agents/, skills/, config
+│   ├── qoder/agents/     # Qoder agent markdown, generated from the Cursor agents
+│   ├── agents/           # 160 agent definitions in 00-business/ 00-domain/ 00-policy/ 00-tech/ 00-workflow/
+│   ├── skills/           # Vendored + orchestra skills (Cursor)
+│   ├── skills-cursor/    # Cursor built-in skill mirrors
+│   ├── rules/            # Always-on .mdc rules
+│   ├── config/           # autonomy + OpenCode config templates
+│   ├── agent-registry.json  # Generated SSOT for agents, hook agents, task allowlist
+│   └── hooks.json        # Hook wiring
 ├── templates/
-│   ├── context/        # Blank six-file context templates
-│   └── AGENTS.md       # Entry-point template
-├── scripts/
-│   └── init-context.sh # Bootstrap context in any repo
-├── install.sh          # macOS/Linux installer
-└── install.ps1         # Windows PowerShell installer
+│   ├── context/          # Blank six-file context templates
+│   └── AGENTS.md         # Entry-point template
+├── scripts/              # 46 JS + 17 shell: test suites, automation, service managers
+├── server/               # Studio API (Node)
+├── studio/               # Read-only React/Vite dashboard
+├── docs/                 # 01–04 core docs, topic guides, dated audit/ + plans/
+├── context/              # This project's own six-file context
+├── install.sh            # macOS/Linux installer (Cursor + OpenCode + Qoder)
+└── install.ps1           # Windows PowerShell installer
 ```
 
-## Lib Modules (`bundle/lib/`)
+## Lib Modules (`bundle/hooks/lib/`)
 
-All modules use `const` exports pattern. Every function returns a result object consistently.
+43 modules, all `"use strict"` CommonJS. The living module list and invariants are
+in [`context/architecture.md`](../context/architecture.md); the table below is the
+orientation map.
 
-### 1. `state.js` — State Manager
+| Area | Modules |
+|------|---------|
+| State & sessions | `state-manager.js`, `checkpoint-manager.js`, `conductor-state.js`, `workspace-identity.js`, `safe-write.js` (atomic writes, locking, quarantine) |
+| Memory & recall | `memory-manager.js`, `memory-index.js`, `memory-fts.js`, `semantic-memory.js` |
+| Phases & gates | `phase-engine.js`, `phase-outcome.js`, `phase-commit-gate.js`, `quality-gate.js`, `plan-artifact.js`, `handoff-enforcer.js` |
+| Evidence & verification | `evidence-runner.js`, `evidence-record.js`, `security-scanner.js` |
+| Prompts & routing | `prompt-classifier.js`, `orchestra-config.js`, `orchestra-spawn-matrix.js`, `spawn-adapter.js` |
+| Planning & delivery | `project-manager.js`, `version-manager.js`, `daily-planner.js`, `cycle-report.js`, `devops.js` |
+| Greenfield & patterns | `greenfield-intake.js`, `greenfield-scaffold.js`, `self-improvement.js` |
+| Ops & observability | `token-tracker.js`, `metrics-report.js`, `observability.js`, `harness-observability.js`, `heartbeat-monitor.js`, `history-recorder.js`, `lifecycle-recorder.js`, `worktree-manager.js` |
+| Integrations | `mcp-server.js`, `project-identity.js`, `context-detector.js`, `io.js`, `constants.js` |
+
+### Common API shapes
+
 ```javascript
-// State file paths (auto-resolved):
-// Cursor: ~/.cursor/hooks/state/orchestra.json
-// OpenCode: ~/.config/opencode/state/orchestra.json
+// state-manager.js — orchestration state (root + per-session)
+const state = loadState();               // → { version: 2, sessions: {...}, ... }
+saveState(next);                         // atomic write
+updateState((s) => next);                // read-modify-write under a lock
+startOrchestra(state, { goal, phase });  // begin a loop
 
-const state = loadState()          // → {version:2, ambient:true, ...}
-const saved = saveState(newState)  // → {success:true}
-const exists = stateExists()       // → boolean
-const migrated = migrateV1(state)  // → {version:2, ...} (in-place)
+// memory-manager.js — short/long-term memory
+flushShortToLong(state);                 // at completion/abort/max-iterations
+buildMemoryContext(state);               // → string injected into agent context
+buildPatternContext(state);              // → learned project/user patterns
+
+// memory-index.js + memory-fts.js — hybrid recall
+indexCompletedGoal(goalEntry, ts);       // writes JSON index + FTS mirror
+searchMemoryIndex(query, topK);          // → [{ ..., score, sources: ["json"|"fts"] }]
+ftsAvailable();                          // false when node:sqlite is absent or PCORE_FTS_DISABLE=1
+
+// prompt-classifier.js — ambient classification
+const { activate, phase, reason, confidence } = classifyPrompt(prompt, { ambient });
+const route = selectRoute(action, projectType);   // specialists to insert
+
+// phase-engine.js — phase chain
+const phases = getPhasesForState(state); // core or enterprise SDLC chain
+const next = getNextPhase(state, id);    // → next phase or null
 ```
 
-### 2. `memory.js` — Long-term Memory
-```javascript
-const mem = loadMemory()          // → {version:1, completed_goals:[], ...}
-const saved = saveMemory(mem)     // → {success:true}
-const exists = memoryExists()     // → boolean
-const updated = addGoal(opts{goal, outcome, duration_ms, lessons, phase_count})
-const updated = addFile(path)     // increment count, update last_seen
-const updated = addError(error_type, solution)
-const summary = summarizeMemory() // → string for subagent context
-const related = findRelated(goal) // → top-3 matched goals (simple substring)
-```
+### Core constants (`constants.js`)
 
-### 3. `history.js` — Run History
 ```javascript
-const hist = loadHistory()       // → [{goal, outcome, ...}]
-const saved = saveHistory(hist)  // → {success:true}
-const updated = addRun({goal, outcome, started_at, completed_at, duration_ms, iterations, phases_completed, files_changed, errors})
-```
-
-### 4. `lifecycle.js` — Lifecycle Events
-```javascript
-const log = addEvent(state, type, data)     // → state (event prepended, capped 200)
-const log = addPhaseHistory(state, phase, status, subagent, duration_ms)  // → state
-const timeline = renderTimeline(events)     // → formatted string
-```
-
-### 5. `heartbeat.js` — Stall Detection
-```javascript
-const state = beat(state)          // → state (update last_beat + phase_started_at)
-const state = detectStall(state)   // → state (detectStall ++ or abort)
-const { isStalled, stalledMs } = checkStall(state)  // → {isStalled:boolean, stalledMs:number}
-```
-
-### 6. `resumable.js` — Pause/Resume
-```javascript
-const state = createCheckpoint(state, phase)   // → state with checkpoint
-const state = clearCheckpoint(state)           // → state, checkpoint null
-const state = pause(state, reason)             // → paused:true
-const state = resume(state)                    // → paused:false, restore from checkpoint
-const state = abort(state)                     // → phase:'idle', active:false
-```
-
-### 7. `classify.js` — Prompt Classification
-```javascript
-const { activate, phase, reason, confidence, rule } = classify(prompt)  
-// activate: boolean
-// phase: 'plan' | 'implement' | 'verify' | 'review' | null
-// confidence: 'high' | 'medium' | 'low'
-// reason: 'build prompt' | 'fix prompt' | 'skip prompt' | ...
-// rule: 'build_rule' | 'fix_rule' | 'skip_skip' | 'skip_qa' | ...
-```
-
-### 8. `orchestrator.js` — Phase Orchestrator
-```javascript
-const phase = getCurrentPhase(state)             // → 'plan' | 'implement' | ...
-const subagent = getSubagentForPhase(phase)      // → agent filename
-const state = advancePhase(state)                // → state (next phase or done)
-const agentFullName = getAgentFullName(agentName)// → 'orchestra-planner' etc
-const isDone = isOrchestraComplete(state)         // → boolean
-```
-
-### 9. `output.js` — Output Formatter
-```javascript
-const json = formatOutput(state, options)  // → JSON string with lifecycle,narrative
-const prompt = formatInitialPrompt(state)  // → "You are P-Core Orchestra (orchestra-planner)..." with context
-```
-
-### 10. `context.js` — Six-File Context Loader
-```javascript
-const { files, found, missing } = loadProjectContext()  // Loads context/*.md content
-```
-
-### 11. `constants.js` — Configuration
-```javascript
-PHASE_CHAIN: ['plan', 'implement', 'verify', 'review']
-SUBAGENTS: { plan: 'orchestra-planner', implement: 'orchestra-implementer', verify: 'orchestra-verifier', review: 'orchestra-reviewer' }
-PROMPT_AGENTS: { plan: instructor, implement: builder, verify: verifier, review: reviewer }
-MAX_ITERATIONS: 8
-STALL_THRESHOLD_MS: 300000 (5 min)
-HEARTBEAT_INTERVAL_MS: 60000 (1 min)
-MAX_STALL_COUNT: 2
-MAX_EVENTS: 200
-MAX_MEMORY_GOALS: 100
-MAX_MEMORY_FILES: 50
-MAX_MEMORY_ERRORS: 50
-MAX_HISTORY: 50
-MIN_PROMPT_LENGTH: 8
-MAX_GOAL_LENGTH: 2000
+LIFECYCLE_MAX_EVENTS = 200        MEMORY_MAX_COMPLETED = 100
+MEMORY_MAX_RECENT_FILES = 50      MEMORY_MAX_ERROR_PATTERNS = 50
+HISTORY_MAX_RUNS = 50             DEFAULT_MAX_ITERATIONS = 8
+DEFAULT_STALL_THRESHOLD_MS = 300000   DEFAULT_HEARTBEAT_INTERVAL_MS = 60000
+SEMANTIC_RECALL_TOP_K = 3         STALL_ATTEMPTS_ABORT_THRESHOLD = 2
+LOOP_MODE_CORE = "core"           LOOP_MODE_ENTERPRISE = "enterprise"
 ```
 
 ## Phase Chain
@@ -190,7 +143,7 @@ graph LR
 ## Classification Rules
 
 ```javascript
-// classify.js — Regex rules (ordered by priority):
+// prompt-classifier.js — Regex rules (ordered by priority):
 rules = [
   // BUILD prompt — e.g., "add login", "build dashboard", "create api", "new feature", "implement search", "refactor module"
   { pattern: /^(?:add|build|create|implement|setup|new|make|develop|construct|design|refactor|restructure|reorganize)\b/i, activate: true, phase: 'plan', rule: 'build_rule' },
@@ -429,37 +382,42 @@ node ~/.cursor/hooks/orchestra-health.js
 ```
 pcore-orchestra/
 ├── bundle/                        # 📦 Source payload (this gets installed)
-│   ├── hooks/                     # 9 Node.js scripts (Cursor engine)
+│   ├── hooks/                     # 11 hook entry points (Cursor engine)
 │   │   ├── orchestra-prompt.js    # 🔥 Entry: classifies prompts, injects agents
-│   │   ├── orchestra-start.js     # Injects project context into subagent
-│   │   ├── orchestra-stop.js      # Phase transitions, memory, status parsing
-│   │   ├── orchestra-health.js    # 6-category validation suite
-│   │   ├── orchestra-enable.js    # Enable/disable/status toggles
-│   │   └── ...                    # 4 more
-│   ├── lib/                       # 🧠 11 shared modules (the engine)
-│   │   ├── classify.js            # Regex prompt classification
-│   │   ├── orchestrator.js        # Phase chain management
-│   │   ├── state.js               # JSON state persistence
-│   │   ├── memory.js              # Long-term learning
-│   │   ├── history.js             # Run history
-│   │   ├── lifecycle.js           # Event logging
-│   │   ├── heartbeat.js           # Stall detection
-│   │   ├── resumable.js           # Pause/resume/crash recovery
-│   │   ├── context.js             # Six-file context loader
-│   │   ├── output.js              # Prompt formatters
-│   │   └── constants.js           # All configuration values
-│   ├── agents/                    # 🎭 4 Cursor agent definitions
+│   │   ├── orchestra-subagent-stop.js  # Phase advance, gates, evidence, memory flush
+│   │   ├── orchestra-session-start.js  # Session context + memory recall
+│   │   ├── orchestra-stop.js      # Loop nudges / completion
+│   │   ├── orchestra-health.js    # Validation + health report CLI
+│   │   ├── orchestra-enable.js    # Enable/disable/status/memory CLI
+│   │   ├── orchestra-quality-gate.js   # Production checklist hook
+│   │   └── ...                    # lifecycle, heartbeat, memory, lib
+│   ├── hooks/lib/                 # 🧠 43 modules (the engine)
+│   │   ├── state-manager.js       # Root + per-session state
+│   │   ├── memory-manager.js      # Short/long-term memory
+│   │   ├── memory-index.js        # JSON inverted index (recall)
+│   │   ├── memory-fts.js          # SQLite FTS5 mirror (hybrid recall)
+│   │   ├── phase-engine.js        # Phase chain (core + enterprise SDLC)
+│   │   ├── prompt-classifier.js   # Regex prompt classification
+│   │   ├── evidence-runner.js     # Build/test/lint/security gates
+│   │   ├── phase-commit-gate.js   # Commit-before-next-phase gate
+│   │   └── ...                    # 35 more (see Lib Modules above)
+│   ├── agents/                    # 🎭 160 agent definitions (5 categories)
+│   ├── qoder/agents/              # Qoder mirrors (generated)
 │   ├── skills/                    # Cursor skills
 │   ├── skills-cursor/             # Cursor built-in skills
 │   ├── rules/                     # Cursor always-on .mdc rules
 │   └── opencode/                  # OpenCode mirrors
-│       ├── hooks/
+│       ├── hooks/                 # byte-identical lib/
 │       ├── agents/
 │       ├── skills/
-│       └── state/
+│       └── config/
+├── server/                        # Studio API
+├── studio/                        # React/Vite dashboard
+├── docs/                          # 01–04 + topic guides + dated audit/plans
+├── context/                       # Six-file project context
 ├── project-bridge/                # 🌉 Per-repo cursor config bridge
 ├── templates/                     # 📋 Context/AGENTS.md templates
-├── scripts/                       # 🔧 init-context bootstrap
+├── scripts/                       # 🔧 46 JS + 17 shell
 ├── install.sh                     # 🚀 macOS/Linux installer
 ├── install.ps1                    # 🚀 Windows installer
 └── README.md                      # Project docs
@@ -491,7 +449,7 @@ bash scripts/init-context.sh ~/my-project
 
 ```javascript
 // 1. Create bundle/hooks/orchestra-myhook.js
-const { loadState, saveState } = require('./lib/state.js');
+const { loadState, saveState } = require('./lib/state-manager.js');
 
 function myHook(context) {
   const state = loadState();
@@ -518,7 +476,7 @@ node ~/.cursor/hooks/orchestra-health.js
 | Convention | Rule |
 |------------|------|
 | Language | Node.js (no TypeScript, no transpilation) |
-| Dependencies | Zero npm dependencies; built-in modules only (fs, path, child_process) |
+| Dependencies | One npm runtime dep (`@modelcontextprotocol/sdk`) for the MCP server; everything else uses Node built-ins |
 | Exports | `module.exports = { functionName }` (named exports) |
 | Functions | Named functions, no arrow functions for main exports |
 | Variables | `const` for all; no `let` or `var` |
@@ -532,8 +490,8 @@ node ~/.cursor/hooks/orchestra-health.js
 ```bash
 # Quick test (standalone):
 node -e "
-const c = require('./bundle/lib/classify.js');
-console.log(c.classify('fix login bug'));
+const c = require('./bundle/hooks/lib/prompt-classifier.js');
+console.log(c.classifyPrompt('fix login bug'));
 "
 
 # Test a full hook run:
@@ -572,87 +530,77 @@ node bundle/hooks/orchestra-health.js
 
 # 16. Project Statistics
 
+> Snapshot measured **2026-10-26**, excluding `node_modules`, `dist`, and vendored
+> `bundle/skills/**`. Re-measure with `wc -l` after large changes.
+
 ## Codebase Metrics
 
-| Metric | Value |
-|--------|-------|
-| Total files | 120+ |
-| Lines of code (JS) | ~5,500 |
-| Lines of code (Markdown) | ~1,200 |
-| Lines of code (Shell) | ~200 |
-| Lines of code (PowerShell) | ~100 |
-| Lines of code (JSON) | ~50 |
-| **Total** | **~7,050** |
+| Scope | Lines |
+|-------|-------|
+| Hook runtime — `bundle/hooks/**/*.js` | ~14,000 |
+| OpenCode mirror — `bundle/opencode/hooks/**/*.js` | ~14,500 |
+| Tooling + suites — `scripts/**/*.js` | ~13,600 |
+| Studio — `server/` + `studio/src` (JS/TS, deps excluded) | ~6,400 |
+| Shell — `install.sh` + `scripts/*.sh` | ~5,700 |
+| PowerShell — `install.ps1` + `scripts/*.ps1` | ~1,100 |
+| Markdown — README + `context/` + `docs/` (incl. dated audit/plans) | ~13,100 |
 
-## Module Metrics
+**Tests:** 37 `scripts/test-*.js` suites plus `scripts/test-studio-service.sh` (21 checks), all wired into CI alongside the agent-registry, secret-scan, and Qoder-drift gates.
 
-| Module | Lines (approx) | Functions | Key Responsibility |
-|--------|---------------|-----------|-------------------|
-| `state.js` | 80 | 4 | JSON state load/save/migrate |
-| `memory.js` | 120 | 7 | Long-term memory CRUD |
-| `history.js` | 60 | 3 | Run history |
-| `lifecycle.js` | 60 | 3 | Event logging |
-| `heartbeat.js` | 50 | 3 | Stall detection |
-| `resumable.js` | 60 | 4 | Pause/resume/abort |
-| `classify.js` | 80 | 1 | Prompt classification |
-| `orchestrator.js` | 50 | 5 | Phase chain |
-| `output.js` | 50 | 2 | Formatting |
-| `context.js` | 40 | 1 | Context loading |
-| `constants.js` | 25 | - | Configuration |
-| **Total lib** | **~675** | **33** | |
+## Largest `bundle/hooks/lib` modules
 
-## Hook Metrics
+| Module | Lines | Key responsibility |
+|--------|-------|-------------------|
+| `evidence-runner.js` | 752 | Build/test/lint/security evidence gates |
+| `project-identity.js` | 709 | `project.yaml` identity resolution |
+| `token-tracker.js` | 703 | Token budgets, cache-hit metrics, tips |
+| `state-manager.js` | 537 | State load/save/migrate (V2) |
+| `project-manager.js` | 490 | Epics, milestones, stories, backlog |
+| `mcp-server.js` | 485 | MCP server surface |
+| `memory-manager.js` | 482 | Short/long-term memory, hybrid recall injection |
+| `security-scanner.js` | 467 | Secret/vulnerability scan rules |
+| `conductor-state.js` | 388 | OpenCode conductor lifecycle |
+| `version-manager.js` | 361 | Semver, changelog, release notes |
+| **Total `lib/`** | **10,679** | 43 files |
 
-| Hook | Lines (approx) | Entry Point | Complexity |
-|------|---------------|-------------|------------|
-| `orchestra-prompt.js` | 120 | `preSendPrompt` | High |
-| `orchestra-start.js` | 60 | `subagentStart` | Medium |
-| `orchestra-stop.js` | 140 | `subagentStop` | High |
-| `orchestra-health.js` | 80 | `_` | Low |
-| `orchestra-enable.js` | 40 | `_` | Low |
-| `orchestra-memory.js` | 60 | `subagentStart`/`Stop` | Low |
-| `orchestra-session.js` | 80 | `preSendPrompt` | Low |
-| `orchestra-prompt-hooks.js` | 40 | hooks.json merge | Low |
-| `orchestra-heartbeat.js` | 60 | `subagentStop` | Low |
+## Hook entry points
+
+| Hook | Lines | Trigger |
+|------|-------|---------|
+| `orchestra-subagent-stop.js` | 716 | `subagentStop` — phase advance, gates, evidence, memory flush |
+| `orchestra-health.js` | 389 | CLI — install/health report |
+| `orchestra-prompt.js` | 372 | `beforeSubmitPrompt` / `preSendPrompt` |
+| `orchestra-enable.js` | 267 | CLI — enable/memory recall |
+| `orchestra-quality-gate.js` | 248 | Final review quality gate |
+| `orchestra-heartbeat.js` | 87 | Stop — stall detection |
+| `orchestra-session-start.js` | 84 | `sessionStart` |
+| `orchestra-lifecycle.js` | 82 | Lifecycle events |
+| `orchestra-stop.js` | 69 | `stop` |
+| `orchestra-lib.js` | 45 | Shared helpers |
+| `orchestra-memory.js` | 33 | Memory injection (`subagentStop`) |
+| **Total hooks** | **2,392** | 11 entry points |
 
 ## Infrastructure
 
-| System | Files | Lines | Notes |
-|--------|-------|-------|-------|
-| Installers | 2 | ~250 | bash + PowerShell |
-| Scripts | 1 | ~100 | init-context.sh |
-| Templates | ~12 | ~400 | context templates + AGENTS.md |
-| Project bridge | ~5 | ~50 | .cursorrules + symlinks |
-| **Total infra** | **~20** | **~800** | |
+| System | Size | Notes |
+|--------|------|-------|
+| Installers | 1,159 lines (bash + PowerShell) | `install.sh` (611), `install.ps1` (548) |
+| Scripts | 46 JS + 17 shell | Automation, suites, service managers, watcher |
+| Templates | 8 files | Six-file context blanks + AGENTS template |
+| Agents | 160 agent files, 27 hook agents | Generated SSOT: `bundle/agent-registry.json` |
 
 ## Dependencies
 
 | Type | Count | Details |
 |------|-------|---------|
-| npm packages | 0 | Zero dependencies |
-| Built-in Node.js modules | 3 | `fs`, `path`, `child_process` |
-| Shell commands | 2 | `curl` (health check), `git` (init-context) |
+| npm runtime | 1 | `@modelcontextprotocol/sdk` (MCP server) |
+| Node built-ins | several | `fs`, `path`, `child_process`, `crypto`, `os`, `sqlite` (optional — FTS memory) |
+| Shell commands | 3 | `git`, `curl`, `bash` |
 
-## Complexity
+## History
 
-```mermaid
-graph TD
-    subgraph "Complexity Heat Map"
-        A["classify.js<br/>(High)"] --> B["orchestrator.js<br/>(Medium)"]
-        B --> C["state.js<br/>(Low)"]
-        B --> D["memory.js<br/>(Medium)"]
-        B --> E["lifecycle.js<br/>(Low)"]
-        B --> F["heartbeat.js<br/>(Low)"]
-        B --> G["resumable.js<br/>(Medium)"]
-        A --> H["output.js<br/>(Low)"]
-    end
-```
-
-## Version History
-
-| Version | Date | Key Changes |
-|---------|------|-------------|
-| 1.0.0 | 2026-07-13 | Initial release: V2 state, all 4 agents, health check, classification, stall detection, pause/resume, memory, history, zero npm deps |
+Version history is append-only in `context/progress-tracker.md`; the current semver
+lives in `project.yaml` and `package.json`.
 
 ---
 
@@ -667,13 +615,13 @@ graph TD
 | 5 | `docs/01-OVERVIEW-AND-ARCHITECTURE.md` | SOLID, architectural invariants, C4 diagrams (Context, Container, Component), LLM topology, hook lifecycle, event storming |
 | 6 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | All 15 features — ambient auto-start, build/fix, four-phase loop, stall detection, pause/resume, crash recovery, memory, history, six-file context, classification, config-driven, headless agents, zero npm, install/verify, project bootstrap |
 | 7 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | Hook architecture, 9 hook contract table (entry, purpose, complexity, limits), hooks.json config, event-driven flow diagram, hand-coded rules |
-| 8 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | All 11 lib modules — state.js, memory.js, history.js, lifecycle.js, heartbeat.js, resumable.js, classify.js, orchestrator.js, output.js, context.js, constants.js |
-| 9 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | All 8 agents (4 Cursor + 4 OpenCode) — planner, implementer, verifier, reviewer agent definitions |
+| 8 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | Hook and lib module reference for `bundle/hooks/lib/` (43 modules) |
+| 9 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | Core loop agents — planner, implementer, verifier, reviewer — for Cursor, OpenCode, and Qoder |
 | 10 | `docs/03-DATABASE-SECURITY-TESTING-LIMITATIONS.md` | State, memory, history schemas, field groups, lifecycle events, checkpoint schema, migration history, ER diagram, performance |
 | 11 | `docs/03-DATABASE-SECURITY-TESTING-LIMITATIONS.md` | Security model, auth/authz, CSP/CSRF/XSS/SQLi, input validation, rate limiting, secrets, supply chain security, recommendations |
 | 12 | `docs/03-DATABASE-SECURITY-TESTING-LIMITATIONS.md` | Health check tests (6 categories), verifier checks, Turnstile-Spin tests, missing tests, deployment (install + rollback) |
 | 13 | `docs/03-DATABASE-SECURITY-TESTING-LIMITATIONS.md` | Technical debt (5 items), missing features (7 items), scalability limits, architecture decisions log (13 ADs), future roadmap (P1-P3) |
 | 14 | `docs/04-AI-CONTEXT-ONBOARDING-STATISTICS.md` | AI context export — quick-reference index, codebase structure, lib module API reference, phase chain, classification rules, startup sequence, lifecycle hooks, agent definitions, state schema reference |
 | 15 | `docs/04-AI-CONTEXT-ONBOARDING-STATISTICS.md` | Onboarding guide — system requirements, installation, project tour, quick start, adding a hook, code conventions, testing, troubleshooting, performance tips |
-| 16 | `docs/04-AI-CONTEXT-ONBOARDING-STATISTICS.md` | Project statistics — codebase metrics, module metrics, hook metrics, infrastructure, dependencies, complexity heat map, version history |
+| 16 | `docs/04-AI-CONTEXT-ONBOARDING-STATISTICS.md` | Project statistics — codebase metrics, largest modules, hook entry points, infrastructure, dependencies (snapshot 2026-10-26) |
 | 17 | `docs/04-AI-CONTEXT-ONBOARDING-STATISTICS.md` | This document — `docs/` index (cross-reference all sections across all 4 files) |

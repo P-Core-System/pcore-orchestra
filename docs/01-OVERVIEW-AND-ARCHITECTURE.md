@@ -99,7 +99,7 @@ All core features complete (64 completed items). All critical and important code
 
 | Language | Usage | Rationale |
 |----------|-------|-----------|
-| **JavaScript (Node.js)** | 9 hook scripts + 11 lib modules + CLI tool | Cursor hooks API spawns Node.js; CommonJS required |
+| **JavaScript (Node.js)** | 11 hook scripts + 43 lib modules + CLI tool | Cursor hooks API spawns Node.js; CommonJS required |
 | **TypeScript** | Cloudflare Worker template (turnstile-spin skill only) | Type safety for deployable Workers |
 | **Markdown** | Agent definitions, skills, documentation, context files | Native format for Cursor/OpenCode agent prompts |
 | **Bash** | Install scripts, bootstrap, setup scripts | Standard Unix shell, `set -euo pipefail` |
@@ -113,24 +113,32 @@ All core features complete (64 completed items). All critical and important code
 
 | Platform | Version | Usage |
 |----------|---------|-------|
-| **Node.js** | 18+ | Runtime for all hook scripts — zero npm dependencies |
+| **Node.js** | 18+ (22.5+ for hybrid recall) | Runtime for all hook scripts — node built-ins only; `node:sqlite` (FTS memory) is optional |
 | **Cursor IDE** | Latest | Primary target via hooks API (sessionStart, beforeSubmitPrompt, subagentStop, stop) |
 | **OpenCode CLI** | Latest | Secondary target via skill system with `mode: subagent` agents |
+| **Qoder CLI** | Latest | Third target: agents in `bundle/qoder/agents/`, hooks wired through `settings.json` |
 | **Cloudflare Workers** | Latest | Worker template in turnstile-spin skill (optional, not core) |
 
 ## Libraries
 
-**Core orchestra: zero npm dependencies.** Uses only:
+**Core orchestra: zero npm dependencies.** The hook runtime uses only:
 
 ```
-fs           — file system operations
-path         — cross-platform path resolution
-child_process — spawnSync in bridge.js only
+fs            — file system operations
+path          — cross-platform path resolution
+child_process — spawnSync (bridge.js, evidence runner, spawn adapter)
+crypto / os   — hashing, temp paths
+sqlite        — optional, built-in since Node 22.5 (FTS5 memory mirror)
 ```
 
-**Why zero dependencies?** Security (no supply chain), reliability (no conflicts), portability (any Node.js machine), simplicity (file copy install, no `npm install`).
+**Why zero runtime dependencies?** Security (no supply chain), reliability (no conflicts), portability (any Node.js machine), simplicity (file copy install, no `npm install` for the hooks).
 
-The only `package.json` is inside the turnstile-spin worker template (optional deployable skill): `wrangler`, `vitest`, `typescript`, `@cloudflare/workers-types` as devDependencies only.
+Separate optional packages exist outside the hook runtime:
+
+- root `package.json` → `@modelcontextprotocol/sdk` (MCP server)
+- `server/` → Studio API dependencies
+- `studio/` → React/Vite dashboard dependencies
+- turnstile-spin worker template → `wrangler`, `vitest`, `typescript`, `@cloudflare/workers-types` (devDependencies)
 
 ## Architectural Patterns
 
@@ -171,7 +179,7 @@ pcore-orchestra/
 │   ├── ORCHESTRA.md           # Global orchestra documentation
 │   ├── hooks.json             # Cursor hook event bindings
 │   │
-│   ├── hooks/                 # CURSOR HOOK SCRIPTS (9 files)
+│   ├── hooks/                 # CURSOR HOOK SCRIPTS (11 entry points + lib/ + state/)
 │   │   ├── orchestra-enable.js         # CLI: status, start, stop, pause, resume, abort, memory, history
 │   │   ├── orchestra-health.js         # Diagnostic health check
 │   │   ├── orchestra-heartbeat.js      # Stall detection (stop hook)
@@ -179,11 +187,12 @@ pcore-orchestra/
 │   │   ├── orchestra-lifecycle.js      # Lifecycle event logger (subagentStop)
 │   │   ├── orchestra-memory.js         # Memory injection (subagentStop)
 │   │   ├── orchestra-prompt.js         # Prompt classification + auto-start (beforeSubmitPrompt)
+│   │   ├── orchestra-quality-gate.js   # Production checklist gate (final review)
 │   │   ├── orchestra-session-start.js  # Context injection (sessionStart)
 │   │   ├── orchestra-stop.js           # Phase nudges (stop)
 │   │   └── orchestra-subagent-stop.js  # Phase chaining engine (subagentStop)
 │   │   │
-│   │   ├── lib/               # SHARED LIBRARY (11 single-responsibility modules)
+│   │   ├── lib/               # SHARED LIBRARY (43 modules + domain/ dashboard, mirrors/tickets)
 │   │   │   ├── io.js                    # stdin/stdout helpers (readStdinJson, emit)
 │   │   │   ├── constants.js             # 20 named numeric constants
 │   │   │   ├── state-manager.js         # State CRUD + startOrchestra
@@ -194,13 +203,21 @@ pcore-orchestra/
 │   │   │   ├── memory-manager.js        # Short/long-term memory CRUD
 │   │   │   ├── history-recorder.js      # Run history (50 cap)
 │   │   │   ├── checkpoint-manager.js    # Pause/resume/abort/crash recovery
-│   │   │   └── context-detector.js      # Six-file workspace context detection
+│   │   │   ├── context-detector.js      # Six-file workspace context detection
+│   │   │   ├── memory-index.js          # JSON inverted index (goal recall)
+│   │   │   ├── memory-fts.js            # SQLite FTS5 mirror (hybrid recall)
+│   │   │   ├── semantic-memory.js       # BM25-lite token scoring
+│   │   │   ├── phase-commit-gate.js     # Commit-before-next-phase gate
+│   │   │   ├── evidence-runner.js       # Build/test/lint/security evidence gates
+│   │   │   ├── security-scanner.js      # Secret/vulnerability scan rules
+│   │   │   ├── safe-write.js            # Atomic writes, locks, quarantine
+│   │   │   ├── ...                      # 25 more (see docs/04 Lib Modules)
 │   │   │
 │   │   └── state/             # Default state files
 │   │       ├── orchestra.json           # V2 state schema
 │   │       └── orchestra-memory.json    # Long-term memory
 │   │
-│   ├── agents/                # CURSOR SUBAGENTS (4 files)
+│   ├── agents/                # CORE LOOP AGENTS + SPECIALISTS (160 files, 5 category dirs)
 │   │   ├── orchestra-planner.md         # readonly — research + plan
 │   │   ├── orchestra-implementer.md     # implement code + commit
 │   │   ├── orchestra-verifier.md        # readonly — test + lint
@@ -209,7 +226,7 @@ pcore-orchestra/
 │   ├── rules/
 │   │   └── orchestra-loop.mdc           # Always-on Cursor rule
 │   │
-│   ├── skills/                # CURSOR SKILLS (13 skills)
+│   ├── skills/                # CURSOR SKILLS (38 skills)
 │   │   ├── orchestra-loop/              # Core orchestration skill
 │   │   ├── agents-sdk/                  # Cloudflare Agents SDK
 │   │   ├── cloudflare/                  # General Cloudflare platform
@@ -221,7 +238,8 @@ pcore-orchestra/
 │   │   ├── turnstile-spin/              # Turnstile + deployable Worker template
 │   │   ├── web-perf/                    # Web Performance
 │   │   ├── workers-best-practices/      # Workers Best Practices
-│   │   └── wrangler/                    # Wrangler CLI
+│   │   ├── wrangler/                    # Wrangler CLI
+│   │   └── ...                          # ~25 more vendored + design skills
 │   │
 │   ├── skills-cursor/         # CURSOR BUILT-IN SKILLS (17 skills)
 │   │   ├── babysit/                     # Controlled execution loop
@@ -242,10 +260,14 @@ pcore-orchestra/
 │   │   ├── update-cli-config/           # CLI config update
 │   │   └── update-cursor-settings/      # Settings update
 │   │
+│   ├── qoder/                 # QODER MIRROR
+│   │   └── agents/                      # 43 agents, generated by scripts/sync-qoder-agents.js
+│   │
 │   └── opencode/              # OPENCODE MIRROR (parallel structure)
-│       ├── agents/                      # 4 agents (mode: subagent)
+│       ├── agents/                      # 43 agents (mode: subagent)
 │       ├── hooks/orchestra-health-opencode.js
-│       ├── skills/                      # 12 skills (+ setup/ skill, no skills-cursor/)
+│       ├── hooks/lib/                   # byte-identical mirror of hooks/lib
+│       ├── skills/                      # 38 skills
 │       └── state/orchestra.json
 │
 ├── context/                   # THIS REPO'S OWN SIX-FILE CONTEXT (dogfooding)

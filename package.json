@@ -1,7 +1,7 @@
 {
   "name": "pcore-orchestra",
-  "version": "1.0.0",
-  "description": "Multi-agent orchestra for Cursor and OpenCode",
+  "version": "3.7.0",
+  "description": "Multi-agent orchestra for Cursor, OpenCode CLI, and Qoder CLI",
   "main": "bundle/hooks/orchestra-prompt.js",
   "scripts": {
     "test": "node scripts/test-adaptive-loop.js"

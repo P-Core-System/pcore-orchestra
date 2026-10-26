@@ -285,7 +285,7 @@ The primary validation mechanism is the **health check script** (6 categories):
 
 | # | Test | What It Checks |
 |---|------|----------------|
-| 1 | Scripts | All 9 hook scripts exist |
+| 1 | Scripts | All 11 hook scripts exist |
 | 2 | hooks.json | Valid JSON, has lifecycle/memory/heartbeat hooks |
 | 3 | State | V2 has all sections (heartbeat, lifecycle, memory, resumable) |
 | 4 | Memory | orchestra-memory.json exists and is valid |
@@ -419,7 +419,7 @@ All caps are intentional to prevent unbounded JSON growth and keep operations fa
 | AD-07 | Prompt Chaining + ReAct | Simplest correct architecture |
 | AD-08 | Flat agent structure | Each agent has one clear job |
 | AD-09 | Only implementer commits | Clear responsibility, audit trail |
-| AD-10 | SOLID with 11 lib modules | SRP, testability, maintainability |
+| AD-10 | SOLID with 43 lib modules | SRP, testability, maintainability |
 | AD-11 | Config-driven extensibility | Add phases/commands without logic changes |
 | AD-12 | Zero npm dependencies | Security, reliability, portability |
 | AD-13 | JSON file persistence | Simplicity, zero setup, backup-friendly |

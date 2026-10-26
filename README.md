@@ -45,7 +45,7 @@ Orchestra auto-runs: **planner → implementer → verifier → reviewer**.
 
 | Requirement | Version | Purpose |
 |-------------|---------|---------|
-| Node.js | 18+ | Hook scripts |
+| Node.js | 18+ (22.5+ for hybrid recall) | Hook scripts; SQLite FTS5 memory uses the built-in `node:sqlite`, so on older Node recall stays JSON-only |
 | Cursor IDE | Latest | Agent mode (for Cursor) |
 | OpenCode CLI | Latest ([install](https://opencode.ai)) | Optional; `install.sh` upgrades CLI automatically |
 | Qoder CLI | Latest | Optional; installs to `~/.qoder` (agents, skills, hooks in settings.json) |
