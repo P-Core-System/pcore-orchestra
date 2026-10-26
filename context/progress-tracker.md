@@ -399,3 +399,11 @@ eachableLight at merge-autonomy-config.js:236. Files: docs/audit/agent-architect
 - Batch 2 (same day): 11 more producer roles promoted — devops-engineer, release-manager, data-preprocessor/cleaner/validator/quality-engineer, dataset-versioner, embedding-engineer, model-trainer, detection-engineer (rules-as-code), chaos-engineer. Final split **53 writable / 105 readonly / 2 conductors**; 9/9 invariants after reinstall.
 - Fresh-session verification found + fixed an installer bug: `references/orchestra-spawn-matrix.md` (no frontmatter) was installed into `~/.qoder/agents`, making Qoder report "1 error loading agent configs" and abort headless runs. `install.sh` now prunes `references/` at install (both branches); invariant #6 walk skips it. Verified: fresh `qoder agents list` → 165 active agents, 0 errors.
 - Studio UI: replaced the ScrollArea-only scrollbar rule with a global thin/rounded scheme — 8px webkit bar with 2px inset border (4px visible thumb), thumb tinted via `color-mix(currentColor 28%→45% hover)`, transparent tracks; covers every native overflow pane (log pre's, kanban columns, detail modals) in both light and dark surfaces. `test-studio-ui` 80/80, `pnpm build` green.
+
+## 2026-10-26 — Public-history security rewrite (main + develop)
+
+- Backed up every ref to a bundle, then rewrote history with `git filter-repo`: all author/committer emails → GitHub noreply, commit messages and blobs scrubbed of server aliases and per-machine home paths.
+- Force-pushed with `--force-with-lease`: `main` → `ba54a52`, `develop` → `f8a0544`. Rewritten `main` tip tree is byte-identical to the pre-rewrite tree (`8ea4ce3`), so no tracked file content changed.
+- Two local-only commits made after the backup were re-parented onto the rewritten tip with the noreply identity (`d70d1e8`, `dd16eb4`) and left unpushed.
+- Verification: no remaining alias/home-path/email matches in `main` or `develop` history; authors and committers all noreply; suite green; secrets scan exit 0.
+- Known residue: GitHub retains `refs/pull/2..11/head` for the closed Dependabot PRs, which still reach pre-rewrite commits; purging them requires GitHub Support.
