@@ -49,7 +49,7 @@ Modern AI coding assistants (Cursor, OpenCode CLI, Qoder CLI) are fundamentally 
 |---------|-------------|
 | **Ambient Auto-Start** | Activates automatically on implement/fix/build/refactor prompts |
 | **4-Phase Pipeline** | Planner → Implementer → Verifier → Reviewer |
-| **Six-File Context** | Injects project context (overview, architecture, standards, AI rules, progress) |
+| **Six-File Context** | Injects project context (overview, architecture, standards, UI context, AI rules, progress) |
 | **Convergence Criteria** | Tests pass → diff clean → lint clean → reviewer approves |
 | **Stall Detection** | Heartbeat monitors progress; aborts after 2 consecutive stalls (5min threshold) |
 | **Human Checkpoints** | Auth/payments/security/scope-creep trigger human review |
@@ -59,8 +59,8 @@ Modern AI coding assistants (Cursor, OpenCode CLI, Qoder CLI) are fundamentally 
 | **Lifecycle Events** | Every phase transition, error, and completion recorded (200-event ring buffer) |
 | **Git Workflow** | Only implementer commits; verifier checks clean tree; reviewer reviews diff |
 | **Cross-Platform** | Bash (Unix) + PowerShell (Windows) installers |
-| **Model Routing** | Cursor: `composer-2.5` default, `grok-4.6` for hard tasks; OpenCode: free models only |
-| **Zero NPM Dependencies** | Core uses only Node.js built-in modules (`fs`, `path`, `child_process`) |
+| **Model Routing** | Cursor: `composer-2.5` default, `grok-4.6` for hard tasks; OpenCode: free models only; Qoder: converted agents inherit the host model |
+| **Dependency-Free Hook Runtime** | Hooks use only Node.js built-ins (`fs`, `path`, `child_process`); only the opt-in MCP server loads the optional SDK |
 
 ## Current Status
 
@@ -73,7 +73,7 @@ All core features complete (64 completed items). All critical and important code
 | Convergence criteria, stall detection, human checkpoints | ✅ Complete |
 | Token budgets, crash recovery, long-term memory | ✅ Complete |
 | Git workflow, self-review checklists, error-free rules | ✅ Complete |
-| 13 Cloudflare skills + 17 Cursor built-in skills | ✅ Complete |
+| 38 Cursor skills (incl. 10 Cloudflare/Workers skills) + 17 Cursor built-in skills | ✅ Complete |
 | Cross-platform installers, SMART/SWOT audit | ✅ Complete |
 
 ## Future Vision
@@ -100,7 +100,7 @@ All core features complete (64 completed items). All critical and important code
 
 | Language | Usage | Rationale |
 |----------|-------|-----------|
-| **JavaScript (Node.js)** | 11 hook scripts + 43 lib modules + CLI tool | Cursor hooks API spawns Node.js; CommonJS required |
+| **JavaScript (Node.js)** | 11 hook entry points + 43 flat lib modules + 8 domain modules + CLI tooling | Cursor/Qoder hooks spawn Node.js; CommonJS required |
 | **TypeScript** | Cloudflare Worker template (turnstile-spin skill only) | Type safety for deployable Workers |
 | **Markdown** | Agent definitions, skills, documentation, context files | Native format for Cursor/OpenCode agent prompts |
 | **Bash** | Install scripts, bootstrap, setup scripts | Standard Unix shell, `set -euo pipefail` |
@@ -149,7 +149,7 @@ Separate optional packages exist outside the hook runtime:
 | **Harness > Scaffold > Loop** | Three-layer architecture | Clean separation of runtime, behavior, and execution cycle |
 | **Operator Loop Stack** | Jack Njoroge pattern | Production-grade with formal state, convergence, human escalation |
 | **Six-File Context** | JavaScript Mastery methodology | Stable project grounding across sessions |
-| **SOLID** | 11 single-purpose lib modules, command map, facade, specific imports | Maintainability, testability, extensibility |
+| **SOLID** | 43 flat + 8 domain single-purpose modules, command map, facade, specific imports | Maintainability, testability, extensibility |
 | **Config-Driven** | PHASE_CHAIN object, COMMANDS map | Add phases/commands without logic changes |
 | **Deep Merge Defaults** | `{...DEFAULT, ...loaded}` | V1→V2 migration without schema scripts |
 
@@ -176,11 +176,11 @@ pcore-orchestra/
 ├── .gitattributes             # LF line endings for .sh, .js, .md
 ├── .gitignore
 │
-├── bundle/                    # SOURCE PAYLOAD — installed to ~/.cursor/ and ~/.config/opencode/
+├── bundle/                    # SOURCE PAYLOAD — installed to ~/.cursor/, ~/.config/opencode/, ~/.qoder/
 │   ├── ORCHESTRA.md           # Global orchestra documentation
 │   ├── hooks.json             # Cursor hook event bindings
 │   │
-│   ├── hooks/                 # CURSOR HOOK SCRIPTS (11 entry points + lib/ + state/)
+│   ├── hooks/                 # HOOK ENTRY POINTS (11 files + lib/ + state/) — Cursor + Qoder
 │   │   ├── orchestra-enable.js         # CLI: status, start, stop, pause, resume, abort, memory, history
 │   │   ├── orchestra-health.js         # Diagnostic health check
 │   │   ├── orchestra-heartbeat.js      # Stall detection (stop hook)
@@ -240,7 +240,7 @@ pcore-orchestra/
 │   │   ├── web-perf/                    # Web Performance
 │   │   ├── workers-best-practices/      # Workers Best Practices
 │   │   ├── wrangler/                    # Wrangler CLI
-│   │   └── ...                          # ~25 more vendored + design skills
+│   │   └── ...                          # ~26 more vendored + design skills
 │   │
 │   ├── skills-cursor/         # CURSOR BUILT-IN SKILLS (17 skills)
 │   │   ├── babysit/                     # Controlled execution loop
@@ -293,18 +293,26 @@ pcore-orchestra/
 │
 ├── templates/                # TARGET PROJECT TEMPLATES
 │   ├── AGENTS.md                        # Entry point template
-│   └── context/                         # 6 blank context file templates
+│   └── context/                         # Six-file blanks + project-setup + specs
 │
 └── docs/                      # PROJECT DOCUMENTATION
-    ├── setup-guide.md                   # Complete setup (556 lines)
-    ├── token-optimization.md            # Token efficiency + tracker
-    ├── agent-harness-recommendations.md # Harness/loop/prompts research (Cursor + OpenCode)
-    ├── opencode.json.example            # Balanced OpenCode orchestra profile
-    ├── orchestration-patterns.md        # Patterns documentation (333 lines)
-    ├── bypass-strategies.md             # BYOK + free models (342 lines)
-    ├── audit-smart-swot.md              # SMART/SWOT analysis (265 lines)
-    ├── plans/                           # Implementation plans
-    └── [this file set]                  # Technical documentation
+    ├── index.md                         # Docs map + historical-artifact notice
+    ├── 01–04-*.md                       # Core docs (overview, features, security/testing, AI context)
+    ├── production-loop.md               # Production loop, artifacts, gates
+    ├── autonomous-workflow.md           # Autonomy profiles + permissions
+    ├── orchestra-cross-platform.md      # Cursor vs OpenCode vs Qoder
+    ├── token-optimization.md            # Token efficiency + budgets
+    ├── agent-permissions.md             # OpenCode permission contract
+    ├── agent-harness-recommendations.md # Harness/loop/prompt research
+    ├── agent-orchestra-rag-research.md  # RAG/context research + roadmap
+    ├── concurrency-tracking.md          # Session claims + isolation
+    ├── greenfield-and-gaps.md           # Greenfield intake + gap analysis
+    ├── studio-v2-architecture.md / studio-v2-design-spec.md
+    ├── plan-signal-watcher.md           # Cross-repo watcher usage
+    ├── master-engineering-prompt.md     # Engineering + verification prompt
+    ├── opencode.json.example            # Reference OpenCode config
+    ├── audit/                           # Dated historical audits
+    └── plans/                           # Dated historical plans
 ```
 
 ## Key File Roles
