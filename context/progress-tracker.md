@@ -368,3 +368,13 @@ eachableLight at merge-autonomy-config.js:236. Files: docs/audit/agent-architect
 - `code-reviewer` agent reviewed the capability wave; findings applied: four implementer agents (`frontend-engineer`, `mobile-engineer`, `ui-ux-designer`, `adr-archivist`) flipped `readonly: true → false` in `bundle/agents` — their bodies say "build/implement/create", contradicting the read-only tool policy. Derived trees regenerated (`bundle/qoder/agents`, `bundle/opencode/agents`, `bundle/agent-registry.json`) and reinstalled.
 - `install.sh`: freshness guard order corrected to `enrich → sync-qoder → gen-registry` so each generator sees the previous one's output.
 - `scripts/test-e2e-suite.js`: bare `--only` now exits 2 with a usage message; total time accumulates retry attempts (`spent += ms`) instead of only the last attempt.
+
+## 2026-10-26 — Permission wave (auto-approve + cross-platform parity)
+
+- Live probes proved readonly enforcement real (spawned `architect` cannot Write) and surfaced the headless gotcha: **granted ≠ approved** — Qoder turns `ask` into silent deny in `-p` runs. Fix: per-agent `permissionMode`.
+- 34 more implementers promoted `readonly: false` (testing: qa/regression/automation/performance/test-architect/api-contract; AI-SDLC: ml/data/nlp/ops/inference/fine-tuning/vector/prompt/collectors/annotators/synthetic/feature; infra: k8s/terraform/cloud/infra/platform/sre/site-reliability/observability/incident/devsecops; docs: technical/documentation writers). Now **42 writable / 116 readonly / 2 conductors**.
+- `sync-qoder-agents.js`: writable agents emit `permissionMode: acceptEdits` (auto-approve edits, scoped to the agent — no global settings changes); readonly keep `disallowedTools` and no mode.
+- `gen-agent-registry.js`: `capabilities.permissionMode` published (acceptEdits | null) for dispatchers.
+- OpenCode parity verified mechanically: 42 `edit: allow` / 118 `edit: deny`, zero missing — sync already mapped readonly→edit before this wave.
+- `test-agent-capabilities.js`: +1 invariant (qoder tree permission contract: writable→acceptEdits, readonly→denylist, never both; registry↔mode agreement). 9/9 pass after `install.sh --qoder`.
+- Docs: `docs/agent-permissions.md` §(e) — availability-vs-approval model, per-platform mapping table, session-start caching caveat.

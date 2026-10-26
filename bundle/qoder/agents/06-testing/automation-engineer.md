@@ -4,9 +4,9 @@ description: >-
   Enterprise SDLC Phase 21 — Regression testing, E2E testing, smoke tests.
   Ensures no regressions and critical paths work. Use proactively when
   this specialist's phase is active.
-disallowedTools: [Write, Edit, NotebookEdit]
+permissionMode: acceptEdits
 maxTurns: 200
-tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
+tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 
 ## Models

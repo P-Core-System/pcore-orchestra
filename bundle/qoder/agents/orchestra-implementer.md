@@ -5,6 +5,7 @@ description: >-
   proactively after planning or when the user asks to build/fix/add
   features, even without /orchestra. Auto-chained by ambient orchestra
   hooks. Follows target project context/*.md conventions when present.
+permissionMode: acceptEdits
 maxTurns: 200
 tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---

@@ -5,6 +5,7 @@ description: >-
   and management. Documents significant architectural decisions with
   context, alternatives, and consequences. Maintains decision log as
   append-only. Use proactively when this specialist's phase is active.
+permissionMode: acceptEdits
 maxTurns: 200
 tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---

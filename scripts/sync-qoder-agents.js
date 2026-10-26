@@ -27,6 +27,10 @@ const DEFAULT_MAX_TURNS = 200;
  *  OpenCode's edit:deny + bash:allow). */
 const READONLY_DISALLOWED_TOOLS = "[Write, Edit, NotebookEdit]";
 
+/** Qoder readonly:false → per-agent permission mode that auto-approves file
+ *  edits (scoped to the agent, not to global settings). */
+const WRITABLE_PERMISSION_MODE = "acceptEdits";
+
 function splitFrontmatter(raw) {
   if (!raw.startsWith("---")) return { fm: null, body: raw };
   const lines = raw.split(/\r?\n/);
@@ -115,7 +119,13 @@ function toQoderMarkdown(raw, fallbackName) {
   // model/reasoningEffort (agents inherit the session model — do not emit).
   // color is kept: Qoder supports it.
   let front = `---\nname: ${name}\ndescription: >-\n${foldDescription(description)}\n`;
-  if (readonly) front += `disallowedTools: ${READONLY_DISALLOWED_TOOLS}\n`;
+  if (readonly) {
+    front += `disallowedTools: ${READONLY_DISALLOWED_TOOLS}\n`;
+  } else {
+    // Writable agents must auto-approve edits — without this, a headless run
+    // turns every Write/Edit ask into a silent deny (docs: permission pipeline).
+    front += `permissionMode: ${WRITABLE_PERMISSION_MODE}\n`;
+  }
   front += `maxTurns: ${maxTurns}\n`;
   // Preserve a source tools allowlist verbatim when present (none today).
   if (typeof fields.tools === "string" && fields.tools) front += `tools: ${fields.tools}\n`;

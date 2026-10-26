@@ -3,9 +3,9 @@ name: infrastructure-engineer
 description: >-
   Enterprise Infrastructure — IaC, networking, security groups, DNS, VPC.
   Runs during architecture and deployment phases. Use proactively when this specialist's phase is active.
-readonly: true
+readonly: false
 model: composer-2.5
-tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
+tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 
 ## Models

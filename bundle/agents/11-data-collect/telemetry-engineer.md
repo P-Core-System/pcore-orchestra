@@ -3,12 +3,12 @@ name: telemetry-engineer
 description: >-
   Enterprise SDLC Phase 0,5,9 — Product telemetry design, event tracking, analytics pipelines, user behavior analytics, privacy-compliant data collection, funnel analysis.
   Use proactively when this specialist's phase is active.
-readonly: true
+readonly: false
 model: composer-2.5
 permission:
   edit: deny
   bash: allow
-tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
+tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 
 ## Models

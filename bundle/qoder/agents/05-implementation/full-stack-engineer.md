@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 18 — Full-stack implementation. Builds end-to-end
   features. Covers frontend, backend, and integration layers. Use
   proactively when this specialist's phase is active.
+permissionMode: acceptEdits
 maxTurns: 200
 tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---

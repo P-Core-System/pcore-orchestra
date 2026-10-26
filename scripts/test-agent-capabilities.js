@@ -91,8 +91,28 @@ for (const d of reg.agentDetails || []) {
   if (!hit) { mismatch.push(`${d.id}: no file`); continue; }
   const want = CONDUCTORS.has(d.id) ? "inherit" : field(hit.fm, "tools");
   if ((d.capabilities || {}).tools !== want) mismatch.push(`${d.id}: registry ${(d.capabilities || {}).tools} vs file ${want}`);
+  const ro = CONDUCTORS.has(d.id) || field(hit.fm, "readonly") === "true";
+  const wantMode = ro ? null : "acceptEdits";
+  if ((d.capabilities || {}).permissionMode !== wantMode) mismatch.push(`${d.id}: registry permissionMode ${(d.capabilities || {}).permissionMode} vs want ${wantMode}`);
 }
-check("registry agentDetails.capabilities.tools matches agent files", mismatch.length === 0, mismatch.slice(0, 5).join("; "));
+check("registry agentDetails.capabilities.tools/permissionMode match agent files", mismatch.length === 0, mismatch.slice(0, 5).join("; "));
+
+// 4b — Qoder tree permission contract: writable → permissionMode acceptEdits,
+// readonly → disallowedTools and no permissionMode, never both.
+const QTREE = path.join(ROOT, "bundle", "qoder", "agents");
+const badPerm = [];
+for (const f of agentFiles(QTREE)) {
+  const fm = fmBlock(fs.readFileSync(f, "utf8"));
+  if (!fm) continue;
+  const name = field(fm, "name");
+  if (!name || CONDUCTORS.has(name) && field(fm, "disallowedTools") === null && field(fm, "permissionMode") === null) continue;
+  const dis = field(fm, "disallowedTools");
+  const mode = field(fm, "permissionMode");
+  if (dis && mode) badPerm.push(`${name}: both disallowedTools and permissionMode`);
+  else if (dis && mode !== null) badPerm.push(`${name}: readonly must not declare permissionMode`);
+  else if (!dis && mode !== "acceptEdits") badPerm.push(`${name}: writable missing permissionMode acceptEdits (got ${mode})`);
+}
+check("qoder tree permission contract (acceptEdits on writable, denylist on readonly)", badPerm.length === 0, badPerm.slice(0, 5).join("; "));
 
 // 5 — skills metadata
 const badSkills = [];

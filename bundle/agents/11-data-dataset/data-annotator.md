@@ -3,12 +3,12 @@ name: data-annotator
 description: >-
   Enterprise SDLC Phase 5,11 — Data annotation workflows, labeling tools, active learning for annotation, annotation quality metrics, annotator management, annotation cost optimization.
   Use proactively when this specialist's phase is active.
-readonly: true
+readonly: false
 model: composer-2.5
 permission:
   edit: deny
   bash: allow
-tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
+tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 
 ## Models

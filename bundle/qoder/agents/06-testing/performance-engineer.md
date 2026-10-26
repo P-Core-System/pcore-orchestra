@@ -4,9 +4,9 @@ description: >-
   Enterprise SDLC Phase 22 — Performance testing, load testing, profiling.
   Ensures system meets performance targets. Use proactively when this
   specialist's phase is active.
-disallowedTools: [Write, Edit, NotebookEdit]
+permissionMode: acceptEdits
 maxTurns: 200
-tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
+tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 
 ## Models

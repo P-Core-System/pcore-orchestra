@@ -447,6 +447,10 @@ function buildRegistry(roster) {
       capabilities: {
         tools: conductor ? "inherit" : fields.tools || "inherit",
         readonly: fields.readonly === "true",
+        // Cross-platform write auto-approval: Qoder emits per-agent
+        // permissionMode acceptEdits; OpenCode emits permission.edit: allow.
+        // Conductors inherit the session mode.
+        permissionMode: conductor || fields.readonly === "true" ? null : "acceptEdits",
         model: fields.model || null,
         effort: fields.reasoningEffort || null,
       },

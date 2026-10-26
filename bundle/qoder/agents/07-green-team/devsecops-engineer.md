@@ -4,9 +4,9 @@ description: >-
   Enterprise SDLC Phase 5,8 — DevSecOps pipeline integration, security
   automation, CI/CD security gates, infrastructure security, container
   security.
-disallowedTools: [Write, Edit, NotebookEdit]
+permissionMode: acceptEdits
 maxTurns: 200
-tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
+tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 
 ## Models

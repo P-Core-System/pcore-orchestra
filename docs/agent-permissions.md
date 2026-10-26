@@ -96,3 +96,47 @@ per-agent form; do not migrate agent frontmatter to V2 arrays.
 
 - Cursor files under `bundle/config/cursor/`, `bundle/hooks/`, `bundle/agents/` (Cursor side) — byte-identical, out of scope for OpenCode permission fixes
 - `~/.config/opencode` and `~/.cursor` installed state — install-time only
+
+## (e) Qoder CLI permission model (capability wave 2)
+
+Verified against https://docs.qoder.com/cli/subagent.md + /cli/permissions.md and
+live-spawn probes.
+
+Qoder consumes the generated tree in `bundle/qoder/agents/` (`sync-qoder-agents.js`),
+and its pipeline is **availability → approval** — two independent layers:
+
+| Layer | Field | Semantics |
+|-------|-------|-----------|
+| Availability | `tools:` (comma string is valid) | registers the tool in the agent's toolset; omitted = inherit session toolset |
+| Availability | `disallowedTools:` | denylist, applied **after** `tools:` — always wins |
+| Approval | `permissionMode:` | per-agent permission mode; `acceptEdits` auto-approves Write/Edit inside the workspace |
+
+Rules the generator enforces (invariant `test-agent-capabilities.js` §4b):
+
+- **Writable agents** (`readonly: false` in source): `tools:` includes Write/Edit **and**
+  `permissionMode: acceptEdits`. Both are required — availability without approval means
+  every headless (`-p`) Write becomes a silent deny, because ask → auto-deny when no one
+  can confirm.
+- **Readonly agents**: `disallowedTools: [Write, Edit, NotebookEdit]`, never a
+  `permissionMode`. Bash/Web tools stay available.
+- **Conductors** (`orchestra`, `workflow-orchestrator`): no `tools:` key — they inherit
+  the full session toolset including the Agent spawn tool; mode stays the session's.
+
+Cross-platform mapping of the same source `readonly:` flag:
+
+| Platform | readonly: false | readonly: true |
+|----------|-----------------|----------------|
+| Cursor (bundle/agents) | `tools:` allowlist with Write, Edit | `tools:` allowlist without them |
+| Qoder (bundle/qoder) | allowlist + `permissionMode: acceptEdits` | denylist, no mode |
+| OpenCode (bundle/opencode) | `permission: { edit: allow, bash: allow }` | `edit: deny, bash: allow` |
+| Registry v2 | `capabilities.permissionMode: "acceptEdits"` | `capabilities.permissionMode: null` |
+
+Current split: **42 writable / 116 readonly / 2 conductors** (160 agents).
+
+Caveats:
+- Agent definitions are read at **session start** — after any regenerate + reinstall,
+  new grants apply to the next session only.
+- `deny` rules and PreToolUse hooks outrank `permissionMode`; protected paths
+  (`.git`, `.qoder` config) still require explicit approval.
+- `disableYoloMode` policy downgrades any `bypassPermissions` declaration to
+  `acceptEdits` — we never declare bypass.

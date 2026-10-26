@@ -3,12 +3,12 @@ name: web-scraper
 description: >-
   Enterprise SDLC Phase 0,5,11 — Web scraping design, crawler architecture, data extraction pipelines, anti-bot bypass, proxy rotation, rate limiting, HTML parsing, structured data extraction from unstructured web sources.
   Use proactively when this specialist's phase is active.
-readonly: true
+readonly: false
 model: composer-2.5
 permission:
   edit: deny
   bash: allow
-tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
+tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 
 ## Models

@@ -4,9 +4,9 @@ description: >-
   Enterprise SDLC Phase 28 — Monitoring, SLOs, incident response,
   maintenance. Ensures system reliability and operational excellence. Use
   proactively when this specialist's phase is active.
-disallowedTools: [Write, Edit, NotebookEdit]
+permissionMode: acceptEdits
 maxTurns: 200
-tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
+tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 
 ## Models

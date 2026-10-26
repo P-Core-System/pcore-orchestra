@@ -5,9 +5,9 @@ description: >-
   augmentation, GAN-based generation, LLM-based generation,
   privacy-preserving synthesis, data imbalance correction. Use proactively
   when this specialist's phase is active.
-disallowedTools: [Write, Edit, NotebookEdit]
+permissionMode: acceptEdits
 maxTurns: 200
-tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
+tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 
 ## Models

@@ -5,12 +5,12 @@ description: >-
   support notes, metrics dashboards, and measurement. Covers README, API docs,
   changelogs, deployment guides, AND telemetry/analytics setup.
   Use proactively when this specialist's phase is active.
-readonly: true
+readonly: false
 model: composer-2.5
 permission:
   edit: deny
   bash: allow
-tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
+tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 
 ## Models

@@ -3,12 +3,12 @@ name: observability-engineer
 description: >-
   Enterprise SDLC Phase 5,9 — Observability stack design, metrics/logging/tracing, distributed tracing, alerting rules, dashboard design, SLO monitoring.
   Use proactively when this specialist's phase is active.
-readonly: true
+readonly: false
 model: composer-2.5
 permission:
   edit: deny
   bash: allow
-tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
+tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 
 ## Models

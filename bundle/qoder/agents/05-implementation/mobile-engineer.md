@@ -5,6 +5,7 @@ description: >-
   Ionic, React Native, Capacitor, and native mobile apps. Handles platform
   APIs, push notifications, offline sync, and app store deployment. Use
   proactively when this specialist's phase is active.
+permissionMode: acceptEdits
 maxTurns: 200
 tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---

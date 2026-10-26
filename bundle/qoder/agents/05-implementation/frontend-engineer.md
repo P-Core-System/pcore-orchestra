@@ -6,6 +6,7 @@ description: >-
   Next.js, Vue, Svelte, Ionic, Capacitor, and React Native. Follows
   project design system and accessibility standards. Use proactively when
   this specialist's phase is active.
+permissionMode: acceptEdits
 maxTurns: 200
 tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
