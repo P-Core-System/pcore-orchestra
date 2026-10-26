@@ -458,7 +458,7 @@ Two concurrent agents would race on **one working tree** — no mechanism preven
 | Host `status==="completed"` | `orchestra-subagent-stop.js:305` | The only advance precondition |
 | Verifier/reviewer prompt checklists | `orchestra-verifier.md`, `orchestra-reviewer.md` | LLM self-discipline |
 | Security scanner (regex secrets/vulns) | `security-scanner.js` | Enterprise mode only; scope = `bundle/hooks/lib` only; `checkOwaspTop10` dead |
-| Human review | README claims "Human Checkpoints (auth/payments/security/scope-creep)" | **PARTIALLY closed by Phase 3** (`d0aa26f`): `domain/review-queue.js` derives the pending queue from the event log and the quality-gate hook injects a `## Human review queue` block on blocked/`needs_human`. Still **advisory**: nothing in the loop *creates* a ticket whose `humanReview.required` is true, so the queue is empty until something writes a `review.requested` / `needs_human` event |
+| Human review | README claims "Human Checkpoints (auth/payments/security/scope-creep)" | **PARTIALLY closed by Phase 3** (`d0aa26f`): `domain/review-queue.js` derives the pending queue from the event log and the quality-gate hook injects a `## Human review queue` block on blocked/`needs_human`. Still **advisory**: nothing in the loop *creates* a ticket whose `humanReview.required` is true, so the queue is empty until something writes a `review.requested` / `needs_human` event. **Status 2026-10-26 — CLOSED**: `domain/index.js` appends a `review.requested` event with `humanReview.required: true` whenever a phase outcome is blocked or `needs_human`, so the queue fills from real loop events (`scripts/test-review-queue-producer.js`) |
 
 **"Agent says completed" vs "System verified completed":**
 

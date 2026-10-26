@@ -284,7 +284,7 @@ eachableLight at merge-autonomy-config.js:236. Files: docs/audit/agent-architect
 2. Write `context/specs/` slice backlog from MVP intake — **done (2026-08-22)**
 3. Hard production checklist gate on final review — **done** (`production-checklist` quality gate; see Features > Orchestration in `project-overview.md`)
 4. P4: SQLite FTS / hybrid embeddings — **done 2026-10-26** (`memory-fts.js` + RRF fusion; worktree isolation shipped in Phase 5 on 2026-10-03; CI wiring + studio suites on 2026-10-25)
-5. Producer for `humanReview.required` events (review queue is otherwise always empty)
+5. Producer for `humanReview.required` events — **done** (`domain/index.js` appends `review.requested` with `humanReview.required: true` on blocked/`needs_human` phase outcomes; `scripts/test-review-queue-producer.js`)
 
 ## Open Questions
 
