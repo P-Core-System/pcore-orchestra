@@ -218,7 +218,7 @@ pcore-orchestra/
 │   │       ├── orchestra.json           # V2 state schema
 │   │       └── orchestra-memory.json    # Long-term memory
 │   │
-│   ├── agents/                # 165 files: 5 core loop agents + 155 specialists in 38 category dirs + 5 references
+│   ├── agents/                # 165 files: 5 core loop agents + 155 specialists in 37 category dirs + 5 references
 │   │   ├── orchestra-planner.md         # readonly — research + plan
 │   │   ├── orchestra-implementer.md     # implement code + commit
 │   │   ├── orchestra-verifier.md        # readonly — test + lint

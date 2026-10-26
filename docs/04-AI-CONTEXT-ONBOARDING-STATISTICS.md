@@ -38,7 +38,7 @@ This section is designed to be read directly by AI agents (Cursor, OpenCode CLI,
 │   ├── hooks/            # 11 hook entry points + lib/ (43 flat modules + 8-module domain/)
 │   ├── opencode/         # OpenCode mirror: hooks/ (byte-identical lib), agents/, skills/, config
 │   ├── qoder/agents/     # Qoder agent markdown, generated from the Cursor agents
-│   ├── agents/           # 160 agent definitions + references/ in 38 category dirs
+│   ├── agents/           # 160 agent definitions in 37 category dirs + references/
 │   ├── skills/           # Vendored + orchestra skills (Cursor)
 │   ├── skills-cursor/    # Cursor built-in skill mirrors
 │   ├── rules/            # Always-on .mdc rules
@@ -401,7 +401,7 @@ pcore-orchestra/
 │   │   ├── evidence-runner.js     # Build/test/lint/security gates
 │   │   ├── phase-commit-gate.js   # Commit-before-next-phase gate
 │   │   └── ...                    # 35 more flat modules + domain/ (see Lib Modules above)
-│   ├── agents/                    # 🎭 160 agent definitions + references/ (38 category dirs)
+│   ├── agents/                    # 🎭 160 agent definitions + references/ (37 category dirs)
 │   ├── qoder/agents/              # Qoder mirrors (generated)
 │   ├── skills/                    # Cursor skills
 │   ├── skills-cursor/             # Cursor built-in skills

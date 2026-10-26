@@ -42,18 +42,11 @@
 | `bundle/hooks/lib/domain/completion.js` | Claimed-vs-verified gate: `claimDone`, `startVerification`/`recordVerification` (records commit+diffHash), `evaluateCompletion` → `{complete, reasons[], checks}`, `applyCompletion` |
 | `bundle/hooks/lib/domain/store.js` | safe-write-only JSON store: `appendEvent` (withLock + readJsonSafe + ring cap + writeJson), `loadEvents` (corrupt → `.corrupt-<ts>` quarantine + defaults), `saveCheckpoint`/`loadCheckpoint` (session-filtered) |
 | `bundle/hooks/lib/domain/index.js` | Domain barrel + `recordPhaseOutcome(state, outcome, subagentType)` → `phase.outcome` event |
-| `bundle/opencode/hooks/lib/domain/` | Byte-identical mirror of all six domain modules |
-| `bundle/agents/` | Subagent prompts (divided by phase category) |
-| `bundle/agents/01-idea/` | Idea → Analysis agents |
-| `bundle/agents/02-requirements/` | Requirements agents |
-| `bundle/agents/03-architecture/` | Architecture agents |
-| `bundle/agents/04-planning/` | Sprint/Task planning agents |
-| `bundle/agents/05-implementation/` | Implementation agents |
-| `bundle/agents/06-testing/` | Testing agents |
-| `bundle/agents/07-security/` | Security agents |
-| `bundle/agents/08-deployment/` | DevOps/Deployment agents |
-| `bundle/agents/09-observability/` | Observability agents |
-| `bundle/agents/10-review/` | Review agents |
+| `bundle/opencode/hooks/lib/domain/` | Byte-identical mirror of all eight domain modules |
+| `bundle/agents/` | Subagent prompts: 5 core loop agents + 155 specialists |
+| `bundle/agents/00-*/` | Cross-cutting categories (business, domain, policy, tech, workflow) |
+| `bundle/agents/01-idea/` … `14-research/` | SDLC phase categories, including the `07-*` team dirs |
+| `bundle/agents/references/` | Shared spawn matrix and reference docs |
 | `bundle/rules/orchestra-loop.mdc` | Always-on agent policy |
 | `bundle/skills/orchestra-loop/` | Skill documentation |
 | `bundle/skills/prompt-intake/` | Vague-goal intake before planning |

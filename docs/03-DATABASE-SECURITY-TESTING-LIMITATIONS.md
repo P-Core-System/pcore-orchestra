@@ -460,7 +460,7 @@ All caps are intentional to keep state small and operations fast, and are config
 | AD-07 | Prompt Chaining + ReAct | Simplest correct architecture |
 | AD-08 | Flat agent structure | Each agent has one clear job |
 | AD-09 | Only implementer commits | Clear responsibility, audit trail |
-| AD-10 | SOLID with 43 lib modules | SRP, testability, maintainability |
+| AD-10 | SOLID with 43 flat + 8 domain modules | SRP, testability, maintainability |
 | AD-11 | Config-driven extensibility | Add phases/commands without logic changes |
 | AD-12 | Zero npm dependencies in the hook runtime | Security, reliability, portability; the optional MCP server is the sole npm consumer |
 | AD-13 | JSON persistence + one derived SQLite FTS index | Simple, backup-friendly state; the FTS mirror is rebuildable and never authoritative |
