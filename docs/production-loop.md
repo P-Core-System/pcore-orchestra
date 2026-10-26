@@ -126,4 +126,4 @@ orchestra:
 
 ---
 
-*V3.6 — plan artifact + cycle reports + memory index*
+*V3.7 — plan artifact, cycle reports, hybrid memory recall, fail-closed commit gate*

@@ -25,7 +25,7 @@ P-Core Orchestra provides **ambient multi-agent orchestration** for AI-assisted 
 
 ## Business Problem
 
-Modern AI coding assistants (Cursor IDE, OpenCode CLI) are fundamentally stateless and single-agent: each prompt starts fresh with no memory, no verification pipeline, and no quality gate. Developers face:
+Modern AI coding assistants (Cursor, OpenCode CLI, Qoder CLI) are fundamentally stateless and single-agent: each prompt starts fresh with no memory, no verification pipeline, and no quality gate. Developers face:
 
 - **No systematic verification** — AI writes code but doesn't test it
 - **No planning phase** — AI jumps directly to implementation without researching the codebase
@@ -37,8 +37,9 @@ Modern AI coding assistants (Cursor IDE, OpenCode CLI) are fundamentally statele
 
 | User | Need |
 |------|------|
-| Software Developers using Cursor IDE | Higher quality AI-generated code with automated verification |
+| Software Developers using Cursor | Higher quality AI-generated code with automated verification |
 | OpenCode CLI Users | Same orchestration in a terminal-based workflow |
+| Qoder CLI Users | Same loop with converted agents and merged hook settings |
 | Engineering Teams | Consistent code quality standards enforced automatically |
 | Technical Leads | Enforce architecture invariants, code standards, and project conventions |
 
