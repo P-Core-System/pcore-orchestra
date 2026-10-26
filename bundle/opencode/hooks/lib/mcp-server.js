@@ -24,6 +24,7 @@ const os = require("node:os");
 const { listRuns, readRun, getConductorBaseDir } = require("./conductor-state.js");
 const { loadEvents } = require("./domain/store.js");
 const { loadIndex } = require("./memory-index.js");
+const { TOOL_DEFINITIONS } = require("./knowledge-tools.js");
 
 class McpServer {
   constructor() {
@@ -214,6 +215,9 @@ class McpServer {
           },
         },
       ];
+      for (const t of TOOL_DEFINITIONS) {
+        tools.push({ name: t.name, description: t.description, inputSchema: t.inputSchema });
+      }
       this._tools = tools;
       return { tools };
     });
@@ -311,8 +315,23 @@ class McpServer {
             }],
           };
         }
-        default:
+        default: {
+          const knowledge = TOOL_DEFINITIONS.find((t) => t.name === name);
+          if (knowledge) {
+            try {
+              const result = knowledge.handler(args || {});
+              return {
+                content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+              };
+            } catch (e) {
+              return {
+                content: [{ type: "text", text: String(e && e.message ? e.message : e) }],
+                isError: true,
+              };
+            }
+          }
           throw new Error("Unknown tool: " + name);
+        }
       }
     });
   }
@@ -406,6 +425,107 @@ class McpServer {
   }
 }
 
+/**
+ * Start a Streamable HTTP front for the same tool surface — this is what
+ * remote MCP connectors (e.g. ChatGPT developer mode) speak. Stateless: a
+ * fresh Server+transport handles each POST, so no session bookkeeping and no
+ * cross-request state. Loopback bind needs no token; any other host REQUIRES
+ * PCORE_MCP_TOKEN (or config.token) because the tools read project files.
+ *
+ * @param {object} config
+ * @param {number} [config.port=8765]
+ * @param {string} [config.host="127.0.0.1"]
+ * @param {string|null} [config.token]
+ * @param {(msg: object) => void} [config.log]
+ * @returns {Promise<{host: string, port: number, path: string, close: Function}>}
+ */
+async function startHttp(config = {}) {
+  const http = require("node:http");
+  const { StreamableHTTPServerTransport } = require("@modelcontextprotocol/sdk/server/streamableHttp.js");
+  const host = config.host || "127.0.0.1";
+  const port = config.port || 8765;
+  const token = config.token === undefined ? process.env.PCORE_MCP_TOKEN || null : config.token;
+  const loopback = ["127.0.0.1", "localhost", "::1"].includes(host);
+  if (!loopback && !token) {
+    throw new Error("refusing to bind " + host + " without PCORE_MCP_TOKEN: the knowledge tools read project files");
+  }
+  const log = config.log || (() => {});
+
+  const httpServer = http.createServer((req, res) => {
+    const url = (req.url || "").split("?")[0];
+    if (req.method === "GET" && (url === "/health" || url === "/")) {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ ok: true, transport: "streamable-http", endpoint: "/mcp", auth: token ? "bearer" : "loopback" }));
+      return;
+    }
+    if (url !== "/mcp") {
+      res.writeHead(404, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: "not found" }));
+      return;
+    }
+    if (token && req.headers.authorization !== "Bearer " + token) {
+      res.writeHead(401, { "content-type": "application/json", "www-authenticate": "Bearer" });
+      res.end(JSON.stringify({ error: "unauthorized" }));
+      return;
+    }
+    if (req.method !== "POST") {
+      res.writeHead(405, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: "use POST /mcp" }));
+      return;
+    }
+    let body = "";
+    let size = 0;
+    req.on("data", (chunk) => {
+      size += chunk.length;
+      if (size > 1024 * 1024) {
+        res.writeHead(413, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "payload too large" }));
+        req.destroy();
+        return;
+      }
+      body += chunk;
+    });
+    req.on("end", async () => {
+      let parsed;
+      try {
+        parsed = body ? JSON.parse(body) : null;
+      } catch {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "invalid JSON" }));
+        return;
+      }
+      try {
+        const instance = new McpServer();
+        const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+        res.on("close", () => {
+          transport.close().catch(() => {});
+          instance.stop().catch(() => {});
+        });
+        await instance.server.connect(transport);
+        await transport.handleRequest(req, res, parsed);
+      } catch (e) {
+        log("mcp http error: " + e.message);
+        if (!res.headersSent) {
+          res.writeHead(500, { "content-type": "application/json" });
+          res.end(JSON.stringify({ error: "internal" }));
+        }
+      }
+    });
+  });
+
+  await new Promise((resolve, reject) => {
+    httpServer.once("error", reject);
+    httpServer.listen(port, host, resolve);
+  });
+
+  return {
+    host,
+    port: httpServer.address().port,
+    path: "/mcp",
+    close: () => new Promise((resolve) => httpServer.close(resolve)),
+  };
+}
+
 // Map to track MCP server instances per runId
 const mcpServerInstances = new Map();
 
@@ -480,6 +600,7 @@ process.on("SIGINT", () => {
 module.exports = {
   McpServer: McpServer,
   start: start,
+  startHttp: startHttp,
   stop: stop,
   stopAll: stopAll,
 };

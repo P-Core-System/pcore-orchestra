@@ -304,7 +304,7 @@ beforeSubmitPrompt → classification + auto-start
 | Memory + recall | `memory-manager`, `memory-index`, `memory-fts`, `semantic-memory`, `plan-artifact`, `cycle-report` |
 | Evidence + security | `evidence-runner`, `evidence-record`, `security-scanner`, `harness-observability`, `observability` |
 | Enterprise project | `project-identity`, `project-manager`, `version-manager`, `daily-planner`, `devops`, `self-improvement`, `metrics-report` |
-| Orchestration + hosts | `spawn-adapter`, `orchestra-spawn-matrix`, `worktree-manager`, `mcp-server`, `token-tracker`, `history-recorder` |
+| Orchestration + hosts | `spawn-adapter`, `orchestra-spawn-matrix`, `worktree-manager`, `mcp-server`, `knowledge-tools`, `token-tracker`, `history-recorder` |
 | Loop telemetry | `lifecycle-recorder`, `heartbeat-monitor` |
 
 Key modules:

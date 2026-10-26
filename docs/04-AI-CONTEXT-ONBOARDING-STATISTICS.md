@@ -35,7 +35,7 @@ This section is designed to be read directly by AI agents (Cursor, OpenCode CLI,
 ```
 ./
 ├── bundle/
-│   ├── hooks/            # 11 hook entry points + lib/ (43 flat modules + 8-module domain/)
+│   ├── hooks/            # 11 hook entry points + lib/ (44 flat modules + 8-module domain/)
 │   ├── opencode/         # OpenCode mirror: hooks/ (byte-identical lib), agents/, skills/, config
 │   ├── qoder/agents/     # Qoder agent markdown, generated from the Cursor agents
 │   ├── agents/           # 160 agent definitions in 37 category dirs + references/
@@ -48,7 +48,7 @@ This section is designed to be read directly by AI agents (Cursor, OpenCode CLI,
 ├── templates/
 │   ├── context/          # Blank six-file context templates
 │   └── AGENTS.md         # Entry-point template
-├── scripts/              # 54 JS (49 top-level + 5 lib/) + 17 shell: suites, automation, service managers
+├── scripts/              # 56 JS (51 top-level + 5 lib/) + 17 shell: suites, automation, service managers
 ├── server/               # Studio API (Node)
 ├── studio/               # Read-only React/Vite dashboard
 ├── docs/                 # 01–04 core docs, topic guides, dated audit/ + plans/
@@ -59,7 +59,7 @@ This section is designed to be read directly by AI agents (Cursor, OpenCode CLI,
 
 ## Lib Modules (`bundle/hooks/lib/`)
 
-43 flat modules (plus the 8-module `domain/` package), all `"use strict"` CommonJS. The living module list and invariants are
+44 flat modules (plus the 8-module `domain/` package), all `"use strict"` CommonJS. The living module list and invariants are
 in [`context/architecture.md`](../context/architecture.md); the table below is the
 orientation map.
 
@@ -391,7 +391,7 @@ pcore-orchestra/
 │   │   ├── orchestra-enable.js    # Enable/disable/status/memory CLI
 │   │   ├── orchestra-quality-gate.js   # Production checklist hook
 │   │   └── ...                    # lifecycle, heartbeat, memory, lib
-│   ├── hooks/lib/                 # 🧠 43 flat modules + 8-module domain/ (the engine)
+│   ├── hooks/lib/                 # 🧠 44 flat modules + 8-module domain/ (the engine)
 │   │   ├── state-manager.js       # Root + per-session state
 │   │   ├── memory-manager.js      # Short/long-term memory
 │   │   ├── memory-index.js        # JSON inverted index (recall)
@@ -417,7 +417,7 @@ pcore-orchestra/
 ├── context/                       # Six-file project context
 ├── project-bridge/                # 🌉 Per-repo cursor config bridge
 ├── templates/                     # 📋 Context/AGENTS.md templates
-├── scripts/                       # 🔧 54 JS + 17 shell
+├── scripts/                       # 🔧 56 JS + 17 shell
 ├── install.sh                     # 🚀 macOS/Linux installer
 ├── install.ps1                    # 🚀 Windows installer
 └── README.md                      # Project docs
@@ -550,7 +550,7 @@ node bundle/hooks/orchestra-health.js
 | PowerShell — `install.ps1` + `scripts/*.ps1` | ~1,100 |
 | Markdown — README + `context/` + `docs/` (incl. dated audit/plans) | ~13,500 |
 
-**Tests:** 39 `scripts/test-*.js` suites plus `scripts/test-studio-service.sh` (21 checks). CI wires 37 Node suites + the bash suite alongside the agent-registry, secret-scan, and Qoder-drift gates; `test-agent-capabilities.js` (registry v2 / tool allowlists / skill metadata, with its installed-tree check skipped on a clean runner) and the `test-e2e-suite.js` fan-out runner are local gates.
+**Tests:** 40 `scripts/test-*.js` suites plus `scripts/test-studio-service.sh` (21 checks). CI wires 38 Node suites + the bash suite alongside the agent-registry, secret-scan, and Qoder-drift gates; `test-agent-capabilities.js` (registry v2 / tool allowlists / skill metadata, with its installed-tree check skipped on a clean runner) and the `test-e2e-suite.js` fan-out runner are local gates.
 
 ## Largest `bundle/hooks/lib` modules
 
@@ -558,15 +558,16 @@ node bundle/hooks/orchestra-health.js
 |--------|-------|-------------------|
 | `evidence-runner.js` | 752 | Build/test/lint/security evidence gates |
 | `project-identity.js` | 709 | `project.yaml` identity resolution |
-| `token-tracker.js` | 703 | Token budgets, cache-hit metrics, tips |
+| `token-tracker.js` | 705 | Token budgets, cache-hit metrics, tips |
+| `mcp-server.js` | 606 | MCP server surface (run tools + knowledge tools, stdio + Streamable HTTP) |
 | `state-manager.js` | 539 | State load/save/migrate (V2) |
-| `project-manager.js` | 490 | Epics, milestones, stories, backlog |
-| `mcp-server.js` | 485 | MCP server surface |
-| `memory-manager.js` | 482 | Short/long-term memory, hybrid recall injection |
+| `project-manager.js` | 492 | Epics, milestones, stories, backlog |
+| `memory-manager.js` | 484 | Short/long-term memory, hybrid recall injection |
 | `security-scanner.js` | 467 | Secret/vulnerability scan rules |
 | `conductor-state.js` | 389 | OpenCode conductor lifecycle |
-| `version-manager.js` | 361 | Semver, changelog, release notes |
-| **Total flat `lib/`** | **10,703** | 43 files |
+| `version-manager.js` | 363 | Semver, changelog, release notes |
+| `knowledge-tools.js` | 261 | Allowlisted docs/context read tools + share inbox + MCP tool definitions |
+| **Total flat `lib/`** | **11,096** | 44 files |
 | **`lib/domain/` package** | **955** | 8 files (domain model, store, evidence, completion, state dir) |
 
 ## Hook entry points
@@ -591,7 +592,7 @@ node bundle/hooks/orchestra-health.js
 | System | Size | Notes |
 |--------|------|-------|
 | Installers | 1,159 lines (bash + PowerShell) | `install.sh` (611), `install.ps1` (548) |
-| Scripts | 54 JS (49 top-level + 5 `lib/`) + 17 shell | Automation, suites, service managers, watcher |
+| Scripts | 56 JS (51 top-level + 5 `lib/`) + 17 shell | Automation, suites, service managers, watcher, MCP knowledge server |
 | Templates | 42 files | Six-file context blanks, specs, AGENTS, 29 architecture templates |
 | Agents | 160 agent files, 27 hook agents | Generated SSOT: `bundle/agent-registry.json` |
 
@@ -621,7 +622,7 @@ lives in `project.yaml` and `package.json`.
 | 5 | `docs/01-OVERVIEW-AND-ARCHITECTURE.md` | SOLID, architectural invariants, C4 diagrams (Context, Container, Component), LLM topology, hook lifecycle, event storming |
 | 6 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | All 16 features — ambient auto-start, build/fix, four-phase loop, stall detection, pause/resume, crash recovery, memory, history, six-file context, classification, config-driven, headless agents, dependency-free hook runtime, install/verify, project bootstrap, conductor run state |
 | 7 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | Hook architecture, 8-command hook contract table + 3 non-event entry points, hooks.json config, event-driven flow diagram, hand-coded rules |
-| 8 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | Hook and lib module reference for `bundle/hooks/lib/` (43 flat modules + `domain/`) |
+| 8 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | Hook and lib module reference for `bundle/hooks/lib/` (44 flat modules + `domain/`) |
 | 9 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | Core loop agents — planner, implementer, verifier, reviewer — for Cursor, OpenCode, and Qoder |
 | 10 | `docs/03-DATABASE-SECURITY-TESTING-LIMITATIONS.md` | State, memory, history schemas, field groups, lifecycle events, checkpoint schema, migration history, ER diagram, performance |
 | 11 | `docs/03-DATABASE-SECURITY-TESTING-LIMITATIONS.md` | Security model, auth/authz, CSP/CSRF/XSS/SQLi, input validation, rate limiting, secrets, supply chain security, recommendations |

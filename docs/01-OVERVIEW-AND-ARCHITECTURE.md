@@ -100,7 +100,7 @@ All core features complete (64 completed items). All critical and important code
 
 | Language | Usage | Rationale |
 |----------|-------|-----------|
-| **JavaScript (Node.js)** | 11 hook entry points + 43 flat lib modules + 8 domain modules + CLI tooling | Cursor/Qoder hooks spawn Node.js; CommonJS required |
+| **JavaScript (Node.js)** | 11 hook entry points + 44 flat lib modules + 8 domain modules + CLI tooling | Cursor/Qoder hooks spawn Node.js; CommonJS required |
 | **TypeScript** | Cloudflare Worker template (turnstile-spin skill only) | Type safety for deployable Workers |
 | **Markdown** | Agent definitions, skills, documentation, context files | Native format for Cursor/OpenCode agent prompts |
 | **Bash** | Install scripts, bootstrap, setup scripts | Standard Unix shell, `set -euo pipefail` |
@@ -149,7 +149,7 @@ Separate optional packages exist outside the hook runtime:
 | **Harness > Scaffold > Loop** | Three-layer architecture | Clean separation of runtime, behavior, and execution cycle |
 | **Operator Loop Stack** | Jack Njoroge pattern | Production-grade with formal state, convergence, human escalation |
 | **Six-File Context** | JavaScript Mastery methodology | Stable project grounding across sessions |
-| **SOLID** | 43 flat + 8 domain single-purpose modules, command map, facade, specific imports | Maintainability, testability, extensibility |
+| **SOLID** | 44 flat + 8 domain single-purpose modules, command map, facade, specific imports | Maintainability, testability, extensibility |
 | **Config-Driven** | PHASE_CHAIN object, COMMANDS map | Add phases/commands without logic changes |
 | **Deep Merge Defaults** | `{...DEFAULT, ...loaded}` | V1→V2 migration without schema scripts |
 
@@ -193,7 +193,7 @@ pcore-orchestra/
 │   │   ├── orchestra-stop.js           # Phase nudges (stop)
 │   │   └── orchestra-subagent-stop.js  # Phase chaining engine (subagentStop)
 │   │   │
-│   │   ├── lib/               # SHARED LIBRARY (43 flat modules + domain/ model, store, evidence, review queue)
+│   │   ├── lib/               # SHARED LIBRARY (44 flat modules + domain/ model, store, evidence, review queue)
 │   │   │   ├── io.js                    # stdin/stdout helpers (readStdinJson, emit)
 │   │   │   ├── constants.js             # 55 named constants
 │   │   │   ├── state-manager.js         # State CRUD + startOrchestra

@@ -263,6 +263,7 @@ node scripts/test-phase-outcome.js            # end-token / failed-gate phase bl
 node scripts/test-agent-registry.js           # registry SSOT
 node scripts/test-handshake-contract.js       # selector/orchestrator end tokens
 node scripts/test-mirror-sync.js              # bundle/hooks == bundle/opencode/hooks
+node scripts/test-mcp-knowledge.js            # MCP knowledge tools + HTTP front (ChatGPT)
 node scripts/test-permission-review.js        # deny-first conductor allowlist, 160/160 coverage
 node scripts/test-adaptive-loop.js            # phase model / adaptive loops
 node scripts/test-domain-model.js             # domain entities + ticket/session state machine
@@ -277,7 +278,7 @@ node scripts/scan-secrets.js --dir . --fail-on=high   # blocking secret scan (CI
 ```
 
 The list above is the core subset; `node scripts/test-e2e-suite.js` runs every
-`scripts/test-*.js` suite in isolation with a PASS/FAIL summary. CI runs 37 Node suites
+`scripts/test-*.js` suite in isolation with a PASS/FAIL summary. CI runs 38 Node suites
 plus the bash service suite on every PR; the capability suite and the e2e runner are
 local gates. See `CONTRIBUTING.md` §3 for the full command set.
 
@@ -293,6 +294,27 @@ bash scripts/init-project.sh /path/to/your-app
 bash scripts/init-context.sh /path/to/your-app
 bash scripts/init-context.sh /path/to/your-app --bridge   # with project bridge
 ```
+
+---
+
+## Knowledge Server (MCP → ChatGPT / remote)
+
+The MCP server also speaks **Streamable HTTP**, so remote connectors like ChatGPT
+developer mode can read your project docs/context and share knowledge back through
+a reviewed inbox. Loopback needs no token; any other bind requires `PCORE_MCP_TOKEN`.
+
+```bash
+# serve the current project on http://127.0.0.1:8765/mcp
+node scripts/mcp-knowledge-server.js --root "$PWD" --port 8765
+
+# then front it with a tunnel for ChatGPT:
+#   cloudflared tunnel --url http://localhost:8765
+```
+
+Tools: `search_docs`, `read_doc`, `read_context`, `search_memory` (read-only,
+allowlisted) + `share_knowledge`, `list_knowledge` (pending inbox only — the
+server never edits docs or context). Full setup, auth, and ChatGPT connector
+steps: [`docs/mcp-chatgpt.md`](docs/mcp-chatgpt.md).
 
 ---
 

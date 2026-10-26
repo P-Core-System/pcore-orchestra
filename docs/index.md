@@ -21,6 +21,7 @@ Start with the [README](../README.md) for install and quick start, then:
 | [autonomous-workflow.md](autonomous-workflow.md) | Cursor/OpenCode autonomy profiles, permissions, sandbox |
 | [agent-permissions.md](agent-permissions.md) | OpenCode agent frontmatter permission contract |
 | [orchestra-cross-platform.md](orchestra-cross-platform.md) | Cursor vs OpenCode vs Qoder spawn matrix |
+| [mcp-chatgpt.md](mcp-chatgpt.md) | MCP knowledge server: docs/context read tools, share inbox, Streamable HTTP front for ChatGPT connectors |
 | [token-optimization.md](token-optimization.md) | Token spend reduction, cache-hit measurement, budgets |
 | [concurrency-tracking.md](concurrency-tracking.md) | Session claims and multi-session isolation |
 | [greenfield-and-gaps.md](greenfield-and-gaps.md) | Greenfield intake flow and gap analysis |

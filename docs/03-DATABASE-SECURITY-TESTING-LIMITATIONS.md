@@ -198,7 +198,7 @@ erDiagram
 
 ## Security Model
 
-**Local-only by default: no network endpoints, no authentication, no user accounts, no external API calls in the hook runtime.** The optional Studio server (localhost) and the MCP server (stdio) are opt-in and not started by hooks.
+**Local-only by default: no network endpoints, no authentication, no user accounts, no external API calls in the hook runtime.** The optional Studio server (localhost) and the MCP server are opt-in and never started by hooks. The MCP server runs on **stdio** for local hosts; a separate, manually-launched Streamable HTTP front (`scripts/mcp-knowledge-server.js` / `startHttp()`) can expose the allowlisted knowledge tools to remote connectors — it binds `127.0.0.1` by default and **refuses any non-loopback bind without `PCORE_MCP_TOKEN`**; it is only reachable beyond the machine behind a tunnel you start yourself. See `docs/mcp-chatgpt.md`.
 
 ```mermaid
 graph LR
@@ -230,7 +230,7 @@ Authorization is enforced at the agent level:
 
 ## CSP, CSRF, XSS, SQL Injection
 
-**Not applicable to the hook runtime.** It serves no web UI and opens no network sockets. The only SQL is parameterized FTS5 against a derived, local, rebuildable index. The optional Studio server (`server/`, localhost only) and MCP server (stdio) are opt-in.
+**Not applicable to the hook runtime.** It serves no web UI and opens no network sockets. The only SQL is parameterized FTS5 against a derived, local, rebuildable index. The optional Studio server (`server/`, localhost only) and MCP server (stdio, or its opt-in loopback HTTP front) are opt-in.
 
 ## Validation
 
@@ -259,14 +259,14 @@ Authorization is enforced at the agent level:
 | Aspect | Status |
 |--------|--------|
 | Hook runtime dependencies | ✅ Built-in modules only (no third-party runtime deps) |
-| Root optional dependency | 1 (`@modelcontextprotocol/sdk`) — loaded only by the opt-in stdio MCP server; lock file committed |
+| Root optional dependency | 1 (`@modelcontextprotocol/sdk`) — loaded only by the opt-in MCP server (stdio or HTTP front); lock file committed |
 | Studio server dependencies | 2 (`express`, `ws`) in the private `server/` package; separate lock file |
 | Single source of truth | ✅ `bundle/` is the only source |
 | No external downloads at install | ✅ Installer copies locally |
 | Git-tracked source | ✅ All code in git |
 
 The hook runtime stays dependency-free, so a compromised npm tree cannot reach the hooks
-themselves. The MCP SDK is required only when the optional stdio MCP server runs, and the
+themselves. The MCP SDK is required only when the optional MCP server runs (stdio or HTTP front), and the
 `express`/`ws` pair only when the optional Studio server runs.
 
 ## Security Recommendations
@@ -290,7 +290,7 @@ verifier agent inside an orchestra run.
 
 ### CI suites (`.github/workflows/ci.yml`)
 
-39 Node suites (`scripts/test-*.js`) exist; 37 run in CI, plus one bash suite
+40 Node suites (`scripts/test-*.js`) exist; 38 run in CI, plus one bash suite
 (`scripts/test-studio-service.sh`). The two local gates are `test-agent-capabilities.js`
 (registry v2 tool allowlists, skill frontmatter, installed Qoder tree) and
 `test-e2e-suite.js` (runs every suite in isolation with a PASS/FAIL summary).
@@ -469,7 +469,7 @@ All caps are intentional to keep state small and operations fast, and are config
 | AD-07 | Prompt Chaining + ReAct | Simplest correct architecture |
 | AD-08 | Flat agent structure | Each agent has one clear job |
 | AD-09 | Only implementer commits | Clear responsibility, audit trail |
-| AD-10 | SOLID with 43 flat + 8 domain modules | SRP, testability, maintainability |
+| AD-10 | SOLID with 44 flat + 8 domain modules | SRP, testability, maintainability |
 | AD-11 | Config-driven extensibility | Add phases/commands without logic changes |
 | AD-12 | Zero npm dependencies in the hook runtime | Security, reliability, portability; the optional MCP server is the sole npm consumer |
 | AD-13 | JSON persistence + one derived SQLite FTS index | Simple, backup-friendly state; the FTS mirror is rebuildable and never authoritative |
