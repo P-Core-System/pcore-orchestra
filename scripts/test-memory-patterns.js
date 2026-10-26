@@ -136,6 +136,80 @@ async function runTests() {
   assertContains(ctx4, "frontend-app", "pattern context shows frontend project");
   assertContains(ctx4, "prettier", "pattern context shows frontend style");
 
+  // --- Test 7: recordPhasePlanOutcome tolerates missing last_outcome ---
+  console.log("\n-- recordPhasePlanOutcome defaults --");
+  memMgr.recordPhasePlanOutcome({ goal: "fix parser bug", currentPhase: "verify", memory: {} }, null);
+  const mem6 = loadMemoryManager();
+  const agg6 = mem6.getAggregatedMemory(mem6.loadLongTermMemory(null));
+  const bare = agg6.plan_outcomes.find((o) => o.goal === "fix parser bug");
+  assert(!!bare, "outcome recorded without last_outcome");
+  assertEqual(bare.outcome, "unknown", "missing last_outcome stored as unknown");
+  assertEqual(bare.phase, "verify", "phase preserved");
+
+  // --- Test 8: repeated failures produce a planning warning ---
+  console.log("\n-- outcome history warning --");
+  const failingState = {
+    version: 1,
+    sessions: {
+      "s-warn": {
+        completed_goals: [],
+        recent_files: [],
+        error_patterns: [],
+        project_patterns: {},
+        user_preferences: {},
+        plan_outcomes: [
+          { task_type: "bugfix", phase: "verify", outcome: { decision: "block" }, errors: [{ error: "vitest: session claims spec failed" }], timestamp: "2026-10-20T10:00:00.000Z" },
+          { task_type: "bugfix", phase: "verify", outcome: { decision: "fix" }, errors: [{ error: "vitest: session claims spec failed" }], timestamp: "2026-10-21T10:00:00.000Z" },
+          { task_type: "bugfix", phase: "review", outcome: { decision: "advance" }, errors: [], timestamp: "2026-10-22T10:00:00.000Z" },
+        ],
+      },
+    },
+  };
+  const mem7 = loadMemoryManager();
+  const ctx5 = mem7.buildPatternContext(failingState, "fix login bug");
+  assertContains(ctx5, "Task history (bugfix)", "warning names the task type");
+  assertContains(ctx5, "needed fixes", "warning states failure count");
+  assertContains(ctx5, "Recurring errors", "warning lists recurring errors");
+  assertContains(ctx5, "vitest: session claims spec failed", "warning includes error label");
+  const cleanCtx = mem7.buildPatternContext(failingState, "create react frontend page");
+  assert(!cleanCtx.includes("Task history"), "no warning for an unrelated task type");
+
+  // --- Test 9: learnProjectPattern detects stack + dedupes repeats ---
+  console.log("\n-- learnProjectPattern --");
+  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), "orchestra-stack-test-"));
+  fs.writeFileSync(
+    path.join(projectDir, "package.json"),
+    JSON.stringify({ name: "stack-probe", devDependencies: { vitest: "^5.0.0" }, scripts: { test: "vitest run" } })
+  );
+  fs.writeFileSync(path.join(projectDir, "package-lock.json"), "{}");
+  const stack = memMgr.detectProjectStack(projectDir);
+  assertEqual(stack.package_manager, "npm", "detected npm from package-lock.json");
+  assertEqual(stack.test_framework, "vitest", "detected vitest from devDependencies");
+
+  const probeState = { goal: "add api endpoint for orders", memory: { files_changed: ["src/a.ts", "src/b.ts"] } };
+  assert(memMgr.learnProjectPattern(probeState, projectDir) === true, "learnProjectPattern returns true for a real dir");
+  memMgr.learnProjectPattern(probeState, projectDir);
+  const mem8 = loadMemoryManager();
+  const probeMem = mem8.getSessionMemory(mem8.loadLongTermMemory(null));
+  const probeKeys = Object.keys(probeMem.project_patterns).filter((k) => k === path.basename(projectDir));
+  assertEqual(probeKeys.length, 1, "project pattern recorded under dir basename");
+  assertEqual(probeMem.project_patterns[probeKeys[0]].length, 1, "identical repeat is deduped");
+  const ctx6 = mem8.buildPatternContext(
+    { version: 1, sessions: { "pid-test": probeMem } },
+    "add api endpoint for orders"
+  );
+  assertContains(ctx6, path.basename(projectDir), "pattern context shows learned project");
+  assertContains(ctx6, "vitest", "pattern context shows learned test framework");
+  fs.rmSync(projectDir, { recursive: true, force: true });
+
+  // --- Test 10: completion path wires learning ---
+  console.log("\n-- completion wiring --");
+  const stopSrc = fs.readFileSync(
+    path.join(__dirname, "..", "bundle", "hooks", "orchestra-subagent-stop.js"),
+    "utf8"
+  );
+  assert(stopSrc.includes("learnProjectPattern(state"), "subagent-stop calls learnProjectPattern on completion");
+
   // Cleanup
   process.env.PCORE_STATE_DIR = originalEnv;
   try { fs.rmSync(testStateDir, { recursive: true, force: true }); } catch {}

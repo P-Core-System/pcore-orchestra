@@ -126,7 +126,9 @@ STALL_ATTEMPTS_ABORT_THRESHOLD = 2;     // abort after 2 consecutive
 - `recent_files[]` — max 50, tracks modification count
 - `error_patterns[]` — max 50, tracks recurrence
 
-**Recall:** completed goals are also indexed in `memory-index.json` (JSON inverted index, capped at 500) and mirrored into `memory-fts.db` (SQLite FTS5 via the built-in `node:sqlite`). `searchMemoryIndex` fuses both rankings with reciprocal rank fusion; each hit carries `score` and `sources` (`json`/`fts`). The FTS half is best-effort — `PCORE_FTS_DISABLE=1`, a missing `node:sqlite`, or an unwritable state dir degrades recall to the JSON index without failing the write.
+**Recall:** completed goals are also indexed in `memory-index.json` (JSON inverted index, capped at 500) and mirrored into `memory-fts.db` (SQLite FTS5 via the built-in `node:sqlite`). Index entries keep lessons, duration, and phase count so index hits render like semantic hits. The JSON half ranks by IDF (rare query tokens dominate) and `searchMemoryIndex` fuses both rankings with reciprocal rank fusion; each hit carries `score` and `sources` (`json`/`fts`). The FTS half is best-effort — `PCORE_FTS_DISABLE=1`, a missing `node:sqlite`, or an unwritable state dir degrades recall to the JSON index without failing the write. Injected context suppresses goals already shown by semantic recall.
+
+**Learning:** `learnProjectPattern()` runs on every completed run — detects package manager + test framework from lockfiles/manifests and records the task type, changed files, and stack per project (identical repeats deduped); `buildPatternContext()` surfaces them to the planner. `plan_outcomes` recorded at verify/review feed a planning warning when the same task type needed fixes in ≥2 of ≥3 recent checks, including recurring error labels.
 
 **Flush:** On completion/abort/max-iterations, short-term is flushed to long-term via `flushShortToLong()`. Memory is injected at session start, orchestration start, and first implementer invocation.
 
@@ -317,8 +319,8 @@ Key modules:
 | `conductor-state.js` | 389 | Per-run conductor state, atomic + isolation-keyed | `beginRun()`, `saveRun()`, `listRuns()`, `heartbeat()`, `completeRun()` |
 | `prompt-classifier.js` | 247 | Prompt extraction + classification | `extractPrompt()`, `classifyPrompt()`, `selectRoute()` |
 | `phase-engine.js` | 242 | Phase chains, categories, transitions | `getPhasesForMode()`, `getAgentForPhase()`, `advancePhase()`, `reviewerNeedsFix()` |
-| `memory-manager.js` | 482 | Long-term memory CRUD + context builders | `loadLongTermMemory()`, `flushShortToLong()`, `buildMemoryContext()`, `buildPatternContext()` |
-| `memory-index.js` | 103 | Goal inverted index + hybrid fusion | `indexCompletedGoal()`, `searchMemoryIndex()` |
+| `memory-manager.js` | 611 | Long-term memory CRUD + context builders | `loadLongTermMemory()`, `flushShortToLong()`, `buildMemoryContext()`, `buildPatternContext()`, `learnProjectPattern()` |
+| `memory-index.js` | 120 | Goal inverted index + hybrid fusion | `indexCompletedGoal()`, `searchMemoryIndex()` |
 | `memory-fts.js` | 102 | Optional SQLite FTS5 mirror | `ftsAvailable()`, `indexGoalFts()`, `searchFts()`, `removeFts()` |
 | `heartbeat-monitor.js` | 26 | Stall detection | `writeHeartbeat()`, `isStalled()`, `getStallDurationMs()` |
 | `lifecycle-recorder.js` | 51 | Events + phase timers | `emitLifecycleEvent()`, `startPhaseTimer()`, `endPhaseTimer()` |

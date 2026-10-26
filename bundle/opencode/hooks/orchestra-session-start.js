@@ -70,7 +70,8 @@ async function main() {
   }
 
   const ltm = loadLongTermMemory();
-  const memCtx = buildMemoryContext(ltm, state.goal ? { query: state.goal } : undefined);
+  const memQuery = state.goal || input.prompt || input.goal || "";
+  const memCtx = buildMemoryContext(ltm, memQuery ? { query: memQuery } : undefined);
   if (memCtx) dynamicParts.push(memCtx);
 
   const tokenCtx = buildTokenContextForSession();

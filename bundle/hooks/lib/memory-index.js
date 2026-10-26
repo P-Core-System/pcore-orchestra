@@ -8,6 +8,8 @@ const fts = require("./memory-fts.js");
 const INDEX_PATH = path.join(__dirname, "..", "state", "memory-index.json");
 const INDEX_MAX_ENTRIES = 500;
 const RRF_K = 60;
+const LESSON_MAX_COUNT = 3;
+const LESSON_MAX_CHARS = 200;
 
 function loadMemoryIndex() {
   return readJsonSafe(resolveStatePath(INDEX_PATH), { version: 1, entries: [], inverted: {} });
@@ -31,13 +33,22 @@ function saveMemoryIndex(index) {
 function indexCompletedGoal(goalEntry, timestamp) {
   const index = loadMemoryIndex();
   const id = `g-${timestamp}-${Math.random().toString(36).slice(2, 8)}`;
-  const text = [goalEntry.goal, ...(goalEntry.lessons || [])].join(" ");
+  const lessons = (goalEntry.lessons || [])
+    .filter((l) => typeof l === "string" && l.trim())
+    .slice(0, LESSON_MAX_COUNT)
+    .map((l) => l.slice(0, LESSON_MAX_CHARS));
+  const text = [goalEntry.goal, ...lessons].join(" ");
   const tokens = tokenize(text);
 
   index.entries.push({
     id,
     goal: goalEntry.goal,
     outcome: goalEntry.outcome,
+    duration_ms: goalEntry.duration_ms ?? null,
+    phase_count: goalEntry.phase_count ?? null,
+    run_id: goalEntry.run_id || null,
+    plan_artifact: goalEntry.plan_artifact || null,
+    lessons,
     timestamp,
     token_count: tokens.length,
   });
@@ -57,10 +68,16 @@ function searchMemoryIndex(query, topK = 5) {
   const qTokens = tokenize(query);
   if (qTokens.length === 0) return [];
 
+  // IDF-weighted lexical ranking: rare query tokens discriminate far better
+  // than tokens that appear in most indexed goals.
+  const totalDocs = index.entries.length;
   const scores = new Map();
-  for (const t of qTokens) {
-    for (const id of index.inverted[t] || []) {
-      scores.set(id, (scores.get(id) || 0) + 1);
+  for (const t of new Set(qTokens)) {
+    const ids = index.inverted[t] || [];
+    if (ids.length === 0) continue;
+    const idf = 1 + Math.log(totalDocs / Math.max(1, ids.length));
+    for (const id of ids) {
+      scores.set(id, (scores.get(id) || 0) + idf);
     }
   }
 

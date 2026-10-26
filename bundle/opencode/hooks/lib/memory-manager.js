@@ -1,5 +1,6 @@
 "use strict";
 
+const fs = require("node:fs");
 const path = require("node:path");
 const {
   MEMORY_MAX_COMPLETED,
@@ -260,14 +261,18 @@ function buildMemoryContext(memoryState, options) {
     if (relevantBlock) lines.push(relevantBlock);
 
     // Also use memory-index.js for token-based search (cross-session)
-    const indexed = searchMemoryIndex(query, SEMANTIC_RECALL_TOP_K);
+    const seenGoals = new Set(relevant.map((g) => g.goal));
+    const indexed = searchMemoryIndex(query, SEMANTIC_RECALL_TOP_K).filter(
+      (g) => !seenGoals.has(g.goal)
+    );
     if (indexed.length > 0) {
       lines.push("Relevant past goals (index search):");
       for (const g of indexed) {
         const lessons =
           g.lessons?.length > 0 ? ` | lessons: ${g.lessons.slice(0, 2).join("; ")}` : "";
+        const phases = g.phase_count ? `, ${g.phase_count} phases` : "";
         lines.push(
-          `  - "${g.goal}" (${g.outcome}, ${Math.round((g.duration_ms || 0) / 1000)}s, score: ${g.score})${lessons}`
+          `  - "${g.goal}" (${g.outcome}, ${Math.round((g.duration_ms || 0) / 1000)}s${phases}, score: ${g.score})${lessons}`
         );
       }
     }
@@ -354,7 +359,7 @@ function recordProjectPatterns(sessionId, patterns) {
 
   for (const [project, p] of Object.entries(patterns || {})) {
     if (!merged[project]) merged[project] = [];
-    merged[project].push({
+    const next = {
       task_type: p.task_type || "general",
       files: Array.isArray(p.files) ? p.files : [],
       conventions: p.conventions || {},
@@ -362,7 +367,16 @@ function recordProjectPatterns(sessionId, patterns) {
       package_manager: p.package_manager || null,
       style: p.style || null,
       timestamp: new Date().toISOString(),
-    });
+    };
+    const last = merged[project][merged[project].length - 1];
+    const duplicate =
+      last &&
+      last.task_type === next.task_type &&
+      last.test_framework === next.test_framework &&
+      last.package_manager === next.package_manager &&
+      JSON.stringify(last.files || []) === JSON.stringify(next.files);
+    if (duplicate) continue;
+    merged[project].push(next);
     if (merged[project].length > MEMORY_MAX_PROJECT_PATTERNS) {
       merged[project] = merged[project].slice(-MEMORY_MAX_PROJECT_PATTERNS);
     }
@@ -387,6 +401,111 @@ function recordUserPreferences(sessionId, preferences) {
 
   sessionMem.user_preferences = merged;
   saveLongTermMemory(sessionMem, session);
+}
+
+const FAILED_OUTCOME = /^(fix|fix_required|block|blocked|fail|failed|verify_fail)$/i;
+
+/** Detect package manager + test framework from lockfiles and manifests. */
+function detectProjectStack(root) {
+  const stack = { package_manager: null, test_framework: null };
+  const has = (rel) => {
+    try {
+      return fs.existsSync(path.join(root, rel));
+    } catch {
+      return false;
+    }
+  };
+
+  if (has("go.mod")) stack.package_manager = "go modules";
+  else if (has("Cargo.toml")) stack.package_manager = "cargo";
+  else if (has("composer.json")) stack.package_manager = "composer";
+  else if (has("poetry.lock")) stack.package_manager = "poetry";
+  else if (has("uv.lock")) stack.package_manager = "uv";
+  else if (has("pnpm-lock.yaml")) stack.package_manager = "pnpm";
+  else if (has("yarn.lock")) stack.package_manager = "yarn";
+  else if (has("bun.lockb") || has("bun.lock")) stack.package_manager = "bun";
+  else if (has("package.json")) stack.package_manager = "npm";
+  else if (has("requirements.txt") || has("pyproject.toml")) stack.package_manager = "pip";
+
+  if (has("package.json")) {
+    try {
+      const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+      const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
+      const testScript = (pkg.scripts && pkg.scripts.test) || "";
+      if (deps.vitest || /\bvitest\b/.test(testScript)) stack.test_framework = "vitest";
+      else if (deps.jest || /\bjest\b/.test(testScript)) stack.test_framework = "jest";
+      else if (deps.mocha || /\bmocha\b/.test(testScript)) stack.test_framework = "mocha";
+      else if (deps["@playwright/test"] || deps.playwright) stack.test_framework = "playwright";
+    } catch {}
+  }
+  if (!stack.test_framework && (has("pytest.ini") || has("conftest.py"))) stack.test_framework = "pytest";
+  if (!stack.test_framework && has("phpunit.xml")) stack.test_framework = "phpunit";
+  if (!stack.test_framework && has("go.mod")) stack.test_framework = "go test";
+  if (!stack.test_framework && has("Cargo.toml")) stack.test_framework = "cargo test";
+
+  return stack;
+}
+
+/**
+ * Learn a completed run's project conventions so the next planner sees them.
+ * Called at run completion; the run's changed files double as the sample.
+ */
+function learnProjectPattern(state, root) {
+  if (!root) return false;
+  const key = path.basename(path.resolve(root)) || "project";
+  const stack = detectProjectStack(root);
+  recordProjectPatterns(null, {
+    [key]: {
+      task_type: inferTaskType(state?.goal || ""),
+      files: Array.isArray(state?.memory?.files_changed)
+        ? state.memory.files_changed.slice(-10)
+        : [],
+      test_framework: stack.test_framework,
+      package_manager: stack.package_manager,
+    },
+  });
+  return true;
+}
+
+/** Extract a decision label from either a raw string or a last_outcome object. */
+function outcomeDecisionOf(outcome) {
+  if (!outcome) return "";
+  if (typeof outcome === "string") return outcome;
+  if (typeof outcome === "object") return outcome.decision || "";
+  return "";
+}
+
+/**
+ * Turn recorded verify/review outcomes into one planning nudge when the same
+ * task type keeps needing fixes. Returns "" when the history is clean or thin.
+ */
+function buildOutcomeHistoryWarning(planOutcomes, taskType) {
+  const rows = (planOutcomes || []).filter((o) => o && o.task_type === taskType);
+  if (rows.length < 3) return "";
+  const failed = rows.filter((o) => FAILED_OUTCOME.test(outcomeDecisionOf(o.outcome)));
+  if (failed.length < 2) return "";
+
+  const errorCounts = new Map();
+  for (const o of failed) {
+    for (const e of o.errors || []) {
+      const label = (e.error || e.error_type || "").trim();
+      if (label) errorCounts.set(label, (errorCounts.get(label) || 0) + 1);
+    }
+  }
+  const recurring = [...errorCounts.entries()]
+    .filter(([, n]) => n > 1)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2);
+
+  const lines = [
+    `Task history (${taskType}): ${failed.length} of ${rows.length} recent verify/review outcomes needed fixes — plan smaller steps and verify incrementally before the review phase.`,
+  ];
+  if (recurring.length > 0) {
+    lines.push(
+      `  Recurring errors: ${recurring.map(([label, n]) => `${label.slice(0, 80)} (${n}x)`).join("; ")}`
+    );
+  }
+  return lines.join("\n");
 }
 
 /** Build a pattern-aware context block for the planner. */
@@ -430,6 +549,12 @@ function buildPatternContext(memoryState, goal) {
     lines.push("");
   }
 
+  const historyWarning = buildOutcomeHistoryWarning(aggregated.plan_outcomes, taskType);
+  if (historyWarning) {
+    lines.push(historyWarning);
+    lines.push("");
+  }
+
   return lines.length > 0 ? lines.join("\n") : "";
 }
 
@@ -446,8 +571,8 @@ function recordPhasePlanOutcome(state, sessionId) {
   outcomes.push({
     task_type: taskType,
     goal: state.goal || "",
-    phase: state.currentPhase || unknown,
-    outcome: state.last_outcome || unknown,
+    phase: state.currentPhase || "unknown",
+    outcome: state.last_outcome || "unknown",
     files: Array.isArray(stm.files_changed) ? stm.files_changed : [],
     errors: Array.isArray(stm.errors) ? stm.errors : [],
     duration_ms: state.started_at ? Date.now() - new Date(state.started_at).getTime() : 0,
@@ -481,4 +606,6 @@ module.exports = {
   migrateToSessions,
   searchMemoryIndex,
   recordPhasePlanOutcome,
+  detectProjectStack,
+  learnProjectPattern,
 };

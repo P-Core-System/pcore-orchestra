@@ -65,7 +65,7 @@ function main() {
   check("FTS is available under this Node", fts.ftsAvailable() === true, `got ${fts.ftsAvailable()}`);
 
   // ── 2. dual write: JSON index + FTS mirror ───────────────────────
-  const goalA = { goal: "Add rate limiting to the payments API", outcome: "completed", lessons: ["use token bucket", "avoid nginx config drift"] };
+  const goalA = { goal: "Add rate limiting to the payments API", outcome: "completed", lessons: ["use token bucket", "avoid nginx config drift"], duration_ms: 120000, phase_count: 3 };
   const goalB = { goal: "Refactor the payments dashboard charts", outcome: "completed", lessons: ["reuse chart theme tokens"] };
   const goalC = { goal: "Fix flaky session claims test on Windows", outcome: "failed", lessons: [] };
 
@@ -103,6 +103,53 @@ function main() {
 
   const noQuery = memIdx.searchMemoryIndex("   ", 5);
   check("searchMemoryIndex returns [] for whitespace query", noQuery.length === 0);
+
+  // Indexed entries keep the recall fields the injected block renders.
+  check(
+    "index entry keeps lessons",
+    Array.isArray(hybrid[0].lessons) && hybrid[0].lessons[0] === "use token bucket",
+    JSON.stringify(hybrid[0].lessons)
+  );
+  check("index entry keeps duration_ms + phase_count", hybrid[0].duration_ms === 120000 && hybrid[0].phase_count === 3);
+
+  // ── 3b. IDF weighting: a rare query token beats a common one ─────
+  process.env.PCORE_FTS_DISABLE = "1";
+  const idfDir = freshTmpState();
+  process.env.PCORE_STATE_DIR = idfDir;
+  const idfIdx = loadIndex();
+  idfIdx.indexCompletedGoal({ goal: "rotate payments signing certificate", outcome: "completed", lessons: [] }, "2026-10-01T00:00:00.000Z");
+  idfIdx.indexCompletedGoal({ goal: "refresh payments dashboard totals", outcome: "completed", lessons: [] }, "2026-10-02T00:00:00.000Z");
+  idfIdx.indexCompletedGoal({ goal: "tidy payments audit log output", outcome: "completed", lessons: [] }, "2026-10-03T00:00:00.000Z");
+  const idfHits = idfIdx.searchMemoryIndex("payments certificate", 3);
+  check(
+    "rare token outranks common token (IDF)",
+    idfHits.length > 0 && idfHits[0].goal === "rotate payments signing certificate",
+    JSON.stringify(idfHits.map((r) => r.goal))
+  );
+  delete process.env.PCORE_FTS_DISABLE;
+  fs.rmSync(idfDir, { recursive: true, force: true });
+  process.env.PCORE_STATE_DIR = stateDir;
+
+  // ── 3c. injected context does not repeat a semantic-recall hit ───
+  const dedupeCtx = loadManager().buildMemoryContext(
+    {
+      version: 1,
+      sessions: {
+        "s-dedupe": {
+          completed_goals: [
+            { goal: goalA.goal, outcome: "completed", duration_ms: 120000, timestamp: "2026-10-01T00:00:00.000Z", lessons: ["use token bucket"], phase_count: 3 },
+          ],
+          recent_files: [],
+          error_patterns: [],
+          plan_outcomes: [],
+        },
+      },
+    },
+    { query: "payments rate limiting" }
+  );
+  const recallArea = dedupeCtx.split("Recent completed goals")[0];
+  const occurrences = recallArea.split(goalA.goal).length - 1;
+  check("goal shown once across semantic + index sections", occurrences === 1, `occurrences=${occurrences}\n${dedupeCtx}`);
 
   // ── 4. pruning keeps FTS in sync with the JSON index ─────────────
   const removed = fts.removeFts([idC]);
@@ -174,7 +221,7 @@ function main() {
   );
 
   // ── 9. mirrors byte-identical ────────────────────────────────────
-  for (const rel of ["memory-fts.js", "memory-index.js"]) {
+  for (const rel of ["memory-fts.js", "memory-index.js", "memory-manager.js"]) {
     const cursor = path.join(ROOT, "hooks", "lib", rel);
     const opencode = path.join(ROOT, "opencode", "hooks", "lib", rel);
     const same = fs.readFileSync(cursor).equals(fs.readFileSync(opencode));

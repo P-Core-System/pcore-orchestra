@@ -80,8 +80,9 @@
 | Domain events | `<state>/domain-events.json` (`bundle/hooks/state/` in-repo, `PCORE_STATE_DIR` redirect in tests/CI) | Ring-capped domain event log (`DOMAIN_EVENT_CAP` = 500, oldest trimmed) — written **only** by `domain/store.js` via safe-write; every subagent stop appends a `phase.outcome` |
 | Domain checkpoint | `<state>/domain-checkpoint.json` | Resume checkpoint (Scenario J domain half): sessionId, ticketId, completed/running/pendingTasks, lastEventId, lastVerifiedCommit, createdAt; session-filtered on load. Both files gitignored as `domain-*.json` |
 | Cycle reports | `~/.cursor/hooks/state/cycles/{run_id}.json` | Production audit per completed run |
-| Memory index | `<state>/memory-index.json` | JSON inverted index for fast goal recall |
+| Memory index | `<state>/memory-index.json` | JSON inverted index for fast goal recall. Entries keep goal/outcome/lessons/duration/phase_count so index hits render like semantic hits; lexical ranking is IDF-weighted (rare query tokens dominate), so a rare-token match outranks common-token matches |
 | Memory FTS | `<state>/memory-fts.db` | SQLite FTS5 mirror of the same goals (`node:sqlite`); fused with the JSON index by reciprocal rank fusion, best-effort — absent/unwritable or `PCORE_FTS_DISABLE=1` degrades to JSON-only |
+| Learned patterns | `<state>/orchestra-memory.json` (`project_patterns`, `plan_outcomes`) | `learnProjectPattern()` runs on every completed run: detects package manager + test framework from lockfiles/manifests, records task type and changed files (identical repeats deduped). `plan_outcomes` from verify/review feed a planning warning when the same task type needed fixes in ≥2 of ≥3 recent checks |
 | Project management | `~/.cursor/hooks/state/orchestra-project.json` | Epics, milestones, stories, tasks, velocity, backlog |
 | Daily planner | `~/.cursor/hooks/state/orchestra-daily.json` | Daily journal, progress reports, metrics |
 | Version/release | `~/.cursor/hooks/state/orchestra-version.json` | Semver, changelog, release notes |

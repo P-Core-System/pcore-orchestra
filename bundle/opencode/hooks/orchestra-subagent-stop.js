@@ -15,7 +15,7 @@ const {
   LOOP_MODE_ENTERPRISE,
 } = require("./lib/phase-engine.js");
 const { emitLifecycleEvent, endPhaseTimer, startPhaseTimer } = require("./lib/lifecycle-recorder.js");
-const { flushShortToLong, recordPhasePlanOutcome } = require("./lib/memory-manager.js");
+const { flushShortToLong, recordPhasePlanOutcome, learnProjectPattern } = require("./lib/memory-manager.js");
 const { recordOrchestrationRun } = require("./lib/history-recorder.js");
 const { bumpProjectVersion, addChangelogEntry } = require("./lib/version-manager.js");
 const { passGate, failGate, skipGate } = require("./lib/quality-gate.js");
@@ -377,6 +377,9 @@ async function handlePhaseComplete(state, chain) {
     passGate(state, "reviewer-approval", "Review completed");
 
     flushShortToLong(state, "completed");
+    try {
+      learnProjectPattern(state, state.worktreePath || process.cwd());
+    } catch {}
     finalizeRunTokens(state, "completed");
     recordOrchestrationRun(state, "completed");
     try {

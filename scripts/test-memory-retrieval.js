@@ -251,7 +251,8 @@ async function runTests() {
     assert(sessionStartContent.includes("buildMemoryContext"), "orchestra-session-start.js imports buildMemoryContext");
     assert(sessionStartContent.includes("loadLongTermMemory"), "orchestra-session-start.js imports loadLongTermMemory");
     assert(sessionStartContent.includes("memCtx"), "orchestra-session-start.js calls buildMemoryContext and uses result");
-    passed += 3;
+    assert(sessionStartContent.includes("input.prompt"), "session start recalls by host-supplied prompt when no goal");
+    passed += 4;
   } catch (e) {
     console.log(`  ✗ orchestra-session-start.js integration: ${e.message}`);
     failed += 3;
