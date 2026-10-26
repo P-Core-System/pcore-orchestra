@@ -151,7 +151,29 @@ function main() {
   const ctx = memMgr.buildMemoryContext(memoryState, { query: "payments dashboard charts" });
   check("buildMemoryContext still emits index-search block", typeof ctx === "string" && ctx.includes("index search"), ctx.slice(0, 160));
 
-  // ── 8. mirrors byte-identical ────────────────────────────────────
+  // ── 8. automatic prune at INDEX_MAX_ENTRIES keeps FTS in sync ───
+  for (let i = 0; i < 505; i++) {
+    memIdx.indexCompletedGoal(
+      { goal: `prune probe ${i} uniquetoken${i}`, outcome: "completed", lessons: [] },
+      "2026-10-05T00:00:00.000Z"
+    );
+  }
+  const prunedIndex = memIdx.loadMemoryIndex();
+  check("JSON index caps at 500 entries", prunedIndex.entries.length === 500, `got ${prunedIndex.entries.length}`);
+  const prunedIds = new Set(prunedIndex.entries.map((e) => e.id));
+  const ftsAfterPrune = fts.searchFts("prune probe", 1000);
+  check(
+    "FTS has no orphan rows after pruning",
+    ftsAfterPrune.length === 500 && ftsAfterPrune.every((r) => prunedIds.has(r.entryId)),
+    `rows=${ftsAfterPrune.length} orphans=${ftsAfterPrune.filter((r) => !prunedIds.has(r.entryId)).length}`
+  );
+  check(
+    "pruned goal is gone from FTS too",
+    fts.searchFts("payments rate limiting", 5).every((r) => r.entryId !== idA),
+    JSON.stringify(fts.searchFts("payments rate limiting", 5))
+  );
+
+  // ── 9. mirrors byte-identical ────────────────────────────────────
   for (const rel of ["memory-fts.js", "memory-index.js"]) {
     const cursor = path.join(ROOT, "hooks", "lib", rel);
     const opencode = path.join(ROOT, "opencode", "hooks", "lib", rel);
