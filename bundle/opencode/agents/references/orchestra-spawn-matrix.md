@@ -1,4 +1,4 @@
-# Orchestra spawn matrix (Cursor + OpenCode + Qoder)
+# Orchestra spawn matrix (Cursor + OpenCode + Qoder + Claude Code + Codex)
 
 ## Cursor IDE
 
@@ -27,6 +27,24 @@ If `Task` rejects `subagent_type=orchestra-*` (enum / unknown agent), the parent
 - **Entry:** Ambient parent agent OR `orchestra` conductor agent (`qoder --agent orchestra`)
 - **Agents:** `~/.qoder/agents/` — converted frontmatter via `scripts/sync-qoder-agents.js`
 - **Hook input:** stdin JSON carries `agent_type`; `lib/io.js` `normalizeHookInput()` maps it to `subagent_type` so the shared Cursor hooks work unchanged
+
+## Claude Code CLI
+
+- **Spawn:** native `Agent` tool, `subagent_type="orchestra-planner"` (etc.) — v2.1.63 renamed `Task`→`Agent`; the `Task` name still works as an alias
+- **Chain:** `SubagentStop` hooks in `.claude/settings.json` / `~/.claude/settings.json`; a hook returning `decision:"block"` + `reason` keeps the subagent running and delivers the reason as its next instruction — the phase-advance channel
+- **Entry:** ambient parent agent OR `orchestra` conductor (`claude --agent orchestra`)
+- **Agents:** `.claude/agents/*.md` (project) or `~/.claude/agents/*.md` (user) — `name` + `description` frontmatter
+- **MCP:** consumes servers via `.mcp.json`; also acts as MCP server (`claude mcp serve`); reads `AGENTS.md` natively (v2.1.277+)
+- **Headless:** `claude -p "goal"` with `--output-format stream-json` for scripted runs
+
+## Codex CLI
+
+- **Spawn:** native `spawn_agent` tool — `spawn_agent(message, agent_type, fork_context, model, reasoning_effort)`; pair with `send_input` / `resume_agent` / `wait_agent` / `close_agent`. Requires `[features] multi_agent` (stable, default-on)
+- **Chain:** no orchestra hooks wired by `install.sh` yet — the conductor spawns phases sequentially and waits for completion markers. Codex hooks exist (`~/.codex/hooks.json` / `.codex/hooks.json`, events incl. `SubagentStart`/`SubagentStop`) but are gated behind `features.hooks`
+- **Entry:** `codex exec --sandbox workspace-write --ask-for-approval never "goal"` for headless runs (`--full-auto` removed)
+- **Agents:** `.codex/agents/*.toml` — `name`, `description`, `developer_instructions`; cannot override sandbox / approval / MCP config
+- **MCP:** client only — `[mcp_servers.x]` in `config.toml` (stdio, or `url=` for HTTP); reads `AGENTS.md` natively
+- **Skills:** `SKILL.md` under `.agents/skills`
 
 ## Core Phase Agents (4)
 
@@ -119,7 +137,7 @@ PLAN → [G1] → PRODUCT/UX → [G2] → ARCHITECTURE → [G3] → EXECUTE → 
 | G7: Deploy | Deployment successful, rollback tested | Post-Deploy |
 | G8: Post-Deploy | Health checks pass, monitoring active | Complete |
 
-## Handoff (both)
+## Handoff (all hosts)
 
 Goal (1 line) + plan bullets + prior failures only. No full chat history.
 

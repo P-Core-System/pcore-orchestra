@@ -1,5 +1,6 @@
 /**
- * Cross-platform orchestra spawn syntax — Cursor IDE vs OpenCode CLI.
+ * Cross-platform orchestra spawn syntax — Cursor, OpenCode, Qoder,
+ * Claude Code, and Codex CLI.
  * Installed to ~/.cursor/hooks/lib/ and used by orchestra hooks.
  */
 "use strict";
@@ -44,11 +45,68 @@ const PLATFORMS = {
     health: "node ~/.config/opencode/hooks/orchestra-health-opencode.js",
     fixScript: "bash scripts/fix-opencode-response.sh --disable-remote-mcp",
   },
+  qoder: {
+    id: "qoder",
+    label: "Qoder CLI",
+    orchestrator: "Parent Qoder Agent (hooks ambient) or `orchestra` conductor agent",
+    spawnTool: "Agent",
+    spawnSyntax:
+      'Agent(subagent_type="orchestra-planner", description="3–5 word label", prompt="goal + handoff…")',
+    spawnExample:
+      "Launch the Agent tool with subagent_type set to orchestra-planner | orchestra-implementer | orchestra-verifier | orchestra-reviewer",
+    phaseChain:
+      "Hooks in ~/.qoder/settings.json (PascalCase events) auto-chain on SubagentStop markers; hook stdin carries `agent_type`, normalized by lib/io.js.",
+    entryPoint: "Ambient hooks → first phase agent, OR `qoder --agent orchestra`",
+    statePath: "~/.qoder/hooks/state/orchestra.json",
+    health: "node ~/.qoder/hooks/orchestra-health.js",
+    fixScript: "bash install.sh --qoder && restart Qoder CLI",
+  },
+  "claude-code": {
+    id: "claude-code",
+    label: "Claude Code CLI",
+    orchestrator: "Parent Claude Agent (hooks ambient) or `orchestra` conductor agent",
+    spawnTool: "Agent",
+    spawnSyntax:
+      'Agent(subagent_type="orchestra-planner", description="3–5 word label", prompt="goal + handoff…")',
+    spawnExample:
+      "Launch the Agent tool (V2.1.63+; `Task` is the kept alias) with subagent_type set to the orchestra-* phase agent",
+    phaseChain:
+      "Hooks in .claude/settings.json fire SubagentStop; a SubagentStop `decision:\"block\"` + reason keeps the subagent running and feeds the reason as its next instruction — the natural phase-advance channel. Agent defs: .claude/agents/*.md (name+description frontmatter).",
+    entryPoint: "Ambient hooks → first phase agent, OR `claude --agent orchestra`",
+    statePath: "~/.claude/hooks/state/orchestra.json (not installed by install.sh yet)",
+    health: "not automated yet — adapter + docs bridge shipped",
+    fixScript: "manual: copy bundle/agents to .claude/agents (md frontmatter is shared)",
+  },
+  codex: {
+    id: "codex",
+    label: "OpenAI Codex CLI",
+    orchestrator: "Parent Codex session (multi_agent stable) or `orchestra` instructions",
+    spawnTool: "spawn_agent",
+    spawnSyntax:
+      'spawn_agent(agent_type="orchestra-planner", message="goal + handoff…")',
+    spawnExample:
+      "Call spawn_agent with agent_type set to the orchestra-* phase agent; custom agents live in .codex/agents/<name>.toml (name, description, developer_instructions)",
+    phaseChain:
+      "Codex hooks (~/.codex/hooks.json, gated by features.hooks) include SubagentStart/SubagentStop, but install.sh does not wire them yet — the conductor drives phases with completion markers.",
+    entryPoint: "`codex` session with AGENTS.md (natively read) or `codex exec --sandbox workspace-write --ask-for-approval never`",
+    statePath: "~/.codex/state/orchestra.json (not installed by install.sh yet)",
+    health: "not automated yet — adapter + docs bridge shipped",
+    fixScript: "manual: convert bundle/agents markdown to .codex/agents/*.toml (no frontmatter install yet)",
+  },
 };
 
 function spawnLine(platform, agentId) {
   if (platform === "opencode") {
     return `call **subagent** tool → agent \`${agentId}\``;
+  }
+  if (platform === "codex") {
+    return `call **spawn_agent** tool → agent_type \`${agentId}\``;
+  }
+  if (platform === "claude-code") {
+    return `launch **${agentId}** via Claude Code **Agent** tool (subagent_type)`;
+  }
+  if (platform === "qoder") {
+    return `launch **${agentId}** via Qoder **Agent** tool (subagent_type)`;
   }
   return `launch **${agentId}** via Cursor **Task** tool (subagent_type)`;
 }
@@ -82,16 +140,16 @@ function ambientContextBlock() {
 }
 
 function toolsMatrixMarkdown() {
-  return `| Capability | Cursor | OpenCode |
-|------------|--------|----------|
-| Spawn subagent | \`Task\` + \`subagent_type\` | \`subagent\` tool + agent name |
-| Conductor agent | Optional (\`orchestra.md\`) | Required (\`default_agent: orchestra\`) |
-| Phase auto-chain | Hooks (\`subagentStop\`) | Conductor loops subagent calls |
-| Web docs | Auto-review + permissions | \`websearch\` / \`webfetch\` permission |
-| Skills | \`~/.cursor/skills/\` | \`~/.config/opencode/skills/\` + \`skill\` permission |
-| MCP | Cursor MCP config | \`opencode.json\` → \`mcp\` (remote can block startup) |
-| Plan file | \`.cursor/orchestra-plan.md\` | Same path (shared) |
-| State | \`~/.cursor/hooks/state/orchestra.json\` | \`~/.config/opencode/hooks/state/orchestra.json\` |`;
+  return `| Capability | Cursor | OpenCode | Qoder CLI | Claude Code | Codex CLI |
+|------------|--------|----------|-----------|-------------|-----------|
+| Spawn subagent | \`Task\` + \`subagent_type\` | \`subagent\` tool + agent name | \`Agent\` + \`subagent_type\` | \`Agent\` (alias \`Task\`) + \`subagent_type\` | \`spawn_agent\` + \`agent_type\` |
+| Agent definitions | \`~/.cursor/agents/*.md\` | \`~/.config/opencode/agents/*.md\` | \`~/.qoder/agents/*.md\` | \`.claude/agents/*.md\` (name+description frontmatter) | \`.codex/agents/*.toml\` (name, description, developer_instructions) |
+| Conductor agent | Optional (\`orchestra.md\`) | Required (\`default_agent: orchestra\`) | Optional (\`--agent orchestra\`) | Optional (\`--agent orchestra\`) | AGENTS.md instructions |
+| Phase auto-chain | Hooks (\`subagentStop\`) | Conductor loops subagent calls | Hooks (\`SubagentStop\`, \`settings.json\`) | Hooks (\`SubagentStop\` block+reason) | Not wired yet (hooks gated by \`features.hooks\`) |
+| Hooks config | \`~/.cursor/hooks.json\` (\`version:1\`) | Plugin policy (no hooks) | \`~/.qoder/settings.json\` | \`.claude/settings.json\` / \`~/.claude/settings.json\` | \`~/.codex/hooks.json\` / \`.codex/hooks.json\` |
+| MCP | Cursor MCP config | \`opencode.json\` → \`mcp\` (remote can block startup) | \`settings.json\` mcpServers or \`.mcp.json\` | \`.mcp.json\` + \`claude mcp add\` (also serves \`claude mcp serve\`) | \`config.toml\` \`[mcp_servers.x]\` stdio + \`url=\` HTTP |
+| Plan file | \`.cursor/orchestra-plan.md\` | Same path (shared) | Same path (shared) | Same path (shared) | Same path (shared) |
+| State | \`~/.cursor/hooks/state/orchestra.json\` | \`~/.config/opencode/hooks/state/orchestra.json\` | \`~/.qoder/hooks/state/orchestra.json\` | shared hook state (not installed yet) | not installed yet |`;
 }
 
 module.exports = {

@@ -260,52 +260,47 @@ function spawnOpenCode(agentId, payload) {
 }
 
 /**
- * Spawn via Claude Code MCP tools/call.
+ * Spawn via Claude Code Agent tool (V2.1.63+; `Task` remains an accepted alias).
  */
 function spawnClaudeCode(agentId, payload) {
   return new Promise((resolve) => {
-    // In Claude Code, we call the MCP server's tools/call
-    const mcpCall = {
-      jsonrpc: "2.0",
-      method: "tools/call",
-      params: {
-        name: "spawn_subagent",
-        arguments: {
-          agent: agentId,
-          payload: JSON.stringify(payload),
-        },
-      },
-      id: `spawn-${Date.now()}`,
+    // Claude Code dispatches subagents through the native Agent tool selected by
+    // `subagent_type`; agent definitions live in `.claude/agents/*.md` (project)
+    // or `~/.claude/agents/` with `name` + `description` frontmatter. The old
+    // MCP tools/call fallback is obsolete now that the tool is native.
+    const goal = typeof payload?.goal === "string" ? payload.goal : "";
+    const taskCall = {
+      tool: "Agent",
+      subagent_type: agentId,
+      description: goal ? goal.slice(0, 60) : `${agentId} phase`,
+      prompt: JSON.stringify(payload),
     };
-    
-    process.stdout.write(JSON.stringify(mcpCall) + "\n");
-    
-    resolve(normalizeResponse(true, { mcpCall }, null, []));
+
+    process.stdout.write(JSON.stringify(taskCall) + "\n");
+
+    resolve(normalizeResponse(true, { taskCall }, null, []));
   });
 }
 
 /**
- * Spawn via Codex MCP tools/call.
+ * Spawn via Codex CLI native multi-agent tool (`spawn_agent`).
  */
 function spawnCodex(agentId, payload) {
   return new Promise((resolve) => {
-    // In Codex, similar to Claude Code - MCP tools/call
-    const mcpCall = {
-      jsonrpc: "2.0",
-      method: "tools/call",
-      params: {
-        name: "spawn_subagent",
-        arguments: {
-          agent: agentId,
-          payload: JSON.stringify(payload),
-        },
-      },
-      id: `spawn-${Date.now()}`,
+    // Codex `[features] multi_agent` is stable and default-on, exposing
+    // spawn_agent/send_input/resume_agent/wait_agent/close_agent. Custom agents
+    // are `.codex/agents/<name>.toml` (keys: name, description,
+    // developer_instructions) selected via `agent_type`; `message` carries the
+    // task. Subagents inherit the parent sandbox/approval policy.
+    const taskCall = {
+      tool: "spawn_agent",
+      agent_type: agentId,
+      message: JSON.stringify(payload),
     };
-    
-    process.stdout.write(JSON.stringify(mcpCall) + "\n");
-    
-    resolve(normalizeResponse(true, { mcpCall }, null, []));
+
+    process.stdout.write(JSON.stringify(taskCall) + "\n");
+
+    resolve(normalizeResponse(true, { taskCall }, null, []));
   });
 }
 

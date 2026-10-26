@@ -167,29 +167,31 @@ async function runTests() {
     }
   }
 
-  // Test 9: MCP hosts (claude-code, codex) work correctly
+  // Test 9: Claude Code + Codex use native spawn tools (not the MCP fallback)
   if (spawnAdapter) {
+    const originalWrite = process.stdout.write;
     try {
-      const originalWrite = process.stdout.write;
-      let capturedOutput = "";
-      process.stdout.write = (chunk) => {
-        capturedOutput += chunk;
-        return true;
-      };
+      process.stdout.write = () => true;
 
-      const result = await spawnAdapter.spawn("orchestra-verifier", { goal: "test" }, "/tmp/worktree", "claude-code");
-      
+      const cc = await spawnAdapter.spawn("orchestra-verifier", { goal: "test" }, "/tmp/worktree", "claude-code");
+      const cx = await spawnAdapter.spawn("orchestra-implementer", { goal: "ship it" }, "/tmp/worktree", "codex");
+
       process.stdout.write = originalWrite;
-      
-      assert(result.success === true, "claude-code spawn returns success=true");
-      assert(result.result.mcpCall !== undefined, "result contains mcpCall");
-      assert(result.result.mcpCall.method === "tools/call", "mcpCall has correct method");
-      assert(result.result.mcpCall.params.name === "spawn_subagent", "mcpCall has correct tool name");
-      passed += 3;
+
+      assert(cc.success === true, "claude-code spawn returns success=true");
+      assert(cc.result.taskCall.tool === "Agent", "claude-code uses native Agent tool");
+      assert(cc.result.taskCall.subagent_type === "orchestra-verifier", "claude-code Agent carries subagent_type");
+      assert(typeof cc.result.taskCall.description === "string" && cc.result.taskCall.description.length > 0, "claude-code Agent carries a description");
+      assert(cc.result.mcpCall === undefined, "claude-code no longer emits an MCP tools/call");
+      assert(cx.success === true, "codex spawn returns success=true");
+      assert(cx.result.taskCall.tool === "spawn_agent", "codex uses native spawn_agent tool");
+      assert(cx.result.taskCall.agent_type === "orchestra-implementer", "codex spawn_agent carries agent_type");
+      assert(cx.result.taskCall.message === JSON.stringify({ goal: "ship it", worktreePath: "/tmp/worktree" }), "codex spawn_agent carries message");
+      passed += 9;
     } catch (e) {
       process.stdout.write = originalWrite;
-      console.log(`  ✗ claude-code host: ${e.message}`);
-      failed += 3;
+      console.log(`  ✗ claude-code/codex hosts: ${e.message}`);
+      failed += 9;
     }
   }
 

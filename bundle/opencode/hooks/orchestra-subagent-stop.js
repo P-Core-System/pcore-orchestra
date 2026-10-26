@@ -84,7 +84,7 @@ async function spawnSubagent(agentId, payload, worktreePath, host) {
   try {
     const result = await spawnAdapter(agentId, payload, worktreePath, host);
     // Also emit to stdout for backward compatibility (hosts that don't use adapter)
-    const taskCall = result.result?.taskCall || result.result?.mcpCall;
+    const taskCall = result.result?.taskCall;
     if (taskCall) {
       process.stdout.write(JSON.stringify(taskCall) + "\n");
     }
@@ -100,7 +100,14 @@ async function spawnSubagent(agentId, payload, worktreePath, host) {
             description: payload?.goal ? String(payload.goal).slice(0, 60) : `${agentId} phase`,
             prompt: JSON.stringify(payload),
           }
-        : { jsonrpc: "2.0", method: "tools/call", params: { name: "spawn_subagent", arguments: { agent: agentId, payload: JSON.stringify(payload) } }, id: `spawn-${Date.now()}` };
+        : host === "codex"
+          ? { tool: "spawn_agent", agent_type: agentId, message: JSON.stringify(payload) }
+          : {
+              tool: "Agent",
+              subagent_type: agentId,
+              description: payload?.goal ? String(payload.goal).slice(0, 60) : `${agentId} phase`,
+              prompt: JSON.stringify(payload),
+            };
     process.stdout.write(JSON.stringify(fallbackCall) + "\n");
     return { success: false, result: null, error: e.message, artifacts: [] };
   }
