@@ -614,7 +614,7 @@ lives in `project.yaml` and `package.json`.
 | 3 | `docs/01-OVERVIEW-AND-ARCHITECTURE.md` | Full folder tree (every directory, every file with comments) |
 | 4 | `docs/01-OVERVIEW-AND-ARCHITECTURE.md` | Application architecture — prompt chaining + ReAct, data flow, lifecycle, file naming conventions, config-driven extensibility, source of truth flow |
 | 5 | `docs/01-OVERVIEW-AND-ARCHITECTURE.md` | SOLID, architectural invariants, C4 diagrams (Context, Container, Component), LLM topology, hook lifecycle, event storming |
-| 6 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | All 15 features — ambient auto-start, build/fix, four-phase loop, stall detection, pause/resume, crash recovery, memory, history, six-file context, classification, config-driven, headless agents, dependency-free hook runtime, install/verify, project bootstrap |
+| 6 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | All 16 features — ambient auto-start, build/fix, four-phase loop, stall detection, pause/resume, crash recovery, memory, history, six-file context, classification, config-driven, headless agents, dependency-free hook runtime, install/verify, project bootstrap, conductor run state |
 | 7 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | Hook architecture, 8-command hook contract table + 3 non-event entry points, hooks.json config, event-driven flow diagram, hand-coded rules |
 | 8 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | Hook and lib module reference for `bundle/hooks/lib/` (43 flat modules + `domain/`) |
 | 9 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | Core loop agents — planner, implementer, verifier, reviewer — for Cursor, OpenCode, and Qoder |

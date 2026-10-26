@@ -175,7 +175,7 @@ Phase timers track `started_at`, `ended_at`, `duration_ms` for each phase.
 
 ---
 
-## Feature 8-15: Quick Reference
+## Feature 8-16: Quick Reference
 
 | Feature | Key Detail |
 |---------|-----------|
@@ -187,6 +187,7 @@ Phase timers track `started_at`, `ended_at`, `duration_ms` for each phase.
 | **Project Bridge** | 35-line `bridge.js` delegates from project hooks to global via `spawnSync`. Enables cloud agents |
 | **Install System** | Bash + PowerShell. Copies bundle, merges hooks.json (dedup by command), creates symlinks |
 | **OpenCode Integration** | `mode: subagent` instead of `readonly: true`. Explicit permissions. Extra `setup/` skill |
+| **Conductor Run State** | Per-run `conductor-runs/` records keyed by workspace+session+task (`begin`/`save`/`who`/`resume` via `scripts/conductor-state.sh`), atomic and isolation-safe |
 
 ---
 
@@ -252,7 +253,8 @@ CLI), `orchestra-health.js` (self-check), and `orchestra-lib.js` (shared helpers
     "subagentStop": [
       { "command": "node ./hooks/orchestra-subagent-stop.js", "matcher": "orchestra-planner|orchestra-implementer|orchestra-verifier|orchestra-reviewer", "loop_limit": 12 },
       { "command": "node ./hooks/orchestra-lifecycle.js", "matcher": "orchestra-planner|orchestra-implementer|orchestra-verifier|orchestra-reviewer", "loop_limit": 12 },
-      { "command": "node ./hooks/orchestra-memory.js", "matcher": "orchestra-planner|orchestra-implementer|orchestra-verifier|orchestra-reviewer", "loop_limit": 12 }
+      { "command": "node ./hooks/orchestra-memory.js", "matcher": "orchestra-planner|orchestra-implementer|orchestra-verifier|orchestra-reviewer", "loop_limit": 12 },
+      { "command": "node ./hooks/orchestra-quality-gate.js", "matcher": "orchestra-reviewer|code-reviewer|release-manager", "loop_limit": 5 }
     ],
     "stop": [
       { "command": "node ./hooks/orchestra-stop.js", "loop_limit": 5 },
@@ -262,6 +264,9 @@ CLI), `orchestra-health.js` (self-check), and `orchestra-lib.js` (shared helpers
 }
 ```
 
+The matcher lists shown above are abbreviated; the shipped `hooks.json` matchstrings are
+generated from `bundle/agent-registry.json` and cover all 27 hook agents.
+
 ## Hook Execution Order per Subagent Cycle
 
 ```
@@ -270,7 +275,7 @@ beforeSubmitPrompt → classification + auto-start
   └→ subagentStop (planner) + lifecycle + memory (concurrent)
       └→ subagentStop (implementer) + lifecycle + memory
           └→ subagentStop (verifier) + lifecycle + memory
-              └→ subagentStop (reviewer) + lifecycle + memory → complete | FIX_REQUIRED
+              └→ subagentStop (reviewer) + lifecycle + memory + quality gate → complete | FIX_REQUIRED
 ```
 
 ---
@@ -405,7 +410,7 @@ additionally routes to the 155 specialist agents in `bundle/agents/<category>/`)
 | `orchestra-verifier` | 3 — Verify | ✅ | `VERIFY_PASS` / `VERIFY_FAIL` | 15,000 |
 | `orchestra-reviewer` | 4 — Review | ✅ | `ORCHESTRA_COMPLETE` / `FIX_REQUIRED` | 8,000 |
 
-**Cursor agents** use `readonly: true` frontmatter. **OpenCode agents** use `mode: subagent` + `permission: { edit: deny, bash: allow }` (readonly phases still deny edit; bash allow avoids inspection prompts).
+**Cursor agents** use `readonly: true` frontmatter. **OpenCode agents** use `mode: subagent` + `permission: { edit: deny, bash: allow }` (readonly phases still deny edit; bash allow avoids inspection prompts). **Qoder agents** use `disallowedTools: [Write, Edit, NotebookEdit]` for readonly phases and full tools for the implementer.
 
 **Model defaults:** Cursor agents are pinned to `composer-2.5` (escalate to `grok-4.6` standard for hard/long-horizon tasks). OpenCode agents use free models only — they **inherit the global `model`** set by `scripts/update-free-models.sh --apply` (highest-stability probe-reachable free model, currently `opencode/big-pickle`) — never per-agent pins. See `docs/token-optimization.md` and `docs/orchestra-cross-platform.md`.
 
