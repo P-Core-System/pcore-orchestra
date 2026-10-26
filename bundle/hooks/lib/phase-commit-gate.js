@@ -47,14 +47,27 @@ function isAllowedDirty(filePath) {
  */
 function checkPhaseCommitGate(state, options = {}) {
   const cwd = options.cwd || detectRepoRoot(state);
-  const { ok, lines, error } = porcelainLines(cwd);
+  const { ok, lines, error, gitError, notGitRepo } = porcelainLines(cwd);
   if (!ok) {
+    if (gitError) {
+      // Git repo exists but status failed -> fail closed (invariant 24)
+      return {
+        clean: false,
+        blocking: ["!! git-error: git status unavailable inside repository — " + (error || "unknown")],
+        allowed: [],
+        message: "Phase commit gate FAIL — git-error: git status unavailable inside repository (" + (error || "unknown") + "). Fail closed per invariant 24.",
+        skipped: false,
+        gitError: true,
+      };
+    }
+    // Not a git repo -> skip (skip-no-git)
     return {
       clean: true,
       blocking: [],
       allowed: [],
-      message: `Git status unavailable (${error || "unknown"}) — commit gate SKIPPED; verify the working tree is clean manually before verify/review.`,
+      message: "Phase commit gate SKIPPED — not a git repository; no commit gate possible.",
       skipped: true,
+      notGitRepo: true,
     };
   }
 
