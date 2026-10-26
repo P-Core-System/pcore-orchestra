@@ -25,6 +25,8 @@ Also update these files if the change affects them:
 
 ## Current Phase
 
+- 2026-10-26 — Docs: `docs/03` authorization table now covers all three hosts and fixes the stale claim that the OpenCode verifier had no restriction — planner, verifier, and reviewer are edit-denied on OpenCode and carry `disallowedTools: [Write, Edit, NotebookEdit]` on Qoder, while the implementer has full access on every host. Files: `docs/03-DATABASE-SECURITY-TESTING-LIMITATIONS.md`, `context/progress-tracker.md`. Impact: the security model matches the shipped agent frontmatter.
+
 - 2026-10-26 — Docs: README host layouts corrected. Cursor/OpenCode/Qoder trees now show 8 hook commands (not 6), all installed agent tiers (4 core + 155 specialists + references; 161 converted Qoder files), the OpenCode byte-identical hook mirror and ambient plugin, and the current skills layout; the feature table's hook row matches. Files: `README.md`, `context/progress-tracker.md`. Impact: a reader comparing README to the installer no longer sees two different bundles.
 
 - 2026-10-26 — Docs: contributor/security guidance aligned. `CONTRIBUTING.md` §3 now runs every `scripts/test-*.js` plus the bash suite and the registry, Qoder-drift, and secret gates (the canonical list stays in `context/code-standards.md`), installs root + `server/` deps, and notes the Node 24 requirement for the Studio UI suite; `SECURITY.md` no longer claims tagged GitHub releases (versioning is `main` + `package.json`). Files: `CONTRIBUTING.md`, `SECURITY.md`, `context/progress-tracker.md`. Impact: a new contributor's checklist cannot silently miss suites as they are added, and the security policy matches how releases actually work.

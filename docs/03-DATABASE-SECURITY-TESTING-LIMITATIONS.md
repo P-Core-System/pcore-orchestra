@@ -221,12 +221,12 @@ graph LR
 
 Authorization is enforced at the agent level:
 
-| Agent | Cursor | OpenCode |
-|-------|--------|----------|
-| Planner | `readonly: true` | `permission: { edit: deny, bash: allow }` |
-| Implementer | Full access | Full access |
-| Verifier | `readonly: true` | No restriction |
-| Reviewer | `readonly: true` | `permission: { edit: deny, bash: allow }` |
+| Agent | Cursor | OpenCode | Qoder |
+|-------|--------|----------|-------|
+| Planner | `readonly: true` | `permission: { edit: deny, bash: allow }` | `disallowedTools: [Write, Edit, NotebookEdit]` |
+| Implementer | Full access | Full access | Full access |
+| Verifier | `readonly: true` | `permission: { edit: deny, bash: allow }` | `disallowedTools: [Write, Edit, NotebookEdit]` |
+| Reviewer | `readonly: true` | `permission: { edit: deny, bash: allow }` | `disallowedTools: [Write, Edit, NotebookEdit]` |
 
 ## CSP, CSRF, XSS, SQL Injection
 
