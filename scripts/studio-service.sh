@@ -50,7 +50,7 @@ Options:
   --help                Show this help
 
 Environment:
-  PCORE_ORCHESTRA_REPO  Override repo root (default: /home/user/Documents/Project/pcore/pcore-orchestra)
+  PCORE_ORCHESTRA_REPO  Override repo root (default: directory of this script)
   ORCHESTRA_STUDIO_BACKEND  Force backend: systemd|launchd|nohup
 EOF
 }

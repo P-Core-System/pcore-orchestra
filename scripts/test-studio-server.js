@@ -66,7 +66,7 @@ function buildFixture(stateDir) {
     updated_at: startedAt,
     runs: {
       "pcore-orchestra/sess-1/abc123def456": {
-        workspace: "/home/user/Documents/Project/pcore/pcore-orchestra",
+        workspace: require("path").resolve(__dirname, "../.."),
         workspaceSlug: "pcore-orchestra",
         sessionId: "sess-1",
         taskId: "abc123def456",
@@ -80,7 +80,7 @@ function buildFixture(stateDir) {
         lastUpdatedAt: startedAt,
       },
       "pcore-orchestra/sess-2/9f8e7d6c5b4a": {
-        workspace: "/home/user/Documents/Project/pcore/pcore-orchestra",
+        workspace: require("path").resolve(__dirname, "../.."),
         workspaceSlug: "pcore-orchestra",
         sessionId: "sess-2",
         taskId: "9f8e7d6c5b4a",
@@ -96,7 +96,7 @@ function buildFixture(stateDir) {
   });
 
   writeJson(path.join(runsDir, "pcore-orchestra", "sess-1", "abc123def456.json"), {
-    workspace: "/home/user/Documents/Project/pcore/pcore-orchestra",
+    workspace: require("path").resolve(__dirname, "../.."),
     workspaceSlug: "pcore-orchestra",
     sessionId: "sess-1",
     taskId: "abc123def456",
@@ -120,7 +120,7 @@ function buildFixture(stateDir) {
   });
 
   writeJson(path.join(runsDir, "pcore-orchestra", "sess-2", "9f8e7d6c5b4a.json"), {
-    workspace: "/home/user/Documents/Project/pcore/pcore-orchestra",
+    workspace: require("path").resolve(__dirname, "../.."),
     workspaceSlug: "pcore-orchestra",
     sessionId: "sess-2",
     taskId: "9f8e7d6c5b4a",

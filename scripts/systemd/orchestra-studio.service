@@ -4,15 +4,15 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/user/Documents/Project/pcore/pcore-orchestra
-ExecStart=/home/user/.nvm/versions/node/v24.21.0/bin/node /home/user/Documents/Project/pcore/pcore-orchestra/server/studio-api.js --port 3110
+WorkingDirectory=@REPO_ROOT@
+ExecStart=@NODE_BIN@ @REPO_ROOT@/server/studio-api.js --port @PORT@
 Restart=on-failure
 RestartSec=5
 KillSignal=SIGTERM
 StandardOutput=journal
 StandardError=journal
 Environment=NODE_ENV=production
-Environment=PATH=/home/user/.nvm/versions/node/v24.21.0/bin:/usr/bin:/bin
+Environment=PATH=@NODE_DIR@:/usr/bin:/bin
 
 [Install]
 WantedBy=default.target

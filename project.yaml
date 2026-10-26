@@ -1,11 +1,11 @@
-﻿# P-Core Orchestra — project identity (dogfood)
+# P-Core Orchestra — project identity (dogfood)
 project:
   name: pcore-orchestra
   slug: pcore-orchestra
   display_name: P-Core Orchestra
   type: devops
   category: dev-tools
-  owner: peter
+  owner: maintainer
   description: Global orchestra harness for Cursor and OpenCode
 
 version:
@@ -23,7 +23,7 @@ repository:
   url: https://github.com/P-Core-System/pcore-orchestra
   branch: main
   provider: github
-  visibility: private
+  visibility: public
 
 stack:
   languages:
@@ -49,11 +49,11 @@ orchestra:
     cycle: 63000
 
 team:
-  lead: peter
+  lead: maintainer
   members:
-    - name: peter
+    - name: maintainer
       role: maintainer
-      contact: peterlianpi
+      contact: maintainer@pcore-system.dev
   github_team: core-platform
 
 _pcore:
