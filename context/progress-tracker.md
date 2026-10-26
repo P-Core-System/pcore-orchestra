@@ -407,3 +407,9 @@ eachableLight at merge-autonomy-config.js:236. Files: docs/audit/agent-architect
 - Two local-only commits made after the backup were re-parented onto the rewritten tip with the noreply identity (`d70d1e8`, `dd16eb4`) and left unpushed.
 - Verification: no remaining alias/home-path/email matches in `main` or `develop` history; authors and committers all noreply; suite green; secrets scan exit 0.
 - Known residue: GitHub retains `refs/pull/2..11/head` for the closed Dependabot PRs, which still reach pre-rewrite commits; purging them requires GitHub Support.
+
+## 2026-10-26 — Open-source readiness: bundled skill links (issue #12)
+
+- Replaced dead relative references inside vendored skills with upstream docs URLs: Cloudflare Access/WARP in both tunnel READMEs, Cloudflare Durable Objects WebSockets, n8n expression syntax.
+- Rewrote the macOS canvas example path from `/Users/<user>` to `$HOME` per the repo path-hygiene invariant.
+- Link scan over 1,478 tracked markdown files: only the three intentional `templates/architectures/docs/adr/*` placeholders remain (documented as not-bugs in the issue). The `create-skill` reference links are inside fenced template examples, not rendered links.

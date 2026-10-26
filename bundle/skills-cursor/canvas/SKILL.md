@@ -32,7 +32,7 @@ The trigger is **user intent**, not response shape. Ask: would the user benefit 
 
 ### 2. Write the canvas
 
-**Location.** Canvases live at `/Users/<user>/.cursor/projects/<workspace>/canvases/<name>.canvas.tsx`. The IDE only detects canvases written directly inside that exact directory — subfolders, alternate extensions, and other locations are not picked up. For a new canvas, always use the write file tool to create the `.canvas.tsx` file at that exact path; do not stop after telling the user the path or showing code in chat. Treat that managed `canvases/` directory as pre-provisioned by Cursor itself: write the canvas file directly there and do **not** spend turns creating the directory with `mkdir` or checking whether it exists before writing. Listing its contents for other purposes (e.g. checking for existing canvases) is fine. If you can't determine the workspace directory from absolute paths already in your environment (terminals, transcripts, recently-viewed files), list `~/.cursor/projects/` rather than guessing. Use a descriptive kebab-case filename ending in `.canvas.tsx`; preserve acronym capitalization and lowercase the rest.
+**Location.** Canvases live at `$HOME/.cursor/projects/<workspace>/canvases/<name>.canvas.tsx`. The IDE only detects canvases written directly inside that exact directory — subfolders, alternate extensions, and other locations are not picked up. For a new canvas, always use the write file tool to create the `.canvas.tsx` file at that exact path; do not stop after telling the user the path or showing code in chat. Treat that managed `canvases/` directory as pre-provisioned by Cursor itself: write the canvas file directly there and do **not** spend turns creating the directory with `mkdir` or checking whether it exists before writing. Listing its contents for other purposes (e.g. checking for existing canvases) is fine. If you can't determine the workspace directory from absolute paths already in your environment (terminals, transcripts, recently-viewed files), list `~/.cursor/projects/` rather than guessing. Use a descriptive kebab-case filename ending in `.canvas.tsx`; preserve acronym capitalization and lowercase the rest.
 
 **File rules:**
 - Exactly one `.canvas.tsx` file per canvas. Never create helper files, style files, or supporting modules.
@@ -83,7 +83,7 @@ Before returning canvas code, verify:
 
 ## Introducing the canvas
 
-Whenever you mention a canvas to the user — one you created, updated, or want them to open — **always** include a markdown link to that `.canvas.tsx` file using its full absolute path (for example, `[billing-review](/Users/<user>/.cursor/projects/<workspace>/canvases/billing-review.canvas.tsx)`). Use a short descriptive label as the link text; do not refer to a canvas by name or path alone without the link.
+Whenever you mention a canvas to the user — one you created, updated, or want them to open — **always** include a markdown link to that `.canvas.tsx` file using its full absolute path (for example, `[billing-review]($HOME/.cursor/projects/<workspace>/canvases/billing-review.canvas.tsx)`). Use a short descriptive label as the link text; do not refer to a canvas by name or path alone without the link.
 
 When you create a canvas, add a short note in your chat response telling the user they can open it beside the chat, with that link:
 
@@ -94,4 +94,4 @@ Both can apply at once; one or two sentences total is enough. Skip the intro for
 
 ## Troubleshooting
 
-If a canvas appears blank or missing, the most common cause is that it was not written under `/Users/<user>/.cursor/projects/<workspace>/canvases/` exactly — re-save it to that path. Do not debug this by trying to create the managed directory manually; focus on correcting the file path instead. Users can click the canvas file path in the response to open it, just like any other file path in Cursor. Every canvas edit returns a `Canvas TypeScript check` line in the tool result reporting the file's current type errors (or "no errors") — treat that as the authoritative diagnostics signal.
+If a canvas appears blank or missing, the most common cause is that it was not written under `$HOME/.cursor/projects/<workspace>/canvases/` exactly — re-save it to that path. Do not debug this by trying to create the managed directory manually; focus on correcting the file path instead. Users can click the canvas file path in the response to open it, just like any other file path in Cursor. Every canvas edit returns a `Canvas TypeScript check` line in the tool result reporting the file's current type errors (or "no errors") — treat that as the authoritative diagnostics signal.
