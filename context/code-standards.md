@@ -51,6 +51,7 @@ node scripts/test-evidence-runner.js
 node scripts/test-review-queue.js
 node scripts/test-security-scanner.js
 node scripts/test-opencode-v2.js
+node scripts/test-opencode-permission-contract.js
 bash scripts/test-studio-service.sh
 node scripts/test-studio-data-layer.js
 node scripts/test-studio-ui.js
@@ -65,6 +66,7 @@ node scripts/test-parallel-execution.js
 node scripts/test-sixfile-validation.js
 node scripts/test-memory-retrieval.js
 node scripts/test-memory-hybrid.js
+node scripts/test-memory-patterns.js
 node scripts/test-handoff-enforcer.js
 node scripts/test-review-queue-producer.js
 node scripts/test-merge-qoder-settings.js

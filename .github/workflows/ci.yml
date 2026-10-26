@@ -69,6 +69,7 @@ jobs:
           node scripts/test-review-queue.js
           node scripts/test-security-scanner.js
           node scripts/test-opencode-v2.js
+          node scripts/test-opencode-permission-contract.js
           bash scripts/test-studio-service.sh
       - name: Studio suites (data layer, UI, server, integration)
         run: |
@@ -90,6 +91,7 @@ jobs:
           node scripts/test-sixfile-validation.js
           node scripts/test-memory-retrieval.js
           node scripts/test-memory-hybrid.js
+          node scripts/test-memory-patterns.js
           node scripts/test-handoff-enforcer.js
           node scripts/test-review-queue-producer.js
 

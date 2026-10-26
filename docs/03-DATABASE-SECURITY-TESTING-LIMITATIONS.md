@@ -188,7 +188,8 @@ erDiagram
 
 - `loadState()`: <1ms (~1KB JSON)
 - `saveState()`: <5ms (~1KB JSON)
-- All operations are synchronous and fast. No database connection overhead.
+- All state operations are synchronous JSON reads/writes — no server database or connection
+  pool. The derived FTS index opens its embedded SQLite file lazily and can be deleted at any time.
 - State files safe to backup by simple file copy.
 
 ---
@@ -197,7 +198,7 @@ erDiagram
 
 ## Security Model
 
-**Local-only, no network endpoints, no authentication, no user accounts, no external API calls.**
+**Local-only by default: no network endpoints, no authentication, no user accounts, no external API calls in the hook runtime.** The optional Studio server (localhost) and the MCP server (stdio) are opt-in and not started by hooks.
 
 ```mermaid
 graph LR
@@ -209,7 +210,7 @@ graph LR
     subgraph "Not in Scope"
         NET["No network/server"]
         AUTH["No auth/accounts"]
-        DATA["No database/user data"]
+        DATA["No user data store"]
         API["No external API"]
     end
 ```
@@ -229,7 +230,7 @@ Authorization is enforced at the agent level:
 
 ## CSP, CSRF, XSS, SQL Injection
 
-**All not applicable.** No web UI, no HTTP endpoints, no database, no SQL queries. The only output is stdout JSON and markdown in Cursor chat.
+**Not applicable to the hook runtime.** It serves no web UI and opens no network sockets. The only SQL is parameterized FTS5 against a derived, local, rebuildable index. The optional Studio server (`server/`, localhost only) and MCP server (stdio) are opt-in.
 
 ## Validation
 
@@ -257,13 +258,16 @@ Authorization is enforced at the agent level:
 
 | Aspect | Status |
 |--------|--------|
-| Zero npm dependencies | ✅ Core uses only built-in modules |
-| No lock files | ✅ No package resolution |
+| Hook runtime dependencies | ✅ Built-in modules only (no third-party runtime deps) |
+| Root optional dependency | 1 (`@modelcontextprotocol/sdk`) — loaded only by the opt-in stdio MCP server; lock file committed |
+| Studio server dependencies | 2 (`express`, `ws`) in the private `server/` package; separate lock file |
 | Single source of truth | ✅ `bundle/` is the only source |
-| No external downloads | ✅ Installer copies locally |
+| No external downloads at install | ✅ Installer copies locally |
 | Git-tracked source | ✅ All code in git |
 
-This is one of the most supply-chain-secure Node.js projects possible.
+The hook runtime stays dependency-free, so a compromised npm tree cannot reach the hooks
+themselves. The MCP SDK is required only when the optional stdio MCP server runs, and the
+`express`/`ws` pair only when the optional Studio server runs.
 
 ## Security Recommendations
 
@@ -271,7 +275,7 @@ This is one of the most supply-chain-secure Node.js projects possible.
 |----------|---------------|
 | High | Never store API keys in state JSON files |
 | High | Review AI-generated code for secrets before committing |
-| Medium | Keep Node.js updated (18+) |
+| Medium | Keep Node.js updated (18+; 22.5+ enables SQLite FTS hybrid recall) |
 | Medium | Review install scripts before running |
 | Low | Consider `chmod 600` on state directory on shared machines |
 
@@ -281,26 +285,58 @@ This is one of the most supply-chain-secure Node.js projects possible.
 
 ## Testing
 
-The primary validation mechanism is the **health check script** (6 categories):
+Validation runs at three levels: CI suites on every PR, the installed health check, and the
+verifier agent inside an orchestra run.
 
-| # | Test | What It Checks |
-|---|------|----------------|
-| 1 | Scripts | All 11 hook scripts exist |
-| 2 | hooks.json | Valid JSON, has lifecycle/memory/heartbeat hooks |
-| 3 | State | V2 has all sections (heartbeat, lifecycle, memory, resumable) |
-| 4 | Memory | orchestra-memory.json exists and is valid |
-| 5 | Classification | 6 test prompts classified correctly |
-| 6 | Agents | All 4 agent .md files exist |
+### CI suites (`.github/workflows/ci.yml`)
+
+37 Node suites (`scripts/test-*.js`) plus one bash suite (`scripts/test-studio-service.sh`)
+run on every pull request. The `lint` job additionally runs `node --check` over every
+JavaScript file, `shellcheck --severity=error`, and the blocking secret scan.
+
+| Area | Suites |
+|------|--------|
+| State + safety | `test-safe-write`, `test-state-manager-compat`, `test-conductor-state`, `test-phase-outcome` |
+| Agent contracts | `test-agent-registry`, `test-handshake-contract`, `test-mirror-sync`, `test-qoder-sync`, `test-merge-qoder-settings` |
+| Core loop | `test-adaptive-loop`, `test-permission-review`, `test-opencode-v2`, `test-opencode-permission-contract`, `test-handoff-enforcer`, `test-sixfile-validation` |
+| Enterprise domain | `test-domain-model`, `test-domain-completion`, `test-domain-store`, `test-domain-evidence`, `test-domain-state-dir`, `test-evidence-runner`, `test-review-queue`, `test-review-queue-producer` |
+| Memory | `test-memory-retrieval`, `test-memory-hybrid`, `test-memory-patterns` |
+| Orchestration | `test-worktree-isolation`, `test-spawn-adapter`, `test-spawn-adapter-integration`, `test-parallel-execution`, `test-mcp-server`, `test-mcp-lifecycle` |
+| Studio | `test-studio-data-layer`, `test-studio-ui`, `test-studio-server`, `test-studio-integration`, `test-studio-service.sh` |
+| Security | `test-security-scanner` (heuristic rules + allowlist integrity) |
+
+`test-mirror-sync` enforces the byte-identical invariant between `bundle/hooks/` and
+`bundle/opencode/hooks/`; `sync-qoder-agents.js --check` fails the build when Qoder agents
+drift from the Cursor source.
+
+### Health check (installed bundle)
+
+`orchestra-health.js` validates 10 categories against the installed tree:
+
+| # | Category | What It Checks |
+|---|----------|----------------|
+| 1 | Scripts | All 10 hook entry points exist |
+| 2 | Lib modules | 33 core modules present |
+| 3 | hooks.json | Valid JSON; lifecycle, memory, heartbeat, quality-gate hooks wired |
+| 4 | State | V2 sections present (state, project, versioning, quality gates, heartbeat, lifecycle, memory, resumable) |
+| 5 | Memory | `orchestra-memory.json` exists and parses |
+| 6 | Classification | 6 prompts classified as expected |
+| 7 | Agents | 27 required agent files exist |
+| 8 | Enterprise state files | project / version / daily / metrics files present or initialized |
+| 9 | Project identity | `templates/project.yaml` loads and validates |
+| 10 | Adaptive install | No nested `hooks/lib/lib`; core loop starts at `plan`; informal prompts route to core |
+
+It also checks session claims when the source repo is locatable.
 
 ### Classification Test Samples
 
 ```javascript
-["fix import error", true],              // → activate
-["what is asyncio", false],              // → skip
-["what is the best way to fix login", true], // → activate
-["explain how hooks work", false],        // → skip
-["deploy to VPS", true],                  // → activate
-["no orchestra just explain", false]      // → skip
+["fix import error", true],
+["what is asyncio", false],
+["what is the best way to fix login", true],
+["explain how hooks work", false],
+["deploy to VPS", true],
+["no orchestra just explain", false]
 ```
 
 ### Running Health Checks
@@ -313,20 +349,18 @@ node bundle/hooks/orchestra-health.js       # pre-install
 
 ### Verifier Agent Checks (per orchestration)
 
-In order: Lint → Typecheck → Unit tests → Build → Git clean (`git status --porcelain`) → Diff review → Import check.
+In order: lint → typecheck → unit tests → build → `git status --porcelain` (phase commit
+gate) → diff review → import check.
 
-### Turnstile-Spin Worker Tests (Vitest)
+### Known Test Gaps
 
-The only code with formal tests — 4 test files: unit, integration, validation, deploy. Run with `npm test` in the worker template directory.
-
-### Missing Tests
-
-| Area | Impact |
-|------|--------|
-| Hook scripts (no unit tests) | Low — thin orchestrators, tested through health check |
-| Lib modules (no unit tests) | Low-medium — pure functions, health check validates integration |
-| Checkpoint manager (no resume/abort tests) | Medium — complex state transitions |
-| Install scripts (no cross-platform CI) | Medium — tested manually |
+| Area | Impact | Mitigation |
+|------|--------|------------|
+| Install scripts | Medium — no cross-platform CI | `bash install.sh --dry-run` smoke locally; installers are thin copy/merge wrappers |
+| Shell scripts (style) | Low — warnings only | `shellcheck --severity=error` is blocking; warning backlog tracked separately |
+| Live host integration | Medium — Cursor, OpenCode, Qoder hook firing is manual | Handshake-contract and permission-contract suites pin the config surface |
+| Multi-session concurrency | Medium — cross-session races | Worktree-isolation suite covers the isolation contract; live multi-session runs are manual |
+| Studio browser E2E | Low — UI tested through modules, not a browser | `test-studio-ui` imports the real TS modules in Node 24 |
 
 ## Deployment
 
@@ -358,11 +392,16 @@ bash install.sh            # reinstall
 
 ### Versioning
 
-Git tags: `v1.0.0`. Version documented in `README.md`. No `package.json` version in root.
+`package.json` is the version source of truth (`version: 3.7.0`, `engines.node: >=18`).
+Docs 01–04 carry a matching "Docs version" stamp. No git tags are published yet.
 
 ---
 
 # 13. Known Limitations & Roadmap
+
+> Status snapshot **2026-10-26 (v3.7.0)**. Point-in-time audit findings live in
+> [`docs/audit/`](audit/) with their closure status; the living invariants are in
+> [`context/architecture.md`](../context/architecture.md).
 
 ## Known Limitations
 
@@ -370,41 +409,43 @@ Git tags: `v1.0.0`. Version documented in `README.md`. No `package.json` version
 
 | # | Debt | Impact | Fix Effort |
 |---|------|--------|------------|
-| 1 | No unit tests for lib modules | Low | Medium |
-| 2 | No TypeScript types | Low | Low |
-| 3 | Classification regex is fragile (edge cases) | Medium | Low |
-| 4 | No error classification in history | Low | Low |
-| 5 | Memory only injected on phase 1 implement | Medium | Low |
-| 6 | No logging framework | Medium | Medium |
+| 1 | Shellcheck warnings (CI blocks only `--severity=error`) | Low | Medium |
+| 2 | No hard per-phase timeout — stall detection only | Medium | Medium |
+| 3 | Prompt-classifier regexes are heuristic (edge cases) | Medium | Low |
+| 4 | No logging framework — hooks emit JSON on stdout and fail open | Low | Medium |
+| 5 | Hybrid recall needs Node 22.5+ (`node:sqlite`); older Node gets JSON-only recall | Low | Documented fallback |
+| 6 | Concurrent runs rely on session claims + worktree isolation; without them the shared state file can interleave writes | Medium | Medium |
 
 ### Known Bugs
 
-**None.** All critical (C1-C3) and important (I1-I6) issues from code review have been resolved.
+None known at v3.7.0.
 
 ### Missing Features
 
-| # | Feature | Priority | Impact |
-|---|---------|----------|--------|
-| 1 | Durable Skills | P1 | Medium |
-| 2 | Branch Isolation | P1 | Medium |
-| 3 | MVP Mode | P2 | Low |
-| 4 | `context/specs/` Template | P2 | Low |
-| 5 | RAG / Codebase Indexing | P2 | Medium |
-| 6 | Background Agents | P2 | Low |
-| 7 | P-Core CLI Integration | P3 | Low |
+| # | Feature | Priority | Notes |
+|---|---------|----------|-------|
+| 1 | Codebase RAG index | P2 | Memory recall covers completed goals, not source code |
+| 2 | Durable skill state | P2 | No `skill_state` section in `orchestra.json` yet |
+| 3 | Per-phase model tier | P2 | Blocked on host APIs exposing per-subagent model selection |
+| 4 | Background agents | P2 | Not started |
+| 5 | MVP mode (skip reviewer) | P3 | Not started |
+| 6 | P-Core CLI integration | P3 | Not started |
+
+Shipped since this list was first written: git worktree branch isolation (invariant 30), the `context/specs/` template, and SQLite FTS hybrid recall.
 
 ### Scalability Limits
 
-| Limit | Current Value | Notes |
+| Limit | Current value | Notes |
 |-------|---------------|-------|
-| Concurrent orchestrations | 1 | Single global state file |
-| Long-term memory | 100 goals, 50 files, 50 errors | Ring buffer caps |
+| Concurrent orchestration runs | Session-scoped | Per-session state + `.pcore/session-claims.json`; worktree isolation gives each run its own `.pcore/state/` |
+| Long-term memory (episodic) | 100 goals / 50 files / 50 errors | Ring caps in `constants.js` |
+| Recall index | 500 goals (JSON) + FTS mirror | `memory-index.js` prunes oldest first and deletes the same ids from FTS |
 | Lifecycle events | 200 | Ring buffer |
-| History runs | 50 | Ring buffer |
+| History | 50 runs (100 for token history) | `constants.js` |
 | Phase duration | Unlimited | Stall detection only; no hard timeout |
 | Token budget | 63k per cycle | Per-agent limits |
 
-All caps are intentional to prevent unbounded JSON growth and keep operations fast (<10ms). Configurable via `constants.js`.
+All caps are intentional to keep state small and operations fast, and are configurable in `constants.js`.
 
 ## Architecture Decisions Log
 
@@ -421,27 +462,16 @@ All caps are intentional to prevent unbounded JSON growth and keep operations fa
 | AD-09 | Only implementer commits | Clear responsibility, audit trail |
 | AD-10 | SOLID with 43 lib modules | SRP, testability, maintainability |
 | AD-11 | Config-driven extensibility | Add phases/commands without logic changes |
-| AD-12 | Zero npm dependencies | Security, reliability, portability |
-| AD-13 | JSON file persistence | Simplicity, zero setup, backup-friendly |
+| AD-12 | Zero npm dependencies in the hook runtime | Security, reliability, portability; the optional MCP server is the sole npm consumer |
+| AD-13 | JSON persistence + one derived SQLite FTS index | Simple, backup-friendly state; the FTS mirror is rebuildable and never authoritative |
 
 ## Future Roadmap
 
-### P1 — Next Release (v1.1)
+No version numbers are promised here — items ship when they are verified.
 
-**Durable Skills:** Skills that maintain state across orchestration runs within a session. Add `skill_state` section to `orchestra.json`. Skills declare persistent fields in frontmatter.
-
-**Branch Isolation:** Orchestra auto-creates git branch → implements → verifies → merges or creates PR.
-
-### P2 — v1.2
-
-**MVP Mode:** Skip reviewer for fast iterations (`mvp mode` → plan → implement → verify → done).
-
-**RAG / Codebase Indexing:** Vector index of codebase for semantic search.
-
-**Context Specs Template:** Add `context/specs/` directory template.
-
-### P3 — v2.0
-
-**P-Core CLI:** Unified CLI: `pcore orchestra install`, `pcore orchestra status`, `pcore orchestra history`.
-
-**Background Agents:** Background verifier runs tests, background reviewer monitors for regressions.
+- **Codebase RAG index** — optional `scripts/index-context.js` feeding an FTS table over `context/` and key paths.
+- **Durable skill state** — `skill_state` persisted across runs; skills declare persistent fields in frontmatter.
+- **Per-phase model tier** — assign cheaper models to planning/review once hosts expose per-subagent model selection.
+- **Background agents** — background verifier/test runner feeding evidence while the loop continues.
+- **MVP mode** — plan → implement → verify → done, skipping reviewer for fast iterations.
+- **P-Core CLI** — unified `pcore orchestra install|status|history` entry point.

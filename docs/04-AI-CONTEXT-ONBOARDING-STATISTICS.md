@@ -613,14 +613,14 @@ lives in `project.yaml` and `package.json`.
 | 3 | `docs/01-OVERVIEW-AND-ARCHITECTURE.md` | Full folder tree (every directory, every file with comments) |
 | 4 | `docs/01-OVERVIEW-AND-ARCHITECTURE.md` | Application architecture — prompt chaining + ReAct, data flow, lifecycle, file naming conventions, config-driven extensibility, source of truth flow |
 | 5 | `docs/01-OVERVIEW-AND-ARCHITECTURE.md` | SOLID, architectural invariants, C4 diagrams (Context, Container, Component), LLM topology, hook lifecycle, event storming |
-| 6 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | All 15 features — ambient auto-start, build/fix, four-phase loop, stall detection, pause/resume, crash recovery, memory, history, six-file context, classification, config-driven, headless agents, zero npm, install/verify, project bootstrap |
-| 7 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | Hook architecture, 9 hook contract table (entry, purpose, complexity, limits), hooks.json config, event-driven flow diagram, hand-coded rules |
+| 6 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | All 15 features — ambient auto-start, build/fix, four-phase loop, stall detection, pause/resume, crash recovery, memory, history, six-file context, classification, config-driven, headless agents, dependency-free hook runtime, install/verify, project bootstrap |
+| 7 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | Hook architecture, 8-command hook contract table + 3 non-event entry points, hooks.json config, event-driven flow diagram, hand-coded rules |
 | 8 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | Hook and lib module reference for `bundle/hooks/lib/` (43 modules) |
 | 9 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | Core loop agents — planner, implementer, verifier, reviewer — for Cursor, OpenCode, and Qoder |
 | 10 | `docs/03-DATABASE-SECURITY-TESTING-LIMITATIONS.md` | State, memory, history schemas, field groups, lifecycle events, checkpoint schema, migration history, ER diagram, performance |
 | 11 | `docs/03-DATABASE-SECURITY-TESTING-LIMITATIONS.md` | Security model, auth/authz, CSP/CSRF/XSS/SQLi, input validation, rate limiting, secrets, supply chain security, recommendations |
-| 12 | `docs/03-DATABASE-SECURITY-TESTING-LIMITATIONS.md` | Health check tests (6 categories), verifier checks, Turnstile-Spin tests, missing tests, deployment (install + rollback) |
-| 13 | `docs/03-DATABASE-SECURITY-TESTING-LIMITATIONS.md` | Technical debt (5 items), missing features (7 items), scalability limits, architecture decisions log (13 ADs), future roadmap (P1-P3) |
+| 12 | `docs/03-DATABASE-SECURITY-TESTING-LIMITATIONS.md` | CI suite matrix, 10-category health check, verifier checks, known test gaps, deployment (install + rollback) |
+| 13 | `docs/03-DATABASE-SECURITY-TESTING-LIMITATIONS.md` | Technical debt (6 items), missing features (6 items), scalability limits, architecture decisions log (13 ADs), future roadmap |
 | 14 | `docs/04-AI-CONTEXT-ONBOARDING-STATISTICS.md` | AI context export — quick-reference index, codebase structure, lib module API reference, phase chain, classification rules, startup sequence, lifecycle hooks, agent definitions, state schema reference |
 | 15 | `docs/04-AI-CONTEXT-ONBOARDING-STATISTICS.md` | Onboarding guide — system requirements, installation, project tour, quick start, adding a hook, code conventions, testing, troubleshooting, performance tips |
 | 16 | `docs/04-AI-CONTEXT-ONBOARDING-STATISTICS.md` | Project statistics — codebase metrics, largest modules, hook entry points, infrastructure, dependencies (snapshot 2026-10-26) |

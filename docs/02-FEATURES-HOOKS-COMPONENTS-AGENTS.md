@@ -176,7 +176,7 @@ Phase timers track `started_at`, `ended_at`, `duration_ms` for each phase.
 | Feature | Key Detail |
 |---------|-----------|
 | **CLI Control** | 10 commands via COMMANDS map (plugin-like, OCP). `COMMANDS["status"]()` etc. |
-| **Health Check** | 6 categories: scripts, hooks.json, state, memory, classification (6 samples), agents |
+| **Health Check** | 10 categories: scripts, lib modules, hooks.json, state, memory, classification (6 samples), agents, enterprise state files, project identity, adaptive install |
 | **Stop Nudges** | Phase-specific nudges, capped at 3 per phase (`STOP_NUDGE_LOOP_LIMIT`=3) |
 | **Git Workflow** | Only implementer commits (`<type>(<scope>): <desc>`). Verifier checks `git status --porcelain` |
 | **Six-File Context** | 6 files read in fixed order. Missing files noted (○) but still works. Bootstrap via `init-context.sh` |
@@ -206,8 +206,12 @@ pattern: async main() → process → emit → .catch(() => emit({}))
 | `subagentStop` | `orchestra-subagent-stop.js` | Subagent completes | None | `followup_message` (next phase) |
 | `subagentStop` | `orchestra-lifecycle.js` | (concurrent) | None | `{}` (records events) |
 | `subagentStop` | `orchestra-memory.js` | (concurrent) | None | `additional_context` (memory, first implement only) |
+| `subagentStop` | `orchestra-quality-gate.js` | (concurrent) | None | `additional_context` (gate verdicts + six-file gaps) |
 | `stop` | `orchestra-stop.js` | Every message | None | `followup_message` (phase nudge, cap 3) |
 | `stop` | `orchestra-heartbeat.js` | (concurrent) | None | `followup_message` (stall nudge or abort) |
+
+Three further entry points are not hook events: `orchestra-enable.js` (manual activation
+CLI), `orchestra-health.js` (self-check), and `orchestra-lib.js` (shared helpers).
 
 ## Hook Input Fields (from Cursor)
 
