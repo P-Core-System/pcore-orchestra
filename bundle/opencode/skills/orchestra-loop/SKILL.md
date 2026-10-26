@@ -2,14 +2,15 @@
 name: orchestra-loop
 description: >-
   Multi-agent orchestra — plan → implement → verify → review. Cursor: ambient
-  hooks + Task subagent_type. OpenCode: orchestra conductor + task tool. Use for
+  hooks + Task subagent_type. OpenCode: orchestra conductor + subagent tool. Use for
   build/fix/refactor, agent loop, or cross-platform orchestra setup.
 ---
 
-# Orchestra Loop (Cursor + OpenCode)
+# Orchestra Loop (Cursor + OpenCode + Qoder)
 
 - **Cursor:** runs via `~/.cursor/` hooks — ambient auto-start; spawn with **Task** + `subagent_type`.
-- **OpenCode:** runs via `~/.config/opencode/` — user talks to **orchestra** conductor; spawn with **task** + agent name.
+- **OpenCode:** runs via `~/.config/opencode/` — user talks to **orchestra** conductor; spawn with **subagent** + `agent` name (V1 `task` is retired; runtime requires OpenCode V2).
+- **Qoder:** runs via `~/.qoder/settings.json` hooks like Cursor — spawn with **Agent** + `subagent_type`.
 
 You do not need `/orchestra` on Cursor when ambient mode is ON.
 
@@ -20,9 +21,9 @@ Same four phase agent names; **different spawn tool and chaining**.
 | | **Cursor IDE** | **OpenCode CLI / desktop** |
 |---|----------------|----------------------------|
 | User entry | Main Agent (ambient hooks) or `orchestra` conductor | `orchestra` only (`default_agent`) |
-| Spawn tool | **Task** (capital T) | **task** (lowercase) |
-| Spawn param | `subagent_type="orchestra-planner"` | `agent="orchestra-planner"` |
-| Phase chain | Hooks `subagentStop` auto-advance | Conductor calls **task** once per phase |
+| Spawn tool | **Task** (capital T) | **subagent** (V2; V1 `task` retired) |
+| Spawn param | `subagent_type="orchestra-planner"` | `agent="orchestra-planner"` + `description` |
+| Phase chain | Hooks `subagentStop` auto-advance | Conductor calls **subagent** once per phase |
 | Phase visibility | Task picker | `hidden: true` — not in @ menu |
 
 Full matrix: `docs/orchestra-cross-platform.md` · agent ref: `references/orchestra-spawn-matrix.md`

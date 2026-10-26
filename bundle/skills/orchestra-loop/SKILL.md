@@ -2,14 +2,15 @@
 name: orchestra-loop
 description: >-
   Multi-agent orchestra — plan → implement → verify → review. Cursor: ambient
-  hooks + Task subagent_type. OpenCode: orchestra conductor + task tool. Use for
+  hooks + Task subagent_type. OpenCode: orchestra conductor + subagent tool. Use for
   build/fix/refactor, agent loop, or cross-platform orchestra setup.
 ---
 
-# Orchestra Loop (Cursor + OpenCode)
+# Orchestra Loop (Cursor + OpenCode + Qoder)
 
 - **Cursor:** runs via `~/.cursor/` hooks — ambient auto-start; spawn with **Task** + `subagent_type`.
-- **OpenCode:** runs via `~/.config/opencode/` — user talks to **orchestra** conductor; spawn with **task** + agent name.
+- **OpenCode:** runs via `~/.config/opencode/` — user talks to **orchestra** conductor; spawn with **subagent** + `agent` name (V1 `task` is retired; runtime requires OpenCode V2).
+- **Qoder:** runs via `~/.qoder/settings.json` hooks like Cursor — spawn with **Agent** + `subagent_type`.
 
 You do not need `/orchestra` on Cursor when ambient mode is ON.
 
@@ -20,9 +21,9 @@ Same four phase agent names; **different spawn tool and chaining**.
 | | **Cursor IDE** | **OpenCode CLI / desktop** |
 |---|----------------|----------------------------|
 | User entry | Main Agent (ambient hooks) or `orchestra` conductor | `orchestra` only (`default_agent`) |
-| Spawn tool | **Task** (capital T) | **task** (lowercase) |
-| Spawn param | `subagent_type="orchestra-planner"` | `agent="orchestra-planner"` |
-| Phase chain | Hooks `subagentStop` auto-advance | Conductor calls **task** once per phase |
+| Spawn tool | **Task** (capital T) | **subagent** (V2; V1 `task` retired) |
+| Spawn param | `subagent_type="orchestra-planner"` | `agent="orchestra-planner"` + `description` |
+| Phase chain | Hooks `subagentStop` auto-advance | Conductor calls **subagent** once per phase |
 | Phase visibility | Task picker | `hidden: true` — not in @ menu |
 
 Full matrix: `docs/orchestra-cross-platform.md` · agent ref: `references/orchestra-spawn-matrix.md`
@@ -47,21 +48,21 @@ When a subagent returns WITHOUT its expected ending token, the conductor MUST au
 
 | Phase | Expected ending token | Resume action |
 |-------|----------------------|---------------|
-| planner | `PLAN_READY` | Resume planner with `task_id` — pass incomplete plan so far |
-| implementer | `IMPLEMENT_DONE` | Resume implementer with `task_id` — pass what was implemented so far |
-| verifier | `VERIFY_PASS` or `VERIFY_FAIL` | Resume verifier with `task_id` — pass what was checked so far |
-| reviewer | `ORCHESTRA_COMPLETE` | Resume reviewer with `task_id` — pass what was reviewed so far |
+| planner | `PLAN_READY` | Resume planner with the session handle — pass incomplete plan so far |
+| implementer | `IMPLEMENT_DONE` | Resume implementer with the session handle — pass what was implemented so far |
+| verifier | `VERIFY_PASS` or `VERIFY_FAIL` | Resume verifier with the session handle — pass what was checked so far |
+| reviewer | `ORCHESTRA_COMPLETE` | Resume reviewer with the session handle — pass what was reviewed so far |
 
 **Rules:**
 1. **Detect missing token** — if the subagent result does NOT contain the expected ending token, it hit max steps.
-2. **Resume, don't restart** — pass the `task_id` from the previous call to resume the same session.
+2. **Resume, don't restart** — pass the resume handle from the previous call to continue the same session (OpenCode `sessionID`, Cursor `task_id`).
 3. **Pass progress summary** — include what was completed so far in the resume prompt.
 4. **Max 5 resume attempts per phase** — after 5 resumes without the ending token, escalate to user with a summary.
 5. **NEVER stop the loop** — the conductor continues until: all 4 phases complete, OR 5 resumes fail, OR user explicitly says "stop".
 
 **How to resume (OpenCode):**
 ```
-task(description="resume planner", prompt="Continue from where you stopped. Plan so far: [summary]. Complete the plan ending with PLAN_READY.", subagent_type="orchestra-planner", task_id="<previous_task_id>")
+subagent(agent="orchestra-planner", description="resume planner", prompt="Continue from where you stopped. Plan so far: [summary]. Complete the plan ending with PLAN_READY.", sessionID="<previous_session_id>")
 ```
 
 **How to resume (Cursor):**
