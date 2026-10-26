@@ -2,9 +2,9 @@
 name: release-manager
 description: >-
   Enterprise SDLC Phase 26 — Release candidate preparation, versioning, changelog. Use proactively when this specialist's phase is active.
-readonly: true
+readonly: false
 model: composer-2.5
-tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
+tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 
 ## Models

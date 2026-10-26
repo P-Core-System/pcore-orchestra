@@ -3,9 +3,9 @@ name: release-manager
 description: >-
   Enterprise SDLC Phase 26 — Release candidate preparation, versioning,
   changelog. Use proactively when this specialist's phase is active.
-disallowedTools: [Write, Edit, NotebookEdit]
+permissionMode: acceptEdits
 maxTurns: 200
-tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
+tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 
 ## Models

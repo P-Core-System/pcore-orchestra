@@ -4,9 +4,9 @@ description: >-
   Enterprise SDLC Phase 6,9 — Detection rule engineering, SIGMA/YARA/Snort
   rules, detection-as-code, detection coverage, gap analysis, rule
   optimization.
-disallowedTools: [Write, Edit, NotebookEdit]
+permissionMode: acceptEdits
 maxTurns: 200
-tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
+tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 
 ## Models

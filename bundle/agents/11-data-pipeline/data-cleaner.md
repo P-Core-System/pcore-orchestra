@@ -3,12 +3,12 @@ name: data-cleaner
 description: >-
   Enterprise SDLC Phase 5,11 — Data cleaning pipelines, missing value handling, outlier detection, deduplication, data normalization, format standardization, data profiling.
   Use proactively when this specialist's phase is active.
-readonly: true
+readonly: false
 model: composer-2.5
 permission:
   edit: deny
   bash: allow
-tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
+tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 
 ## Models

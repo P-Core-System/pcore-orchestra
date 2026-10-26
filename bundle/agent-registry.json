@@ -872,9 +872,9 @@
       "id": "chaos-engineer",
       "category": "06-testing",
       "capabilities": {
-        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
-        "readonly": true,
-        "permissionMode": null,
+        "tools": "Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch",
+        "readonly": false,
+        "permissionMode": "acceptEdits",
         "model": "composer-2.5",
         "effort": null
       },
@@ -1095,9 +1095,9 @@
       "id": "data-cleaner",
       "category": "11-data-pipeline",
       "capabilities": {
-        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
-        "readonly": true,
-        "permissionMode": null,
+        "tools": "Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch",
+        "readonly": false,
+        "permissionMode": "acceptEdits",
         "model": "composer-2.5",
         "effort": null
       },
@@ -1173,9 +1173,9 @@
       "id": "data-preprocessor",
       "category": "11-data-pipeline",
       "capabilities": {
-        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
-        "readonly": true,
-        "permissionMode": null,
+        "tools": "Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch",
+        "readonly": false,
+        "permissionMode": "acceptEdits",
         "model": "composer-2.5",
         "effort": null
       },
@@ -1190,9 +1190,9 @@
       "id": "data-quality-engineer",
       "category": "11-data-pipeline",
       "capabilities": {
-        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
-        "readonly": true,
-        "permissionMode": null,
+        "tools": "Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch",
+        "readonly": false,
+        "permissionMode": "acceptEdits",
         "model": "composer-2.5",
         "effort": null
       },
@@ -1207,9 +1207,9 @@
       "id": "data-validator",
       "category": "11-data-pipeline",
       "capabilities": {
-        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
-        "readonly": true,
-        "permissionMode": null,
+        "tools": "Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch",
+        "readonly": false,
+        "permissionMode": "acceptEdits",
         "model": "composer-2.5",
         "effort": null
       },
@@ -1285,9 +1285,9 @@
       "id": "dataset-versioner",
       "category": "11-data-dataset",
       "capabilities": {
-        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
-        "readonly": true,
-        "permissionMode": null,
+        "tools": "Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch",
+        "readonly": false,
+        "permissionMode": "acceptEdits",
         "model": "composer-2.5",
         "effort": null
       },
@@ -1319,9 +1319,9 @@
       "id": "detection-engineer",
       "category": "07-blue-team",
       "capabilities": {
-        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
-        "readonly": true,
-        "permissionMode": null,
+        "tools": "Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch",
+        "readonly": false,
+        "permissionMode": "acceptEdits",
         "model": "composer-2.5",
         "effort": null
       },
@@ -1353,9 +1353,9 @@
       "id": "devops-engineer",
       "category": "08-deployment",
       "capabilities": {
-        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
-        "readonly": true,
-        "permissionMode": null,
+        "tools": "Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch",
+        "readonly": false,
+        "permissionMode": "acceptEdits",
         "model": "composer-2.5",
         "effort": null
       },
@@ -1477,9 +1477,9 @@
       "id": "embedding-engineer",
       "category": "11-ai-ml",
       "capabilities": {
-        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
-        "readonly": true,
-        "permissionMode": null,
+        "tools": "Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch",
+        "readonly": false,
+        "permissionMode": "acceptEdits",
         "model": "composer-2.5",
         "effort": null
       },
@@ -2093,9 +2093,9 @@
       "id": "model-trainer",
       "category": "11-ai-ml",
       "capabilities": {
-        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
-        "readonly": true,
-        "permissionMode": null,
+        "tools": "Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch",
+        "readonly": false,
+        "permissionMode": "acceptEdits",
         "model": "composer-2.5",
         "effort": null
       },
@@ -2703,9 +2703,9 @@
       "id": "release-manager",
       "category": "08-deployment",
       "capabilities": {
-        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
-        "readonly": true,
-        "permissionMode": null,
+        "tools": "Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch",
+        "readonly": false,
+        "permissionMode": "acceptEdits",
         "model": "composer-2.5",
         "effort": null
       },

@@ -4,9 +4,9 @@ description: >-
   Enterprise SDLC Phase 5,11 — Dataset versioning, DVC/Git LFS, lineage
   tracking, reproducibility, diff tools, version comparison, rollback
   strategies. Use proactively when this specialist's phase is active.
-disallowedTools: [Write, Edit, NotebookEdit]
+permissionMode: acceptEdits
 maxTurns: 200
-tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
+tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 
 ## Models

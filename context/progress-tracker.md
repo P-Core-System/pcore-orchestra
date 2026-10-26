@@ -378,3 +378,4 @@ eachableLight at merge-autonomy-config.js:236. Files: docs/audit/agent-architect
 - OpenCode parity verified mechanically: 42 `edit: allow` / 118 `edit: deny`, zero missing — sync already mapped readonly→edit before this wave.
 - `test-agent-capabilities.js`: +1 invariant (qoder tree permission contract: writable→acceptEdits, readonly→denylist, never both; registry↔mode agreement). 9/9 pass after `install.sh --qoder`.
 - Docs: `docs/agent-permissions.md` §(e) — availability-vs-approval model, per-platform mapping table, session-start caching caveat.
+- Batch 2 (same day): 11 more producer roles promoted — devops-engineer, release-manager, data-preprocessor/cleaner/validator/quality-engineer, dataset-versioner, embedding-engineer, model-trainer, detection-engineer (rules-as-code), chaos-engineer. Final split **53 writable / 105 readonly / 2 conductors**; 9/9 invariants after reinstall.

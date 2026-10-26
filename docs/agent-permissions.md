@@ -131,7 +131,7 @@ Cross-platform mapping of the same source `readonly:` flag:
 | OpenCode (bundle/opencode) | `permission: { edit: allow, bash: allow }` | `edit: deny, bash: allow` |
 | Registry v2 | `capabilities.permissionMode: "acceptEdits"` | `capabilities.permissionMode: null` |
 
-Current split: **42 writable / 116 readonly / 2 conductors** (160 agents).
+Current split: **53 writable / 105 readonly / 2 conductors** (160 agents).
 
 Caveats:
 - Agent definitions are read at **session start** — after any regenerate + reinstall,

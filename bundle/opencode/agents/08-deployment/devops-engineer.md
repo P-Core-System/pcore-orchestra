@@ -6,7 +6,7 @@ description: >-
 mode: subagent
 steps: 200
 permission:
-  edit: deny
+  edit: allow
   bash: allow
   websearch: allow
   webfetch: allow
