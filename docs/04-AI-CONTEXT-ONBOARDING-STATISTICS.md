@@ -539,11 +539,11 @@ node bundle/hooks/orchestra-health.js
 |-------|-------|
 | Hook runtime — `bundle/hooks/**/*.js` | ~14,000 |
 | OpenCode mirror — `bundle/opencode/hooks/**/*.js` | ~14,500 |
-| Tooling + suites — `scripts/**/*.js` | ~13,600 |
+| Tooling + suites — `scripts/**/*.js` | ~14,500 |
 | Studio — `server/` + `studio/src` (JS/TS, deps excluded) | ~6,400 |
 | Shell — `install.sh` + `scripts/*.sh` | ~5,700 |
 | PowerShell — `install.ps1` + `scripts/*.ps1` | ~1,100 |
-| Markdown — README + `context/` + `docs/` (incl. dated audit/plans) | ~13,100 |
+| Markdown — README + `context/` + `docs/` (incl. dated audit/plans) | ~13,500 |
 
 **Tests:** 37 `scripts/test-*.js` suites plus `scripts/test-studio-service.sh` (21 checks), all wired into CI alongside the agent-registry, secret-scan, and Qoder-drift gates.
 
@@ -561,7 +561,8 @@ node bundle/hooks/orchestra-health.js
 | `security-scanner.js` | 467 | Secret/vulnerability scan rules |
 | `conductor-state.js` | 388 | OpenCode conductor lifecycle |
 | `version-manager.js` | 361 | Semver, changelog, release notes |
-| **Total `lib/`** | **10,679** | 43 files |
+| **Total flat `lib/`** | **10,679** | 43 files |
+| **`lib/domain/` package** | **955** | 8 files (domain model, store, evidence, completion, state dir) |
 
 ## Hook entry points
 
@@ -585,8 +586,8 @@ node bundle/hooks/orchestra-health.js
 | System | Size | Notes |
 |--------|------|-------|
 | Installers | 1,159 lines (bash + PowerShell) | `install.sh` (611), `install.ps1` (548) |
-| Scripts | 46 JS + 17 shell | Automation, suites, service managers, watcher |
-| Templates | 8 files | Six-file context blanks + AGENTS template |
+| Scripts | 52 JS (47 top-level + 5 `lib/`) + 17 shell | Automation, suites, service managers, watcher |
+| Templates | 42 files | Six-file context blanks, specs, AGENTS, 29 architecture templates |
 | Agents | 160 agent files, 27 hook agents | Generated SSOT: `bundle/agent-registry.json` |
 
 ## Dependencies
