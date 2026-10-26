@@ -118,6 +118,21 @@ async function runTests() {
     }
   }
 
+  // Test 6b: a cached runId returns the server handle, not the internal record
+  if (mcpServer) {
+    try {
+      const first = await mcpServer.start({ port: 0, runId: "cached-handle-check" });
+      const second = await mcpServer.start({ port: 0, runId: "cached-handle-check" });
+      assert(second === first, "same runId returns the cached server handle");
+      assert(typeof second.close === "function", "cached server handle has close");
+      await mcpServer.stop("cached-handle-check");
+      passed += 2;
+    } catch (e) {
+      console.log(`  ✗ cached runId handle: ${e.message}`);
+      failed += 2;
+    }
+  }
+
   // Test 7: stop() stops the server
   if (mcpServer) {
     try {

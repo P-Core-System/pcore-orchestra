@@ -22,6 +22,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Lossless agent mirrors** — `sync-opencode-agents.js` preserves invested step budgets, gained `--check` drift detection, and core agent bodies are identical across Cursor, OpenCode, and Qoder (`scripts/test-agent-sync.js` guards parity).
 
 ### Fixed
+- MCP `start()` no longer returns an internal record when two implicit starts collide in the same millisecond — callers always get a handle with `close()`; implicit run IDs are sequence-suffixed
+- `scripts/studio-service.sh` uses a numeric `-lt` comparison in the `--port` scan, clearing the blocking shellcheck (`SC2071`) lint gate
 - Bundled-skill dead relative links now point at upstream docs URLs (Cloudflare Access/WARP/WebSockets, n8n expressions); the macOS canvas example path is `$HOME`-generic (issue #12)
 - Stale OpenCode V1 `task` tool / `task_id` guidance in the `orchestra-loop` skill (now `subagent` + `sessionID`)
 

@@ -537,13 +537,15 @@ const mcpServerInstances = new Map();
  * @param {string} [config.worktreePath] - Worktree path for state reading
  * @returns {Promise<object>} Server instance with port and close method
  */
+let implicitRunSeq = 0;
+
 async function start(config) {
   config = config || {};
-  const runId = config.runId || `run-${Date.now()}`;
+  const runId = config.runId || `run-${Date.now()}-${++implicitRunSeq}`;
   
-  // If instance already exists for this runId, return it
+  // If instance already exists for this runId, return its server handle
   if (mcpServerInstances.has(runId)) {
-    return mcpServerInstances.get(runId);
+    return mcpServerInstances.get(runId).server;
   }
   
   const instance = new McpServer();
