@@ -20,7 +20,7 @@ Start with the [README](../README.md) for install and quick start, then:
 | [production-loop.md](production-loop.md) | Production-grade plan→implement→verify→review cycle with durable artifacts and gates |
 | [autonomous-workflow.md](autonomous-workflow.md) | Cursor/OpenCode autonomy profiles, permissions, sandbox |
 | [agent-permissions.md](agent-permissions.md) | OpenCode agent frontmatter permission contract |
-| [orchestra-cross-platform.md](orchestra-cross-platform.md) | Cursor vs OpenCode vs Qoder spawn matrix |
+| [orchestra-cross-platform.md](orchestra-cross-platform.md) | Five-host spawn matrix — Cursor / OpenCode / Qoder / Claude Code / Codex |
 | [mcp-chatgpt.md](mcp-chatgpt.md) | MCP knowledge server: docs/context read tools, share inbox, Streamable HTTP front for ChatGPT connectors |
 | [token-optimization.md](token-optimization.md) | Token spend reduction, cache-hit measurement, budgets |
 | [concurrency-tracking.md](concurrency-tracking.md) | Session claims and multi-session isolation |

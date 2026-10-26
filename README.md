@@ -100,7 +100,7 @@ Orchestra auto-detects `project.yaml` in any workspace and injects its identity 
 | **8 Hook Commands** | Session, prompt, subagent-stop, lifecycle, memory, quality-gate, stop, heartbeat |
 | **Six-File Context** | Stable grounding across sessions (JavaScript Mastery methodology) |
 | **Free Model Support** | OpenCode Zen free models + multi-key rotation + weekly dynamic refresh (`--schedule`) |
-| **Works With** | Cursor (IDE + CLI), OpenCode CLI, Qoder CLI, any Node.js project |
+| **Works With** | Cursor (IDE + CLI), OpenCode CLI, Qoder CLI, any Node.js project; native spawn bridge (no installer yet) for Claude Code (`Agent` tool) and Codex CLI (`spawn_agent`) — see `docs/orchestra-cross-platform.md` |
 
 ---
 

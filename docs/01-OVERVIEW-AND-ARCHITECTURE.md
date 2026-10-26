@@ -118,6 +118,8 @@ All core features complete (64 completed items). All critical and important code
 | **Cursor IDE** | Latest | Primary target via hooks API (sessionStart, beforeSubmitPrompt, subagentStop, stop) |
 | **OpenCode CLI** | Latest | Secondary target via skill system with `mode: subagent` agents |
 | **Qoder CLI** | Latest | Third target: agents in `bundle/qoder/agents/`, hooks wired through `settings.json` |
+| **Claude Code** | Latest | Native spawn bridge — adapter emits `Agent` + `subagent_type` and hooks settings are documented; `install.sh` does not install to it yet |
+| **Codex CLI** | Latest | Native spawn bridge — adapter emits `spawn_agent` + `agent_type` (`multi_agent` stable); `install.sh` does not install to it yet |
 | **Cloudflare Workers** | Latest | Worker template in turnstile-spin skill (optional, not core) |
 
 ## Libraries
@@ -300,7 +302,7 @@ pcore-orchestra/
     ├── 01–04-*.md                       # Core docs (overview, features, security/testing, AI context)
     ├── production-loop.md               # Production loop, artifacts, gates
     ├── autonomous-workflow.md           # Autonomy profiles + permissions
-    ├── orchestra-cross-platform.md      # Cursor vs OpenCode vs Qoder
+    ├── orchestra-cross-platform.md      # Cursor / OpenCode / Qoder / Claude Code / Codex
     ├── token-optimization.md            # Token efficiency + budgets
     ├── agent-permissions.md             # OpenCode permission contract
     ├── agent-harness-recommendations.md # Harness/loop/prompt research
