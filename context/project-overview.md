@@ -1,8 +1,8 @@
-# Cursor Orchestra
+# P-Core Orchestra
 
 ## Overview
 
-Cursor Orchestra is a portable, ambient multi-agent workflow for Cursor IDE. It automatically chains four specialized subagents — planner, implementer, verifier, reviewer — on build/fix/refactor prompts without requiring `/orchestra`. It integrates the **Six-File Context Methodology** so target projects with a `context/` folder give agents stable product, architecture, and workflow grounding across sessions.
+P-Core Orchestra is a portable, ambient multi-agent workflow for **Cursor**, **OpenCode CLI**, and **Qoder CLI**. It automatically chains four specialized subagents — planner, implementer, verifier, reviewer — on build/fix/refactor prompts without requiring `/orchestra`. It integrates the **Six-File Context Methodology** so target projects with a `context/` folder give agents stable product, architecture, and workflow grounding across sessions.
 
 ## Goals
 
@@ -33,8 +33,8 @@ Cursor Orchestra is a portable, ambient multi-agent workflow for Cursor IDE. It 
 - **Project-type specialist routing**: medium/complex core loops auto-insert the type's missing specialists (product-owner, product-manager, ui-ux-designer, project-manager, architect, type engineers/testers/reviewers) into the plan→implement→verify→review spine based on `project.yaml` `type`. The `ai-agent` type routes design to product-owner → prompt-engineer, planning to project-manager, implement to ml-engineer + backend-engineer, verify to qa-engineer + model-evaluator, and review to code-reviewer + ai-safety-engineer; its SDLC template is `templates/architectures/29-ai-agent-sdlc.md`.
 - **Corporate tier**: large org / multi-team / program / portfolio signals escalate to coordination + governance agents (agent-selector, project-type-classifier, workflow-orchestrator, per-track scrum-master/project-manager, governance committee, corporate close).
 - **Hard production checklist gate**: `ORCHESTRA_COMPLETE` is blocked until all production-readiness items pass — required quality gates green (build/tests/lint/security/reviewer-approval/docs-updated/memory-updated), security scan clean, progress-tracker referenced/updated, six-file context present. Enforced by `evaluateProductionChecklist` in `orchestra-quality-gate.js`, recorded as the `production-checklist` quality gate (invariant 24, fail closed).
-- **Registry-gate tool-surface access control**: tool access restrictions are enforced by a descriptor flag (`saleOnly`) on tool registration + a single-preset gate key in `checkPermissions`, keyed by slug with no role escape. The dispatch layer (`executeTools`, `getJsonSchemas`) is never edited for access control; the system prompt is aligned to the actual tool surface. Reference: pcore-assistant `searchProducts`/`getProduct` marked `saleOnly: true`, removed from general context (absent, not refusal-guarded).
-- **Studio dashboard**: Separate read-only React/Vite app (`studio/`) that visualizes WorkItems, conductor runs, gate evidence, human reviews, and token usage. Discovers global and worktree-partitioned state directories. Installs via `install.sh --studio`, launches via `orchestra-studio` (serves on http://localhost:3000).
+- **Registry-gate tool-surface access control**: tool access restrictions are enforced by a descriptor flag (`saleOnly`) on tool registration + a single-preset gate key in `checkPermissions`, keyed by slug with no role escape. The dispatch layer (`executeTools`, `getJsonSchemas`) is never edited for access control; the system prompt is aligned to the actual tool surface. Reference: a sibling project's product-search tools marked `saleOnly: true`, removed from general context (absent, not refusal-guarded).
+- **Studio dashboard**: Separate read-only React/Vite app (`studio/`) that visualizes WorkItems, conductor runs, gate evidence, human reviews, and token usage. Discovers global and worktree-partitioned state directories. Installs via `install.sh --studio`, launches via `orchestra-studio` (serves on http://localhost:3110).
 
 ### Context integration
 
@@ -78,4 +78,4 @@ Cursor Orchestra is a portable, ambient multi-agent workflow for Cursor IDE. It 
 2. A build/fix prompt in Cursor Agent auto-launches orchestra-planner without `/orchestra`.
 3. `init-context.sh <dir>` creates six files + `AGENTS.md` without overwriting existing files.
 4. Opening a project with `context/` injects six-file read instructions at session start.
-5. Standalone git repo installs independently of crypto-trader.
+5. Standalone git repo installs independently of any sibling project.

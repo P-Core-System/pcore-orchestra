@@ -1,6 +1,6 @@
 # Security & Observability Audit — pcore-orchestra
 
-- **Repo root:** `D:\Learning Web Development\pcore\pcore-orchestra`
+- **Repo root:** local clone of this repo
 - **Branch/commit at audit:** `main` @ `2faf3fb` (tree dirty only with `context/progress-tracker.md` + this new `docs/audit/` file)
 - **Scope:** hook runtime (`bundle/hooks/`, `bundle/opencode/hooks/`), project bridge (`project-bridge/`, `.cursor/hooks/`), installer/scripts, skill scripts, CI workflows, docs claims.
 - **Threat model:** local IDE-hook toolkit (no network service, no auth surface). Graded against: malicious/concurrent local sessions, hostile repo content, compromised or unverified upstream fetches, and silent data-integrity loss. Not graded as a multi-tenant server (none exists).

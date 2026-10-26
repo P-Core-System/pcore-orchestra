@@ -1,7 +1,7 @@
 # P-Core Orchestra
 
 This repository is **pcore-orchestra** — ambient multi-agent orchestration for
-Cursor IDE and OpenCode CLI. Claude Code reads this file natively; OpenCode falls
+Cursor, OpenCode CLI, and Qoder CLI. Claude Code reads this file natively; OpenCode falls
 back to it when no `AGENTS.md` is present.
 
 ## Start here

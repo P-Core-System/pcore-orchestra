@@ -2,7 +2,7 @@
 
 ## Overview
 
-Cursor Orchestra implements a three-layer agent architecture:
+P-Core Orchestra implements a three-layer agent architecture:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -45,9 +45,9 @@ The complete software layer that makes the agent run.
 - **In pcore-orchestra:** Hook scripts, state persistence, phase chaining, error handling
 - **Files:** `bundle/hooks/*.js`, `~/.cursor/hooks/state/orchestra.json`, install scripts
 
-## Mapping to Cursor Orchestra
+## Mapping to P-Core Orchestra
 
-| Layer | Cursor Orchestra Component | Responsibility |
+| Layer | P-Core Orchestra Component | Responsibility |
 |-------|---------------------------|----------------|
 | **Loop** | Phase chain (plan→implement→verify→review) | Execution cycle |
 | **Scaffold** | Agent prompts, context injection, ambient policy | Behavior definition |

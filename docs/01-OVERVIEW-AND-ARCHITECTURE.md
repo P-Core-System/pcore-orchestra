@@ -1,9 +1,9 @@
 # P-Core Orchestra — Overview & Architecture
 
 > **Project:** P-Core Orchestra (pcore-orchestra)
-> **License:** MIT | **Author:** Peter Pau Sian Lian
+> **License:** MIT | **Maintainer:** P-Core System
 > **Repository:** github.com/P-Core-System/pcore-orchestra
-> **Status:** Production-ready v1.0
+> **Status:** Production-ready v3.7 · **Docs version:** 3.7 (October 2026)
 
 ---
 

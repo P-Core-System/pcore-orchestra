@@ -15,7 +15,7 @@
 set -euo pipefail
 
 STALE_MIN="${PCORE_CLAIM_STALE_MIN:-30}"
-PCORE_ROOT="${PCORE_ROOT:-$HOME/Documents/Project/pcore}"
+PCORE_ROOT="${PCORE_ROOT:-$HOME/projects}"
 
 _now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 

@@ -108,8 +108,7 @@ function buildScaffoldInstruction(appType, goal) {
     "",
     "After scaffolding, the six-file context + project.yaml will exist. Then continue with intake/planning.",
     "",
-    "Note: Replace `<pcore-orchestra-repo>` with the actual path to this pcore-orchestra repository.",
-    "      Usually: `~/Documents/Project/pcore/pcore-orchestra` or wherever you cloned it.",
+    "Note: Replace `<pcore-orchestra-repo>` with the actual path to this pcore-orchestra repository (wherever you cloned it).",
   ];
 
   return lines.join("\n");

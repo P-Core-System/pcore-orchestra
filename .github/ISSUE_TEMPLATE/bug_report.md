@@ -3,7 +3,6 @@ name: Bug report
 about: Report a problem with P-Core Orchestra
 title: "[Bug] "
 labels: bug
-assignees: peterlianpi
 ---
 
 **Describe the bug**

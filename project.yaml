@@ -6,7 +6,7 @@ project:
   type: devops
   category: dev-tools
   owner: maintainer
-  description: Global orchestra harness for Cursor and OpenCode
+  description: Global orchestra harness for Cursor, OpenCode CLI, and Qoder CLI
 
 version:
   current: 3.7.0

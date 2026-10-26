@@ -84,7 +84,7 @@ echo ""
 # Cursor installation
 ###############################################################################
 install_cursor() {
-  echo "==> Installing Cursor Orchestra to $CURSOR"
+  echo "==> Installing P-Core Orchestra to $CURSOR"
 
   command -v node >/dev/null 2>&1 || { echo "ERROR: 'node' required (install Node.js 18+)"; exit 1; }
 
@@ -600,7 +600,7 @@ if [[ "$INSTALL_MCP" -eq 1 ]]; then
   echo "  MCP server:     @modelcontextprotocol/sdk installed; mcp-server.js in hooks/lib/"
 fi
 if [[ "$INSTALL_STUDIO" -eq 1 ]]; then
-  echo "  Studio dashboard: ~/.local/bin/orchestra-studio (starts on http://localhost:3000)"
+  echo "  Studio dashboard: ~/.local/bin/orchestra-studio (starts on http://localhost:3110)"
 fi
 echo "  Repo scoping:    ~/.local/bin/setup-repo-scoping.sh (run on any repo)"
 echo "  Maintenance:    ~/.local/bin/opencode-maintenance.sh --apply (clean DB/logs)"

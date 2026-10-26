@@ -1,4 +1,4 @@
-# Production Orchestra Loop (V3.6)
+# Production Orchestra Loop (V3.7)
 
 How pcore-orchestra runs a **production-grade** plan→implement→verify→review cycle with durable artifacts, gates, and observability.
 

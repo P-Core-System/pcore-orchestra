@@ -1,6 +1,6 @@
 # P-Core Orchestra — Deep Architecture & Workflow Audit (Master Report)
 
-> **Date:** 2026-10-02 · **Repo:** `github.com/P-Core-System/pcore-orchestra` (local clone `D:\Learning Web Development\pcore\pcore-orchestra`, branch `main` @ `2faf3fb`, clean tree before audit)
+> **Date:** 2026-10-02 · **Repo:** `github.com/P-Core-System/pcore-orchestra` (local clone, branch `main` @ `2faf3fb`, clean tree before audit)
 > **Method:** Four parallel specialist inspections (runtime/state, agents/AI/MCP, docs-vs-code/tests/git, security/observability/async) plus direct verification reads by the conductor. Every claim below cites an evidence file, a source file, or a command output. No feature is credited because documentation mentions it.
 
 ## Evidence index (companion files in this directory)
@@ -607,8 +607,8 @@ Reference workflow: `Triage → Aligning → Ready → In Progress → In Review
 ### Better implemented elsewhere in P-Core
 
 - **Run persistence**: `conductor-state.js` (this repo) beats every other P-Core repo's state handling — this is the pattern to generalize.
-- **Multi-service AI consumers / bridge auth / DB**: pcore-brain + pcore-n8n-bridge already solve API-shaped concerns P-Core Orchestra doesn't have (no gateway needed here — see §4).
-- **Server ops/monitoring**: pcore-monitor owns metrics/uptime; P-Core Orchestra should not grow its own metrics backend (its `observability.js` is a dead-end — either wire it or delete it).
+- **Multi-service AI consumers / bridge auth / DB**: sibling services in the wider org already solve API-shaped concerns P-Core Orchestra doesn't have (no gateway needed here — see §4).
+- **Server ops/monitoring**: a dedicated monitoring service owns metrics/uptime org-wide; P-Core Orchestra should not grow its own metrics backend (its `observability.js` is a dead-end — either wire it or delete it).
 - **Project memory across a monorepo**: workspace-level context hygiene already lives in each repo's six-file `context/` + `progress-tracker.md` — orchestrated from here but owned there.
 
 ### Should belong in Orchestra
@@ -620,7 +620,7 @@ Reference workflow: `Triage → Aligning → Ready → In Progress → In Review
 ### Should belong in P-Core Core (shared repo / per-repo context layer)
 
 - Six-file context methodology, `project.yaml` identity, `AGENTS.md` entry, progress-tracker — already there; Orchestra should **consume** them (it does, via pointer injection).
-- Any future DB/embedding store shared across P-Core repos (pcore-brain memory schema is the natural home).
+- Any future DB/embedding store shared across P-Core repos (a dedicated memory/AI service would be the natural home).
 
 ### Should belong in a future Studio/UI
 
@@ -833,7 +833,7 @@ Quality gates **record but never block** (P0-1); state writes are non-atomic/loc
 
 ### What should NOT be built yet
 
-AI gateway/model router (delegation is correct); own database or metrics backend (pcore-monitor/local JSON suffice); embeddings store; MCP server before gates block (it would expose an unreliable loop); Studio/UI before WorkItems + evidence exist; parallel/DAG execution before Phase 1 enforcement; more agent prompt templates (165 already, many 22-line stubs).
+AI gateway/model router (delegation is correct); own database or metrics backend (an external monitoring service + local JSON suffice); embeddings store; MCP server before gates block (it would expose an unreliable loop); Studio/UI before WorkItems + evidence exist; parallel/DAG execution before Phase 1 enforcement; more agent prompt templates (165 already, many 22-line stubs).
 
 ### What should be built next
 
@@ -849,7 +849,7 @@ P-Core already owns the **execution** end of DoneWhen (goal-based runs, handoff,
 
 ### Long-term P-Core vision
 
-P-Core Orchestra becomes the **verified execution spine of the P-Core org**: any repo's `AGENTS.md` + six-file context + `project.yaml` declares *what* a project is; Orchestra supplies *how work runs* (plan→execute→verify→review with blocking evidence) across hosts (Cursor, OpenCode, Claude Code/Codex via MCP) and eventually across repos (workspace/program level), while P-Core Core owns identity/context methodology, pcore-brain owns shared AI/memory infrastructure, and Studio owns human-facing triage/review/dashboards. The differentiator is **evidence-based completion** — a run is Done only when the system, not the agent, says so — which is precisely the gap this audit shows must be closed first.
+P-Core Orchestra becomes the **verified execution spine of the P-Core org**: any repo's `AGENTS.md` + six-file context + `project.yaml` declares *what* a project is; Orchestra supplies *how work runs* (plan→execute→verify→review with blocking evidence) across hosts (Cursor, OpenCode, Claude Code/Codex via MCP) and eventually across repos (workspace/program level), while P-Core Core owns identity/context methodology, a dedicated memory/AI service owns shared infrastructure, and Studio owns human-facing triage/review/dashboards. The differentiator is **evidence-based completion** — a run is Done only when the system, not the agent, says so — which is precisely the gap this audit shows must be closed first.
 
 ---
 

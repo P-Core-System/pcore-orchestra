@@ -1,6 +1,6 @@
 # P-Core Orchestra
 
-> Ambient multi-agent orchestration for **Cursor IDE**, **OpenCode CLI**, and **Qoder CLI**
+> Ambient multi-agent orchestration for **Cursor**, **OpenCode CLI**, and **Qoder CLI**
 > plan → implement → verify → review — automatically on build/fix/refactor prompts
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -10,8 +10,9 @@
 [![Qoder CLI](https://img.shields.io/badge/Qoder-CLI-6C5CE7.svg)](https://qoder.com)
 
 **Repository:** [github.com/P-Core-System/pcore-orchestra](https://github.com/P-Core-System/pcore-orchestra)
+**Docs map:** [docs/index.md](docs/index.md)
 
-**Status:** Production-ready | **Version:** 1.0 | **Last updated:** July 2026
+**Status:** Production-ready | **Version:** 3.7.0 | **Last updated:** October 2026
 
 ---
 
@@ -339,7 +340,7 @@ runs `--refresh --apply` via `pcore-free-models.service`. Installed by
 `install.sh --opencode` or `--schedule`. **Cron fallback** (when systemd is missing):
 
 ```cron
-17 4 * * 1 /bin/bash <repo>/scripts/update-free-models.sh --refresh --apply >> ~/.cache/pcore-free-models.log 2>&1
+17 4 * * 1 /bin/bash $HOME/projects/pcore-orchestra/scripts/update-free-models.sh --refresh --apply >> $HOME/.cache/pcore-free-models.log 2>&1
 ```
 
 ### Plan-Signal Watcher
@@ -460,7 +461,6 @@ rm -rf ~/.agents/skills/orchestra-loop
 P-Core Orchestra is part of the **P-Core** project ecosystem:
 
 - **pcore-orchestra** (this repo) — ambient multi-agent orchestration
-- **pcore-trader** — crypto trading bot with AI agents
 - **pcore-cli** — unified CLI for P-Core tools (planned)
 
 ---

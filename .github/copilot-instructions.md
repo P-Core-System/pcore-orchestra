@@ -1,7 +1,7 @@
 # GitHub Copilot Instructions — pcore-orchestra
 
 This repository is **pcore-orchestra** — ambient multi-agent orchestration for
-Cursor IDE and OpenCode CLI.
+Cursor, OpenCode CLI, and Qoder CLI.
 
 ## Authoritative guidance
 

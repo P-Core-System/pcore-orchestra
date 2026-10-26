@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Repo root | `D:\Learning Web Development\pcore\pcore-orchestra` |
+| Repo root | local clone of this repo (Windows dev machine) |
 | HEAD | `2faf3fb` (fix(orchestra): who shows live runs incl. in_progress; list honors status filter) |
 | Branch / remote | `main` / `origin` = https://github.com/P-Core-System/pcore-orchestra.git |
 | Audit date | 2026-10-02 |
@@ -28,7 +28,7 @@ Verdict key: **PASS** = claim reproduced; **FAIL** = claim demonstrably false/st
 | C8 | No deployment pipeline; installation is the deployment | `docs/03:329` | PASS | `.github/workflows/` = `ci.yml` (lint only), `maintenance.yml`, `org-health-scan.yml`, `stale.yml`; no build/release/deploy workflow |
 | C9 | CI validates JS syntax + shellcheck | `.github/workflows/ci.yml:20-25` | PASS | `node --check` loop over `scripts/*.js bundle/**/*.js templates/**/*.js`; `shellcheck … \|\| true` (L25) — shellcheck failures **do not fail CI** |
 | C10 | CI runs the test suites | implied by "Testing & Deployment" (`docs/03:276-325`) | **FAIL** | `ci.yml` has **no test step**; suites are not executed in CI at all |
-| C11 | Health check passes on install (`node … orchestra-health.js`) | `docs/03:304-308`, `docs/03:346` | PASS (Windows WARN) | Exit **0**, prints `All checks passed.`; but also prints `WARN check: script error (exit 127)` for `session-claims.sh` — bash receives an unquoted Windows path whose backslashes are eaten (`C:Userspeter…`), plus non-fatal `validation errors: project.name is required; project.slug is required` |
+| C11 | Health check passes on install (`node … orchestra-health.js`) | `docs/03:304-308`, `docs/03:346` | PASS (Windows WARN) | Exit **0**, prints `All checks passed.`; but also prints `WARN check: script error (exit 127)` for `session-claims.sh` — bash receives an unquoted Windows path whose backslashes are eaten (`<mangled Windows home path>`), plus non-fatal `validation errors: project.name is required; project.slug is required` |
 | C12 | The 3 repo test suites pass | repo `scripts/test-*.js` | PASS | 30 + 23 + 10 = **63 PASS / 0 FAIL**, all exit 0 (full output §2) |
 | C13 | Test "phase commit gate passes on clean tree" proves clean-tree enforcement | `scripts/test-adaptive-loop.js:350-354` | **PARTIAL (weak)** | Assertion only checks `typeof gate.clean === "boolean"` + `gate.message` truthy. Run from temp copy (no `.git`) the gate **skips** (§2 note); run against real repo root it returns `clean:false` (tree dirty). The test passes either way — it cannot fail for the wrong verdict |
 | C14 | Phase commit gate blocks the next phase on a dirty tree | `docs/production-loop.md:43,62`, `bundle/agents/orchestra-verifier.md:26,74,83` | **ADVISORY (not enforced)** | `bundle/hooks/orchestra-subagent-stop.js:268-276` computes the gate, `:286-296` only appends `commitGateBlock` to `followup_message`; no phase halt. Corroborated by `docs/audit/hook-runtime-audit.md:218` ("commit gate message only") |
@@ -40,8 +40,8 @@ Verdict key: **PASS** = claim reproduced; **FAIL** = claim demonstrably false/st
 | C20 | Worktree / branch isolation exists | `docs/01:83` (P1), `docs/03:385,429` — self-declared **missing** | PASS (gap honestly declared) | Repo-wide grep: **zero** `git worktree`, `worktree add`, `checkout -b` in any script; worktree appears only in prose as gap/future (`docs/greenfield-and-gaps.md:72`, `docs/agent-harness-recommendations.md:175`, `docs/greenfield-and-gaps.md:…` P4) |
 | C21 | Install fails if health fails | natural reading of `docs/03:346` "Runs health checks" | **FAIL** | `install.sh:288,296` → `node …health… \|\| true`; `install.ps1:286,290` runs health without checking `$LASTEXITCODE`. Install always exits success regardless of health |
 | C22 | "No external downloads — installer copies locally" (supply-chain table) | `docs/03:259` | PARTIAL | `install.sh:175` invokes `scripts/ensure-opencode-latest.sh`, which does `npm view opencode-ai@…` + install (network op, bypassable via `--skip-opencode-upgrade`) |
-| C23 | session-claims health sub-check works | `orchestra-health.js:339-382` | FAIL on Windows | bash spawn gets a backslash path → exit 127 (`C:Userspeter…No such file`); health still exits 0 |
-| C24 | Working tree contains only repo content | — | **FAIL (stray artifact)** | Directory `D` + U+F03A + `Learning Web Development` + U+F05C + `pcore` + U+F05C + `pcore-orchestra` exists at repo root, containing only `.pcore/session-claims.json` (1072 B) — a session-claims run against a PUA-mangled path. Git-ignored via `.gitignore:17 .pcore/` so it never shows in `git status` |
+| C23 | session-claims health sub-check works | `orchestra-health.js:339-382` | FAIL on Windows | bash spawn gets a backslash path → exit 127 (`<mangled Windows home path>`); health still exits 0 |
+| C24 | Working tree contains only repo content | — | **FAIL (stray artifact)** | Directory a directory named after the drive-letter path with `:` and `\` replaced by private-use glyphs (U+F03A/U+F05C) exists at repo root, containing only `.pcore/session-claims.json` (1072 B) — a session-claims run against a PUA-mangled path. Git-ignored via `.gitignore:17 .pcore/` so it never shows in `git status` |
 | C25 | Health "Classification" validates 6 sample prompts | `docs/03:291-300` | PASS | All 6 samples OK in run output (§2.4): activate/skip verdicts match the documented table |
 
 ---
@@ -50,7 +50,7 @@ Verdict key: **PASS** = claim reproduced; **FAIL** = claim demonstrably false/st
 ### 2.0 Temp-copy note (methodology)
 
 All suites were executed from a **temp copy** of the repo at
-`C:\Users\peter\AppData\Local\Temp\opencode\pcore-orchestra-audit` (robocopy mirror excluding `.git/`,
+`%LOCALAPPDATA%\Temp\opencode\pcore-orchestra-audit` (robocopy mirror excluding `.git/`,
 `node_modules/`, and the stray PUA directory), so that:
 
 - test side-effects (state files, cycle reports, plan artifacts) could not dirty the real working tree;
@@ -58,7 +58,7 @@ All suites were executed from a **temp copy** of the repo at
   the real repo (dirty-tree path) — both probes reported below.
 
 The temp copy contains **no `.git`**, which matters for interpretation of the commit-gate test (see C13).
-Real-repo probes were run separately against `D:\Learning Web Development\pcore\pcore-orchestra`.
+Real-repo probes were run separately against the local clone of this repo.
 
 ### 2.1 `node scripts/test-adaptive-loop.js` — exit 0
 
@@ -98,7 +98,7 @@ PASS  greenfield stack briefing includes recommended
 All adaptive loop tests passed.
 ```
 
-> Note: the log above is transcribed from `C:\Users\peter\AppData\Local\Temp\opencode\audit-tests.log`;
+> Note: the log above is transcribed from `%LOCALAPPDATA%\Temp\opencode\audit-tests.log`;
 > `->` in the phase-chain line represents a non-ASCII arrow present in the original console output
 > (encoding of the source string in `scripts/test-adaptive-loop.js`, not this file).
 
@@ -186,7 +186,7 @@ OK  constants.js … OK  memory-index.js, phase-commit-gate.js, greenfield-intak
 === Session-claims ===
     OK session-claims.sh exists at …\scripts\session-claims.sh
     WARN check: script error (exit 127)
-    stderr: /bin/bash: C:Userspeter…pcore-orchestra-audiesscriptssession-claims.sh: No such file or directory
+    stderr: /bin/bash: <mangled path>scripts session-claims.sh: No such file or directory
 All checks passed.
 ```
 
@@ -349,8 +349,8 @@ Concepts as actually implemented in this repo, in dependency order; citations ar
 
 ### 5.5 Observed anomalies during audit
 
-1. **Stray PUA directory** at repo root: `D` + U+F03A + `Learning Web Development` + U+F05C + `pcore` + U+F05C + `pcore-orchestra` containing only `.pcore/session-claims.json` (1072 B) — a session-claims run against a path whose `:`/`\` were replaced by private-use glyphs. Hidden from `git status` because `.gitignore:17` ignores `.pcore/` (confirmed via `git status --ignored` → `!! …/.pcore/`). Left untouched.
-2. **External file write mid-audit**: `docs/P-Core Orchestra — Master Engineering & Verification Implementation Prompt.md` (35 937 B) appeared at 10:02:32 while this audit ran; recorded in §3.5, not modified.
+1. **Stray PUA directory** at repo root: a directory named after the drive-letter path with `:` and `\` replaced by private-use glyphs (U+F03A/U+F05C) containing only `.pcore/session-claims.json` (1072 B) — a session-claims run against a path whose `:`/`\` were replaced by private-use glyphs. Hidden from `git status` because `.gitignore:17` ignores `.pcore/` (confirmed via `git status --ignored` → `!! …/.pcore/`). Left untouched.
+2. **External file write mid-audit**: `docs/master-engineering-prompt.md` (35 937 B; since renamed from its original long title) appeared at 10:02:32 while this audit ran; recorded in §3.5, not modified.
 3. **Pre-existing dirty file**: `context/progress-tracker.md` modified — left as-is per instructions.
 
 ---

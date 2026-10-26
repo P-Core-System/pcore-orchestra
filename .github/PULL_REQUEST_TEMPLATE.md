@@ -3,7 +3,6 @@ name: Pull Request
 about: Describe the changes you're proposing
 title: ""
 labels: ""
-assignees: peterlianpi
 ---
 
 ## Summary

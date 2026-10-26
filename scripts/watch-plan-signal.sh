@@ -18,7 +18,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PCORE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-DEFAULT_TARGET="$PCORE_ROOT/../p-core-monorepo"
+DEFAULT_TARGET="${PCORE_WATCH_TARGET:-$PCORE_ROOT/../pcore-orchestra}"
 
 MODE=""
 TARGET=""

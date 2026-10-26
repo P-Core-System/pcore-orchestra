@@ -1,6 +1,6 @@
 # Token Optimization for AI Agents
 
-Practical guide for reducing token spend in Cursor Orchestra, OpenCode, and custom agent loops — with emphasis on **tool calls**, **web search**, and **multi-agent orchestration**.
+Practical guide for reducing token spend in P-Core Orchestra, OpenCode, and custom agent loops — with emphasis on **tool calls**, **web search**, and **multi-agent orchestration**.
 
 **Expected savings:** 50–70% vs unoptimized defaults when combined with `setup-opencode-optimal.sh` profiles; up to 80–95% with full stack (caching + routing + compaction + external state).
 

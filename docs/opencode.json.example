@@ -735,7 +735,7 @@
     },
     {
       "action": "external_directory",
-      "resource": "~/Learning Web Development/**",
+      "resource": "~/projects/**",
       "effect": "allow"
     },
     {

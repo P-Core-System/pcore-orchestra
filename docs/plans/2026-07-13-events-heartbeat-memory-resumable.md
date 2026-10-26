@@ -2,7 +2,7 @@
 
 > **For agentic workers:** Use subagent-driven-development or executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Extend Cursor Orchestra with lifecycle events, heartbeat monitoring, short/long-term memory, and resumable tasks — making the orchestration loop observable, resilient, and context-aware across sessions.
+**Goal:** Extend P-Core Orchestra with lifecycle events, heartbeat monitoring, short/long-term memory, and resumable tasks — making the orchestration loop observable, resilient, and context-aware across sessions.
 
 **Architecture:** The four systems share a common foundation: an extended state model (version 2) in `orchestra.json` and a new persistent memory file `orchestra-memory.json`. Lifecycle events are recorded to state by hook scripts on every phase transition. Heartbeat timestamps are written on every hook execution and checked for staleness on the `stop` event. Short-term memory accumulates during one orchestration run (phases, files, errors, decisions) and is flushed to long-term memory on completion. Resumable tasks serialize the full orchestration state so a new session can detect crash recovery or manual pause and continue from the last saved phase.
 
@@ -97,7 +97,7 @@ Let me verify by reading the file again. Actually I already read it - line 37 is
 
 ### Step 3: Update progress-tracker path
 
-- [ ] Edit `context/progress-tracker.md` — replace Windows path `D:\Learning Web Development\cursor-orchestra` with note about current environment.
+- [ ] Edit `context/progress-tracker.md` — replace the per-machine Windows repo path with a note about the current environment.
 
 ---
 

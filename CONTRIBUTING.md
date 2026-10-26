@@ -1,6 +1,6 @@
 # Contributing to P-Core Orchestra
 
-Thank you for considering a contribution to P-Core Orchestra! Orchestra is a portable, ambient multi-agent orchestration harness for Cursor IDE and OpenCode CLI that runs plan → implement → verify → review automatically on build/fix/refactor prompts.
+Thank you for considering a contribution to P-Core Orchestra! Orchestra is a portable, ambient multi-agent orchestration harness for Cursor, OpenCode CLI, and Qoder CLI that runs plan → implement → verify → review automatically on build/fix/refactor prompts.
 
 ## How to Contribute
 

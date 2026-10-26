@@ -46,7 +46,7 @@ Write-Host ""
 # Cursor installation
 ###############################################################################
 function Install-Cursor {
-  Write-Host "==> Installing Cursor Orchestra to $CursorDir"
+  Write-Host "==> Installing P-Core Orchestra to $CursorDir"
 
   if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
     Write-Error "Node.js 18+ required. Install from https://nodejs.org"
@@ -273,7 +273,7 @@ function Install-OpenCode {
   node (Join-Path $Root "scripts\merge-autonomy-config.js") --opencode --opencode-home $OpenCodeDir
 
   # Weekly free-model schedule (Windows has no systemd — schtasks Monday 04:17)
-  # schtasks cannot parse a spaced repo path inside /TR ("D:/Learning Web ..." →
+  # schtasks cannot parse a spaced repo path inside /TR ("D:/Some Spaced Dir/..." →
   # "Invalid argument/option - 'Web'"), so schedule a no-space wrapper script
   # instead. The wrapper runs the repo script via its WSL /mnt/<drive>/ path
   # (WSL bash cannot open D:\ paths directly).
@@ -529,7 +529,7 @@ if ($Cursor) {
   Write-Host "            Docs: docs/autonomous-workflow.md"
 }
 if ($Studio) {
-  Write-Host "  Studio:   $localBin\orchestra-studio.ps1 (starts on http://localhost:3000)"
+  Write-Host "  Studio:   $localBin\orchestra-studio.ps1 (starts on http://localhost:3110)"
 }
 
 # Repo scoping (cross-tool ignore files)

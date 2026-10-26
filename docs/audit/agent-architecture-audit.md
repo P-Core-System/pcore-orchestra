@@ -1,6 +1,6 @@
 # P-Core Orchestra — Agent System / AI / Tools / MCP Evidence Report
 
-**Scope:** `D:\Learning Web Development\pcore\pcore-orchestra` (single-repo; all reads scoped to this root)
+**Scope:** local clone of this repo
 **Date:** 2026-10-02 · **Mode:** read-only audit (evidence only, no speculation)
 **Headline numbers re-verified 2026-10-02** (counts re-run; see §8 Verification Log)
 **Tooling note:** `rg` is **not installed** in this environment (`Get-Command rg` → not found). Substituted the built-in Grep tool (regex-equivalent, scoped paths) + targeted PowerShell/Node parses. No repo files were modified by the audit itself; this report is the only artifact written.

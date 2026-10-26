@@ -175,9 +175,9 @@ Add this to your project's `AGENTS.md`:
 ```markdown
 # Agent Notes
 
-## Cursor Orchestra
+## P-Core Orchestra
 
-This project uses Cursor Orchestra for ambient multi-agent orchestration.
+This project uses P-Core Orchestra for ambient multi-agent orchestration.
 
 ### Context files (read in order)
 0. `context/harness-scaffold-loop.md` — agent architecture hierarchy

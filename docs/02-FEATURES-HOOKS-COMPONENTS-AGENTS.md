@@ -1,5 +1,7 @@
 # P-Core Orchestra — Features, Hooks, Components & Agents
 
+> **Project:** P-Core Orchestra | **Docs version:** 3.7 (October 2026) | **Docs map:** [index.md](index.md)
+
 ---
 
 ## Table of Contents

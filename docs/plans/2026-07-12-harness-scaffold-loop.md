@@ -34,7 +34,7 @@ The cursor-orchestra system already implements these concepts implicitly. This p
 
 ## Overview
 
-Cursor Orchestra implements a three-layer agent architecture:
+P-Core Orchestra implements a three-layer agent architecture:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -77,9 +77,9 @@ The complete software layer that makes the agent run.
 - **In cursor-orchestra:** Hook scripts, state persistence, phase chaining, error handling
 - **Files:** `bundle/hooks/*.js`, `orchestra.json`, install scripts
 
-## Mapping to Cursor Orchestra
+## Mapping to P-Core Orchestra
 
-| Layer | Cursor Orchestra Component | Responsibility |
+| Layer | P-Core Orchestra Component | Responsibility |
 |-------|---------------------------|----------------|
 | **Loop** | Phase chain (plan→implement→verify→review) | Execution cycle |
 | **Scaffold** | Agent prompts, context injection, ambient policy | Behavior definition |
@@ -134,7 +134,7 @@ Add a new section to architecture.md:
 
 ## Agent Architecture: Harness > Scaffold > Loop
 
-Cursor Orchestra implements a three-layer agent architecture (see `context/harness-scaffold-loop.md` for full details):
+P-Core Orchestra implements a three-layer agent architecture (see `context/harness-scaffold-loop.md` for full details):
 
 - **Loop:** Phase chain (plan → implement → verify → review)
 - **Scaffold:** Agent prompts, context injection, ambient policy  
@@ -178,7 +178,7 @@ Add a new section after "How it works":
 
 ## Architecture: Harness > Scaffold > Loop
 
-Cursor Orchestra implements a three-layer agent architecture:
+P-Core Orchestra implements a three-layer agent architecture:
 
 - **Loop:** The execution cycle (plan → implement → verify → review)
 - **Scaffold:** Behavior definition (agent prompts, context injection)

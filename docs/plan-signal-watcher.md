@@ -7,14 +7,14 @@ Cursor hook can read to auto-start the orchestra loop.
 ## Usage
 
 ```bash
-bash scripts/watch-plan-signal.sh --once                 # single sweep (default target: ../p-core-monorepo)
+bash scripts/watch-plan-signal.sh --once                 # single sweep (default target: sibling repo)
 bash scripts/watch-plan-signal.sh --watch                # polling loop
 bash scripts/watch-plan-signal.sh --watch --dir /path/to/repo
 ```
 
 - `--once` — snapshot, compare to last state, emit any signals, exit.
 - `--watch` — poll every 2s (`PCORE_SIGNAL_DEBOUNCE` overrides). Pure polling — no `inotifywait` dependency.
-- `--dir` — target repo (default: repo root of this script → sibling `p-core-monorepo`).
+- `--dir` — target repo (default: `$PCORE_WATCH_TARGET`, else the sibling `pcore-orchestra` checkout next to this script's repo root).
 
 ## Detection sources (scoped)
 
@@ -52,7 +52,7 @@ inject the goal as a task for the conductor agent.
 Cron (single sweep every 10 min):
 
 ```cron
-*/10 * * * * bash ~/Documents/Project/pcore/pcore-orchestra/scripts/watch-plan-signal.sh --once >> /tmp/plan-signal.log 2>&1
+*/10 * * * * bash ~/projects/pcore-orchestra/scripts/watch-plan-signal.sh --once >> /tmp/plan-signal.log 2>&1
 ```
 
 systemd user unit (`~/.config/systemd/user/plan-signal.service`):
@@ -62,7 +62,7 @@ systemd user unit (`~/.config/systemd/user/plan-signal.service`):
 Description=Plan-signal watcher
 
 [Service]
-ExecStart=%h/Documents/Project/pcore/pcore-orchestra/scripts/watch-plan-signal.sh --watch
+ExecStart=%h/projects/pcore-orchestra/scripts/watch-plan-signal.sh --watch
 Restart=on-failure
 
 [Install]

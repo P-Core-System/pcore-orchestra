@@ -37,7 +37,7 @@ Build this project incrementally using spec-driven workflow aligned with the **S
 **Monorepo** (e.g., `pcore/` root containing 10 subprojects):
 - Work in ONE subproject at a time. Read that subproject's `AGENTS.md` and `context/` individually.
 - Never glob `**/` from the monorepo root — it scans 4,700+ files across subprojects.
-- The monorepo root has `.ignore` / `.cursorignore` / `.gitignore` that exclude heavy subtrees (`p-core-monorepo/`, `pcore-real-estate/`, `vendor/`, `node_modules/`). Respect them.
+- The monorepo root has `.ignore` / `.cursorignore` / `.gitignore` that exclude heavy subtrees (large sibling apps, `vendor/`, `node_modules/` — see `scripts/setup-repo-scoping.sh` output). Respect them.
 - Use `rg` (respects `.ignore`) for search — not bare `find` or `grep -r`.
 - Generate scoping files for any new repo: `bash scripts/setup-repo-scoping.sh /path/to/repo`.
 
@@ -47,7 +47,7 @@ Split if a change combines:
 
 - Hook logic changes and new subagent behavior definitions.
 - Install script changes and template content generation.
-- crypto-trader pointer updates and standalone repo feature work (separate repos).
+- Cross-repo pointer/config updates for a sibling project and standalone repo feature work (separate repos).
 
 ## Handling missing requirements
 

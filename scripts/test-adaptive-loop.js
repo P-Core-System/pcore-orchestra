@@ -268,7 +268,7 @@ test("syncWorkspaceIdentity refreshes stale slug when idle", () => {
   const repoRoot = path.join(__dirname, "..");
   const state = JSON.parse(JSON.stringify(DEFAULT_STATE));
   state.active = false;
-  state.project = { ...DEFAULT_STATE.project, slug: "crypto-trader", name: "crypto-trader" };
+  state.project = { ...DEFAULT_STATE.project, slug: "sample-app", name: "sample-app" };
   const result = syncWorkspaceIdentity(state, { workspace_roots: [repoRoot] });
   assert.ok(result);
   assert.equal(result.synced, true);
@@ -282,11 +282,11 @@ test("syncWorkspaceIdentity skips full sync when orchestra active", () => {
   const repoRoot = path.join(__dirname, "..");
   const state = JSON.parse(JSON.stringify(DEFAULT_STATE));
   state.active = true;
-  state.project = { ...DEFAULT_STATE.project, slug: "crypto-trader", name: "crypto-trader" };
+  state.project = { ...DEFAULT_STATE.project, slug: "sample-app", name: "sample-app" };
   const result = syncWorkspaceIdentity(state, { workspace_roots: [repoRoot] });
   assert.ok(result);
   assert.equal(result.synced, false);
-  assert.equal(state.project.slug, "crypto-trader");
+  assert.equal(state.project.slug, "sample-app");
   assert.ok(state.project.identityFile);
 });
 
@@ -298,7 +298,7 @@ const {
 test("semantic memory retrieves relevant goals by keyword", () => {
   const goals = [
     { goal: "fix orchestra hooks token tracker", outcome: "completed", duration_ms: 1000, lessons: ["use head_limit"] },
-    { goal: "deploy crypto panel to VPS", outcome: "completed", duration_ms: 2000, lessons: [] },
+    { goal: "deploy web app to VPS", outcome: "completed", duration_ms: 2000, lessons: [] },
     { goal: "add semantic recall to memory", outcome: "completed", duration_ms: 500, lessons: ["BM25-lite"] },
   ];
   const hits = retrieveRelevantGoals(goals, "token tracker orchestra");
