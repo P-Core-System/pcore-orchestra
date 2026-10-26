@@ -20,7 +20,7 @@ Read the following files in order before implementing or making architectural de
 1. `context/project-overview.md` — product definition, goals, features, scope
 2. `context/architecture.md` — system structure, boundaries, storage, system design & infrastructure, invariants
 3. `context/code-standards.md` — Node hook scripts, agent markdown, install conventions
-4. `context/ui-context.md` — N/A for this repo (CLI/hooks only); skip unless editing docs site
+4. `context/ui-context.md` — Studio dashboard UI + docs presentation tokens; skip unless editing Studio, README, or docs
 5. `context/ai-workflow-rules.md` — scoping, doc sync, verification, six-file integration
 6. `context/progress-tracker.md` — current phase, completed work, next steps
 
@@ -33,6 +33,7 @@ Update `context/progress-tracker.md` after each meaningful implementation change
 | `bundle/` | Source payload installed to `~/.cursor/`, `~/.config/opencode/`, and `~/.qoder/` |
 | `bundle/hooks/` | Hook source of truth — installed to `~/.cursor/` and `~/.qoder/` (8 commands + `lib/`) |
 | `bundle/agents/` | P-Core Orchestra agent definitions — source of truth, mirrored to OpenCode |
+| `bundle/agent-registry.json` | Generated SSOT (v2): agents, hook agents, capability allowlists, conductor task allowlist; regenerate via `scripts/gen-agent-registry.js` |
 | `bundle/skills/` | Cursor skills — orchestra-loop + intake/verify + UI (ui-ux-pro-max, brand, design-system, ui-styling, web-design-master) + Cloudflare skills |
 | `bundle/skills-cursor/` | Cursor built-in skills (babysit, canvas, loop, review, shell, sdk, etc.) |
 | `bundle/rules/orchestra-loop.mdc` | Cursor always-on rule |
@@ -47,6 +48,7 @@ Update `context/progress-tracker.md` after each meaningful implementation change
 | `scripts/merge-autonomy-config.js` | Merges autonomy into `~/.cursor` + `~/.config/opencode` during install |
 | `scripts/merge-qoder-settings.js` | Merges orchestra hooks into `~/.qoder/settings.json` (PascalCase events; idempotent) |
 | `scripts/sync-qoder-agents.js` | Cursor → Qoder agent frontmatter conversion (`--check` for drift) |
+| `scripts/enrich-agent-capabilities.js` | Writes explicit `tools:` allowlists from the readonly policy (`--check` drift gate) |
 | `project-bridge/` | Per-repo `.cursor` bridge to global hooks |
 | `templates/context/` | Blank six-file context templates (JavaScript Mastery methodology) |
 | `templates/AGENTS.md` | Entry-point template for target projects |
