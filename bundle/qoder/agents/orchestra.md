@@ -68,6 +68,7 @@ Insert order after PLAN: **requirements/design** → **planning** → then IMPLE
 | devops / cli / library | product-manager → tech-lead | project-manager (breakdown) | devops-engineer (devops) / full-stack-engineer (cli, library) | automation-engineer | code-reviewer |
 | oss | product-manager → tech-lead | project-manager (breakdown) | full-stack-engineer | regression-tester | code-reviewer |
 | game | product-owner → ui-ux-designer | project-manager (breakdown) | frontend-engineer + backend-engineer | qa-engineer, performance-engineer | code-reviewer |
+| ai-agent | product-owner → prompt-engineer | project-manager (breakdown) | ml-engineer + backend-engineer | qa-engineer, model-evaluator | code-reviewer, ai-safety-engineer |
 
 **Always insert for medium+ (any type):** `product-owner` → acceptance criteria + scope; `project-manager` → task breakdown before implement.
 
