@@ -93,6 +93,7 @@ Orchestra auto-detects `project.yaml` in any workspace and injects its identity 
 | **Convergence Criteria** | Tests pass → diff empty → lint clean → judge passes |
 | **Stall Detection** | Identical failures 2x → strategy change → 3rd → escalate |
 | **Human Checkpoints** | Auth/payments/security/scope-creep require human review |
+| **Production Checklist Gate** | `ORCHESTRA_COMPLETE` blocked until build/tests/lint/security/reviewer-approval/docs-updated/memory-updated green, security clean, progress-tracker referenced, six-file context present |
 | **Token Budgets** | planner:10k, implementer:30k, verifier:15k, reviewer:8k |
 | **Model Routing** | Cursor: `composer-2.5` default, `grok-4.6` for hard tasks; OpenCode: free models only, dynamically assigned weekly (`--apply`) |
 | **6 Hooks** | Session, prompt, stop, heartbeat, lifecycle, subagent-stop |

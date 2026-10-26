@@ -117,6 +117,7 @@ Every implementation change MUST update the relevant context files before commit
 | New install script or install.sh change | `context/architecture.md` (install row) + `README.md` (commands) + `context/progress-tracker.md` |
 | New context template | `templates/context/` + `context/progress-tracker.md` |
 | New scoping/ignore feature | `context/architecture.md` + `context/ai-workflow-rules.md` (scoping rules) + `context/progress-tracker.md` |
+| Tool-access-control change (registry gate / saleOnly flag) | `context/architecture.md` (invariant) + `context/project-overview.md` (feature) + `context/progress-tracker.md` |
 | Bug fix | `context/progress-tracker.md` (add to Current Phase with date + description) |
 | Architecture or invariant change | `context/architecture.md` first, then `context/progress-tracker.md` |
 | Scope or feature change | `context/project-overview.md` first, then `context/progress-tracker.md` |
