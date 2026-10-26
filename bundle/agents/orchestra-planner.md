@@ -25,7 +25,8 @@ Optional spawn reference: `references/orchestra-spawn-matrix.md` (Cursor Task vs
    - `AGENTS.md` or `CLAUDE.md` at repo root
    - `context/project-overview.md` → `architecture.md` → `code-standards.md` → `ui-context.md` → `ai-workflow-rules.md` → `progress-tracker.md`
    - Note missing files; do not invent product scope not in these files.
-   - **Long-term memory**: If the parent message includes memory context (past goals, frequent files, error patterns), use it to inform your plan — avoid repeating past mistakes, prefer files that have been frequently modified.
+   - **Long-term memory**: If the parent message includes memory context (past goals, frequent files, error patterns, learned coding patterns), use it to inform your plan — avoid repeating past mistakes, prefer files that have been frequently modified.
+   - **Pattern-aware planning**: Check the injected "Learned patterns" block before planning. Match the user's preferred file structure, test framework, package manager, and coding conventions from prior similar tasks. If you must deviate from a learned pattern, flag it explicitly as a deliberate choice with rationale.
 2. Read the user goal from the parent message. If the prompt is short/informal (`fix it`, `pls`, `next improve`):
    - Infer the smallest correct goal from `progress-tracker.md`, git status/diff, and memory context
    - State the **assumed goal** explicitly in `## Goal`

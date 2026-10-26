@@ -25,6 +25,11 @@ const SEMANTIC_RECALL_TOP_K = 3;
 const STALL_ATTEMPTS_ABORT_THRESHOLD = 2;
 const STOP_NUDGE_LOOP_LIMIT = 3;
 
+// --- Pattern learning caps (user coding behavior)
+const MEMORY_MAX_PROJECT_PATTERNS = 20;
+const MEMORY_MAX_USER_PREFERENCES = 30;
+const PATTERN_RECALL_TOP_K = 5;
+
 // --- Loop modes ---
 const LOOP_MODE_CORE = "core";
 const LOOP_MODE_ENTERPRISE = "enterprise";

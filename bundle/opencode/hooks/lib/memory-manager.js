@@ -5,6 +5,9 @@ const {
   MEMORY_MAX_COMPLETED,
   MEMORY_MAX_RECENT_FILES,
   MEMORY_MAX_ERROR_PATTERNS,
+  MEMORY_MAX_PROJECT_PATTERNS,
+  MEMORY_MAX_USER_PREFERENCES,
+  PATTERN_RECALL_TOP_K,
   RECENT_GOALS_DISPLAY_COUNT,
   TOP_FILES_DISPLAY_COUNT,
   TOP_ERRORS_DISPLAY_COUNT,
@@ -26,6 +29,7 @@ const DEFAULT_SESSION_MEMORY = {
   recent_files: [],
   error_patterns: [],
   user_preferences: {},
+  plan_outcomes: [],
 };
 
 const DEFAULT_MEMORY_STATE = {
@@ -98,6 +102,8 @@ function getAggregatedMemory(memoryState) {
     for (const [key, value] of Object.entries(sessionMem.user_preferences || {})) {
       aggregated.user_preferences[key] = value;
     }
+
+    aggregated.plan_outcomes.push(...(sessionMem.plan_outcomes || []));
   }
 
   // Deduplicate and cap
@@ -140,6 +146,16 @@ function getAggregatedMemory(memoryState) {
     .sort((a, b) => b.count - a.count)
     .slice(0, MEMORY_MAX_ERROR_PATTERNS);
 
+  // Aggregate plan outcomes (deduplicate by goal+timestamp)
+  const outcomeMap = new Map();
+  for (const o of aggregated.plan_outcomes || []) {
+    const key = o.goal + "|" + o.timestamp;
+    if (!outcomeMap.has(key)) outcomeMap.set(key, { ...o });
+  }
+  aggregated.plan_outcomes = Array.from(outcomeMap.values())
+    .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
+    .slice(0, MEMORY_MAX_COMPLETED);
+
   return aggregated;
 }
 
@@ -157,6 +173,7 @@ function saveLongTermMemory(mem, sessionId) {
   target.error_patterns = (mem.error_patterns || []).slice(-MEMORY_MAX_ERROR_PATTERNS);
   target.project_patterns = mem.project_patterns || target.project_patterns || {};
   target.user_preferences = mem.user_preferences || target.user_preferences || {};
+  target.plan_outcomes = (mem.plan_outcomes || []).slice(-MEMORY_MAX_COMPLETED);
 
   writeJson(memoryPath, fullState);
 }
@@ -309,6 +326,141 @@ function getSessionMemory(memoryState, sessionId) {
   return memoryState.sessions[session] || { ...DEFAULT_SESSION_MEMORY };
 }
 
+
+
+// --- User coding pattern learning ---
+
+/** Infer a task-type key from a goal string (e.g. "api", "frontend", "db", "test"). */
+function inferTaskType(goal) {
+  const g = (goal || "").toLowerCase();
+  if (/(api|endpoint|route|controller|middleware)/.test(g)) return "api";
+  if (/(frontend|ui|component|page|view|css|tailwind|react|vue)/.test(g)) return "frontend";
+  if (/(database|db|schema|migration|model|prisma|sql)/.test(g)) return "database";
+  if (/(test|spec|vitest|jest|unit|integration|e2e)/.test(g)) return "testing";
+  if (/(config|setup|install|docker|ci|deploy|env)/.test(g)) return "devops";
+  if (/(fix|bug|patch|refactor|clean)/.test(g)) return "bugfix";
+  return "general";
+}
+
+/** Record/update project-level coding patterns observed during a run. */
+function recordProjectPatterns(sessionId, patterns) {
+  const session = sessionId || getSessionId();
+  const fullMem = loadLongTermMemory(session);
+  const sessionMem = fullMem.sessions[session] || { ...DEFAULT_SESSION_MEMORY };
+  const existing = sessionMem.project_patterns || {};
+  const merged = { ...existing };
+
+  for (const [project, p] of Object.entries(patterns || {})) {
+    if (!merged[project]) merged[project] = [];
+    merged[project].push({
+      task_type: p.task_type || "general",
+      files: Array.isArray(p.files) ? p.files : [],
+      conventions: p.conventions || {},
+      test_framework: p.test_framework || null,
+      package_manager: p.package_manager || null,
+      style: p.style || null,
+      timestamp: new Date().toISOString(),
+    });
+    if (merged[project].length > MEMORY_MAX_PROJECT_PATTERNS) {
+      merged[project] = merged[project].slice(-MEMORY_MAX_PROJECT_PATTERNS);
+    }
+  }
+
+  sessionMem.project_patterns = merged;
+  saveLongTermMemory(sessionMem, session);
+}
+
+/** Record/update user-level preferences observed during a run. */
+function recordUserPreferences(sessionId, preferences) {
+  const session = sessionId || getSessionId();
+  const fullMem = loadLongTermMemory(session);
+  const sessionMem = fullMem.sessions[session] || { ...DEFAULT_SESSION_MEMORY };
+  const merged = { ...(sessionMem.user_preferences || {}), ...(preferences || {}) };
+
+  const keys = Object.keys(merged);
+  if (keys.length > MEMORY_MAX_USER_PREFERENCES) {
+    const toDrop = keys.slice(0, keys.length - MEMORY_MAX_USER_PREFERENCES);
+    for (const k of toDrop) delete merged[k];
+  }
+
+  sessionMem.user_preferences = merged;
+  saveLongTermMemory(sessionMem, session);
+}
+
+/** Build a pattern-aware context block for the planner. */
+function buildPatternContext(memoryState, goal) {
+  const aggregated = getAggregatedMemory(memoryState);
+  const taskType = inferTaskType(goal);
+  const lines = [];
+
+  const prefs = aggregated.user_preferences || {};
+  const prefKeys = Object.keys(prefs);
+  if (prefKeys.length > 0) {
+    lines.push("User coding preferences (learned from past runs):");
+    for (const k of prefKeys) {
+      lines.push("  - " + k + ": " + prefs[k]);
+    }
+    lines.push("");
+  }
+
+  const pats = aggregated.project_patterns || {};
+  let relevant = [];
+  for (const [project, entries] of Object.entries(pats)) {
+    for (const e of entries) {
+      if (!e.task_type || e.task_type === taskType || e.task_type === "general") {
+        relevant.push({ project: project, ...e });
+      }
+    }
+  }
+  relevant.sort(function(a, b) { return new Date(b.timestamp || 0) - new Date(a.timestamp || 0); });
+  relevant = relevant.slice(0, PATTERN_RECALL_TOP_K);
+
+  if (relevant.length > 0) {
+    lines.push("Learned patterns for similar tasks (task type: " + taskType + "):");
+    for (const p of relevant) {
+      var files = "";
+      if (p.files && p.files.length > 0) files = " files: [" + p.files.join(", ") + "]";
+      var tf = p.test_framework ? " test: " + p.test_framework : "";
+      var pm = p.package_manager ? " pkg: " + p.package_manager : "";
+      var style = p.style ? " style: " + p.style : "";
+      lines.push("  - " + p.project + " (" + p.task_type + ")" + files + tf + pm + style + " @ " + new Date(p.timestamp).toLocaleDateString());
+    }
+    lines.push("");
+  }
+
+  return lines.length > 0 ? lines.join("\n") : "";
+}
+
+/** Record a plan outcome (verify/review result) keyed by task type for pattern learning. */
+function recordPhasePlanOutcome(state, sessionId) {
+  const session = sessionId || getSessionId();
+  const fullMem = loadLongTermMemory(session);
+  const sessionMem = fullMem.sessions[session] || { ...DEFAULT_SESSION_MEMORY };
+  const outcomes = sessionMem.plan_outcomes || [];
+
+  const taskType = inferTaskType(state.goal || "");
+  const stm = state.memory || {};
+
+  outcomes.push({
+    task_type: taskType,
+    goal: state.goal || "",
+    phase: state.currentPhase || unknown,
+    outcome: state.last_outcome || unknown,
+    files: Array.isArray(stm.files_changed) ? stm.files_changed : [],
+    errors: Array.isArray(stm.errors) ? stm.errors : [],
+    duration_ms: state.started_at ? Date.now() - new Date(state.started_at).getTime() : 0,
+    timestamp: new Date().toISOString(),
+  });
+
+  // Cap outcomes
+  if (outcomes.length > MEMORY_MAX_COMPLETED) {
+    outcomes.splice(0, outcomes.length - MEMORY_MAX_COMPLETED);
+  }
+
+  sessionMem.plan_outcomes = outcomes;
+  saveLongTermMemory(sessionMem, session);
+}
+
 module.exports = {
   MEMORY_PATH,
   DEFAULT_SESSION_MEMORY,
@@ -318,8 +470,13 @@ module.exports = {
   saveLongTermMemory,
   flushShortToLong,
   buildMemoryContext,
+  buildPatternContext,
+  recordProjectPatterns,
+  recordUserPreferences,
+  inferTaskType,
   getAggregatedMemory,
   getSessionMemory,
   migrateToSessions,
   searchMemoryIndex,
+  recordPhasePlanOutcome,
 };

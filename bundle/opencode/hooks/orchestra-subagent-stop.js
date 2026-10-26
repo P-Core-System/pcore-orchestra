@@ -15,7 +15,7 @@ const {
   LOOP_MODE_ENTERPRISE,
 } = require("./lib/phase-engine.js");
 const { emitLifecycleEvent, endPhaseTimer, startPhaseTimer } = require("./lib/lifecycle-recorder.js");
-const { flushShortToLong } = require("./lib/memory-manager.js");
+const { flushShortToLong, recordPhasePlanOutcome } = require("./lib/memory-manager.js");
 const { recordOrchestrationRun } = require("./lib/history-recorder.js");
 const { bumpProjectVersion, addChangelogEntry } = require("./lib/version-manager.js");
 const { passGate, failGate, skipGate } = require("./lib/quality-gate.js");
@@ -678,6 +678,13 @@ async function main() {
     warning: outcome.warning,
     at: new Date().toISOString(),
   };
+
+  // Record plan outcome for pattern learning (verify/review phases)
+  try {
+    if (state.currentPhase === 'verify' || state.currentPhase === 'review') {
+      recordPhasePlanOutcome(state, null);
+    }
+  } catch {}
 
   // Domain event log (Phase 2): record every phase outcome. Fail-open —
   // never touches stdout, quality gates or the orchestra.json shape.

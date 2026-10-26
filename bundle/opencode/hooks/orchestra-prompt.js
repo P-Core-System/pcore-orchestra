@@ -21,7 +21,7 @@ const { syncWorkspaceIdentity } = require("./lib/workspace-identity.js");
 const { buildGreenfieldIntakeBriefing } = require("./lib/greenfield-intake.js");
 const { shouldAutoScaffold, buildScaffoldInstructionFromGoal } = require("./lib/greenfield-scaffold.js");
 const { resumeOrchestra, detectCrashRecovery } = require("./lib/checkpoint-manager.js");
-const { loadLongTermMemory, buildMemoryContext } = require("./lib/memory-manager.js");
+const { loadLongTermMemory, buildMemoryContext, buildPatternContext } = require("./lib/memory-manager.js");
 const { getAgentForPhase, LOOP_MODE_ENTERPRISE } = require("./lib/phase-engine.js");
 
 // MCP server — lazy + guarded for fail-open
@@ -356,6 +356,10 @@ async function main() {
     if (cfgSummary) parts.push(cfgSummary);
   }
   if (memCtx) parts.push(memCtx);
+
+  // Inject learned user coding patterns for the planner
+  const patCtx = buildPatternContext(ltm, goal || prompt);
+  if (patCtx) parts.push(patCtx);
   if (ctxBlock) {
     parts.push(ctxBlock);
     parts.push("Planner: read all present context/*.md files before PLAN_READY.");
