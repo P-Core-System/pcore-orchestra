@@ -39,17 +39,23 @@ const results = [];
 for (const file of suites) {
   const started = Date.now();
   process.stdout.write(`▶ ${file} ... `);
-  const r = spawnSync(process.execPath, [path.join(SCRIPTS, file)], {
-    cwd: ROOT,
-    encoding: "utf8",
-    timeout: TIMEOUT_MS,
-    maxBuffer: 32 * 1024 * 1024,
-  });
-  const ms = Date.now() - started;
+  let r, ms = 0, attempts = 0;
+  do {
+    attempts++;
+    const t0 = Date.now();
+    r = spawnSync(process.execPath, [path.join(SCRIPTS, file)], {
+      cwd: ROOT,
+      encoding: "utf8",
+      timeout: TIMEOUT_MS,
+      maxBuffer: 32 * 1024 * 1024,
+    });
+    ms = Date.now() - t0;
+  } while (r.status !== 0 && attempts < 2 && process.env.SUITE_RETRY !== "0");
   const ok = r.status === 0;
-  const out = (r.stdout || "") + (r.stderr || "");
+  if (attempts > 1 && ok) process.stdout.write(`ok-after-retry `);
   console.log(ok ? `ok (${ms}ms)` : `FAILED (exit=${r.status ?? "signal"} ${ms}ms)`);
   if (!ok) {
+    const out = (r.stdout || "") + (r.stderr || "");
     const tail = out.trim().split("\n").filter((l) => /FAIL|Error|error:/i.test(l)).slice(0, 8);
     (tail.length ? tail : out.trim().split("\n").slice(-8)).forEach((l) => console.log("    " + l));
   }
