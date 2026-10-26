@@ -5,6 +5,7 @@ description: >-
   Ensures system meets quality attributes and follows Clean/Hexagonal Architecture. Use proactively when this specialist's phase is active.
 readonly: true
 model: grok-4.6
+tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 
 ## Models

@@ -5,6 +5,7 @@ description: >-
   Enforces OWASP Top 10 and secure-by-design principles. Use proactively when this specialist's phase is active.
 readonly: true
 model: grok-4.6
+tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 
 ## Models

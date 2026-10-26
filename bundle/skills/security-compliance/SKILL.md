@@ -1,3 +1,9 @@
+---
+name: security-compliance
+description: >-
+  Security architecture, compliance frameworks, audit readiness, AI safety, and privacy governance. Use when designing security architecture, preparing for compliance audits, or reviewing regulatory and AI-governance requirements.
+---
+
 ﻿# Security & Compliance Skill
 
 ## Overview

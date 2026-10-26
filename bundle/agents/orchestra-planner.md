@@ -7,6 +7,7 @@ description: >-
   Reads Six-File Context (context/*.md) when present in the workspace.
 readonly: true
 model: composer-2.5
+tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 
 ## Model

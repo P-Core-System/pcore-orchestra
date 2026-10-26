@@ -6,6 +6,7 @@ description: >-
   even without /orchestra. Auto-chained by ambient orchestra hooks.
   Follows target project context/*.md conventions when present.
 model: composer-2.5
+tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 
 ## Model

@@ -1,3 +1,9 @@
+---
+name: deployment-ops
+description: >-
+  Release management, CI/CD, infrastructure operations, monitoring, and incident response. Use when designing deployment pipelines, managing Kubernetes or Terraform, setting up observability, or planning releases and incident handling.
+---
+
 ﻿# Deployment & Operations Skill
 
 ## Overview

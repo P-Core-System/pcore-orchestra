@@ -5,6 +5,7 @@ description: >-
   features. Covers frontend, backend, and integration layers. Use
   proactively when this specialist's phase is active.
 maxTurns: 200
+tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 
 ## Models

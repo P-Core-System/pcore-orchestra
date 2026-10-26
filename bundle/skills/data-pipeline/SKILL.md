@@ -1,3 +1,9 @@
+---
+name: data-pipeline
+description: >-
+  Data engineering pipeline from collection through cleaning, preprocessing, validation, feature engineering, quality checks, and storage. Use when building data pipelines, cleaning datasets, designing feature stores, or managing data quality and dataset versioning.
+---
+
 ﻿# Data Pipeline Skill
 
 ## Overview

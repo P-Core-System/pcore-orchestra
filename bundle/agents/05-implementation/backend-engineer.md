@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 18 — Backend implementation. Builds APIs, services, business logic.
   Follows coding standards and architecture invariants. Use proactively when this specialist's phase is active.
 model: composer-2.5
+tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 
 ## Models

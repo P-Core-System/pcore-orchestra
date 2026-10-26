@@ -1,3 +1,9 @@
+---
+name: ai-ml-pipeline
+description: >-
+  End-to-end AI/ML pipeline orchestration from data collection and preparation through annotation, training, evaluation, and inference deployment. Use when building or reviewing ML pipelines, model training or serving infrastructure, or MLOps workflows.
+---
+
 ﻿# AI/ML Pipeline Skill
 
 ## Overview

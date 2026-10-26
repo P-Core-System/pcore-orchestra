@@ -59,10 +59,47 @@ function derive() {
 
 /** `name:` from a YAML frontmatter block; null when there is none. */
 function frontmatterName(text) {
-  const fm = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text);
+  const fm = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!fm) return null;
-  const m = /^name:\s*["']?([A-Za-z0-9._-]+)/m.exec(fm[1]);
+  const m = fm[1].match(/^name:\s*["']?([A-Za-z0-9._-]+)/m);
   return m ? m[1] : null;
+}
+
+/** All top-level frontmatter fields (folded scalars flattened); null without frontmatter. */
+function frontmatterFields(text) {
+  const fm = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!fm) return null;
+  const lines = fm[1].split(/\r?\n/);
+  const fields = {};
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^([A-Za-z][\w-]*):\s*(.*)$/);
+    if (!m) continue;
+    let val = m[2].trim();
+    if (val === ">-" || val === ">" || val === "|-" || val === "|") {
+      const cont = [];
+      while (i + 1 < lines.length && /^\s+\S/.test(lines[i + 1])) cont.push(lines[++i].trim());
+      val = cont.join(" ");
+    }
+    fields[m[1]] = val;
+  }
+  return fields;
+}
+
+/** name → { category, fields } from the Cursor tree, for capability dispatch. */
+function scanAgentMeta(dir) {
+  const meta = {};
+  const walk = (d, category) => {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) walk(p, e.name === "references" ? category : e.name);
+      else if (e.name.endsWith(".md")) {
+        const fields = frontmatterFields(fs.readFileSync(p, "utf8"));
+        if (fields && fields.name) meta[fields.name] = { category, fields };
+      }
+    }
+  };
+  walk(dir, "root");
+  return meta;
 }
 
 function scanAgentDir(dir) {
@@ -396,16 +433,30 @@ function buildRegistry(roster) {
     },
   };
   
-  // Build detailed agent entries with independence metadata
+  // Build detailed agent entries with independence metadata + capabilities
+  // (tools surface, readonly contract, Cursor model, effort) so conductors
+  // and external dispatchers can select agents on what they can actually do.
+  const meta = scanAgentMeta(AGENT_DIRS[0]);
   const agentDetails = cursor.map((name) => {
+    const m = meta[name];
+    const fields = (m && m.fields) || {};
+    const conductor = name === "orchestra" || name === "workflow-orchestrator";
     return {
       id: name,
+      category: (m && m.category) || "root",
+      capabilities: {
+        tools: conductor ? "inherit" : fields.tools || "inherit",
+        readonly: fields.readonly === "true",
+        model: fields.model || null,
+        effort: fields.reasoningEffort || null,
+      },
+      description: (fields.description || "").slice(0, 300),
       independence: INDEPENDENCE_MAP[name] || { files: [], gates: [], stateKeys: [] },
     };
   });
   
   return {
-    version: 1,
+    version: 2,
     generator: "scripts/gen-agent-registry.js",
     hookMatcher: roster.matcher,
     hookAgents: roster.hookAgents,

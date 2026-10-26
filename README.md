@@ -46,7 +46,7 @@ Orchestra auto-runs: **planner → implementer → verifier → reviewer**.
 | Requirement | Version | Purpose |
 |-------------|---------|---------|
 | Node.js | 18+ (22.5+ for hybrid recall) | Hook scripts; SQLite FTS5 memory uses the built-in `node:sqlite`, so on older Node recall stays JSON-only |
-| Cursor IDE | Latest | Agent mode (for Cursor) |
+| Cursor | Latest | IDE Agent mode or Cursor CLI |
 | OpenCode CLI | Latest ([install](https://opencode.ai)) | Optional; `install.sh` upgrades CLI automatically |
 | Qoder CLI | Latest | Optional; installs to `~/.qoder` (agents, skills, hooks in settings.json) |
 | Git | 2.x | Version control |
@@ -90,17 +90,17 @@ Orchestra auto-detects `project.yaml` in any workspace and injects its identity 
 | Feature | Description |
 |---------|-------------|
 | **Conductor** | `orchestra` — entry point; spawns all phases internally |
-| **4 Subagents** | `orchestra-planner`, `implementer`, `verifier`, `reviewer` (internal, do not invoke directly) |
-| **Convergence Criteria** | Tests pass → diff empty → lint clean → judge passes |
-| **Stall Detection** | Identical failures 2x → strategy change → 3rd → escalate |
+| **4 Subagents** | `orchestra-planner`, `orchestra-implementer`, `orchestra-verifier`, `orchestra-reviewer` (internal, do not invoke directly) |
+| **Convergence Criteria** | Build/tests/lint/security/docs-reviewed green → reviewer approval → production checklist |
+| **Stall Detection** | Heartbeat threshold 5 min → nudge → second consecutive stall aborts |
 | **Human Checkpoints** | Auth/payments/security/scope-creep require human review |
 | **Production Checklist Gate** | `ORCHESTRA_COMPLETE` blocked until build/tests/lint/security/reviewer-approval/docs-updated/memory-updated green, security clean, progress-tracker referenced, six-file context present |
 | **Token Budgets** | planner:10k, implementer:30k, verifier:15k, reviewer:8k |
-| **Model Routing** | Cursor: `composer-2.5` default, `grok-4.6` for hard tasks; OpenCode: free models only, dynamically assigned weekly (`--apply`) |
+| **Model Routing** | Cursor: `composer-2.5` default, `grok-4.6` for hard tasks; OpenCode: free models only, dynamically assigned weekly (`--apply`); Qoder: converted agents inherit the host model |
 | **8 Hook Commands** | Session, prompt, subagent-stop, lifecycle, memory, quality-gate, stop, heartbeat |
 | **Six-File Context** | Stable grounding across sessions (JavaScript Mastery methodology) |
 | **Free Model Support** | OpenCode Zen free models + multi-key rotation + weekly dynamic refresh (`--schedule`) |
-| **Works With** | Cursor IDE, OpenCode CLI, Qoder CLI, any Node.js project |
+| **Works With** | Cursor (IDE + CLI), OpenCode CLI, Qoder CLI, any Node.js project |
 
 ---
 
@@ -131,11 +131,11 @@ User: "fix the login bug"
 
 ## Where It's Set Up
 
-### Cursor IDE (global)
+### Cursor (global)
 ```
 ~/.cursor/
 ├── hooks/                    # 8 hook commands + lib/
-├── agents/                   # 4 core subagents + 155 specialists + references
+├── agents/                   # conductor + 4 core subagents + 155 specialists + references
 ├── skills/orchestra-loop/    # orchestration skill
 ├── rules/orchestra-loop.mdc  # always-on rule
 └── hooks.json                # event bindings
@@ -250,6 +250,12 @@ Use the sidebar dropdown to switch between state directories.
 ```bash
 node scripts/gen-agent-registry.js            # regenerate agent-registry.json + conductor allowlist + hook matcher
 node scripts/gen-agent-registry.js --check    # fail if anything generated is stale (CI)
+node scripts/enrich-agent-capabilities.js     # write explicit tools: allowlists from readonly policy
+node scripts/enrich-agent-capabilities.js --check  # drift gate (install.sh runs this)
+node scripts/sync-qoder-agents.js --check     # bundle/qoder tree matches bundle/agents
+node scripts/test-agent-capabilities.js       # capability + skill-metadata + installed-tree invariants
+node scripts/test-e2e-suite.js                # run EVERY scripts/test-*.js and summarize
+npm run test:e2e                              # same, via npm
 node scripts/test-safe-write.js               # atomic state writes + quarantine
 node scripts/test-state-manager-compat.js     # state-manager/lib compatibility
 node scripts/test-conductor-state.js          # per-run isolation CLI
@@ -270,7 +276,9 @@ node scripts/test-security-scanner.js         # scanner coverage, redaction, blo
 node scripts/scan-secrets.js --dir . --fail-on=high   # blocking secret scan (CI runs this too)
 ```
 
-All suites run in `.github/workflows/ci.yml` on every PR.
+The list above is the core subset; every `scripts/test-*.js` suite plus the bash service
+suite runs in `.github/workflows/ci.yml` on every PR. See `CONTRIBUTING.md` §3 for the
+full command set.
 
 ---
 
@@ -355,31 +363,31 @@ bash scripts/watch-plan-signal.sh --once   # detect new plan/spec work → pendi
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  Harness (runtime)                                      │
-│  ├── hooks (session, prompt, stop, heartbeat, lifecycle)│
+│  ├── hooks (8 commands; gates + memory)                 │
 │  ├── state (orchestra.json, memory.json)                │
 │  └── error handling (stall detection, abort)            │
 ├─────────────────────────────────────────────────────────┤
-│  Loop Contract                                         │
+│  Loop Contract                                          │
 │  ├── Goal: what success looks like (testable)           │
 │  ├── Scope: files in scope, what must NOT change        │
 │  ├── Verifier: which tests/checks prove completion      │
 │  ├── Budget: max iterations (8), tokens (63k), time     │
 │  └── Escalation: when to pause for human                │
 ├─────────────────────────────────────────────────────────┤
-│  State Layer                                           │
+│  State Layer                                            │
 │  ├── Short-term: current run (phases, files, errors)    │
 │  ├── Long-term: orchestra-memory.json (past goals)      │
 │  └── History: orchestra-history.json (last 50 runs)     │
 ├─────────────────────────────────────────────────────────┤
-│  Checker                                               │
-│  ├── Convergence: tests pass > diff empty > lint clean  │
-│  ├── Stall detection: identical failures → escalate     │
+│  Checker                                                │
+│  ├── Convergence: build/tests/lint/security/docs green  │
+│  ├── Stall detection: heartbeat timeout → nudge → abort  │
 │  └── Human checkpoints: high-risk changes               │
 ├─────────────────────────────────────────────────────────┤
 │  Human Checkpoint                                      │
 │  ├── Auth/payments/security changes                     │
 │  ├── Budget exhaustion                                  │
-│  └── Unresolvable failures (3rd identical error)        │
+│  └── Blocked gates requiring a decision                 │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -393,6 +401,7 @@ bash scripts/watch-plan-signal.sh --once   # detect new plan/spec work → pendi
 | [02-FEATURES-HOOKS-COMPONENTS-AGENTS.md](docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md) | Features, hooks, components, and agent definitions |
 | [03-DATABASE-SECURITY-TESTING-LIMITATIONS.md](docs/03-DATABASE-SECURITY-TESTING-LIMITATIONS.md) | Database, security, testing, and known limitations |
 | [04-AI-CONTEXT-ONBOARDING-STATISTICS.md](docs/04-AI-CONTEXT-ONBOARDING-STATISTICS.md) | AI context onboarding, statistics, and usage guide |
+| [docs/index.md](docs/index.md) | Full docs map, topic guides, and dated historical artifacts |
 
 ### New guidance templates (2026)
 
@@ -422,6 +431,11 @@ rm -rf ~/.config/opencode/agents/orchestra-*
 rm -rf ~/.config/opencode/skills/orchestra-loop
 rm -f ~/.config/opencode/hooks/orchestra-health-opencode.js
 
+# Remove Qoder files (also remove the orchestra entries from ~/.qoder/settings.json)
+rm -rf ~/.qoder/agents/orchestra-*
+rm -rf ~/.qoder/skills/orchestra-loop
+rm -f ~/.qoder/ORCHESTRA.md
+
 # Remove symlink
 rm -rf ~/.agents/skills/orchestra-loop
 ```
@@ -450,8 +464,11 @@ rm -rf ~/.agents/skills/orchestra-loop
 | Documentation | ✅ Complete |
 | Enterprise SDLC (V3) | ✅ Complete |
 | Universal Project Identity (V3.1) | ✅ Complete |
+| Qoder CLI support | ✅ Complete |
+| Hybrid memory recall (JSON + FTS5) | ✅ Complete |
+| Studio dashboard | ✅ Complete |
+| Branch/worktree isolation | ✅ Complete |
 | Durable skills | 🔜 Planned |
-| Branch isolation | 🔜 Planned |
 | MVP mode | 🔜 Planned |
 
 ---

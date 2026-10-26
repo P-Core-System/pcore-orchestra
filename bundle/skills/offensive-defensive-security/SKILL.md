@@ -1,3 +1,9 @@
+---
+name: offensive-defensive-security
+description: >-
+  Full-spectrum security testing from red team offense through blue team defense, purple team coordination, forensics, and adversary emulation. Use when planning security assessments, penetration tests, threat hunts, or offensive/defensive exercises.
+---
+
 ﻿# Offensive & Defensive Security Skill
 
 ## Overview

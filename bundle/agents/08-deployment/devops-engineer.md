@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 27 — Production release, CI/CD, infrastructure deployment. Use proactively when this specialist's phase is active.
 readonly: true
 model: composer-2.5
+tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 
 ## Models

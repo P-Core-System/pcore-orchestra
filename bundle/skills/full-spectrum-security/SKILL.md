@@ -1,3 +1,9 @@
+---
+name: full-spectrum-security
+description: >-
+  Complete security exercise team structure across white, red, blue, purple, green, orange, silver, gold, and yellow team roles. Use when organizing security exercises, assigning team colors and roles, or scoping coverage across offense, defense, and governance.
+---
+
 ﻿# Full-Spectrum Security Skill
 
 ## Overview

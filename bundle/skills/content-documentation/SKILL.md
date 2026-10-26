@@ -1,3 +1,9 @@
+---
+name: content-documentation
+description: >-
+  Technical writing, content strategy, developer documentation, and community engagement. Use when writing API docs, tutorials, or guides, planning content calendars, or building knowledge bases and developer-relations programs.
+---
+
 ﻿# Content & Documentation Skill
 
 ## Overview

@@ -1,3 +1,9 @@
+---
+name: research-innovation
+description: >-
+  Research design, experimentation, technology scouting, prototyping, and innovation management. Use when designing research experiments, evaluating new technologies or vendors, building proof of concepts, or planning R&D portfolios.
+---
+
 ﻿# Research & Innovation Skill
 
 ## Overview

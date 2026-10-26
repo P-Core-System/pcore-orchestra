@@ -10,6 +10,7 @@ model: composer-2.5
 permission:
   edit: deny
   bash: allow
+tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 
 ## Models

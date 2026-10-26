@@ -1,3 +1,9 @@
+---
+name: customer-success
+description: >-
+  Customer support operations, onboarding, engagement, retention, and expansion. Use when designing onboarding flows, building support workflows and knowledge bases, creating training programs, or planning retention and expansion strategies.
+---
+
 ﻿# Customer Success Skill
 
 ## Overview

@@ -11,6 +11,7 @@ permission:
   bash: allow
   websearch: allow
   webfetch: allow
+tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 
 ## Models

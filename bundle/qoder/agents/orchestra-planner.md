@@ -8,6 +8,7 @@ description: >-
   present in the workspace.
 disallowedTools: [Write, Edit, NotebookEdit]
 maxTurns: 200
+tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 
 ## Model

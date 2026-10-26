@@ -5,6 +5,7 @@ description: >-
   Ensures system reliability and operational excellence. Use proactively when this specialist's phase is active.
 readonly: true
 model: composer-2.5
+tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 
 ## Models

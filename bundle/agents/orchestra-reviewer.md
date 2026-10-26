@@ -6,6 +6,7 @@ description: >-
   progress-tracker.md and context files stay in sync per ai-workflow-rules.md.
 readonly: true
 model: composer-2.5
+tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 
 ## Model

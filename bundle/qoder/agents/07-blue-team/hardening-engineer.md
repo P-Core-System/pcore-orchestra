@@ -5,6 +5,7 @@ description: >-
   compliance, secure configuration, baseline enforcement, drift detection.
 disallowedTools: [Write, Edit, NotebookEdit]
 maxTurns: 200
+tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 
 ## Models

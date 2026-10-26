@@ -6,6 +6,7 @@ description: >-
   checklist when present in the target project.
 readonly: true
 model: composer-2.5
+tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 
 ## Model

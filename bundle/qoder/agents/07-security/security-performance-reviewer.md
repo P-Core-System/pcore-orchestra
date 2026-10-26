@@ -8,6 +8,7 @@ description: >-
   specialist's phase is active.
 disallowedTools: [Write, Edit, NotebookEdit]
 maxTurns: 200
+tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 
 ## Models

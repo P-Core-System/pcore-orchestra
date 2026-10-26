@@ -75,6 +75,25 @@ if [[ "$INSTALL_CURSOR" -eq 0 && "$INSTALL_OPENCODE" -eq 0 && "$INSTALL_QODER" -
   INSTALL_QODER=1
 fi
 
+# --- bundle freshness guards ----------------------------------------------
+# Derived artifacts (qoder agent tree, agent registry) are generated from
+# bundle/agents. Never install a stale derivative: check, regenerate on
+# drift, re-verify. Skipped for --dry-run (read-only) and without node.
+if [[ "$DRY_RUN" -eq 0 ]] && command -v node >/dev/null 2>&1; then
+  echo "== bundle freshness =="
+  for guard in "scripts/sync-qoder-agents.js" "scripts/enrich-agent-capabilities.js" "scripts/gen-agent-registry.js"; do
+    if ! (cd "$ROOT" && node "$guard" --check >/dev/null 2>&1); then
+      echo "  drift in $guard -- regenerating"
+      (cd "$ROOT" && node "$guard" >/dev/null) || { echo "  ERROR: $guard failed to regenerate"; exit 1; }
+      (cd "$ROOT" && node "$guard" --check >/dev/null) || { echo "  ERROR: $guard still drifting after regenerate"; exit 1; }
+      echo "  $guard: regenerated clean"
+    else
+      echo "  $guard: in sync"
+    fi
+  done
+  echo ""
+fi
+
 echo "============================================"
 echo " Orchestra Installer (Cursor + OpenCode + Qoder)"
 echo "============================================"

@@ -1,3 +1,9 @@
+---
+name: policy-legal
+description: >-
+  Policy design, legal compliance, terms and licensing, privacy, and governance frameworks. Use when drafting Terms of Service, managing open-source licenses, designing data governance, or preparing for regulatory compliance audits.
+---
+
 ﻿# Policy & Legal Skill
 
 ## Overview

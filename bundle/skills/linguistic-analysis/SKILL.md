@@ -1,3 +1,9 @@
+---
+name: linguistic-analysis
+description: >-
+  NLP and linguistic analysis spanning corpus building, tokenization, POS tagging, syntax, semantics, discourse, and pragmatics. Use when building NLP pipelines, analyzing language structure, or choosing among linguistics specialist agents.
+---
+
 ﻿# Linguistic Analysis Skill
 
 ## Overview

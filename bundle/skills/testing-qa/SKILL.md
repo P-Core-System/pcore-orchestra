@@ -1,3 +1,9 @@
+---
+name: testing-qa
+description: >-
+  Quality assurance end to end: test strategy, automation, performance and chaos testing, API contract validation, and accessibility audits. Use when planning test suites, building test automation, running performance or chaos experiments, or validating API contracts.
+---
+
 ﻿# Testing & QA Skill
 
 ## Overview

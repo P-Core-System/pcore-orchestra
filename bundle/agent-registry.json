@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "generator": "scripts/gen-agent-registry.js",
   "hookMatcher": "accessibility-reviewer|architect|automation-engineer|backend-engineer|business-analyst|cloud-engineer|code-reviewer|database-engineer|devops-engineer|documentation-writer|frontend-engineer|full-stack-engineer|infrastructure-engineer|observer|orchestra-implementer|orchestra-planner|orchestra-reviewer|orchestra-verifier|performance-engineer|platform-engineer|product-manager|project-manager|qa-engineer|release-manager|security-engineer|sre|tech-lead",
   "hookAgents": [
@@ -398,6 +398,14 @@
   "agentDetails": [
     {
       "id": "accessibility-reviewer",
+      "category": "06-testing",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 24 — Accessibility audit. Ensures WCAG 2.1+ AA compliance. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "src/**/*.tsx",
@@ -414,6 +422,14 @@
     },
     {
       "id": "adr-archivist",
+      "category": "03-architecture",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 3,11 — Architecture Decision Record (ADR) creation and management. Documents significant architectural decisions with context, alternatives, and consequences. Maintains decision log as append-only. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "docs/adr/**"
@@ -429,6 +445,14 @@
     },
     {
       "id": "adversary-emulator",
+      "category": "07-black-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — Advanced adversary emulation, APT group simulation, MITRE ATT&CK-based emulation, TTP replication, detection gap analysis.",
       "independence": {
         "files": [
           "security/**"
@@ -444,6 +468,14 @@
     },
     {
       "id": "agent-selector",
+      "category": "00-workflow",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC — Selects the right agents for a given task based on project type, phase, and task description. Filters from the 160-agent registry (`bundle/agent-registry.json`) to recommend the optimal specialist team. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -455,6 +487,14 @@
     },
     {
       "id": "ai-ethics-reviewer",
+      "category": "11-ai-govern",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,5,11 — AI ethics review, fairness assessment, transparency requirements, accountability frameworks, AI principles alignment, stakeholder impact analysis. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "context/ai-ethics.md"
@@ -468,6 +508,14 @@
     },
     {
       "id": "ai-safety-engineer",
+      "category": "11-ai-govern",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,5,11 — AI safety testing, red teaming, adversarial robustness, jailbreak prevention, content filtering, safety guardrails, alignment verification. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "context/ai-safety.md"
@@ -481,6 +529,14 @@
     },
     {
       "id": "annotation-specialist",
+      "category": "11-data-language",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,11 — Annotation task design, label schema creation, annotator training, inter-annotator agreement measurement, annotation quality control, annotation pipeline management. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "data/**/annotations/**"
@@ -494,6 +550,14 @@
     },
     {
       "id": "api-collector",
+      "category": "11-data-collect",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,5,11 — REST/GraphQL/gRPC API data collection, OAuth/API key management, pagination handling, rate limit respect, response normalization, API documentation parsing. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "api/**",
@@ -508,6 +572,14 @@
     },
     {
       "id": "api-contract-validator",
+      "category": "06-testing",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 16,20 — API contract testing, schema validation, breaking change detection. Ensures API backward compatibility and OpenAPI/GraphQL schema compliance. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "api/**",
@@ -524,6 +596,14 @@
     },
     {
       "id": "api-pentester",
+      "category": "07-security",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — API penetration testing, REST/GraphQL/gRPC security, authentication/authorization testing, rate limiting, mass assignment.",
       "independence": {
         "files": [
           "api/**"
@@ -539,6 +619,14 @@
     },
     {
       "id": "appsec-engineer",
+      "category": "07-green-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 2,5,6 — Application security engineering, secure design review, threat modeling, security requirements, security architecture.",
       "independence": {
         "files": [
           "src/**/*"
@@ -554,6 +642,14 @@
     },
     {
       "id": "architect",
+      "category": "03-architecture",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "grok-4.6",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 8-11 — Domain model, risk analysis, architecture review. Ensures system meets quality attributes and follows Clean/Hexagonal Architecture. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "context/architecture.md",
@@ -568,6 +664,14 @@
     },
     {
       "id": "attack-simulator",
+      "category": "07-purple-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — Automated attack simulation, Atomic Red Team, MITRE ATT&CK mapping, attack path validation, breach and attack simulation.",
       "independence": {
         "files": [
           "src/**/*"
@@ -583,6 +687,14 @@
     },
     {
       "id": "automation-engineer",
+      "category": "06-testing",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 21 — Regression testing, E2E testing, smoke tests. Ensures no regressions and critical paths work. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "e2e/**",
@@ -601,6 +713,14 @@
     },
     {
       "id": "backend-engineer",
+      "category": "05-implementation",
+      "capabilities": {
+        "tools": "Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch",
+        "readonly": false,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 18 — Backend implementation. Builds APIs, services, business logic. Follows coding standards and architecture invariants. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "src/**/*.js",
@@ -619,6 +739,14 @@
     },
     {
       "id": "bias-auditor",
+      "category": "11-ai-govern",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,6,11 — Bias detection, fairness metrics, bias mitigation strategies, protected attribute analysis, intersectional fairness, bias testing. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "models/**",
@@ -633,6 +761,14 @@
     },
     {
       "id": "blue-team-defender",
+      "category": "07-blue-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,9 — Defensive security operations, security monitoring, incident handling, vulnerability management, security hardening, compliance.",
       "independence": {
         "files": [
           "security/**",
@@ -649,6 +785,14 @@
     },
     {
       "id": "bug-bounty-coordinator",
+      "category": "07-forensics",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — Bug bounty program management, scope definition, reward structure, triage process, responsible disclosure, vulnerability intake.",
       "independence": {
         "files": [
           "security/**",
@@ -663,6 +807,14 @@
     },
     {
       "id": "business-analyst",
+      "category": "01-idea",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 1-3 — Idea collection, business analysis, requirements gathering. Analyzes business needs, validates assumptions, defines scope. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "context/project-overview.md",
@@ -677,6 +829,14 @@
     },
     {
       "id": "business-strategist",
+      "category": "00-business",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0-1 — Business model canvas, value proposition design, competitive strategy, go-to-market planning. Transforms ideas into viable business models. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "context/business-strategy.md"
@@ -690,6 +850,14 @@
     },
     {
       "id": "chaos-engineer",
+      "category": "06-testing",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,9 — Chaos engineering, fault injection, resilience testing, disaster recovery validation, game days. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "chaos/**",
@@ -704,6 +872,14 @@
     },
     {
       "id": "cloud-engineer",
+      "category": "08-deployment",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise Infrastructure — Cloud provider configuration (AWS, Azure, GCP, Cloudflare). Runs during architecture and deployment phases. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "cloud/**",
@@ -719,6 +895,14 @@
     },
     {
       "id": "cloud-pentester",
+      "category": "07-security",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — Cloud penetration testing, AWS/Azure/GCP security, IAM misconfiguration, storage exposure, serverless testing, container escape.",
       "independence": {
         "files": [
           "cloud/**",
@@ -735,6 +919,14 @@
     },
     {
       "id": "code-reviewer",
+      "category": "10-review",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise Review — Code review, quality gates, security check. Runs during review phase of any implementation cycle. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "**/*.js",
@@ -753,6 +945,14 @@
     },
     {
       "id": "compliance-officer",
+      "category": "00-business",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,24 — Regulatory compliance, audit readiness, policy enforcement, GDPR/CCPA/HIPAA compliance. Ensures legal and regulatory adherence. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "context/compliance.md"
@@ -766,6 +966,14 @@
     },
     {
       "id": "content-strategist",
+      "category": "12-content",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,15,24 — Content planning, SEO strategy, messaging frameworks, editorial calendar, content governance, brand voice. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -774,6 +982,14 @@
     },
     {
       "id": "corpus-builder",
+      "category": "11-data-language",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,5,11 — Text corpus construction, document collection, deduplication, tokenization, corpus statistics, domain-specific corpus design for NLP/LLM training. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -782,6 +998,14 @@
     },
     {
       "id": "covert-ops-planner",
+      "category": "07-black-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — Covert operation planning, stealth techniques, long-term persistence, advanced OPSEC, multi-stage campaigns.",
       "independence": {
         "files": [],
         "gates": [],
@@ -790,6 +1014,14 @@
     },
     {
       "id": "customer-success",
+      "category": "13-customer",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 15,24 — Customer onboarding, retention strategies, expansion plays, health scoring, churn prevention, value realization. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -798,6 +1030,14 @@
     },
     {
       "id": "data-analyst",
+      "category": "11-data",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,10 — Analytics dashboards, KPI tracking, data visualization, business intelligence, A/B test analysis, metric definitions. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -806,6 +1046,14 @@
     },
     {
       "id": "data-annotator",
+      "category": "11-data-dataset",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,11 — Data annotation workflows, labeling tools, active learning for annotation, annotation quality metrics, annotator management, annotation cost optimization. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -814,6 +1062,14 @@
     },
     {
       "id": "data-cleaner",
+      "category": "11-data-pipeline",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,11 — Data cleaning pipelines, missing value handling, outlier detection, deduplication, data normalization, format standardization, data profiling. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -822,6 +1078,14 @@
     },
     {
       "id": "data-engineer",
+      "category": "11-data",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,5,9 — Data pipeline design, ETL/ELT, data warehouse architecture, data quality, streaming systems, data governance. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "data/**",
@@ -840,6 +1104,14 @@
     },
     {
       "id": "data-governance-officer",
+      "category": "00-policy",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,5,24 — Data governance framework, data ownership, data stewardship, data lifecycle management, data classification, data access policies. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -848,6 +1120,14 @@
     },
     {
       "id": "data-harvester",
+      "category": "11-data-collect",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,5,11 — Multi-source data harvesting, data lake population, ETL from heterogeneous sources, batch and streaming ingestion, data format conversion. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -856,6 +1136,14 @@
     },
     {
       "id": "data-preprocessor",
+      "category": "11-data-pipeline",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,11 — Data preprocessing for ML, feature scaling, encoding categorical variables, text preprocessing, image preprocessing, data splitting strategies. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -864,6 +1152,14 @@
     },
     {
       "id": "data-quality-engineer",
+      "category": "11-data-pipeline",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,9,11 — Data quality frameworks, quality metrics, data observability, data lineage, data cataloging, data SLA management, quality dashboards. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -872,6 +1168,14 @@
     },
     {
       "id": "data-validator",
+      "category": "11-data-pipeline",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,9,11 — Data validation rules, schema validation, data contracts, data drift detection, freshness monitoring, anomaly detection in data. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -880,6 +1184,14 @@
     },
     {
       "id": "database-engineer",
+      "category": "05-implementation",
+      "capabilities": {
+        "tools": "Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch",
+        "readonly": false,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 18 — Database schema, migrations, query optimization. Ensures data integrity, performance, and scalability. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "migrations/**",
@@ -898,6 +1210,14 @@
     },
     {
       "id": "dataset-auditor",
+      "category": "11-data-dataset",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,6,11 — Dataset auditing, bias detection, legal compliance, licensing verification, provenance tracking, dataset risk assessment. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -906,6 +1226,14 @@
     },
     {
       "id": "dataset-curator",
+      "category": "11-data-dataset",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,5,11 — Dataset curation, data selection strategies, dataset documentation, dataset cards, data sheets, dataset composition analysis, representativeness assessment. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -914,6 +1242,14 @@
     },
     {
       "id": "dataset-versioner",
+      "category": "11-data-dataset",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,11 — Dataset versioning, DVC/Git LFS, lineage tracking, reproducibility, diff tools, version comparison, rollback strategies. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -922,6 +1258,14 @@
     },
     {
       "id": "defense-validator",
+      "category": "07-purple-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,9 — Defense validation, control effectiveness testing, security control verification, defense-in-depth assessment, control gap analysis.",
       "independence": {
         "files": [],
         "gates": [],
@@ -930,6 +1274,14 @@
     },
     {
       "id": "detection-engineer",
+      "category": "07-blue-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,9 — Detection rule engineering, SIGMA/YARA/Snort rules, detection-as-code, detection coverage, gap analysis, rule optimization.",
       "independence": {
         "files": [],
         "gates": [],
@@ -938,6 +1290,14 @@
     },
     {
       "id": "developer-advocate",
+      "category": "12-content",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 15,24 — Community building, developer experience, API adoption, conference talks, blog posts, developer relations. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -946,6 +1306,14 @@
     },
     {
       "id": "devops-engineer",
+      "category": "08-deployment",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 27 — Production release, CI/CD, infrastructure deployment. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "docker/**",
@@ -966,6 +1334,14 @@
     },
     {
       "id": "devsecops-engineer",
+      "category": "07-green-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,8 — DevSecOps pipeline integration, security automation, CI/CD security gates, infrastructure security, container security.",
       "independence": {
         "files": [],
         "gates": [],
@@ -974,6 +1350,14 @@
     },
     {
       "id": "digital-forensics",
+      "category": "07-forensics",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,9 — Digital forensics investigation, evidence collection, chain of custody, disk/memory/network forensics, timeline analysis, forensic reporting.",
       "independence": {
         "files": [],
         "gates": [],
@@ -982,6 +1366,14 @@
     },
     {
       "id": "discourse-analyst",
+      "category": "11-data-language",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,11 — Discourse structure analysis, coreference resolution, discourse relations, topic segmentation, coherence analysis. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -990,6 +1382,14 @@
     },
     {
       "id": "documentation-writer",
+      "category": "08-deployment",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 25-26 — Documentation generation, analytics instrumentation, support notes, metrics dashboards, and measurement. Covers README, API docs, changelogs, deployment guides, AND telemetry/analytics setup. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "docs/**",
@@ -1008,6 +1408,14 @@
     },
     {
       "id": "domain-expert",
+      "category": "00-domain",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,5,11 — Domain knowledge application, subject matter expertise, domain modeling, domain-specific requirements, business rule validation. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1016,6 +1424,14 @@
     },
     {
       "id": "embedding-engineer",
+      "category": "11-ai-ml",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,11 — Embedding model selection, embedding pipeline design, semantic search, vector similarity, embedding fine-tuning, embedding evaluation. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1024,6 +1440,14 @@
     },
     {
       "id": "exercise-controller",
+      "category": "07-white-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — White team exercise control, scenario management, rules of engagement enforcement, safe-word handling, exercise coordination, timeline management.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1032,6 +1456,14 @@
     },
     {
       "id": "explainability-engineer",
+      "category": "11-ai-govern",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,11 — Model explainability, SHAP/LIME integration, feature importance, model interpretability, explanation generation, audit trails. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1040,6 +1472,14 @@
     },
     {
       "id": "exploit-developer",
+      "category": "07-red-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 7 — Exploit development, PoC creation, shellcode development, ROP chain construction, exploit reliability testing, weaponization.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1048,6 +1488,14 @@
     },
     {
       "id": "feature-engineer",
+      "category": "11-data-pipeline",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,11 — Feature engineering design, feature stores, feature selection, feature importance, automated feature generation, feature monitoring. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1056,6 +1504,14 @@
     },
     {
       "id": "financial-analyst",
+      "category": "00-business",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,10 — Budgeting, ROI analysis, cost-benefit analysis, financial modeling, unit economics, burn rate tracking. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1064,6 +1520,14 @@
     },
     {
       "id": "fine-tuning-engineer",
+      "category": "11-ai-ml",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,11 — LLM fine-tuning, LoRA/QLoRA, PEFT, instruction tuning, RLHF, DPO, constitutional AI, alignment techniques, reward modeling. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1072,6 +1536,14 @@
     },
     {
       "id": "fintech-specialist",
+      "category": "00-domain",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,5,11 — Financial technology domain, PCI-DSS compliance, payment processing, financial regulations, risk modeling, fraud detection. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1080,6 +1552,14 @@
     },
     {
       "id": "frontend-engineer",
+      "category": "05-implementation",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 18 — Frontend implementation. Builds UI components, pages, interactions for web AND mobile. Supports React, Next.js, Vue, Svelte, Ionic, Capacitor, and React Native. Follows project design system and accessibility standards. Use proactively when this specialist's phase is activ",
       "independence": {
         "files": [
           "src/**/*.tsx",
@@ -1100,6 +1580,14 @@
     },
     {
       "id": "full-stack-engineer",
+      "category": "05-implementation",
+      "capabilities": {
+        "tools": "Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch",
+        "readonly": false,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 18 — Full-stack implementation. Builds end-to-end features. Covers frontend, backend, and integration layers. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "src/**/*"
@@ -1117,6 +1605,14 @@
     },
     {
       "id": "hardening-engineer",
+      "category": "07-blue-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — System hardening, CIS benchmarks, STIG compliance, secure configuration, baseline enforcement, drift detection.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1125,6 +1621,14 @@
     },
     {
       "id": "healthcare-specialist",
+      "category": "00-domain",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,5,11 — Healthcare domain expertise, HIPAA compliance, clinical data, EHR integration, medical terminology, healthcare workflows. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1133,6 +1637,14 @@
     },
     {
       "id": "incident-commander",
+      "category": "07-silver-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,9 — Incident command, crisis management, communication coordination, stakeholder management, post-incident review.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1141,6 +1653,14 @@
     },
     {
       "id": "incident-responder",
+      "category": "09-observability",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 28 — Incident triage, root cause analysis (RCA), postmortem creation, and runbook generation. Manages production incidents and prevents recurrence. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "context/incident-response.md"
@@ -1154,6 +1674,14 @@
     },
     {
       "id": "industry-analyst",
+      "category": "00-domain",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,15 — Industry analysis, market trends, competitive landscape, technology adoption curves, industry standards, best practices. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1162,6 +1690,14 @@
     },
     {
       "id": "inference-engineer",
+      "category": "11-ai-ml",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,9,11 — Model serving infrastructure, inference optimization, quantization, pruning, ONNX conversion, TensorRT, batching strategies, latency optimization. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1170,6 +1706,14 @@
     },
     {
       "id": "infrastructure-defender",
+      "category": "07-yellow-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,8 — Infrastructure security, network defense, firewall management, IDS/IPS tuning, DDoS protection, infrastructure hardening.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1178,6 +1722,14 @@
     },
     {
       "id": "infrastructure-engineer",
+      "category": "08-deployment",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise Infrastructure — IaC, networking, security groups, DNS, VPC. Runs during architecture and deployment phases. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "terraform/**",
@@ -1193,6 +1745,14 @@
     },
     {
       "id": "innovation-lead",
+      "category": "14-research",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,24 — Innovation pipeline, technology scouting, R&D strategy, patent landscape, emerging tech evaluation, innovation culture. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1201,6 +1761,14 @@
     },
     {
       "id": "insider-threat-simulator",
+      "category": "07-gray-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — Insider threat simulation, malicious insider scenarios, privilege abuse, data exfiltration, collusion testing, detection validation.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1209,6 +1777,14 @@
     },
     {
       "id": "internal-pentester",
+      "category": "07-gray-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — Gray team internal penetration testing, authorized insider testing, trust boundary testing, privileged access abuse, lateral movement from inside.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1217,6 +1793,14 @@
     },
     {
       "id": "kubernetes-engineer",
+      "category": "00-tech",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,8,9 — Kubernetes cluster design, pod scheduling, service mesh, Helm charts, Kustomize, resource management, cluster autoscaling. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1225,6 +1809,14 @@
     },
     {
       "id": "legal-advisor",
+      "category": "00-business",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,24 — IP protection, licensing compliance, contract review, legal risk assessment, open-source license auditing. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "context/legal-review.md"
@@ -1238,6 +1830,14 @@
     },
     {
       "id": "license-manager",
+      "category": "00-policy",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,5,24 — Software licensing, open-source license management, license compliance, license scanning, SBOM generation, attribution requirements. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1246,6 +1846,14 @@
     },
     {
       "id": "linguistic-analyst",
+      "category": "11-data-language",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,11 — Linguistic analysis, corpus linguistics, syntax analysis, semantic analysis, discourse analysis, language pattern identification, multilingual support. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1254,6 +1862,14 @@
     },
     {
       "id": "malware-analyst",
+      "category": "07-red-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — Malware analysis, reverse engineering, behavioral analysis, IOC extraction, malware classification, threat actor attribution.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1262,6 +1878,14 @@
     },
     {
       "id": "malware-reverse-engineer",
+      "category": "07-forensics",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — Malware reverse engineering, binary analysis, deobfuscation, unpacking, C2 protocol analysis, malware family classification.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1270,6 +1894,14 @@
     },
     {
       "id": "market-researcher",
+      "category": "01-idea",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 1-2 — Competitive analysis, user research, market sizing, trend analysis. Provides data-driven input for product decisions. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1278,6 +1910,14 @@
     },
     {
       "id": "ml-engineer",
+      "category": "11-data",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,5,9 — ML model training, deployment, monitoring, MLOps, feature engineering, experiment tracking, model serving. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1286,6 +1926,14 @@
     },
     {
       "id": "ml-ops-engineer",
+      "category": "11-ai-govern",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,9,11 — ML pipeline automation, experiment tracking, model registry, CI/CD for ML, feature stores, model monitoring, automated retraining. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1294,6 +1942,14 @@
     },
     {
       "id": "mobile-engineer",
+      "category": "05-implementation",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 19 — Mobile/cross-platform implementation. Builds Ionic, React Native, Capacitor, and native mobile apps. Handles platform APIs, push notifications, offline sync, and app store deployment. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1302,6 +1958,14 @@
     },
     {
       "id": "mobile-pentester",
+      "category": "07-security",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — Mobile application penetration testing, iOS/Android security, API backend testing, reverse engineering, data storage, certificate pinning.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1310,6 +1974,14 @@
     },
     {
       "id": "model-evaluator",
+      "category": "11-ai-ml",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,6,11 — Model evaluation design, benchmark selection, A/B testing for models, performance metrics, fairness evaluation, robustness testing, model comparison. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1318,6 +1990,14 @@
     },
     {
       "id": "model-monitor",
+      "category": "11-ai-govern",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 9,11 — Model performance monitoring, drift detection, data drift, concept drift, prediction monitoring, model health dashboards, automated alerts. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1326,6 +2006,14 @@
     },
     {
       "id": "model-trainer",
+      "category": "11-ai-ml",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,11 — Model training pipeline design, hyperparameter optimization, distributed training, mixed precision, gradient accumulation, training monitoring, checkpoint management. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1334,6 +2022,14 @@
     },
     {
       "id": "morphological-analyst",
+      "category": "11-data-language",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,11 — Morphological analysis, stem extraction, lemmatization, inflection patterns, derivational morphology, morphological segmentation. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1342,6 +2038,14 @@
     },
     {
       "id": "network-pentester",
+      "category": "07-security",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — Network penetration testing, service enumeration, vulnerability scanning, man-in-the-middle, privilege escalation, lateral movement.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1350,6 +2054,14 @@
     },
     {
       "id": "nlp-engineer",
+      "category": "11-data-language",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,11 — NLP pipeline design, text preprocessing, tokenization strategies, POS tagging, NER, sentiment analysis, text classification, information extraction. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1358,6 +2070,14 @@
     },
     {
       "id": "observability-engineer",
+      "category": "00-tech",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,9 — Observability stack design, metrics/logging/tracing, distributed tracing, alerting rules, dashboard design, SLO monitoring. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1366,6 +2086,14 @@
     },
     {
       "id": "observer",
+      "category": "09-observability",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 29 — Analytics, performance dashboard, metrics reporting. Provides visibility into system and process health. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "monitoring/**",
@@ -1380,6 +2108,14 @@
     },
     {
       "id": "ops-manager",
+      "category": "08-deployment",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,9,24 — Release management, deployment orchestration, change management, rollback procedures, release calendars. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "context/ops-runbook.md"
@@ -1393,6 +2129,14 @@
     },
     {
       "id": "orchestra",
+      "category": "root",
+      "capabilities": {
+        "tools": "inherit",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": "low"
+      },
+      "description": "Orchestra conductor — entry point for build/fix/refactor tasks. Runs the full SDLC: PLAN → PRODUCT/UX → ARCHITECTURE → EXECUTE → VERIFY → UAT → DEPLOY → POST-DEPLOY VERIFY. For simple tasks, uses core loop only (plan → implement → verify → review). Use for any implementation work; do not pick phase ",
       "independence": {
         "files": [],
         "gates": [],
@@ -1401,6 +2145,14 @@
     },
     {
       "id": "orchestra-implementer",
+      "category": "root",
+      "capabilities": {
+        "tools": "Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch",
+        "readonly": false,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Orchestra phase 2 — implement the approved plan with minimal scope. Use proactively after planning or when the user asks to build/fix/add features, even without /orchestra. Auto-chained by ambient orchestra hooks. Follows target project context/*.md conventions when present.",
       "independence": {
         "files": [
           "**/*.js",
@@ -1417,6 +2169,14 @@
     },
     {
       "id": "orchestra-planner",
+      "category": "root",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Orchestra phase 1 — research codebase and produce a short implementation plan. Use proactively for any implement/fix/build/refactor task in Cursor Agent, even when the user does not say /orchestra. Auto-invoked by ambient orchestra hooks. Reads Six-File Context (context/*.md) when present in the wor",
       "independence": {
         "files": [
           "context/architecture.md",
@@ -1434,6 +2194,14 @@
     },
     {
       "id": "orchestra-reviewer",
+      "category": "root",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Orchestra phase 4 — final review for scope, quality, and doc sync. Use after verification passes. Auto-chained by ambient orchestra hooks. Confirms progress-tracker.md and context files stay in sync per ai-workflow-rules.md.",
       "independence": {
         "files": [],
         "gates": [
@@ -1449,6 +2217,14 @@
     },
     {
       "id": "orchestra-verifier",
+      "category": "root",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Orchestra phase 3 — run tests, linters, and smoke checks. Use after implementation. Auto-chained by ambient orchestra hooks. Uses ai-workflow-rules.md verification checklist when present in the target project.",
       "independence": {
         "files": [],
         "gates": [
@@ -1466,6 +2242,14 @@
     },
     {
       "id": "partnership-manager",
+      "category": "00-business",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,15 — Vendor evaluation, API partnerships, integration partnerships, technology scouting, ecosystem development. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1474,6 +2258,14 @@
     },
     {
       "id": "penetration-tester",
+      "category": "07-red-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — Penetration testing execution, attack surface mapping, exploit chaining, privilege escalation, lateral movement, post-exploitation, reporting.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1482,6 +2274,14 @@
     },
     {
       "id": "performance-engineer",
+      "category": "06-testing",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "grok-4.6",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 22 — Performance testing, load testing, profiling. Ensures system meets performance targets. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "src/**/*",
@@ -1496,6 +2296,14 @@
     },
     {
       "id": "phonology-analyst",
+      "category": "11-data-language",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,11 — Phonological analysis, phoneme inventory, phonotactic constraints, allophonic rules, phonological processes, sound pattern analysis. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1504,6 +2312,14 @@
     },
     {
       "id": "platform-engineer",
+      "category": "08-deployment",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise Infrastructure — Cloud infrastructure, Kubernetes, platform services. Runs during release and operations phases. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "k8s/**",
@@ -1519,6 +2335,14 @@
     },
     {
       "id": "policy-maker",
+      "category": "00-policy",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,24 — Policy design, organizational policy creation, governance frameworks, policy enforcement mechanisms, policy versioning, policy compliance monitoring. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1527,6 +2351,14 @@
     },
     {
       "id": "pos-tagger",
+      "category": "11-data-language",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,11 — Part-of-speech tagging, tagset design, tagger training, POS disambiguation, tag accuracy evaluation, multilingual POS support. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1535,6 +2367,14 @@
     },
     {
       "id": "pragmatic-engineer",
+      "category": "11-data-language",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,11 — Pragmatic analysis, speech act detection, implicature analysis, politeness strategies, context-dependent meaning, intent detection. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1543,6 +2383,14 @@
     },
     {
       "id": "privacy-engineer",
+      "category": "00-policy",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,5,24 — Privacy by design, data protection impact assessments, consent management, privacy policies, data subject rights, privacy-preserving techniques. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1551,6 +2399,14 @@
     },
     {
       "id": "product-manager",
+      "category": "02-requirements",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 4-7 — Functional/non-functional requirements, user stories, acceptance criteria. Translates business analysis into actionable product specifications. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "context/requirements.md",
@@ -1565,6 +2421,14 @@
     },
     {
       "id": "product-owner",
+      "category": "02-requirements",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 4-5 — Backlog prioritization, business value assessment, scope decisions, acceptance criteria ownership. Distinct from product-manager who writes specifications; product-owner decides WHAT to build and WHY. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1573,6 +2437,14 @@
     },
     {
       "id": "project-manager",
+      "category": "04-planning",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 15-17 — Sprint planning, milestone planning, task breakdown. Creates actionable work items from requirements. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "context/sprint-plan.md",
@@ -1587,6 +2459,14 @@
     },
     {
       "id": "project-type-classifier",
+      "category": "00-workflow",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC — Classifies incoming projects into workflow templates. Analyzes project description, tech stack, and requirements to recommend the optimal agent pipeline, phase sequence, and specialist team. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "project.yaml"
@@ -1600,6 +2480,14 @@
     },
     {
       "id": "prompt-engineer",
+      "category": "11-ai-ml",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,5,11 — Prompt design, chain-of-thought prompting, few-shot examples, prompt optimization, prompt testing, system prompt architecture, prompt versioning. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1608,6 +2496,14 @@
     },
     {
       "id": "purple-team-lead",
+      "category": "07-purple-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — Purple team coordination, offensive-defensive collaboration, red+blue exercise design, gap remediation, security improvement tracking.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1616,6 +2512,14 @@
     },
     {
       "id": "qa-engineer",
+      "category": "06-testing",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 19-20 — Unit testing, integration testing. Ensures code correctness at unit and integration levels. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "tests/**",
@@ -1633,6 +2537,14 @@
     },
     {
       "id": "red-team-operator",
+      "category": "07-red-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — Red team operations, C2 infrastructure, OPSEC, covert channels, persistence mechanisms, evasion techniques, operational security.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1641,6 +2553,14 @@
     },
     {
       "id": "regression-tester",
+      "category": "06-testing",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 21-22 — Regression test suite management, flaky test detection, test maintenance, and coverage analysis. Ensures existing functionality remains intact after changes. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1649,6 +2569,14 @@
     },
     {
       "id": "regulatory-specialist",
+      "category": "00-domain",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,5,11 — Regulatory compliance, industry regulations, compliance frameworks, audit preparation, regulatory change management. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1657,6 +2585,14 @@
     },
     {
       "id": "release-manager",
+      "category": "08-deployment",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 26 — Release candidate preparation, versioning, changelog. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "CHANGELOG.md",
@@ -1676,6 +2612,14 @@
     },
     {
       "id": "research-scientist",
+      "category": "14-research",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,5 — Research design, experimentation, proof of concept, literature review, hypothesis testing, statistical analysis. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1684,6 +2628,14 @@
     },
     {
       "id": "rule-enforcer",
+      "category": "07-white-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — Rules of engagement enforcement, scope boundary monitoring, violation detection, legal compliance during exercises.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1692,6 +2644,14 @@
     },
     {
       "id": "safety-officer",
+      "category": "07-white-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — Safety oversight during exercises, collateral damage prevention, critical system protection, safety threshold monitoring.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1700,6 +2660,14 @@
     },
     {
       "id": "scenario-designer",
+      "category": "07-white-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — Exercise scenario design, threat modeling for exercises, realistic attack paths, progressive difficulty, learning objectives.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1708,6 +2676,14 @@
     },
     {
       "id": "scrum-master",
+      "category": "04-planning",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 4,10 — Sprint planning, velocity tracking, impediment removal, retrospective facilitation. Manages agile process, coordinates hybrid human-AI teams, tracks capacity and token budgets. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "context/sprint-plan.md",
@@ -1722,6 +2698,14 @@
     },
     {
       "id": "secure-code-reviewer",
+      "category": "07-green-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6 — Security-focused code review, vulnerability detection, secure coding standards, code audit.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1730,6 +2714,14 @@
     },
     {
       "id": "security-architect",
+      "category": "00-tech",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 3,7 — Security architecture design, threat modeling, defense-in-depth, security patterns, zero trust, encryption strategy. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1738,6 +2730,14 @@
     },
     {
       "id": "security-engineer",
+      "category": "07-security",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "grok-4.6",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 23 — Security review, threat modeling, vulnerability scanning. Enforces OWASP Top 10 and secure-by-design principles. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "**/*.js",
@@ -1756,6 +2756,14 @@
     },
     {
       "id": "security-executive-advisor",
+      "category": "07-orange-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,24 — Security executive briefing, risk communication, board reporting, security investment justification, security culture.",
       "independence": {
         "files": [
           "context/security-policy.md"
@@ -1769,6 +2777,14 @@
     },
     {
       "id": "security-performance-reviewer",
+      "category": "07-security",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 23-24 — Combined security audit, performance profiling, reliability review, and abuse/failure mode analysis. Single gate for production readiness. Complements separate security-engineer and performance-engineer for deep-dive work. Use proactively when this specialist's phase is",
       "independence": {
         "files": [],
         "gates": [],
@@ -1777,6 +2793,14 @@
     },
     {
       "id": "semantic-engineer",
+      "category": "11-data-language",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,11 — Semantic analysis, word sense disambiguation, semantic similarity, semantic roles, ontology design, knowledge graph construction. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1785,6 +2809,14 @@
     },
     {
       "id": "shadow-it-auditor",
+      "category": "07-gray-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — Shadow IT discovery, unauthorized system detection, SaaS sprawl analysis, unmanaged device identification, compliance gaps.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1793,6 +2825,14 @@
     },
     {
       "id": "shift-left-engineer",
+      "category": "07-green-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,2,5 — Shift-left security, early security integration, security requirements in design, developer security training, security champions.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1801,6 +2841,14 @@
     },
     {
       "id": "siem-analyst",
+      "category": "07-blue-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,9 — SIEM rule design, log analysis, alert tuning, correlation rules, security dashboards, compliance reporting.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1809,6 +2857,14 @@
     },
     {
       "id": "site-reliability-engineer",
+      "category": "08-deployment",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 9 — SLO/SLI monitoring, error budgets, incident response automation, toil reduction, capacity planning, reliability reviews. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1817,6 +2873,14 @@
     },
     {
       "id": "social-engineer",
+      "category": "07-red-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — Social engineering assessment, phishing simulation, pretexting, physical security testing, human vulnerability assessment.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1825,6 +2889,14 @@
     },
     {
       "id": "sre",
+      "category": "09-observability",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 28 — Monitoring, SLOs, incident response, maintenance. Ensures system reliability and operational excellence. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "monitoring/**",
@@ -1840,6 +2912,14 @@
     },
     {
       "id": "stakeholder-advocate",
+      "category": "01-idea",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 2-3 — Represents business, operations, and customer perspectives. Reviews impact of proposed changes on stakeholders. Never fabricates stakeholder approval — only reports actual stakeholder input. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "context/stakeholder-input.md"
@@ -1853,6 +2933,14 @@
     },
     {
       "id": "support-engineer",
+      "category": "13-customer",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 9,15,24 — Customer support operations, troubleshooting workflows, knowledge base management, ticket triage, SLA tracking. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1861,6 +2949,14 @@
     },
     {
       "id": "survey-designer",
+      "category": "11-data-collect",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,11 — Survey design, questionnaire creation, sampling strategy, response collection, survey analytics, A/B testing for survey instruments. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1869,6 +2965,14 @@
     },
     {
       "id": "syllable-analyst",
+      "category": "11-data-language",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,11 — Syllable segmentation, syllable counting, stress pattern detection, phonetic transcription, syllable-based features for NLP. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1877,6 +2981,14 @@
     },
     {
       "id": "syntactic-engineer",
+      "category": "11-data-language",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,11 — Syntactic parsing, grammar design, constituency/dependency parsing, parse evaluation, grammar induction, syntactic patterns. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1885,6 +2997,14 @@
     },
     {
       "id": "synthetic-data-generator",
+      "category": "11-data-dataset",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,11 — Synthetic data generation, data augmentation, GAN-based generation, LLM-based generation, privacy-preserving synthesis, data imbalance correction. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1893,6 +3013,14 @@
     },
     {
       "id": "tech-lead",
+      "category": "03-architecture",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "grok-4.6",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 12-14 — Technology selection, folder structure, coding standards. Defines technical foundation for implementation. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "context/folder-structure.md",
@@ -1907,6 +3035,14 @@
     },
     {
       "id": "technical-debt-tracker",
+      "category": "10-review",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 10,27 — Technical debt identification, classification, prioritization, and paydown planning. Tracks debt across codebase, creates debt inventory, and plans remediation sprints. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1915,6 +3051,14 @@
     },
     {
       "id": "technical-writer",
+      "category": "12-content",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 9,15 — API documentation, user guides, tutorials, knowledge base, developer onboarding, changelog management. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1923,6 +3067,14 @@
     },
     {
       "id": "technology-scout",
+      "category": "14-research",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,24 — Technology evaluation, vendor landscape analysis, POC coordination, build vs buy decisions, technical due diligence. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1931,6 +3083,14 @@
     },
     {
       "id": "telemetry-engineer",
+      "category": "11-data-collect",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,5,9 — Product telemetry design, event tracking, analytics pipelines, user behavior analytics, privacy-compliant data collection, funnel analysis. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1939,6 +3099,14 @@
     },
     {
       "id": "terms-conditions-writer",
+      "category": "00-policy",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,24 — Terms of Service design, Terms & Conditions drafting, user agreements, EULA creation, license agreements, contract templates. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1947,6 +3115,14 @@
     },
     {
       "id": "terraform-engineer",
+      "category": "00-tech",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,8 — Infrastructure as Code, Terraform module design, state management, provider configuration, drift detection, cost estimation. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1955,6 +3131,14 @@
     },
     {
       "id": "test-architect",
+      "category": "06-testing",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6 — Test strategy design, test pyramid planning, test automation architecture, quality gates, test environment management. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1963,6 +3147,14 @@
     },
     {
       "id": "threat-hunter",
+      "category": "07-blue-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,9 — Proactive threat hunting, hypothesis-driven investigation, anomaly detection, threat landscape analysis, IOC/IOA development.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1971,6 +3163,14 @@
     },
     {
       "id": "threat-intelligence-analyst",
+      "category": "07-forensics",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,6,9 — Threat intelligence collection, analysis, dissemination, threat actor profiling, TTP mapping, intelligence-driven defense.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1979,6 +3179,14 @@
     },
     {
       "id": "threat-simulator",
+      "category": "07-gold-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — Advanced threat simulation, real-world attack campaigns, multi-vector attacks, persistence mechanisms, data exfiltration simulation.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1987,6 +3195,14 @@
     },
     {
       "id": "training-specialist",
+      "category": "13-customer",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 9,15 — Training materials, workshops, certification programs, developer education, onboarding curriculum. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -1995,6 +3211,14 @@
     },
     {
       "id": "translation-coordinator",
+      "category": "11-data-language",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,11 — Translation pipeline design, bilingual data collection, translation quality assessment, localization workflow, machine translation evaluation. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -2003,6 +3227,14 @@
     },
     {
       "id": "ui-ux-designer",
+      "category": "05-implementation",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 12-15 — User experience design, information architecture, interaction patterns, accessibility, responsive design. Creates design before implementation. Complements frontend-engineer who implements the design. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "design/**",
@@ -2019,6 +3251,14 @@
     },
     {
       "id": "vector-db-engineer",
+      "category": "11-ai-ml",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 5,11 — Vector database design, indexing strategies (HNSW/IVF/flat), vector storage optimization, hybrid search, vector database migration, scaling. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -2027,6 +3267,14 @@
     },
     {
       "id": "vulnerability-researcher",
+      "category": "07-red-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — Vulnerability research, CVE analysis, zero-day discovery, code review for vulnerabilities, fuzzing, static/dynamic analysis.",
       "independence": {
         "files": [],
         "gates": [],
@@ -2035,6 +3283,14 @@
     },
     {
       "id": "web-app-pentester",
+      "category": "07-security",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — Web application penetration testing, OWASP Top 10, XSS/SQLi/CSRF/SSRF testing, authentication bypass, business logic flaws.",
       "independence": {
         "files": [],
         "gates": [],
@@ -2043,6 +3299,14 @@
     },
     {
       "id": "web-scraper",
+      "category": "11-data-collect",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 0,5,11 — Web scraping design, crawler architecture, data extraction pipelines, anti-bot bypass, proxy rotation, rate limiting, HTML parsing, structured data extraction from unstructured web sources. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [],
         "gates": [],
@@ -2051,6 +3315,14 @@
     },
     {
       "id": "workflow-orchestrator",
+      "category": "00-workflow",
+      "capabilities": {
+        "tools": "inherit",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC — Orchestrates the full agent workflow for a project. Manages phase transitions, agent spawning, parallel execution, quality gates, and escalation paths. Reads project-type-classifier output and coordinates all specialists. Use proactively when this specialist's phase is active.",
       "independence": {
         "files": [
           "context/workflow-plan.md"
@@ -2064,6 +3336,14 @@
     },
     {
       "id": "zero-knowledge-tester",
+      "category": "07-black-team",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "Enterprise SDLC Phase 6,7 — Black team zero-knowledge testing, no-prior-knowledge assessment, blind penetration testing, realistic external attack simulation.",
       "independence": {
         "files": [],
         "gates": [],

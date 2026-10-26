@@ -5,6 +5,7 @@ description: >-
   acceptance criteria. Translates business analysis into actionable product specifications. Use proactively when this specialist's phase is active.
 readonly: true
 model: composer-2.5
+tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 
 ## Models
