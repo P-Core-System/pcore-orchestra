@@ -459,9 +459,14 @@ function myHook(context) {
 
 module.exports = { myHook };
 
-// 2. Register in bundle/hooks/hooks.json
+// 2. Register in bundle/hooks.json (install.sh copies it to each host)
 {
-  "myHook": "hooks/orchestra-myhook.js"
+  "version": 2,
+  "hooks": {
+    "subagentStop": [
+      { "command": "node ./hooks/orchestra-myhook.js", "matcher": "orchestra-verifier" }
+    ]
+  }
 }
 
 // 3. Install
@@ -498,7 +503,7 @@ console.log(c.classifyPrompt('fix login bug'));
 echo '{"workspacePaths":["."],"prompt":"fix login bug","isNewSession":true}' | node bundle/hooks/orchestra-prompt.js
 
 # Validate JSON:
-node -e "JSON.parse(require('fs').readFileSync('bundle/hooks/hooks.json','utf8'))"
+node -e "JSON.parse(require('fs').readFileSync('bundle/hooks.json','utf8'))"
 
 # Health check on bundle:
 node bundle/hooks/orchestra-health.js
