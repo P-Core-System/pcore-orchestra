@@ -3,6 +3,9 @@
 /** Max chars parent should pass to a subagent Task prompt (excludes subagent's own reads). */
 const MAX_HANDOFF_CHARS = 2500;
 
+/** Fix re-entries at which the handoff asks for a deeper approach. */
+const ESCALATION_AFTER_FIX_CYCLES = 2;
+
 const { buildPlanHandoffLine } = require("./plan-artifact.js");
 const { buildCommitGateHandoff } = require("./phase-commit-gate.js");
 const { spawnLine } = require("./orchestra-spawn-matrix.js");
@@ -14,6 +17,20 @@ const HANDOFF_RULES = [
   "Do NOT edit files between phases — only the active phase agent writes.",
   "Git: previous phase MUST commit before next phase starts (phase commit gate).",
 ].join("\n");
+
+/**
+ * Escalation directive once a run has replayed the implementer repeatedly.
+ * Reads state.memory.fix_cycles (incremented by handleFixRequired).
+ */
+function buildEscalationLine(state) {
+  const cycles = (state && state.memory && state.memory.fix_cycles) || 0;
+  if (cycles < ESCALATION_AFTER_FIX_CYCLES) return null;
+  return [
+    `Escalation (fix cycle ${cycles}): this run keeps returning to implement.`,
+    "Root-cause the red check instead of patching symptoms; reproduce it alone, read the diff since the last green run, and split the remaining scope into smaller steps.",
+    "If verify/review is still red after this attempt, escalate the verifier/reviewer to `grok-4.6` standard and report the blocker to the user.",
+  ].join(" ");
+}
 
 function buildPhaseHandoff(state, nextAgentId) {
   const lines = [
@@ -36,6 +53,9 @@ function buildPhaseHandoff(state, nextAgentId) {
   if (errors?.length > 0) {
     lines.push(`Prior failures: ${errors.slice(-3).join("; ")}`);
   }
+
+  const escalation = buildEscalationLine(state);
+  if (escalation) lines.push(escalation);
 
   const planLine = buildPlanHandoffLine(state, nextAgentId);
   if (planLine) lines.push(planLine);
@@ -63,6 +83,10 @@ function buildHandoffEnforcement(state, evidenceRecords, workItemContext) {
       .join(" ");
     lines.push(`Evidence: ${digest}`);
   }
+
+  // Keep escalation ahead of the tail so truncation can never hide it.
+  const escalation = buildEscalationLine(state);
+  if (escalation) lines.push(escalation);
 
   // Work-item context: ticket ID + AC count
   const ticketId =
@@ -122,8 +146,10 @@ function handoffWarningBlock(text) {
 module.exports = {
   MAX_HANDOFF_CHARS,
   HANDOFF_RULES,
+  ESCALATION_AFTER_FIX_CYCLES,
   buildPhaseHandoff,
   buildHandoffEnforcement,
+  buildEscalationLine,
   validateHandoffCompact,
   handoffWarningBlock,
 };

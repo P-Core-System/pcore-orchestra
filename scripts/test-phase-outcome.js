@@ -105,6 +105,58 @@ check("FIX_REQUIRED wins over failed gates", fixBeatsGates.decision === "fix", J
 const reviewComplete = evaluatePhaseOutcome(mkState("review"), mkInput("ORCHESTRA_COMPLETE"));
 check("review + ORCHESTRA_COMPLETE + clean gates -> advance", reviewComplete.decision === "advance", JSON.stringify(reviewComplete));
 
+// --- verdict accuracy: the last phase-token line is the verdict -----------
+const quotedFail = evaluatePhaseOutcome(
+  mkState("verify"),
+  mkInput("The previous run returned VERIFY_FAIL on tests. Re-ran them after the fix.\n\nVERIFY_PASS")
+);
+check(
+  "verify: trailing VERIFY_PASS wins over a quoted VERIFY_FAIL",
+  quotedFail.decision === "advance" && quotedFail.token === "VERIFY_PASS" && quotedFail.reason === "verdict-line",
+  JSON.stringify(quotedFail)
+);
+
+const optimisticProse = evaluatePhaseOutcome(mkState("verify"), mkInput("All checks look green to me.\n**VERIFY_FAIL**"));
+check(
+  "verify: trailing VERIFY_FAIL wins over optimistic prose",
+  optimisticProse.decision === "fix" && optimisticProse.token === "VERIFY_FAIL",
+  JSON.stringify(optimisticProse)
+);
+
+const reviewQuotesVerifyFail = evaluatePhaseOutcome(
+  mkState("review"),
+  mkInput("Verifier reported VERIFY_FAIL earlier; that is resolved.\nORCHESTRA_COMPLETE")
+);
+check(
+  "review: quoted VERIFY_FAIL does not force a fix replay",
+  reviewQuotesVerifyFail.decision === "advance" && reviewQuotesVerifyFail.token === "ORCHESTRA_COMPLETE",
+  JSON.stringify(reviewQuotesVerifyFail)
+);
+
+const trailingNotes = evaluatePhaseOutcome(
+  mkState("review"),
+  mkInput("ORCHESTRA_COMPLETE\n\nSuggested final commit:\n- docs(context): sync progress-tracker after orchestra cycle")
+);
+check(
+  "review: token followed by notes still advances (backward scan)",
+  trailingNotes.decision === "advance" && trailingNotes.reason === "verdict-scan",
+  JSON.stringify(trailingNotes)
+);
+
+const rightmostToken = evaluatePhaseOutcome(mkState("verify"), mkInput("First VERIFY_FAIL, then fixed: VERIFY_PASS"));
+check(
+  "verify: right-most token on the line is the verdict",
+  rightmostToken.decision === "advance" && rightmostToken.token === "VERIFY_PASS",
+  JSON.stringify(rightmostToken)
+);
+
+const missingVerdict = evaluatePhaseOutcome(mkState("review"), mkInput("Findings look resolvable; re-run later."));
+check(
+  "review without a verdict token still blocks",
+  missingVerdict.decision === "block" && missingVerdict.reason === "token-missing",
+  JSON.stringify(missingVerdict)
+);
+
 const entPlan = evaluatePhaseOutcome(mkState("idea", { loopMode: "enterprise" }), mkInput("here is the idea"));
 check("enterprise phase -> advance (warning only)", entPlan.decision === "advance", JSON.stringify(entPlan));
 check("enterprise phase warns", /enterprise|contract/i.test(entPlan.warning || ""), String(entPlan.warning));
@@ -273,6 +325,13 @@ check("C exits 0", out.status === 0, out.stderr);
 s = readSession();
 check("C fix routes to implement", s.currentPhase === "implement", s.currentPhase);
 check("C records last_outcome fix", s.last_outcome && s.last_outcome.decision === "fix", JSON.stringify(s.last_outcome));
+check("C increments fix_cycles", s.memory && s.memory.fix_cycles === 1, JSON.stringify(s.memory?.fix_cycles));
+check(
+  "C fix_required event carries fix_cycle",
+  Array.isArray(s.lifecycle?.events) &&
+    s.lifecycle.events.some((e) => e.type === "fix_required" && e.data?.fix_cycle === 1),
+  JSON.stringify((s.lifecycle?.events || []).filter((e) => e.type === "fix_required"))
+);
 
 // C2: the implementer must NOT be dead-locked by the still-red gates —
 // verify re-runs evidence on entry, so implement advances on its own token.
@@ -356,6 +415,17 @@ check(
   s.lastCycleReport && s.lastCycleReport.outcome === "max_iterations" && fs.existsSync(s.lastCycleReport.path),
   JSON.stringify(s.lastCycleReport)
 );
+
+// G: a second fix cycle accumulates (drives the handoff escalation line)
+seed({
+  currentPhase: "verify",
+  iteration: 2,
+  memory: { phases_completed: [], files_changed: [], errors: [], decisions: [], fix_cycles: 1 },
+});
+out = runHook("orchestra-verifier", "VERIFY_FAIL: still red");
+check("G exits 0", out.status === 0, out.stderr);
+s = readSession();
+check("G second fix cycle increments to 2", s.memory && s.memory.fix_cycles === 2, JSON.stringify(s.memory?.fix_cycles));
 
 // no lock / tmp residue anywhere in the harness dir
 const dirty = residue().filter((f) => f.endsWith(".lock") || f.includes(".tmp."));

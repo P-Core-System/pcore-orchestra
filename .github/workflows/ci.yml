@@ -95,6 +95,7 @@ jobs:
           node scripts/test-memory-patterns.js
           node scripts/test-handoff-enforcer.js
           node scripts/test-review-queue-producer.js
+          node scripts/test-agent-sync.js
 
       # Qoder host: settings merge, agent conversion drift
       - name: Qoder suites (settings merge, agent sync)

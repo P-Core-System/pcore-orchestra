@@ -89,14 +89,14 @@ function foldDescription(desc) {
   return lines.join("\n");
 }
 
-function toOpenCodeMarkdown(raw) {
+function toOpenCodeMarkdown(raw, fallbackSteps) {
   const { fm, body } = splitFrontmatter(raw);
   if (!fm) return raw;
   const fields = parseFmFields(fm);
   const name = fields.name || "unnamed";
   const description = ensureProactive(fields.description || "");
   const readonly = fields.readonly === true;
-  const steps = parseInt(fields.steps, 10) || 200;
+  const steps = parseInt(fields.steps, 10) || fallbackSteps || 200;
 
   // Agents inherit the main/global model — do not emit per-agent model.
   // Preserve invested OpenCode-only settings (steps, no-ask bash, search) so
@@ -105,6 +105,18 @@ function toOpenCodeMarkdown(raw) {
   front += `permission:\n  edit: ${readonly ? "deny" : "allow"}\n  bash: allow\n  websearch: allow\n  webfetch: allow\n`;
   front += `---\n\n`;
   return front + body;
+}
+
+/** Keep the step budget already invested in an existing mirror file. */
+function existingSteps(dest) {
+  try {
+    const { fm } = splitFrontmatter(fs.readFileSync(dest, "utf8"));
+    if (!fm) return null;
+    const steps = parseInt(parseFmFields(fm).steps, 10);
+    return Number.isFinite(steps) ? steps : null;
+  } catch {
+    return null;
+  }
 }
 
 function walk(dir, files = []) {
@@ -116,51 +128,77 @@ function walk(dir, files = []) {
   return files;
 }
 
+/** Relative path → generated content for every mirror file. */
+function generate() {
+  const out = new Map();
+  const refSrc = path.join(SRC, "references");
+  for (const name of ["orchestra-spawn-matrix.md"]) {
+    const srcPath = path.join(refSrc, name);
+    if (fs.existsSync(srcPath)) out.set(path.join("references", name), fs.readFileSync(srcPath, "utf8"));
+  }
+  for (const src of walk(SRC)) {
+    const rel = path.relative(SRC, src);
+    if (rel.startsWith("references" + path.sep)) continue;
+    // Cursor's primary conductor has no OpenCode mirror.
+    if (path.basename(src) === "orchestra.md") continue;
+    const dest = path.join(DEST, rel);
+    out.set(rel, toOpenCodeMarkdown(fs.readFileSync(src, "utf8"), existingSteps(dest)));
+  }
+  return out;
+}
+
 function main() {
   const forceCore = process.argv.includes("--force-core");
-  const sources = walk(SRC);
-  let written = 0;
-  let skipped = 0;
+  const check = process.argv.includes("--check");
+  const expected = generate();
 
-  // Copy shared references (spawn matrix only — not legacy identity files)
-  const refSrc = path.join(SRC, "references");
-  const refDest = path.join(DEST, "references");
-  const sharedRefs = ["orchestra-spawn-matrix.md"];
-  if (fs.existsSync(refSrc)) {
-    fs.mkdirSync(refDest, { recursive: true });
-    for (const name of sharedRefs) {
-      const srcPath = path.join(refSrc, name);
-      if (!fs.existsSync(srcPath)) continue;
-      fs.copyFileSync(srcPath, path.join(refDest, name));
-      console.log("copied", path.relative(ROOT, path.join(refDest, name)));
+  if (check) {
+    const drift = [];
+    for (const [rel, content] of expected) {
+      const dest = path.join(DEST, rel);
+      if (!fs.existsSync(dest)) drift.push(`missing: bundle/opencode/agents/${rel.split(path.sep).join("/")}`);
+      else if (fs.readFileSync(dest, "utf8") !== content) drift.push(`differs: bundle/opencode/agents/${rel.split(path.sep).join("/")}`);
     }
+    if (fs.existsSync(DEST)) {
+      for (const file of walk(DEST)) {
+        const rel = path.relative(DEST, file);
+        // orchestra.md is OpenCode-primary by design; the rest must be generated.
+        if (rel === "orchestra.md" || expected.has(rel)) continue;
+        // Legacy identity notes predate the mirror and are not managed here.
+        if (/^references[\\/]orchestra-.*-identity\.md$/.test(rel)) continue;
+        drift.push(`stale: bundle/opencode/agents/${rel.split(path.sep).join("/")}`);
+      }
+    }
+    if (drift.length > 0) {
+      console.error("OpenCode agent mirror drift (run: node scripts/sync-opencode-agents.js --force-core):");
+      for (const line of drift) console.error(`  ${line}`);
+      process.exit(1);
+    }
+    console.log(`No drift. ${expected.size} files up to date under bundle/opencode/agents/`);
+    return;
   }
 
-  for (const src of sources) {
-    const rel = path.relative(SRC, src);
-    const base = path.basename(src);
-    if (rel.startsWith("references" + path.sep)) continue;
-    if (base === "orchestra.md") {
-      skipped++;
-      continue;
-    }
+  let written = 0;
+  let unchanged = 0;
+  let skipped = 0;
+  for (const [rel, content] of expected) {
     const dest = path.join(DEST, rel);
-    const isCore = CORE_NAMES.has(base);
-
+    const isCore = CORE_NAMES.has(path.basename(rel));
     if (isCore && fs.existsSync(dest) && !forceCore) {
       skipped++;
       continue;
     }
-
-    const raw = fs.readFileSync(src, "utf8");
-    const converted = toOpenCodeMarkdown(raw);
+    if (fs.existsSync(dest) && fs.readFileSync(dest, "utf8") === content) {
+      unchanged++;
+      continue;
+    }
     fs.mkdirSync(path.dirname(dest), { recursive: true });
-    fs.writeFileSync(dest, converted);
+    fs.writeFileSync(dest, content);
     written++;
     console.log("wrote", path.relative(ROOT, dest));
   }
 
-  console.log(`\nDone. wrote=${written} skipped_core_existing=${skipped}`);
+  console.log(`\nDone. wrote=${written} unchanged=${unchanged} skipped_core_existing=${skipped}`);
   if (skipped > 0) console.log("Tip: re-run with --force-core to overwrite core agents.");
 }
 

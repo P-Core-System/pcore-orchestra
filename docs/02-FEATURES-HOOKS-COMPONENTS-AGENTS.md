@@ -476,7 +476,9 @@ git log --oneline -1          # confirm
 
 **Convergence criteria:** Tests pass → lint clean → typecheck pass → git clean.
 
-**Stall detection (in agent):** Identical failures 2x → suggest different strategy. 3rd → recommend abort.
+**Verdict discipline:** the outcome hook scans the output backwards and takes the **last line carrying a phase token** as the verdict. A trailing `VERIFY_PASS` therefore wins over prose that quotes an earlier `VERIFY_FAIL`; a trailing `VERIFY_FAIL` wins over optimistic prose. The token must be the verdict itself, and a pass verdict with a red required gate is converted to a `phase_blocked` block. Every check row is binary (PASS / FAIL / `SKIPPED: reason`) with the command and one-line result as evidence.
+
+**Stall detection (in agent):** Identical failures 2x → suggest different strategy. 3rd → recommend abort. After 2 fix cycles the handoff also carries an `Escalation` line (root-cause + split scope, then escalate to `grok-4.6` if still red).
 
 ## Agent: orchestra-reviewer
 
@@ -492,6 +494,8 @@ git log --oneline -1          # confirm
 - [ ] progress-tracker.md reflects completed work
 
 **Human checkpoint triggers:** Auth/payments/security/scope-creep/budget-exhaustion/3rd consecutive FIX_REQUIRED.
+
+**Verdict discipline:** `ORCHESTRA_COMPLETE` or `FIX_REQUIRED` on the final non-empty line. Review only recognises its own two tokens, so findings that quote `VERIFY_FAIL` cannot force a fix replay; a pass verdict with a red required gate is converted to a block.
 
 **Output includes:** Critical findings (file:line), suggestions, context drift, git review, lessons for long-term memory.
 

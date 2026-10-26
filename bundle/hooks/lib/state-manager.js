@@ -85,6 +85,7 @@ const DEFAULT_SESSION_STATE = {
     errors: [],
     decisions: [],
     context_summary: "",
+    fix_cycles: 0,
   },
   resumable: {
     paused: false,
@@ -424,6 +425,7 @@ function startOrchestra(goal, state, source, options) {
   session.heartbeat.phase_started_at = new Date().toISOString();
   session.memory = {
     phases_completed: [], files_changed: [], errors: [], decisions: [], context_summary: "",
+    fix_cycles: 0,
   };
   // Work-item identity for the domain lane: every run owns a ticket id so
   // review-queue items, handoffs, and phase.outcome events share one key.

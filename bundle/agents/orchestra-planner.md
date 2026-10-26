@@ -87,6 +87,14 @@ Before outputting `PLAN_READY`, verify:
 - [ ] Plan is under 100 lines
 - [ ] No assumptions about undocumented behavior
 
+## Step budget awareness
+
+The conductor may pass a step budget in the task prompt (e.g., "You have 75 steps for this phase"). Respect this budget:
+- If the budget is low (< 50), focus on essential planning only — skip exploration
+- If the budget is high (> 100), you can be thorough in codebase research
+- Always finish with `PLAN_READY` even if you run low on steps
+- Report estimated complexity in your plan: files count, components, estimated implementation difficulty (simple/medium/complex)
+
 ## Error-free rules
 
 - Do NOT list files you haven't verified exist (unless marked `* new`)

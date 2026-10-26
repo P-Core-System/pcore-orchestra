@@ -251,6 +251,44 @@ async function runTests() {
     failed++;
   }
 
+  // Test 11: escalation directive appears only after the fix-cycle threshold
+  try {
+    const base = {
+      goal: "Test goal",
+      memory: { ticketId: "TEST-123", fix_cycles: 1 },
+      last_outcome: { phase: "implement", decision: "advance" },
+    };
+    const below = mod.buildHandoffEnforcement(base, [], {});
+    assert(!/Escalation/.test(below), "no escalation below the fix-cycle threshold");
+
+    const escalated = mod.buildHandoffEnforcement(
+      Object.assign({}, base, { memory: { ticketId: "TEST-123", fix_cycles: mod.ESCALATION_AFTER_FIX_CYCLES } }),
+      [],
+      {}
+    );
+    assertContains(escalated, `Escalation (fix cycle ${mod.ESCALATION_AFTER_FIX_CYCLES})`, "escalation names the fix cycle");
+    assertContains(escalated, "grok-4.6", "escalation names the stronger model");
+    passed += 3;
+  } catch (e) {
+    console.log(`  ✗ Escalation directive: ${e.message}`);
+    failed += 3;
+  }
+
+  // Test 12: buildPhaseHandoff carries the same escalation directive
+  try {
+    const state = {
+      goal: "Test goal",
+      memory: { fix_cycles: 2, phases_completed: [], errors: [] },
+    };
+    const result = mod.buildPhaseHandoff(state, "orchestra-implementer");
+    assertContains(result, "Escalation (fix cycle 2)", "buildPhaseHandoff includes escalation");
+    assertContains(result, "orchestra-implementer", "buildPhaseHandoff keeps the spawn directive");
+    passed += 2;
+  } catch (e) {
+    console.log(`  ✗ buildPhaseHandoff escalation: ${e.message}`);
+    failed += 2;
+  }
+
   console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);
   process.exit(failed > 0 ? 1 : 0);
 }

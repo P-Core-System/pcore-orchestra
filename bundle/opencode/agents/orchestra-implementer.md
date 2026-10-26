@@ -6,12 +6,12 @@ description: >-
   features, even without /orchestra. Auto-chained by ambient orchestra
   hooks. Follows target project context/*.md conventions when present.
 mode: subagent
+steps: 500
 permission:
   edit: allow
   bash: allow
   websearch: allow
   webfetch: allow
-steps: 500
 ---
 
 ## Model

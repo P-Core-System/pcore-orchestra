@@ -10,6 +10,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- **Verdict-accurate phase outcomes** — `phase-outcome.js` now reads the last line carrying a phase token instead of scanning the whole output, so quoted `VERIFY_FAIL` text cannot force a fix replay and a trailing `VERIFY_PASS` wins; tokens are phase-scoped.
+- **Binary verification/review rubrics** — verifier and reviewer agents ship explicit verdict discipline (final line is the verdict), PASS/FAIL evidence tables, and a fix-cycle escalation directive.
+- **Lossless agent mirrors** — `sync-opencode-agents.js` preserves invested step budgets, gained `--check` drift detection, and core agent bodies are identical across Cursor, OpenCode, and Qoder (`scripts/test-agent-sync.js` guards parity).
+
 ### Fixed
 - Bundled-skill broken reference links — tracked in issue #12
 - Stale OpenCode V1 `task` tool / `task_id` guidance in the `orchestra-loop` skill (now `subagent` + `sessionID`)

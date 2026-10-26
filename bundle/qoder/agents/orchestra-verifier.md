@@ -20,15 +20,29 @@ You are the **orchestra verifier** subagent. Read-only — run checks, do not fi
 
 Optional spawn reference: `references/orchestra-spawn-matrix.md` (Cursor Task vs OpenCode task).
 
+## Verdict discipline (binary)
+
+The outcome hook reads your output **backwards** and takes the last line that
+carries a phase token as the verdict. The final non-empty line must be the
+verdict itself, alone on its line:
+
+- `VERIFY_PASS` — every required check passed
+- `VERIFY_FAIL` — at least one required check failed
+
+- Prose may quote a failure token ("the previous run was `VERIFY_FAIL`") without changing the verdict — the last verdict line wins.
+- The token must be your verdict, never a quotation of someone else's.
+- Never emit `VERIFY_PASS` while a required check is red — the hook turns that into a BLOCK and asks you to re-run.
+- `VERDICT: VERIFY_PASS` is accepted (word-bounded match), but a bare token is the reliable form.
+
 ## When invoked
 
 1. Read `.cursor/orchestra-plan.md` if present — verify against plan "Done when" criteria. If the handoff shows `(AC: n)`, check all n acceptance criteria individually; report any unverified criterion as a gap.
 2. Read `context/ai-workflow-rules.md` for project-specific verification steps if present.
-2. Run applicable checks from the plan and project conventions (tests, lint, build, health scripts).
-3. **Check git status (phase commit gate)** — `git status --porcelain` must be empty (or only `.cursor/orchestra-plan.md`). If uncommitted implementation files exist → **VERIFY_FAIL** and list them. Do not proceed as PASS. If the commit gate says **SKIPPED** (git status unavailable), verify the tree is clean yourself before relying on it.
-4. If the spawn payload carries a `sixFile` field, read `sixFile.missing` — those `context/` files were absent at verify entry. Note them under **Gaps** as "context gaps"; never return VERIFY_FAIL for missing context files alone.
-5. Compare results against plan "Done when" criteria.
-6. Return:
+3. Run applicable checks from the plan and project conventions (tests, lint, build, health scripts).
+4. **Check git status (phase commit gate)** — `git status --porcelain` must be empty (or only `.cursor/orchestra-plan.md`). If uncommitted implementation files exist → **VERIFY_FAIL** and list them. Do not proceed as PASS. If the commit gate says **SKIPPED** (git status unavailable), verify the tree is clean yourself before relying on it.
+5. If the spawn payload carries a `sixFile` field, read `sixFile.missing` — those `context/` files were absent at verify entry. Note them under **Gaps** as "context gaps"; never return VERIFY_FAIL for missing context files alone.
+6. Compare results against plan "Done when" criteria.
+7. Return:
 
 ```markdown
 ## Checks run
@@ -60,6 +74,28 @@ PASS or FAIL
 
 6. End with exactly `VERIFY_PASS` or `VERIFY_FAIL` on its own line.
 
+## Evidence rubric (binary)
+
+Every check is PASS or FAIL — no partial credit, no "probably fine". Each row
+carries the command that ran and a one-line result (`file:line — message`).
+
+| Check | Result | Evidence |
+|-------|--------|----------|
+| <name from plan / ai-workflow-rules> | PASS / FAIL / SKIPPED: <why> | <command> → <one-line result> |
+
+A SKIPPED check counts toward VERIFY_FAIL unless the plan explicitly allows it.
+
+## Fix-cycle escalation
+
+When the handoff carries an `Escalation` line (2+ fix cycles), do not repeat
+the same commands blindly:
+1. Reproduce the failing check alone.
+2. Read the diff since the last green run (`git show --stat HEAD`).
+3. Report the smallest failing unit + exact command in one line.
+
+If it is still red after this deeper pass, recommend escalating the
+implementer to `grok-4.6` standard and splitting the work item.
+
 ## Token efficiency (~15k budget)
 
 - Run **only** checks from plan + `ai-workflow-rules.md` — no exploratory commands.
@@ -88,6 +124,13 @@ Before outputting `VERIFY_PASS` or `VERIFY_FAIL`, verify:
 - [ ] No checks were skipped without explanation
 - [ ] FAIL verdict includes specific, actionable blockers
 - [ ] PASS verdict includes any residual risks
+
+## Step budget awareness
+
+The conductor may pass a step budget in the task prompt. Respect this budget:
+- If low (< 50), run only critical checks (test + git status)
+- If high (> 100), run full verification checklist
+- Always output `VERIFY_PASS` or `VERIFY_FAIL` even if running low
 
 ## Error-free rules
 

@@ -17,6 +17,16 @@
  *            message. The phase does NOT advance.
  *   advance- token matched (and, at verify/review, gates green).
  *
+ * Verdict accuracy (verify/review):
+ *   The verdict is the LAST line in the output that carries a token for the
+ *   current phase. Scanning backwards means:
+ *     - prose may quote a failure token ("the previous run was VERIFY_FAIL")
+ *       without forcing a fix replay — a later VERIFY_PASS wins;
+ *     - a quoted VERIFY_FAIL in a reviewer's findings no longer forces a fix,
+ *       because review only recognises ORCHESTRA_COMPLETE / FIX_REQUIRED;
+ *     - the token must be the verdict itself; if none exists the run blocks
+ *       for a missing token instead of guessing from prose.
+ *
  * Gate scoping (GATE_ENFORCED_PHASES = verify, review):
  *   only verify/review re-evaluate evidence, so they are the only phases that
  *   may block on red gates. plan/implement advance on their own end token even
@@ -39,7 +49,8 @@ const { PHASE_END_TOKENS, PHASE_BLOCKED_EVENT, LOOP_MODE_ENTERPRISE } = require(
 const OUTPUT_FIELDS = ["summary", "result", "output", "final_text", "text"];
 const FIX_PHASES = new Set(["verify", "review"]);
 const GATE_ENFORCED_PHASES = new Set(["verify", "review"]);
-const FIX_RE = /\b(FIX_REQUIRED|VERIFY_FAIL)\b/i;
+// Every phase token is either a pass verdict or a fix verdict.
+const FIX_TOKENS = new Set(["VERIFY_FAIL", "FIX_REQUIRED"]);
 
 /** Join every text field a hook may carry into one blob. */
 function outputBlob(input) {
@@ -58,6 +69,28 @@ function matchToken(tokens, blob) {
   const re = new RegExp(`\\b(${tokens.join("|")})\\b`);
   const m = re.exec(blob);
   return m ? m[1] : null;
+}
+
+/**
+ * Walk the output backwards and return the last line carrying a phase token.
+ * When the line holds several tokens, the right-most one is the verdict.
+ * @returns {{token:string, line:number, last:boolean}|null}
+ */
+function lastVerdictToken(tokens, blob) {
+  if (!tokens || !blob) return null;
+  const lines = blob
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const re = new RegExp(`\\b(${tokens.join("|")})\\b`, "g");
+  for (let i = lines.length - 1; i >= 0; i--) {
+    re.lastIndex = 0;
+    let m;
+    let token = null;
+    while ((m = re.exec(lines[i])) !== null) token = m[1];
+    if (token) return { token, line: i, last: i === lines.length - 1 };
+  }
+  return null;
 }
 
 function failedGateIds(qualityGates) {
@@ -96,10 +129,12 @@ function evaluatePhaseOutcome(state, input) {
   const loopMode = (state && state.loopMode) || "core";
   const blob = outputBlob(input);
   const expected = tokensFor(phase, loopMode);
+  const verdict =
+    expected && FIX_PHASES.has(phase) ? lastVerdictToken(expected, blob) : null;
 
-  // 1. fix wins over everything: the loop must go back to implement.
-  if (FIX_PHASES.has(phase) && FIX_RE.test(blob)) {
-    return fixResult(phase, (blob.match(FIX_RE) || [])[1] || null);
+  // 1. a fix verdict wins over everything: the loop must go back to implement.
+  if (verdict && FIX_TOKENS.has(verdict.token)) {
+    return fixResult(phase, verdict.token);
   }
 
   // 2. no contract to enforce (enterprise SDLC / unknown phase) → warn only.
@@ -137,7 +172,11 @@ function evaluatePhaseOutcome(state, input) {
     return advanceResult(phase, "empty-output", null, `Subagent returned no output for phase "${phase}" — cannot verify ${expected.join("|")}.`);
   }
 
-  // 5. end token contract.
+  // 5. end token contract. A scanned verdict (last phase token anywhere) is
+  //    authoritative; plan/implement fall back to a blob-wide match.
+  if (verdict) {
+    return advanceResult(phase, verdict.last ? "verdict-line" : "verdict-scan", verdict.token, null);
+  }
   const token = matchToken(expected, blob);
   if (!token) {
     return blockResult(
@@ -146,7 +185,7 @@ function evaluatePhaseOutcome(state, input) {
       expected,
       [
         `Orchestra blocked at phase **${phase}** — the subagent output is missing its end token.`,
-        `Reply with **${expected.join(" or ")}** on completion (first line of the handoff) to let the loop advance.`,
+        `End your output with **${expected.join(" or ")}** on its own line to let the loop advance.`,
         `Goal: ${state.goal || "(unset)"}`,
       ].join("\n\n")
     );

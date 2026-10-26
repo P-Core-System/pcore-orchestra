@@ -234,10 +234,12 @@ async function handleFixRequired(state) {
   const implPhase = getImplementPhaseId(state.loopMode);
   const agentId = "orchestra-implementer";
   state.currentPhase = implPhase;
+  if (!state.memory) state.memory = { ...DEFAULT_STATE.memory };
+  state.memory.fix_cycles = (state.memory.fix_cycles || 0) + 1;
   emitLifecycleEvent(state, "fix_required", state.currentPhase, {
     iteration: state.iteration,
+    fix_cycle: state.memory.fix_cycles,
   });
-  if (!state.memory) state.memory = { ...DEFAULT_STATE.memory };
   state.memory.decisions.push({
     phase: "review",
     decision: "FIX_REQUIRED",

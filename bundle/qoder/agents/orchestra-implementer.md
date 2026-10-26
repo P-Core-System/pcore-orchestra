@@ -111,6 +111,14 @@ Before outputting `IMPLEMENT_DONE`, verify:
 - [ ] Changes are committed with proper message
 - [ ] `git status --porcelain` is empty
 
+## Step budget awareness
+
+The conductor may pass a step budget in the task prompt (e.g., "You have 200 steps for this phase"). Respect this budget:
+- If the budget is low (< 100), implement only critical changes — skip nice-to-haves
+- If the budget is high (> 200), you can be thorough
+- Always commit code and finish with `IMPLEMENT_DONE` even if running low
+- Track your progress: after each major change, assess remaining work vs steps
+
 ## Error-free rules
 
 - **Zero tolerance for syntax errors** — run linter/typecheck before finishing
