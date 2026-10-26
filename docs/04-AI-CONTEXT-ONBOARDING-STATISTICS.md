@@ -366,7 +366,7 @@ Limits: 32000 tokens, 1000 context files, 0 output files, 50 file matches, 3 sea
 git clone https://github.com/P-Core-System/pcore-orchestra.git
 cd pcore-orchestra
 
-# 2. Install globally (both Cursor + OpenCode)
+# 2. Install globally (Cursor + OpenCode + Qoder)
 bash install.sh
 
 # 3. Verify health
@@ -567,7 +567,7 @@ node bundle/hooks/orchestra-health.js
 | `conductor-state.js` | 389 | OpenCode conductor lifecycle |
 | `version-manager.js` | 363 | Semver, changelog, release notes |
 | `knowledge-tools.js` | 261 | Allowlisted docs/context read tools + share inbox + MCP tool definitions |
-| **Total flat `lib/`** | **11,096** | 44 files |
+| **Total flat `lib/`** | **11,149** | 44 files |
 | **`lib/domain/` package** | **955** | 8 files (domain model, store, evidence, completion, state dir) |
 
 ## Hook entry points

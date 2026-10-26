@@ -376,7 +376,7 @@ gate) → diff review → import check.
 P-Core Orchestra has **no deployment pipeline.** Installation is the deployment:
 
 ```bash
-bash install.sh                    # Cursor + OpenCode (default)
+bash install.sh                    # Cursor + OpenCode + Qoder (default)
 bash install.sh --cursor           # Cursor only
 bash install.sh --opencode         # OpenCode only
 bash install.sh --project          # + project bridge in cwd

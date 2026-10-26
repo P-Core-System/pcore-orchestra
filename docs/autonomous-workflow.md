@@ -1,4 +1,4 @@
-# Autonomous Cursor + OpenCode workflow
+# Autonomous Cursor + OpenCode + Qoder workflow
 
 How pcore-orchestra tunes longer agent runs with fewer approval prompts, while keeping provider-level safety and explicit denies for destructive actions.
 

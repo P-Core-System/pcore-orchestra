@@ -61,7 +61,7 @@ Hook: `lib/greenfield-intake.js` · Skill: `greenfield-product`
 
 | Gap | Solution |
 |-----|----------|
-| **Auto init-project from hooks** | `lib/greenfield-scaffold.js` + wired in `orchestra-prompt.js` (Cursor + OpenCode) — emits scaffold instruction when cwd empty and greenfield detected |
+| **Auto init-project from hooks** | `lib/greenfield-scaffold.js` + wired in `orchestra-prompt.js` (Cursor/OpenCode/Qoder shared prompt hook) — emits scaffold instruction when cwd empty and greenfield detected |
 
 ### High — agent-driven quality
 
