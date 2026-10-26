@@ -300,7 +300,7 @@ JavaScript file, `shellcheck --severity=error`, and the blocking secret scan.
 | Area | Suites |
 |------|--------|
 | State + safety | `test-safe-write`, `test-state-manager-compat`, `test-conductor-state`, `test-phase-outcome` |
-| Agent contracts | `test-agent-registry`, `test-handshake-contract`, `test-mirror-sync`, `test-qoder-sync`, `test-merge-qoder-settings` |
+| Agent contracts | `test-agent-registry`, `test-handshake-contract`, `test-mirror-sync`, `test-qoder-sync` (frontmatter + hook event surface), `test-merge-qoder-settings` |
 | Core loop | `test-adaptive-loop`, `test-permission-review`, `test-opencode-v2`, `test-opencode-permission-contract`, `test-handoff-enforcer`, `test-sixfile-validation` |
 | Enterprise domain | `test-domain-model`, `test-domain-completion`, `test-domain-store`, `test-domain-evidence`, `test-domain-state-dir`, `test-evidence-runner`, `test-review-queue`, `test-review-queue-producer` |
 | Memory | `test-memory-retrieval`, `test-memory-hybrid`, `test-memory-patterns` |

@@ -7,7 +7,7 @@ Same four phases, different spawn syntax and chaining.
 | Platform | Who the user talks to | Phase agents |
 |----------|----------------------|--------------|
 | **Cursor** | Main Agent (hooks ambient) or `orchestra` conductor | `orchestra-*` via Task |
-| **OpenCode** | `orchestra` conductor only (`default_agent`) | Hidden `orchestra-*` via **task** tool |
+| **OpenCode** | `orchestra` conductor only (`default_agent`) | Hidden `orchestra-*` via **subagent** tool |
 | **Qoder CLI** | Main Agent (hooks ambient) or `orchestra` conductor | `orchestra-*` via **Agent** tool |
 
 Never @-mention or pick `orchestra-planner` / implementer / verifier / reviewer on OpenCode — they are `hidden: true`.
@@ -27,12 +27,12 @@ Task(subagent_type="orchestra-planner", prompt="Goal: …\nHandoff: …")
 ### OpenCode CLI / desktop
 
 ```text
-task(agent="orchestra-planner", prompt="Goal: …\nHandoff: …")
+subagent(agent="orchestra-planner", description="plan login fix", prompt="Goal: …\nHandoff: …")
 ```
 
-- Tool name: **task** (lowercase — OpenCode permission key)
-- Parameter: **agent** = same four names
-- **No hooks** — the `orchestra` conductor must call **task** for each phase in order and wait for markers
+- Tool name: **subagent** (OpenCode V2 native; `task` is the deprecated V1 alias)
+- Required parameters: **agent** = same four names, **description** (3–5 words), **prompt** (V2 uses `agent`, not `subagent_type`; `sessionID` continues a prior child)
+- **No hooks** — the `orchestra` conductor must call **subagent** for each phase in order and wait for markers
 
 ### Qoder CLI
 
@@ -44,6 +44,9 @@ Agent(subagent_type="orchestra-planner", prompt="Goal: …\nHandoff: …")
 - Parameter: **subagent_type** = same four names (agents live in `~/.qoder/agents/`)
 - Hooks registered in `~/.qoder/settings.json` under PascalCase events (`SessionStart`, `UserPromptSubmit`, `SubagentStop`, `Stop`) — **auto-chain** like Cursor
 - Hook stdin carries `agent_type` (not `subagent_type`); `bundle/hooks/lib/io.js` `normalizeHookInput()` maps it so the shared Cursor hooks work unchanged
+- Session identity: hook payload `session_id`, else `QODER_SESSION_ID`, else `QODER_PID` — every event in one Qoder conversation shares one state session instead of a `pid-*` session per hook process
+- Host detection: `QODER_CLI` / `QODER_PID` / `QODER_SESSION_ID`, or an installed `~/.qoder` hook path, selects the **Agent** spawn adapter (not Cursor's **Task**)
+- `node ~/.qoder/hooks/orchestra-health.js` validates `settings.json` (lifecycle, memory, heartbeat, quality gate, 27-agent matcher) because Qoder has no `hooks.json`
 
 ## Phase flow (shared)
 
@@ -62,7 +65,7 @@ On `VERIFY_FAIL` / `FIX_REQUIRED`: implementer → verifier again (max 3 loops).
 |------------|--------|----------|-----------|
 | Spawn subagent | Task + subagent_type | task + agent name | Agent + subagent_type |
 | Conductor | Optional `~/.cursor/agents/orchestra.md` | Required `~/.config/opencode/agents/orchestra.md` | Optional `~/.qoder/agents/orchestra.md` |
-| Auto phase chain | `subagentStop` hooks | Conductor task loop | `SubagentStop` hooks (settings.json) |
+| Auto phase chain | `subagentStop` hooks | Conductor subagent loop | `SubagentStop` hooks (settings.json) |
 | Web / docs | Settings + permissions.json | `websearch` / `webfetch` in agent permission | WebSearch / WebFetch tools (agent `tools:` frontmatter) |
 | Skills | `~/.cursor/skills/orchestra-loop/` | `~/.config/opencode/skills/orchestra-loop/` | `~/.qoder/skills/orchestra-loop/` |
 | MCP | Cursor MCP | `opencode.json` mcp (disable remote if startup hangs) | `settings.json` mcpServers or `.mcp.json` |

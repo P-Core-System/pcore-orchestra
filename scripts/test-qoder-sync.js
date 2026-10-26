@@ -218,8 +218,24 @@ function runTests() {
     const mapped = io.normalizeHookInput({ agent_type: "orchestra-planner" });
     assert(mapped.subagent_type === "orchestra-planner", "agent_type normalizes to subagent_type");
 
+    const sessionKeys = ["PCORE_SESSION_ID", "OPENCODE_SESSION_ID", "CLAUDE_SESSION_ID", "CURSOR_TRACE_ID", "QODER_SESSION_ID", "QODER_PID"];
+    const convEnv = {};
+    for (const k of sessionKeys) {
+      convEnv[k] = process.env[k];
+      delete process.env[k];
+    }
+    try {
+      io.normalizeHookInput({ conversation_id: "conv-cursor-1" });
+      assert(process.env.PCORE_SESSION_ID === "conv-cursor-1", "Cursor conversation_id seeds the shared session");
+    } finally {
+      for (const [k, v] of Object.entries(convEnv)) {
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+      }
+    }
+
     const savedEnv = {};
-    for (const k of ["PCORE_SESSION_ID", "OPENCODE_SESSION_ID", "CLAUDE_SESSION_ID", "CURSOR_TRACE_ID", "QODER_SESSION_ID", "QODER_PID"]) {
+    for (const k of sessionKeys) {
       savedEnv[k] = process.env[k];
       delete process.env[k];
     }

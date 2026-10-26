@@ -152,13 +152,18 @@ async function runTests() {
       process.stdout.write = originalWrite;
       
       assert(result.success === true, "opencode spawn returns success=true");
-      assert(result.result.taskCall.tool === "task", "opencode taskCall has correct tool");
+      assert(result.result.taskCall.tool === "subagent", "opencode taskCall uses subagent tool");
       assert(result.result.taskCall.agent === "orchestra-implementer", "opencode taskCall has correct agent");
-      passed += 3;
+      assert(
+        typeof result.result.taskCall.description === "string" &&
+          result.result.taskCall.description.length > 0,
+        "opencode taskCall carries the V2 required description"
+      );
+      passed += 4;
     } catch (e) {
       process.stdout.write = originalWrite;
       console.log(`  ✗ opencode host: ${e.message}`);
-      failed += 3;
+      failed += 4;
     }
   }
 

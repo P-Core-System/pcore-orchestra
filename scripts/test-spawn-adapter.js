@@ -59,7 +59,7 @@ async function runTests() {
     }
   }
 
-  // Test 3: spawn works for OpenCode (emits task tool call format)
+  // Test 3: spawn works for OpenCode (emits subagent tool call format)
   if (spawnAdapter) {
     try {
       const result = await spawnAdapter.spawn("orchestra-implementer", { goal: "test" }, null, "opencode");

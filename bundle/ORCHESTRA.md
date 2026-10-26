@@ -23,7 +23,7 @@ You: "fix the signal bot import error"
         ↓
 default_agent: orchestra (conductor)
         ↓
-orchestra → task(orchestra-planner) → task(implementer) → task(verifier) → task(reviewer)
+orchestra → subagent(orchestra-planner) → subagent(implementer) → subagent(verifier) → subagent(reviewer)
         ↓
 Conductor waits for each phase marker (no Cursor hooks)
 ```

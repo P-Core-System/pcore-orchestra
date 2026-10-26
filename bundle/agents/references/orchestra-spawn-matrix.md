@@ -15,8 +15,8 @@ If `Task` rejects `subagent_type=orchestra-*` (enum / unknown agent), the parent
 
 ## OpenCode
 
-- **Spawn:** `task` tool, agent=`orchestra-planner` (etc.)
-- **Chain:** `orchestra` conductor calls task once per phase — no hooks
+- **Spawn:** `subagent` tool, agent=`orchestra-planner` (etc.)
+- **Chain:** `orchestra` conductor calls subagent once per phase — no hooks
 - **Entry:** `default_agent: orchestra` only
 - **Phase agents:** `hidden: true` — not in @ menu
 

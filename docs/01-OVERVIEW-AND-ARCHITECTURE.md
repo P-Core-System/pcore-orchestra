@@ -514,7 +514,7 @@ graph TB
 |--------|-----------|-------------|
 | Integration | Hooks API (6 events) | Skill system + agent definitions |
 | Agent format | `readonly: true` frontmatter | `mode: subagent` + `permission` |
-| Orchestration trigger | `beforeSubmitPrompt` → `subagentStop` chain | `orchestra-loop` skill → Task tool |
+| Orchestration trigger | `beforeSubmitPrompt` → `subagentStop` chain | `orchestra-loop` skill → `subagent` tool |
 | State persistence | `~/.cursor/hooks/state/` | `~/.config/opencode/state/` |
 | Agent step limits | None | Planner 8, Impl 25, Ver 10, Rev 5 |
 | Extra features | Heartbeat, lifecycle, stop nudges | Setup skill, model routing doc |

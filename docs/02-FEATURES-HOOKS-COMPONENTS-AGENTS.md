@@ -226,7 +226,8 @@ CLI), `orchestra-health.js` (self-check), and `orchestra-lib.js` (shared helpers
 | `status` | string | `subagentStop`, `stop` |
 | `subagent_type` / `subagentType` | string | `subagentStop` |
 | `agent_type` / `agentType` | string | `subagentStop` (normalized to `subagent_type` on Qoder) |
-| `session_id` / `sessionId` | string | All (seeds `PCORE_SESSION_ID` when no native host id is set) |
+| `session_id` / `sessionId` | string | Cursor `sessionStart`/`sessionEnd`, Qoder `SubagentStop`/`Stop` (seeds `PCORE_SESSION_ID` when no native host id is set) |
+| `conversation_id` / `conversationId` | string | Cursor's canonical id on every other event (also seeds `PCORE_SESSION_ID`) |
 | `workspace_roots` / `workspaceRoots` | string[] | `sessionStart`, `beforeSubmitPrompt` |
 | `loop_count` | number | `stop` |
 | `summary` / `result` / `output` / `final_text` | string | `subagentStop` |

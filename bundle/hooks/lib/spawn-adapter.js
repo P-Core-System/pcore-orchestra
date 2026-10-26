@@ -238,14 +238,18 @@ function spawnCursor(agentId, payload) {
 }
 
 /**
- * Spawn via OpenCode task tool.
+ * Spawn via OpenCode subagent tool (V1 name: task).
  */
 function spawnOpenCode(agentId, payload) {
   return new Promise((resolve) => {
-    // In OpenCode, the conductor uses the task tool
+    // OpenCode V2 exposes the native spawn tool as `subagent` with an `agent`
+    // argument; `task` is only the deprecated V1 alias. V2 also requires a
+    // short `description` label alongside `agent` and `prompt`.
+    const goal = typeof payload?.goal === "string" ? payload.goal : "";
     const taskCall = {
-      tool: "task",
+      tool: "subagent",
       agent: agentId,
+      description: goal ? goal.slice(0, 60) : `${agentId} phase`,
       prompt: JSON.stringify(payload),
     };
     

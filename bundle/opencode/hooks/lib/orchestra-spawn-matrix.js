@@ -32,12 +32,13 @@ const PLATFORMS = {
     id: "opencode",
     label: "OpenCode CLI / desktop",
     orchestrator: "`orchestra` primary agent (default_agent in opencode.json)",
-    spawnTool: "task",
-    spawnSyntax: 'task(agent="orchestra-planner", prompt="goal + handoff…")',
+    spawnTool: "subagent",
+    spawnSyntax:
+      'subagent(agent="orchestra-planner", description="3–5 word label", prompt="goal + handoff…")',
     spawnExample:
-      "Call the task tool with agent name orchestra-planner (then implementer, verifier, reviewer)",
+      "Call the subagent tool with agent name orchestra-planner (then implementer, verifier, reviewer) and a short description",
     phaseChain:
-      "No Cursor hooks — the orchestra conductor MUST task-spawn each phase sequentially and wait for completion markers.",
+      "No Cursor hooks — the orchestra conductor MUST subagent-spawn each phase sequentially and wait for completion markers.",
     entryPoint: "default_agent: orchestra — user talks to conductor only",
     statePath: "~/.config/opencode/hooks/state/orchestra.json",
     health: "node ~/.config/opencode/hooks/orchestra-health-opencode.js",
@@ -47,7 +48,7 @@ const PLATFORMS = {
 
 function spawnLine(platform, agentId) {
   if (platform === "opencode") {
-    return `call **task** tool → agent \`${agentId}\``;
+    return `call **subagent** tool → agent \`${agentId}\``;
   }
   return `launch **${agentId}** via Cursor **Task** tool (subagent_type)`;
 }
@@ -72,7 +73,7 @@ function ambientContextBlock() {
     "run plan → implement → verify → review.",
     "",
     "Cursor: hooks chain phases on subagentStop — Task subagent_type orchestra-*.",
-    "OpenCode: default_agent orchestra — task tool spawns hidden orchestra-* phases.",
+    "OpenCode: default_agent orchestra — subagent tool spawns hidden orchestra-* phases.",
     "",
     "Phase agents (never user entry on OpenCode): orchestra-planner, orchestra-implementer, orchestra-verifier, orchestra-reviewer.",
     "Skip: pure questions, 'no orchestra', trivial hi/thanks.",
@@ -83,9 +84,9 @@ function ambientContextBlock() {
 function toolsMatrixMarkdown() {
   return `| Capability | Cursor | OpenCode |
 |------------|--------|----------|
-| Spawn subagent | \`Task\` + \`subagent_type\` | \`task\` tool + agent name |
+| Spawn subagent | \`Task\` + \`subagent_type\` | \`subagent\` tool + agent name |
 | Conductor agent | Optional (\`orchestra.md\`) | Required (\`default_agent: orchestra\`) |
-| Phase auto-chain | Hooks (\`subagentStop\`) | Conductor loops task calls |
+| Phase auto-chain | Hooks (\`subagentStop\`) | Conductor loops subagent calls |
 | Web docs | Auto-review + permissions | \`websearch\` / \`webfetch\` permission |
 | Skills | \`~/.cursor/skills/\` | \`~/.config/opencode/skills/\` + \`skill\` permission |
 | MCP | Cursor MCP config | \`opencode.json\` → \`mcp\` (remote can block startup) |

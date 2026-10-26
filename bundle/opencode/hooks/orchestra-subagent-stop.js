@@ -94,7 +94,12 @@ async function spawnSubagent(agentId, payload, worktreePath, host) {
     const fallbackCall = host === "cursor"
       ? { tool: "Task", subagent_type: agentId, prompt: JSON.stringify(payload) }
       : host === "opencode"
-        ? { tool: "task", agent: agentId, prompt: JSON.stringify(payload) }
+        ? {
+            tool: "subagent",
+            agent: agentId,
+            description: payload?.goal ? String(payload.goal).slice(0, 60) : `${agentId} phase`,
+            prompt: JSON.stringify(payload),
+          }
         : { jsonrpc: "2.0", method: "tools/call", params: { name: "spawn_subagent", arguments: { agent: agentId, payload: JSON.stringify(payload) } }, id: `spawn-${Date.now()}` };
     process.stdout.write(JSON.stringify(fallbackCall) + "\n");
     return { success: false, result: null, error: e.message, artifacts: [] };

@@ -1,7 +1,9 @@
 "use strict";
 
 // Qoder CLI sends agent_type/agent_id on SubagentStop; Cursor sends
-// subagent_type. Normalize at the IO boundary so hooks stay host-agnostic.
+// subagent_type. Cursor tool/lifecycle events carry conversation_id while
+// sessionStart/sessionEnd carry session_id — accept both at the IO boundary
+// so hooks stay host-agnostic.
 function normalizeHookInput(input) {
   if (input && typeof input === "object") {
     if (!input.subagent_type && !input.subagentType) {
@@ -14,7 +16,11 @@ function normalizeHookInput(input) {
       !process.env.CLAUDE_SESSION_ID &&
       !process.env.CURSOR_TRACE_ID
     ) {
-      const sid = input.session_id || input.sessionId;
+      const sid =
+        input.session_id ||
+        input.sessionId ||
+        input.conversation_id ||
+        input.conversationId;
       if (sid) process.env.PCORE_SESSION_ID = String(sid);
     }
   }

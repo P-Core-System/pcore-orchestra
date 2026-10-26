@@ -461,7 +461,7 @@ module.exports = { myHook };
 
 // 2. Register in bundle/hooks.json (install.sh copies it to each host)
 {
-  "version": 2,
+  "version": 1,
   "hooks": {
     "subagentStop": [
       { "command": "node ./hooks/orchestra-myhook.js", "matcher": "orchestra-verifier" }
