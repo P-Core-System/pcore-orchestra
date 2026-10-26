@@ -247,7 +247,7 @@ The context detector now checks for `project.yaml` alongside six-file context:
 
 ### Project Type Taxonomy
 
-The system supports 12 project types: web, mobile, api, ai, devops, library, saas, internal-tool, oss, cli, game, data.
+The system supports 13 project types: web, mobile, api, ai, devops, library, saas, internal-tool, oss, cli, game, data, ai-agent. See `templates/architectures/29-ai-agent-sdlc.md` for the `ai-agent` SDLC template (prompt lifecycle, guardrails, evaluation, multi-agent coordination).
 
 ### Bootstrap
 
