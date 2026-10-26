@@ -30,9 +30,9 @@ Update `context/progress-tracker.md` after each meaningful implementation change
 
 | Path | Role |
 |------|------|
-| `bundle/` | Source payload installed to `~/.cursor/` and `~/.config/opencode/` |
-| `bundle/hooks/` | Hook source of truth — installed to `~/.cursor/` and `~/.qoder/` (session, prompt, subagent, stop, quality gate) |
-| `bundle/agents/` | Cursor orchestra subagent definitions |
+| `bundle/` | Source payload installed to `~/.cursor/`, `~/.config/opencode/`, and `~/.qoder/` |
+| `bundle/hooks/` | Hook source of truth — installed to `~/.cursor/` and `~/.qoder/` (8 commands + `lib/`) |
+| `bundle/agents/` | P-Core Orchestra agent definitions — source of truth, mirrored to OpenCode |
 | `bundle/skills/` | Cursor skills — orchestra-loop + intake/verify + UI (ui-ux-pro-max, brand, design-system, ui-styling, web-design-master) + Cloudflare skills |
 | `bundle/skills-cursor/` | Cursor built-in skills (babysit, canvas, loop, review, shell, sdk, etc.) |
 | `bundle/rules/orchestra-loop.mdc` | Cursor always-on rule |

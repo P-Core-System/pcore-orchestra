@@ -15,7 +15,7 @@
 
 # 14. AI Context Export
 
-This section is designed to be read directly by AI agents (Cursor, Claude, OpenCode) to quickly understand the P-Core Orchestra codebase. Every lib module, hook, agent, constant, and state schema is covered in machine-readable form.
+This section is designed to be read directly by AI agents (Cursor, OpenCode CLI, Qoder CLI) to quickly understand the P-Core Orchestra codebase. Every lib module, hook, agent, constant, and state schema is covered in machine-readable form.
 
 ## Quick-Reference Index
 
@@ -35,10 +35,10 @@ This section is designed to be read directly by AI agents (Cursor, Claude, OpenC
 ```
 ./
 ├── bundle/
-│   ├── hooks/            # 11 hook entry points + lib/ (43 modules) + domain/ (event log, tickets)
+│   ├── hooks/            # 11 hook entry points + lib/ (43 flat modules + 8-module domain/)
 │   ├── opencode/         # OpenCode mirror: hooks/ (byte-identical lib), agents/, skills/, config
 │   ├── qoder/agents/     # Qoder agent markdown, generated from the Cursor agents
-│   ├── agents/           # 160 agent definitions in 00-business/ 00-domain/ 00-policy/ 00-tech/ 00-workflow/
+│   ├── agents/           # 160 agent definitions + references/ in 38 category dirs
 │   ├── skills/           # Vendored + orchestra skills (Cursor)
 │   ├── skills-cursor/    # Cursor built-in skill mirrors
 │   ├── rules/            # Always-on .mdc rules
@@ -48,7 +48,7 @@ This section is designed to be read directly by AI agents (Cursor, Claude, OpenC
 ├── templates/
 │   ├── context/          # Blank six-file context templates
 │   └── AGENTS.md         # Entry-point template
-├── scripts/              # 46 JS + 17 shell: test suites, automation, service managers
+├── scripts/              # 52 JS (47 top-level + 5 lib/) + 17 shell: suites, automation, service managers
 ├── server/               # Studio API (Node)
 ├── studio/               # Read-only React/Vite dashboard
 ├── docs/                 # 01–04 core docs, topic guides, dated audit/ + plans/
@@ -59,7 +59,7 @@ This section is designed to be read directly by AI agents (Cursor, Claude, OpenC
 
 ## Lib Modules (`bundle/hooks/lib/`)
 
-43 modules, all `"use strict"` CommonJS. The living module list and invariants are
+43 flat modules (plus the 8-module `domain/` package), all `"use strict"` CommonJS. The living module list and invariants are
 in [`context/architecture.md`](../context/architecture.md); the table below is the
 orientation map.
 
@@ -374,7 +374,7 @@ node ~/.cursor/hooks/orchestra-health.js
 
 # Expected output:
 # ✅ orchestra-health
-# All 6 checks passed.
+# All checks passed.
 ```
 
 ### Project Structure Tour
@@ -382,7 +382,7 @@ node ~/.cursor/hooks/orchestra-health.js
 ```
 pcore-orchestra/
 ├── bundle/                        # 📦 Source payload (this gets installed)
-│   ├── hooks/                     # 11 hook entry points (Cursor engine)
+│   ├── hooks/                     # 11 hook entry points (Cursor + Qoder engine)
 │   │   ├── orchestra-prompt.js    # 🔥 Entry: classifies prompts, injects agents
 │   │   ├── orchestra-subagent-stop.js  # Phase advance, gates, evidence, memory flush
 │   │   ├── orchestra-session-start.js  # Session context + memory recall
@@ -391,7 +391,7 @@ pcore-orchestra/
 │   │   ├── orchestra-enable.js    # Enable/disable/status/memory CLI
 │   │   ├── orchestra-quality-gate.js   # Production checklist hook
 │   │   └── ...                    # lifecycle, heartbeat, memory, lib
-│   ├── hooks/lib/                 # 🧠 43 modules (the engine)
+│   ├── hooks/lib/                 # 🧠 43 flat modules + 8-module domain/ (the engine)
 │   │   ├── state-manager.js       # Root + per-session state
 │   │   ├── memory-manager.js      # Short/long-term memory
 │   │   ├── memory-index.js        # JSON inverted index (recall)
@@ -400,8 +400,8 @@ pcore-orchestra/
 │   │   ├── prompt-classifier.js   # Regex prompt classification
 │   │   ├── evidence-runner.js     # Build/test/lint/security gates
 │   │   ├── phase-commit-gate.js   # Commit-before-next-phase gate
-│   │   └── ...                    # 35 more (see Lib Modules above)
-│   ├── agents/                    # 🎭 160 agent definitions (5 categories)
+│   │   └── ...                    # 35 more flat modules + domain/ (see Lib Modules above)
+│   ├── agents/                    # 🎭 160 agent definitions + references/ (38 category dirs)
 │   ├── qoder/agents/              # Qoder mirrors (generated)
 │   ├── skills/                    # Cursor skills
 │   ├── skills-cursor/             # Cursor built-in skills
@@ -417,7 +417,7 @@ pcore-orchestra/
 ├── context/                       # Six-file project context
 ├── project-bridge/                # 🌉 Per-repo cursor config bridge
 ├── templates/                     # 📋 Context/AGENTS.md templates
-├── scripts/                       # 🔧 46 JS + 17 shell
+├── scripts/                       # 🔧 52 JS + 17 shell
 ├── install.sh                     # 🚀 macOS/Linux installer
 ├── install.ps1                    # 🚀 Windows installer
 └── README.md                      # Project docs
@@ -616,7 +616,7 @@ lives in `project.yaml` and `package.json`.
 | 5 | `docs/01-OVERVIEW-AND-ARCHITECTURE.md` | SOLID, architectural invariants, C4 diagrams (Context, Container, Component), LLM topology, hook lifecycle, event storming |
 | 6 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | All 15 features — ambient auto-start, build/fix, four-phase loop, stall detection, pause/resume, crash recovery, memory, history, six-file context, classification, config-driven, headless agents, dependency-free hook runtime, install/verify, project bootstrap |
 | 7 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | Hook architecture, 8-command hook contract table + 3 non-event entry points, hooks.json config, event-driven flow diagram, hand-coded rules |
-| 8 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | Hook and lib module reference for `bundle/hooks/lib/` (43 modules) |
+| 8 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | Hook and lib module reference for `bundle/hooks/lib/` (43 flat modules + `domain/`) |
 | 9 | `docs/02-FEATURES-HOOKS-COMPONENTS-AGENTS.md` | Core loop agents — planner, implementer, verifier, reviewer — for Cursor, OpenCode, and Qoder |
 | 10 | `docs/03-DATABASE-SECURITY-TESTING-LIMITATIONS.md` | State, memory, history schemas, field groups, lifecycle events, checkpoint schema, migration history, ER diagram, performance |
 | 11 | `docs/03-DATABASE-SECURITY-TESTING-LIMITATIONS.md` | Security model, auth/authz, CSP/CSRF/XSS/SQLi, input validation, rate limiting, secrets, supply chain security, recommendations |

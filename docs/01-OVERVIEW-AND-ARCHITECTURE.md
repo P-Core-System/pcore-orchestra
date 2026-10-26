@@ -193,7 +193,7 @@ pcore-orchestra/
 │   │   ├── orchestra-stop.js           # Phase nudges (stop)
 │   │   └── orchestra-subagent-stop.js  # Phase chaining engine (subagentStop)
 │   │   │
-│   │   ├── lib/               # SHARED LIBRARY (43 modules + domain/ dashboard, mirrors/tickets)
+│   │   ├── lib/               # SHARED LIBRARY (43 flat modules + domain/ model, store, evidence, review queue)
 │   │   │   ├── io.js                    # stdin/stdout helpers (readStdinJson, emit)
 │   │   │   ├── constants.js             # 55 named constants
 │   │   │   ├── state-manager.js         # State CRUD + startOrchestra
