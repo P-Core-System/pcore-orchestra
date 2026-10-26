@@ -2,7 +2,8 @@
 
 ## Supported Versions
 
-Orchestra is a developer tool installed globally on your machine. Security fixes are applied to the `main` branch and released via GitHub releases.
+Orchestra is a developer tool installed globally on your machine. Security fixes are applied to
+`main` and distributed through the repository (no tagged releases yet).
 
 | Version | Supported |
 |---------|-----------|

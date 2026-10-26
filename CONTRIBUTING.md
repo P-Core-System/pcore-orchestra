@@ -19,32 +19,21 @@ npm ci
 
 ### 3. Run the Self-Check Suite
 
-Before submitting any change, run the full self-check suite (the same suites that run in CI):
+Before submitting any change, run the same gates as CI. The canonical, maintained list
+lives in [`context/code-standards.md`](context/code-standards.md); this loop covers every
+suite under `scripts/` without needing the list to be updated when suites are added:
 
 ```bash
-node scripts/gen-agent-registry.js --check
-node scripts/test-mirror-sync.js
-node scripts/test-safe-write.js
-node scripts/test-agent-registry.js
-node scripts/test-handshake-contract.js
-node scripts/test-permission-review.js
-node scripts/test-adaptive-loop.js
-node scripts/test-domain-model.js
-node scripts/test-domain-completion.js
-node scripts/test-domain-store.js
-node scripts/test-domain-evidence.js
-node scripts/test-domain-state-dir.js
-node scripts/test-evidence-runner.js
-node scripts/test-review-queue.js
-node scripts/test-security-scanner.js
-node scripts/test-memory-retrieval.js
-node scripts/test-memory-patterns.js
-node scripts/test-conductor-state.js
+npm ci && npm ci --prefix server   # MCP SDK + Studio server deps
+for f in scripts/test-*.js; do node "$f" || exit 1; done
 bash scripts/test-studio-service.sh
+node scripts/gen-agent-registry.js --check
+node scripts/sync-qoder-agents.js --check
 node scripts/scan-secrets.js --dir . --fail-on=high
 ```
 
-All suites must exit 0.
+Node 24 is required for the Studio UI suite (native `.ts` type stripping); the hook
+runtime itself supports Node 18+ (22.5+ enables SQLite FTS recall). All gates must exit 0.
 
 ### 4. Mirror Rule
 
