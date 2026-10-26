@@ -110,6 +110,19 @@ async function main() {
   const loaded2 = sw.readJsonSafe(target3, { version: 3, sessions: {} });
   check("defaults are cloned (caller mutation does not leak)", loaded2.mutated === undefined && loaded2.version === 3);
 
+  // quarantine is best-effort: an unusable parent must not break the read path
+  const blocker = path.join(tmp, "blocker-file");
+  fs.writeFileSync(blocker, "not a directory");
+  let failOpenErr = null;
+  let failOpenOut = null;
+  try {
+    failOpenOut = sw.readJsonSafe(path.join(blocker, "state.json"), { ok: true });
+  } catch (e) {
+    failOpenErr = e;
+  }
+  check("readJsonSafe fails open when the parent path is not a directory", !failOpenErr && failOpenOut && failOpenOut.ok === true, failOpenErr && failOpenErr.message);
+  check("quarantine returns null instead of throwing", sw.quarantine(path.join(blocker, "state.json")) === null);
+
   // valid JSON round-trip + missing file -> defaults (no quarantine)
   const dir4 = path.join(tmp, "roundtrip");
   fs.mkdirSync(dir4, { recursive: true });

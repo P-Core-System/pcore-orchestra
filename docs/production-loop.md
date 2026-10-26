@@ -29,7 +29,7 @@ User prompt → classify → startOrchestra
 | **Cycle report** | `~/.cursor/hooks/state/cycles/{run_id}.json` | Production audit: gates, tokens, phases, outcome |
 | **Cycle index** | `~/.cursor/hooks/state/cycles/index.json` | Last 100 runs |
 | **State** | `orchestra.json` | Active run, phase, planArtifact pointer |
-| **Memory** | `orchestra-memory.json` + `memory-index.json` | Episodic + inverted index recall |
+| **Memory** | `orchestra-memory.json` + `memory-index.json` + `memory-fts.db` | Episodic memory, inverted-index recall, and an FTS5 mirror fused by reciprocal rank fusion |
 | **Tokens** | `orchestra-tokens.json` | Cost + improvement tips |
 
 ---
@@ -117,7 +117,7 @@ orchestra:
 
 ## Upgrade path (P4+)
 
-- SQLite FTS5 memory (scale >500 goals)
+- ~~SQLite FTS5 memory~~ — done: `memory-fts.js` (`<state>/memory-fts.db`), RRF-fused with the JSON index
 - Hybrid local embeddings on memory-index
 - Per-phase model tier (when Cursor Task API supports)
 - Worktree parallel implementers

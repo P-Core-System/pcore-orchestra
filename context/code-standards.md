@@ -64,6 +64,7 @@ node scripts/test-mcp-lifecycle.js
 node scripts/test-parallel-execution.js
 node scripts/test-sixfile-validation.js
 node scripts/test-memory-retrieval.js
+node scripts/test-memory-hybrid.js
 node scripts/test-handoff-enforcer.js
 node scripts/test-review-queue-producer.js
 node scripts/test-merge-qoder-settings.js

@@ -42,6 +42,7 @@ P-Core Orchestra is a portable, ambient multi-agent workflow for **Cursor**, **O
 - Inject read order into agent context (matches AGENTS.md entry point).
 - Planner/implementer/verifier/reviewer agents mandate context reads when present.
 - Blank templates from JavaScript Mastery Six-File Context Methodology in `templates/context/`.
+- **Hybrid memory recall**: completed goals are indexed twice — a JSON inverted index and a SQLite FTS5 mirror (`node:sqlite`, no native deps) — and fused by reciprocal rank fusion. The FTS side is best-effort: absent `node:sqlite`, an unwritable state dir, or `PCORE_FTS_DISABLE=1` degrades silently to JSON-only.
 
 ### Distribution
 

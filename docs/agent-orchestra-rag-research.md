@@ -49,6 +49,7 @@ Research synthesis for **pcore-orchestra**: agent-driven loops, retrieval/memory
 | Workspace identity sync | ✅ V3.4.0 | workspace-identity.js |
 | Episodic memory (goals, files, errors) | ✅ | orchestra-memory.json |
 | **Semantic recall (BM25-lite)** | ✅ V3.5.0 | semantic-memory.js |
+| **Hybrid recall (JSON index + SQLite FTS5)** | ✅ V3.7.0 | memory-fts.js + memory-index.js, RRF fusion |
 | Six-file externalized context | ✅ | context-detector.js |
 | Enterprise SDLC route | ✅ | SDLC_PHASES + phase picker |
 | Stall detection / heartbeat | ✅ | heartbeat-monitor.js |
@@ -101,6 +102,13 @@ From [Real Python context engineering](https://realpython.com/python-context-eng
 - Injected when `buildMemoryContext(ltm, { query: goal })` on prompt/session start
 - CLI: `orchestra-enable.js memory recall "<query>"`
 
+### V3.7.0 hybrid recall
+
+- `memory-fts.js` — SQLite FTS5 mirror of indexed goals via the built-in `node:sqlite` (no native deps, no install step)
+- `memory-index.js` — writes both stores, prunes both, and fuses results with reciprocal rank fusion (K=60); each hit reports `sources` (`json`, `fts`)
+- Strictly best-effort: missing `node:sqlite`, an unwritable state dir, or `PCORE_FTS_DISABLE=1` falls back to JSON-only without throwing
+- Covered by `scripts/test-memory-hybrid.js`; mirrored byte-identically to `bundle/opencode/hooks/lib/`
+
 ---
 
 ## 5. Orchestra loop improvements
@@ -140,7 +148,7 @@ Orchestration can **reduce** total tokens vs monolithic agent if phases use fres
 | Gap | Why it matters | Suggested approach |
 |-----|----------------|-------------------|
 | **Structured plan artifact** | Planner output lost in chat; implementer re-reads repo | Write `.cursor/orchestra-plan.md` or `context/specs/active-plan.md` on PLAN_READY |
-| **SQLite FTS memory** | Scale beyond 100 goals; true BM25 ranking | `orchestra-memory.db` + migrate from JSON |
+| ~~SQLite FTS memory~~ | ✅ Done V3.7.0 | `memory-fts.js` → `<state>/memory-fts.db` (FTS5 over `node:sqlite`); JSON index stays as the source of truth and the fail-open fallback |
 | **Transcript indexing** | Planner learns from past *approaches*, not just goals | Index agent-transcripts deltas (see agents-memory-updater skill) |
 | **Compaction of phase outputs** | Parent context bloat across 4 phases | Store 200-char summary in `state.memory.phases_completed` only (partial ✅) |
 | **Per-phase model tier** | Cost optimization | Blocked on Cursor Task API; document desired mapping |

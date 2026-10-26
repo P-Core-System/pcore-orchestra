@@ -11,6 +11,7 @@ bundle/hooks/state/orchestra-tokens.json
 bundle/hooks/state/orchestra-history.json
 bundle/hooks/state/orchestra-metrics.json
 bundle/hooks/state/memory-index.json
+bundle/hooks/state/memory-fts.db*
 bundle/hooks/state/domain-*.json
 bundle/hooks/lib/state/
 bundle/opencode/hooks/state/cycles/

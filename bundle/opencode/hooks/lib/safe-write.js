@@ -116,15 +116,16 @@ function writeJson(filePath, data) {
 /**
  * Move a corrupt file aside to `<file>.corrupt-<ts>` — a pure rename, so the
  * original bytes are preserved byte-for-byte for forensics (never rewritten,
- * never appended to). Returns the sibling path, or null when the file is gone.
+ * never appended to). Returns the sibling path, or null when the file is gone
+ * or could not be moved (unusable parent, permissions): quarantining is
+ * best-effort and must never break the read path's fail-open contract.
  */
 function quarantine(filePath) {
   const sibling = `${filePath}${QUARANTINE_MARKER}${Date.now()}`;
   try {
     fs.renameSync(filePath, sibling);
-  } catch (err) {
-    if (err && err.code === "ENOENT") return null;
-    throw err;
+  } catch {
+    return null;
   }
   return sibling;
 }
