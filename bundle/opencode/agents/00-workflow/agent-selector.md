@@ -48,9 +48,25 @@ Default: composer-2.5 (standard, not Fast) on Cursor; dynamic free primary (inhe
 | Deployment | devops-engineer | release-manager, sre | Deploy + monitor |
 | Documentation | technical-writer | content-strategist, developer-advocate | Write + publish |
 
+### Capability filter (registry v2)
+
+`bundle/agent-registry.json → agentDetails[].capabilities` declares what each agent
+can actually do on this platform:
+
+- `tools` — the explicit tool allowlist (`inherit` = conductors only).
+- `readonly` — advisory agents; they CANNOT produce file artifacts.
+- `permissionMode` — `acceptEdits` on writable agents: their Write/Edit auto-approve,
+  so they can run unattended in headless loops.
+
+Selection rule: if the deliverable is a **file artifact** (code, tests, config, IaC,
+docs), pick only agents with `permissionMode: acceptEdits`; if it is a **judgment**
+(review, audit, plan, report), pick `readonly` agents. Never assign an artifact task
+to a readonly agent — it will return advice instead of the deliverable.
+
 ### Exclusion Rules
 - Don't spawn redundant agents (e.g., two backend-engineers)
-- Respect agent permissions (edit: deny for most)
+- Respect agent permissions — check `capabilities.readonly`/`permissionMode` in the
+  registry; artifact tasks must never go to readonly agents
 - Max 5 parallel agents per phase
 - Budget-aware: prefer free-model agents when possible
 
