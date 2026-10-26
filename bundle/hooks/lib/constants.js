@@ -116,6 +116,7 @@ const QUALITY_GATES = [
   "reviewer-approval", "docs-updated", "version-updated",
   "changelog-updated", "roadmap-updated", "memory-updated",
   "daily-journal-updated", "release-notes-updated", "tech-debt-recorded",
+  "production-checklist",
 ];
 
 // --- Phase outcome contract ---

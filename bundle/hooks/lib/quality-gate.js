@@ -17,6 +17,7 @@ const GATE_LABELS = {
   "daily-journal-updated": "Daily journal updated",
   "release-notes-updated": "Release notes updated",
   "tech-debt-recorded": "Technical debt recorded",
+  "production-checklist": "Production checklist",
 };
 
 function initializeGates(state) {

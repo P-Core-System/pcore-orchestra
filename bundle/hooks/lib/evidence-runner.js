@@ -14,6 +14,7 @@ const CORE_REQUIRED_GATES = [
   "reviewer-approval",
   "docs-updated",
   "memory-updated",
+  "production-checklist",
 ];
 
 const ENTERPRISE_SKIP_DEFAULT = [

@@ -101,6 +101,48 @@ function gateFailed(state, gateId) {
   return (state.qualityGates?.failed || []).some((g) => g.id === gateId);
 }
 
+/**
+ * Evaluate the hard production checklist gate. All items must pass before
+ * ORCHESTRA_COMPLETE can advance. Failures are recorded as a failed
+ * `production-checklist` quality gate (blocking per invariant 24).
+ * Fail-open: any exception yields a skipped gate, never a false pass.
+ */
+function evaluateProductionChecklist(state, summaryBlob) {
+  const results = [];
+  let allPass = true;
+
+  // 1. All required quality gates green
+  const requiredGateIds = ["build", "tests", "lint", "security", "reviewer-approval", "docs-updated", "memory-updated"];
+  const failedRequired = (state.qualityGates?.failed || []).filter((g) => requiredGateIds.includes(g.id));
+  if (failedRequired.length > 0) {
+    allPass = false;
+    results.push("- Required gate(s) red: " + failedRequired.map((g) => g.id).join(", "));
+  }
+
+  // 2. Security scan clean (no critical/high)
+  const securityFailed = (state.qualityGates?.failed || []).some((g) => g.id === "security");
+  if (securityFailed) {
+    allPass = false;
+    results.push("- Security scan: critical/high findings present");
+  }
+
+  // 3. Progress tracker mentioned or updated
+  const mentionedDoc = progressTrackerMention(summaryBlob, state.memory);
+  if (!mentionedDoc && !hasGateVerdict(state, "docs-updated")) {
+    allPass = false;
+    results.push("- progress-tracker.md not referenced or updated in this run");
+  }
+
+  // 4. Six-file context present (not missing)
+  const missingCtx = state.qualityGates?.missingContext || [];
+  if (missingCtx.length > 0) {
+    allPass = false;
+    results.push("- Missing context files: " + missingCtx.join(", "));
+  }
+
+  return { pass: allPass, items: results };
+}
+
 async function main() {
   const input = await readStdinJson();
   const state = loadState();
@@ -171,6 +213,17 @@ async function main() {
       );
     } else if (!hasGateVerdict(state, "docs-updated")) {
       skipGate(state, "docs-updated", "no doc evidence produced — verify manually");
+    }
+
+    // Hard production checklist gate — runs only when ORCHESTRA_COMPLETE is emitted
+    const isComplete = /ORCHESTRA_COMPLETE\b/i.test(summaryBlob);
+    if (isComplete) {
+      const checklist = evaluateProductionChecklist(state, summaryBlob);
+      if (checklist.pass) {
+        passGate(state, "production-checklist", "All production-readiness items green");
+      } else {
+        failGate(state, "production-checklist", "Production checklist not satisfied:\n" + checklist.items.join("\n"));
+      }
     }
 
     saveState(state);
