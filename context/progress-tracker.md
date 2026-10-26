@@ -419,3 +419,7 @@ eachableLight at merge-autonomy-config.js:236. Files: docs/audit/agent-architect
 - Replaced dead relative references inside vendored skills with upstream docs URLs: Cloudflare Access/WARP in both tunnel READMEs, Cloudflare Durable Objects WebSockets, n8n expression syntax.
 - Rewrote the macOS canvas example path from `/Users/<user>` to `$HOME` per the repo path-hygiene invariant.
 - Link scan over 1,478 tracked markdown files: only the three intentional `templates/architectures/docs/adr/*` placeholders remain (documented as not-bugs in the issue). The `create-skill` reference links are inside fenced template examples, not rendered links.
+
+## Session Work Log (2026-10-26)
+
+- **installer fix (ensure-opencode-latest.ps1)**: now targets `@opencode/cli` (OpenCode v2) instead of the legacy `opencode-ai` v1 package, with a no-downgrade guard (refuses major step-downs) and a crash-proof version probe (try/catch so a broken shim reads as absent instead of throwing a terminating NativeCommandError under EAP=Stop) - mirrors the already-fixed bash twin. Root cause: on a v2 machine the old script "upgraded" @opencode/cli 2.1.4 -> opencode-ai 1.19.4, clobbering the bun `opencode` bin and breaking the CLI ("could not create process"). Local main also re-synced to origin/main b1540f6 after the remote history rewrite (backup/local-main-20261026 keeps the 7 line-unique commits).
