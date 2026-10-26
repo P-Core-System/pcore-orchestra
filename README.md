@@ -1,13 +1,16 @@
 # P-Core Orchestra
 
-> Ambient multi-agent orchestration for **Cursor**, **OpenCode CLI**, and **Qoder CLI**
-> plan → implement → verify → review — automatically on build/fix/refactor prompts
+> Ambient multi-agent orchestration for **Cursor**, **OpenCode CLI**, **Qoder CLI**,
+> **Claude Code**, and **Codex CLI** — plan → implement → verify → review,
+> automatically on build/fix/refactor prompts
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js 18+](https://img.shields.io/badge/Node.js-18+-339933.svg)](https://nodejs.org/)
 [![Cursor IDE](https://img.shields.io/badge/Cursor-IDE-000000.svg)](https://cursor.com)
 [![OpenCode](https://img.shields.io/badge/OpenCode-CLI-FF6B35.svg)](https://opencode.ai)
 [![Qoder CLI](https://img.shields.io/badge/Qoder-CLI-6C5CE7.svg)](https://qoder.com)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-CLI-D97757.svg)](https://claude.com/claude-code)
+[![Codex CLI](https://img.shields.io/badge/Codex-CLI-10A37F.svg)](https://developers.openai.com/codex/)
 
 **Repository:** [github.com/P-Core-System/pcore-orchestra](https://github.com/P-Core-System/pcore-orchestra)
 **Docs map:** [docs/index.md](docs/index.md)
@@ -19,10 +22,12 @@
 ## Quick Start (2 minutes)
 
 ```bash
-# 1. Clone and install (hooks + skills + CLI/permissions/OpenCode autonomy + OpenCode CLI upgrade)
+# 1. Clone and install (all five hosts; hooks + skills + agents + settings merge)
 git clone https://github.com/P-Core-System/pcore-orchestra.git
 cd pcore-orchestra
 bash install.sh
+# One host only: bash install.sh --cursor | --opencode | --qoder | --claude | --codex
+# Preview changes: bash install.sh --dry-run
 # Skip CLI upgrade: bash install.sh --skip-opencode-upgrade
 # Pre-release OpenCode: OPENCODE_CHANNEL=beta bash install.sh
 # Windows: powershell -ExecutionPolicy Bypass -File install.ps1
@@ -30,6 +35,7 @@ bash install.sh
 # 2. Restart Cursor → Settings → Agents → Approvals → Auto-review
 #    OpenCode: restart desktop app + opencode --auto
 #    Qoder: restart sessions + qoder --agent orchestra
+#    Claude Code / Codex: restart the session (agents + hooks are discovered at startup)
 
 # 3. Use it (no special commands)
 fix the login bug
@@ -49,6 +55,8 @@ Orchestra auto-runs: **planner → implementer → verifier → reviewer**.
 | Cursor | Latest | IDE Agent mode or Cursor CLI |
 | OpenCode CLI | **V2 required** (`@opencode/cli`, latest) | Optional; `install.sh` upgrades automatically and migrates V1 `opencode.json` to V2 — V1 (`opencode-ai` 1.x) cannot run orchestra |
 | Qoder CLI | Latest | Optional; installs to `~/.qoder` (agents, skills, hooks in settings.json) |
+| Claude Code | Latest | Optional; installs to `~/.claude` (agents, skills, hooks in settings.json) |
+| Codex CLI | Latest | Optional; installs 160 TOML agents to `~/.codex/agents` (hooks stay unwired) |
 | Git | 2.x | Version control |
 | Python 3 | Optional | Only for `ui-ux-pro-max` / design-system `search.py` scripts — not required for orchestra hooks |
 
@@ -100,7 +108,8 @@ Orchestra auto-detects `project.yaml` in any workspace and injects its identity 
 | **8 Hook Commands** | Session, prompt, subagent-stop, lifecycle, memory, quality-gate, stop, heartbeat |
 | **Six-File Context** | Stable grounding across sessions (JavaScript Mastery methodology) |
 | **Free Model Support** | OpenCode Zen free models + multi-key rotation + weekly dynamic refresh (`--schedule`) |
-| **Works With** | Cursor (IDE + CLI), OpenCode CLI, Qoder CLI, any Node.js project; native spawn bridge (no installer yet) for Claude Code (`Agent` tool) and Codex CLI (`spawn_agent`) — see `docs/orchestra-cross-platform.md` |
+| **Works With** | Cursor (IDE + CLI), OpenCode CLI, Qoder CLI, Claude Code, Codex CLI, any Node.js project; all five hosts have installer support (`--cursor` / `--opencode` / `--qoder` / `--claude` / `--codex`) — see `docs/orchestra-cross-platform.md` |
+| **Install Skill** | `orchestra-install` — agents can install, verify, repair, or upgrade orchestra on any machine |
 
 ---
 
@@ -162,6 +171,25 @@ User: "fix the login bug"
 ├── ORCHESTRA.md              # entry doc
 └── settings.json             # hooks merged under SessionStart/UserPromptSubmit/SubagentStop/Stop
 ```
+
+### Claude Code
+```
+~/.claude/
+├── hooks/                    # 8 hook commands + lib/ (SubagentStop emits decision:block + reason)
+├── agents/                   # 160 flat markdown agents (conductor + phases + specialists)
+├── skills/orchestra-loop/    # orchestration skill
+├── ORCHESTRA.md              # entry doc
+└── settings.json             # hooks merged under SessionStart/UserPromptSubmit/SubagentStop/Stop
+```
+
+### Codex CLI
+```
+~/.codex/
+├── agents/                   # 160 flat TOML agents (name, description, developer_instructions)
+└── ORCHESTRA.md              # entry doc
+~/.agents/skills/             # shared Agent Skills links (orchestra-loop, orchestra-install, UI, Cloudflare)
+```
+Codex hooks stay unwired because `features.hooks` is still gated; the conductor drives phases with completion markers.
 
 ### Per-project (with context/)
 ```
@@ -278,7 +306,7 @@ node scripts/scan-secrets.js --dir . --fail-on=high   # blocking secret scan (CI
 ```
 
 The list above is the core subset; `node scripts/test-e2e-suite.js` runs every
-`scripts/test-*.js` suite in isolation with a PASS/FAIL summary. CI runs 38 Node suites
+`scripts/test-*.js` suite in isolation with a PASS/FAIL summary. CI runs 41 Node suites
 plus the bash service suite on every PR; the capability suite and the e2e runner are
 local gates. See `CONTRIBUTING.md` §3 for the full command set.
 

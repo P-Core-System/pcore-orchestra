@@ -69,6 +69,7 @@ Agent(subagent_type="orchestra-planner", description="plan login fix", prompt="G
 - Tool name: **Agent** (v2.1.63 renamed `Task` → `Agent`; `Task` remains an accepted alias)
 - Parameter: **subagent_type** = same four names; agent definitions are `.claude/agents/*.md` (project) or `~/.claude/agents/*.md` with `name` + `description` frontmatter — the same markdown our `bundle/agents/` tree uses
 - Hooks live in `.claude/settings.json` / `~/.claude/settings.json` under PascalCase events (`PreToolUse`, `PostToolUse`, `SubagentStop`, `Stop`, `SessionStart`, `SessionEnd`, …) — same nested `{matcher, hooks:[{type,command}]}` schema as Qoder; hook stdin carries `agent_type` inside subagents, which `lib/io.js` normalizes
+- Installer: `bash install.sh --claude` writes 160 flat agents to `~/.claude/agents` (`scripts/sync-claude-agents.js`), copies hooks + skills, and merges the four events into `~/.claude/settings.json` (`scripts/merge-claude-settings.js`, backup + idempotent). Writable agents carry `permissionMode: acceptEdits`; readonly agents carry `disallowedTools: Write, Edit, NotebookEdit`
 - `SubagentStop` hook JSON with `decision:"block"` + `reason` **keeps the subagent running and delivers the reason as its next instruction** — the natural verify→implement channel
 - MCP: consumes `.mcp.json` / `claude mcp add` (stdio + HTTP; SSE deprecated) and can itself serve `claude mcp serve`
 - Headless loops: `claude -p --output-format stream-json --include-hook-events`, `--agents '{…}'`, `--max-turns`, `--allowedTools`
@@ -80,9 +81,9 @@ spawn_agent(agent_type="orchestra-planner", message="Goal: …\nHandoff: …")
 ```
 
 - Tool name: **spawn_agent** (`[features] multi_agent` is stable and default-on; also `send_input` / `resume_agent` / `wait_agent` / `close_agent`; `/subagents` lists threads)
-- Parameter: **agent_type** = name of a built-in (`default`, `worker`, `explorer`) or custom agent; custom agents are `.codex/agents/<name>.toml` with `name`, `description`, `developer_instructions` (TOML, not markdown frontmatter — no auto-installer yet)
+- Parameter: **agent_type** = name of a built-in (`default`, `worker`, `explorer`) or custom agent; custom agents are `.codex/agents/<name>.toml` with `name`, `description`, `developer_instructions` (TOML, not markdown frontmatter) — `bash install.sh --codex` generates all 160 via `scripts/sync-codex-agents.js`
 - Subagents inherit the parent sandbox/approval policy: `sandbox_mode = "workspace-write"`, `approval_policy = "on-request"` (or `"never"` for headless `codex exec --sandbox workspace-write --ask-for-approval never --json`)
-- Hooks exist (`~/.codex/hooks.json` / `.codex/hooks.json`, gated by `features.hooks`, events include `SubagentStart`/`SubagentStop`) but `install.sh` does not wire Codex yet — the conductor drives phases with completion markers
+- Hooks exist (`~/.codex/hooks.json` / `.codex/hooks.json`, gated by `features.hooks`, events include `SubagentStart`/`SubagentStop`) but the installer intentionally leaves them unwired — the conductor drives phases with completion markers
 - AGENTS.md is read natively (global `~/.codex/AGENTS.md` → repo root-down chain, 32 KiB cap); MCP is client-only: `[mcp_servers.name] command=…` or `url=…` + `bearer_token_env_var` in `config.toml`
 
 ## Phase flow (shared)
@@ -101,13 +102,13 @@ On `VERIFY_FAIL` / `FIX_REQUIRED`: implementer → verifier again (max 3 loops).
 | Capability | Cursor | OpenCode | Qoder CLI | Claude Code | Codex CLI |
 |------------|--------|----------|-----------|-------------|-----------|
 | Spawn subagent | Task + subagent_type | **subagent** + agent name + description | Agent + subagent_type | Agent (`Task` alias) + subagent_type | **spawn_agent** + agent_type + message |
-| Conductor | Optional `~/.cursor/agents/orchestra.md` | Required `~/.config/opencode/agents/orchestra.md` | Optional `~/.qoder/agents/orchestra.md` | Optional `.claude/agents/orchestra.md` | AGENTS.md instructions (no installer yet) |
+| Conductor | Optional `~/.cursor/agents/orchestra.md` | Required `~/.config/opencode/agents/orchestra.md` | Optional `~/.qoder/agents/orchestra.md` | Optional `~/.claude/agents/orchestra.md` | `AGENTS.md` + 160 TOML agents (`~/.codex/agents/`) |
 | Auto phase chain | `subagentStop` hooks | Conductor subagent loop | `SubagentStop` hooks (settings.json) | `SubagentStop` hooks (block+reason resumes the agent) | Not wired (hooks gated by `features.hooks`) |
 | Web / docs | Settings + permissions.json | `websearch` / `webfetch` in agent permission | WebSearch / WebFetch tools (agent `tools:` frontmatter) | WebFetch / WebSearch tools | `web_search` tool + `codex mcp` |
 | Skills | `~/.cursor/skills/orchestra-loop/` | `~/.config/opencode/skills/orchestra-loop/` | `~/.qoder/skills/orchestra-loop/` | `~/.claude/skills/<name>/SKILL.md` | `.agents/skills/<name>/SKILL.md` |
 | MCP | Cursor MCP | `opencode.json` mcp (disable remote if startup hangs) | `settings.json` mcpServers or `.mcp.json` | `.mcp.json` + `claude mcp add` (also `claude mcp serve`) | `config.toml` `[mcp_servers.x]` stdio + `url=` HTTP |
 | Hooks config | `~/.cursor/hooks.json` (`version: 1`) | none (conductor-driven) | `~/.qoder/settings.json` `hooks` (PascalCase events) | `.claude/settings.json` / `~/.claude/settings.json` (PascalCase events) | `~/.codex/hooks.json` / `.codex/hooks.json` (`features.hooks`) |
-| Agent frontmatter | Cursor format | `permission:` V1 objects, `hidden:` | Qoder format (`disallowedTools`, `maxTurns`, `permissionMode`, `effort`) via `scripts/sync-qoder-agents.js` | md frontmatter (`name`, `description`, `tools`, `model`) | TOML agent files (`name`, `description`, `developer_instructions`) |
+| Agent frontmatter | Cursor format | `permission:` V1 objects, `hidden:` | Qoder format (`disallowedTools`, `maxTurns`, `permissionMode`, `effort`) via `scripts/sync-qoder-agents.js` | md frontmatter (`name`, `description`, `tools`, `permissionMode` / `disallowedTools`) via `scripts/sync-claude-agents.js` | TOML (`name`, `description`, `developer_instructions`) via `scripts/sync-codex-agents.js` |
 
 ### OpenCode permission fix scope (RC1–RC5)
 

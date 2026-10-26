@@ -550,7 +550,7 @@ node bundle/hooks/orchestra-health.js
 | PowerShell — `install.ps1` + `scripts/*.ps1` | ~1,100 |
 | Markdown — README + `context/` + `docs/` (incl. dated audit/plans) | ~13,500 |
 
-**Tests:** 41 `scripts/test-*.js` suites plus `scripts/test-studio-service.sh` (21 checks). CI wires 39 Node suites + the bash suite alongside the agent-registry, secret-scan, and Qoder-drift gates; `test-agent-capabilities.js` (registry v2 / tool allowlists / skill metadata, with its installed-tree check skipped on a clean runner) and the `test-e2e-suite.js` fan-out runner are local gates.
+**Tests:** 43 `scripts/test-*.js` suites plus `scripts/test-studio-service.sh` (21 checks). CI wires 41 Node suites + the bash suite alongside the agent-registry, secret-scan, and Qoder/Claude/Codex-drift gates; `test-agent-capabilities.js` (registry v2 / tool allowlists / skill metadata, with its installed-tree check skipped on a clean runner) and the `test-e2e-suite.js` fan-out runner are local gates.
 
 ## Largest `bundle/hooks/lib` modules
 

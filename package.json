@@ -1,7 +1,7 @@
 {
   "name": "pcore-orchestra",
   "version": "3.7.0",
-  "description": "Multi-agent orchestra for Cursor, OpenCode CLI, and Qoder CLI",
+  "description": "Multi-agent orchestra for Cursor, OpenCode CLI, Qoder CLI, Claude Code, and Codex CLI",
   "main": "bundle/hooks/orchestra-prompt.js",
   "scripts": {
     "test": "node scripts/test-adaptive-loop.js",
@@ -9,12 +9,15 @@
     "test:e2e": "node scripts/test-e2e-suite.js",
     "test:all": "node scripts/test-e2e-suite.js",
     "agents:enrich": "node scripts/enrich-agent-capabilities.js",
-    "agents:sync": "node scripts/sync-qoder-agents.js && node scripts/gen-agent-registry.js"
+    "agents:sync": "node scripts/sync-qoder-agents.js && node scripts/sync-claude-agents.js && node scripts/sync-codex-agents.js && node scripts/gen-agent-registry.js"
   },
   "keywords": [
     "orchestra",
     "cursor",
     "opencode",
+    "qoder",
+    "claude-code",
+    "codex",
     "agents",
     "mcp"
   ],

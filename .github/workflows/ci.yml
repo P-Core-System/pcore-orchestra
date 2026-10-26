@@ -104,3 +104,12 @@ jobs:
           node scripts/test-merge-qoder-settings.js
           node scripts/test-qoder-sync.js
           node scripts/sync-qoder-agents.js --check
+
+      # Claude Code + Codex hosts: agent conversion drift, settings merge, block contract
+      - name: Claude Code + Codex suites (agent sync, settings merge, block contract)
+        run: |
+          set -e
+          node scripts/test-claude-sync.js
+          node scripts/test-codex-sync.js
+          node scripts/sync-claude-agents.js --check
+          node scripts/sync-codex-agents.js --check

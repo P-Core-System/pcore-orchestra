@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
-# Install Orchestra bundle to ~/.cursor, ~/.config/opencode, AND ~/.qoder (global, all projects)
+# Install Orchestra bundle to ~/.cursor, ~/.config/opencode, ~/.qoder,
+# ~/.claude, AND ~/.codex (global, all projects)
 # Usage:
-#   bash install.sh              # install Cursor + OpenCode + Qoder (default)
+#   bash install.sh              # install Cursor + OpenCode + Qoder + Claude Code + Codex
 #   bash install.sh --all        # same as default
 #   bash install.sh --cursor     # Cursor only
 #   bash install.sh --opencode   # OpenCode only
 #   bash install.sh --qoder      # Qoder CLI only
+#   bash install.sh --claude     # Claude Code only
+#   bash install.sh --codex      # Codex CLI only
 #   bash install.sh --project    # also install project bridge in current repo
 #   bash install.sh --all --project
 #   bash install.sh --skip-opencode-upgrade   # skip npm/bun OpenCode CLI upgrade
@@ -18,11 +21,15 @@ BUNDLE="$ROOT/bundle"
 CURSOR="${CURSOR_HOME:-$HOME/.cursor}"
 OPENCODE="${OPENCODE_CONFIG_DIR:-$HOME/.config/opencode}"
 QODER="${QODER_CONFIG_DIR:-$HOME/.qoder}"
+CLAUDE="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+CODEX="${CODEX_HOME:-$HOME/.codex}"
 AGENTS_SKILLS="${AGENTS_SKILLS:-$HOME/.agents/skills}"
 
 INSTALL_CURSOR=0
 INSTALL_OPENCODE=0
 INSTALL_QODER=0
+INSTALL_CLAUDE=0
+INSTALL_CODEX=0
 INSTALL_PROJECT=0
 SKIP_OPENCODE_UPGRADE=0
 INSTALL_MCP=0
@@ -31,10 +38,12 @@ DRY_RUN=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --all)        INSTALL_CURSOR=1; INSTALL_OPENCODE=1; INSTALL_QODER=1; shift ;;
+    --all)        INSTALL_CURSOR=1; INSTALL_OPENCODE=1; INSTALL_QODER=1; INSTALL_CLAUDE=1; INSTALL_CODEX=1; shift ;;
     --cursor)     INSTALL_CURSOR=1; shift ;;
     --opencode)   INSTALL_OPENCODE=1; shift ;;
     --qoder)      INSTALL_QODER=1; shift ;;
+    --claude)     INSTALL_CLAUDE=1; shift ;;
+    --codex)      INSTALL_CODEX=1; shift ;;
     --project)    INSTALL_PROJECT=1; shift ;;
     --mcp)        INSTALL_MCP=1; shift ;;
     --studio)     INSTALL_STUDIO=1; shift ;;
@@ -42,13 +51,15 @@ while [[ $# -gt 0 ]]; do
     --skip-opencode-upgrade) SKIP_OPENCODE_UPGRADE=1; shift ;;
     -h|--help)
       cat <<'HELP'
-Usage: bash install.sh [--all|--cursor|--opencode|--qoder] [--project] [--mcp] [--studio] [--dry-run] [--skip-opencode-upgrade]
+Usage: bash install.sh [--all|--cursor|--opencode|--qoder|--claude|--codex] [--project] [--mcp] [--studio] [--dry-run] [--skip-opencode-upgrade]
 
 Options:
-  --all        Install for Cursor, OpenCode, and Qoder CLI (default)
+  --all        Install for Cursor, OpenCode, Qoder CLI, Claude Code, and Codex CLI (default)
   --cursor     Install for Cursor IDE only
   --opencode   Install for OpenCode CLI only
   --qoder      Install for Qoder CLI only
+  --claude     Install for Claude Code only
+  --codex      Install for Codex CLI only
   --project    Also install project bridge (.cursor/) in current repo
   --mcp        Install MCP server dependencies (npm install @modelcontextprotocol/sdk)
   --studio     Install Studio dashboard (build + launcher)
@@ -61,6 +72,12 @@ OpenCode: upgrades CLI via scripts/ensure-opencode-latest.sh unless skipped.
           schedule (systemd user timer; cron fallback if systemd missing).
           Restart the OpenCode desktop app after install (sidecar sync).
 
+Claude Code: installs agents + hooks + skills and merges hooks into
+             ~/.claude/settings.json (CLAUDE_CONFIG_DIR overrides).
+Codex CLI:   installs 160 TOML agents into ~/.codex/agents (CODEX_HOME
+             overrides) and shares skills under ~/.agents/skills. Codex hooks
+             stay unwired because features.hooks is still gated.
+
 No flags = --all. Restart IDE/editor after install.
 HELP
       exit 0 ;;
@@ -69,10 +86,13 @@ HELP
 done
 
 # Default: all
-if [[ "$INSTALL_CURSOR" -eq 0 && "$INSTALL_OPENCODE" -eq 0 && "$INSTALL_QODER" -eq 0 ]]; then
+if [[ "$INSTALL_CURSOR" -eq 0 && "$INSTALL_OPENCODE" -eq 0 && "$INSTALL_QODER" -eq 0 \
+      && "$INSTALL_CLAUDE" -eq 0 && "$INSTALL_CODEX" -eq 0 ]]; then
   INSTALL_CURSOR=1
   INSTALL_OPENCODE=1
   INSTALL_QODER=1
+  INSTALL_CLAUDE=1
+  INSTALL_CODEX=1
 fi
 
 # --- bundle freshness guards ----------------------------------------------
@@ -81,7 +101,8 @@ fi
 # drift, re-verify. Skipped for --dry-run (read-only) and without node.
 if [[ "$DRY_RUN" -eq 0 ]] && command -v node >/dev/null 2>&1; then
   echo "== bundle freshness =="
-  for guard in "scripts/enrich-agent-capabilities.js" "scripts/sync-qoder-agents.js" "scripts/gen-agent-registry.js"; do
+  for guard in "scripts/enrich-agent-capabilities.js" "scripts/sync-qoder-agents.js" \
+      "scripts/sync-claude-agents.js" "scripts/sync-codex-agents.js" "scripts/gen-agent-registry.js"; do
     if ! (cd "$ROOT" && node "$guard" --check >/dev/null 2>&1); then
       echo "  drift in $guard -- regenerating"
       (cd "$ROOT" && node "$guard" >/dev/null) || { echo "  ERROR: $guard failed to regenerate"; exit 1; }
@@ -94,9 +115,9 @@ if [[ "$DRY_RUN" -eq 0 ]] && command -v node >/dev/null 2>&1; then
   echo ""
 fi
 
-echo "============================================"
-echo " Orchestra Installer (Cursor + OpenCode + Qoder)"
-echo "============================================"
+echo "=========================================================================="
+echo " Orchestra Installer (Cursor + OpenCode + Qoder + Claude Code + Codex)"
+echo "=========================================================================="
 echo ""
 
 ###############################################################################
@@ -191,7 +212,7 @@ MERGE
 
   # Link skills for external discovery (Agent Skills compat path)
   mkdir -p "$AGENTS_SKILLS"
-  for link_skill in orchestra-loop prompt-intake verification-before-completion \
+  for link_skill in orchestra-loop orchestra-install prompt-intake verification-before-completion \
       ui-ux-pro-max brand design-system ui-styling web-design-master; do
     if [[ -d "$CURSOR/skills/$link_skill" ]]; then
       rm -rf "$AGENTS_SKILLS/$link_skill"
@@ -308,7 +329,7 @@ PY
 
   # Link to external skills directory
   mkdir -p "$AGENTS_SKILLS"
-  for link_skill in orchestra-loop prompt-intake verification-before-completion \
+  for link_skill in orchestra-loop orchestra-install prompt-intake verification-before-completion \
       ui-ux-pro-max brand design-system ui-styling web-design-master; do
     if [[ -d "$OPENCODE/skills/$link_skill" ]]; then
       rm -rf "$AGENTS_SKILLS/$link_skill"
@@ -402,6 +423,102 @@ install_qoder() {
 }
 
 ###############################################################################
+# Claude Code installation
+###############################################################################
+install_claude() {
+  echo "==> Installing Claude Code Orchestra to $CLAUDE"
+
+  command -v node >/dev/null 2>&1 || { echo "ERROR: 'node' required (install Node.js 18+)"; exit 1; }
+
+  mkdir -p "$CLAUDE/hooks/state" "$CLAUDE/agents" "$CLAUDE/skills"
+
+  # Hook scripts + lib modules (same entrypoints as Cursor; lib/io.js
+  # normalizes agent_type from Claude's SubagentStop stdin)
+  cp -f "$BUNDLE/hooks/"orchestra-*.js "$CLAUDE/hooks/"
+  rm -rf "$CLAUDE/hooks/lib"
+  cp -rf "$BUNDLE/hooks/lib" "$CLAUDE/hooks/lib"
+
+  # Default state (don't overwrite). Tracked template — the bundle/hooks/state
+  # copy is gitignored runtime state and absent on fresh clones.
+  if [[ ! -f "$CLAUDE/hooks/state/orchestra.json" ]]; then
+    cp -f "$BUNDLE/opencode/state/orchestra.json" "$CLAUDE/hooks/state/orchestra.json" 2>/dev/null || \
+      cp -f "$BUNDLE/hooks/state/orchestra.json" "$CLAUDE/hooks/state/orchestra.json" 2>/dev/null || \
+      echo '{}' > "$CLAUDE/hooks/state/orchestra.json"
+  fi
+
+  # Agents: generated flat mirror (scripts/sync-claude-agents.js). Copy over
+  # existing files only — never delete user-authored Claude agents.
+  if [[ -d "$BUNDLE/claude/agents" ]]; then
+    cp -f "$BUNDLE/claude/agents/"*.md "$CLAUDE/agents/"
+  else
+    echo "WARN: bundle/claude/agents missing — run 'node scripts/sync-claude-agents.js' first"
+  fi
+
+  # Skills (Claude Code reads ~/.claude/skills/<name>/SKILL.md)
+  for skill_dir in "$BUNDLE/skills"/*/; do
+    skill_name=$(basename "$skill_dir")
+    rm -rf "$CLAUDE/skills/$skill_name"
+    mkdir -p "$CLAUDE/skills/$skill_name"
+    cp -rf "$skill_dir"* "$CLAUDE/skills/$skill_name/"
+  done
+
+  cp -f "$BUNDLE/ORCHESTRA.md" "$CLAUDE/ORCHESTRA.md"
+
+  # Merge hooks into ~/.claude/settings.json (preserves permissions/model/env/mcpServers)
+  node "$ROOT/scripts/merge-claude-settings.js" --claude-home "$CLAUDE"
+
+  # Link skills for external discovery (Agent Skills compat path)
+  mkdir -p "$AGENTS_SKILLS"
+  for link_skill in orchestra-loop orchestra-install prompt-intake verification-before-completion \
+      ui-ux-pro-max brand design-system ui-styling web-design-master; do
+    if [[ -d "$CLAUDE/skills/$link_skill" ]]; then
+      rm -rf "$AGENTS_SKILLS/$link_skill"
+      ln -sf "$CLAUDE/skills/$link_skill" "$AGENTS_SKILLS/$link_skill" 2>/dev/null || \
+        cp -r "$CLAUDE/skills/$link_skill" "$AGENTS_SKILLS/$link_skill"
+    fi
+  done
+
+  echo "  Claude agents:   $CLAUDE/agents/ (conductor + phase + specialists)"
+  echo "  Claude hooks:    $CLAUDE/hooks/ (registered in $CLAUDE/settings.json)"
+  echo "  Claude skills:   $CLAUDE/skills/ (orchestra-loop + intake/verify + UI + Cloudflare)"
+  echo "  Claude spawn:    Agent tool + subagent_type (see docs/orchestra-cross-platform.md)"
+}
+
+###############################################################################
+# Codex CLI installation
+###############################################################################
+install_codex() {
+  echo "==> Installing Codex CLI Orchestra to $CODEX"
+
+  mkdir -p "$CODEX/agents"
+
+  # Flat TOML agents (scripts/sync-codex-agents.js). Copy over existing files
+  # only — never delete user-authored Codex agents.
+  if [[ -d "$BUNDLE/codex/agents" ]]; then
+    cp -f "$BUNDLE/codex/agents/"*.toml "$CODEX/agents/"
+  else
+    echo "WARN: bundle/codex/agents missing — run 'node scripts/sync-codex-agents.js' first"
+  fi
+
+  cp -f "$BUNDLE/ORCHESTRA.md" "$CODEX/ORCHESTRA.md"
+
+  # Codex reads skills from ~/.agents/skills (shared with other hosts). Do not
+  # replace an existing link/copy that another host installer owns.
+  mkdir -p "$AGENTS_SKILLS"
+  for link_skill in orchestra-loop orchestra-install prompt-intake verification-before-completion \
+      ui-ux-pro-max brand design-system ui-styling web-design-master; do
+    if [[ -d "$BUNDLE/skills/$link_skill" && ! -e "$AGENTS_SKILLS/$link_skill" ]]; then
+      cp -r "$BUNDLE/skills/$link_skill" "$AGENTS_SKILLS/$link_skill"
+    fi
+  done
+
+  echo "  Codex agents:    $CODEX/agents/ (160 TOML custom agents)"
+  echo "  Codex skills:    $AGENTS_SKILLS/ (shared Agent Skills path)"
+  echo "  Codex spawn:     spawn_agent + agent_type (see docs/orchestra-cross-platform.md)"
+  echo "  Codex hooks:     not wired (features.hooks is gated; conductor drives phases)"
+}
+
+###############################################################################
 # Health checks
 ###############################################################################
 health_cursor() {
@@ -420,6 +537,18 @@ health_opencode() {
   else
     echo "WARN: health check script not found at $OPENCODE/hooks/orchestra-health-opencode.js"
   fi
+}
+
+health_claude() {
+  echo ""
+  echo "==> Claude Code health check"
+  node "$ROOT/scripts/health-claude.js" --home "$CLAUDE" || true
+}
+
+health_codex() {
+  echo ""
+  echo "==> Codex CLI health check"
+  node "$ROOT/scripts/health-codex.js" --home "$CODEX" || true
 }
 
 ###############################################################################
@@ -559,6 +688,8 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   [[ "$INSTALL_CURSOR" -eq 1 ]] && echo "  - Cursor"
   [[ "$INSTALL_OPENCODE" -eq 1 ]] && echo "  - OpenCode"
   [[ "$INSTALL_QODER" -eq 1 ]] && echo "  - Qoder CLI"
+  [[ "$INSTALL_CLAUDE" -eq 1 ]] && echo "  - Claude Code"
+  [[ "$INSTALL_CODEX" -eq 1 ]] && echo "  - Codex CLI"
   [[ "$INSTALL_PROJECT" -eq 1 ]] && echo "  - Project bridge"
   [[ "$INSTALL_MCP" -eq 1 ]] && echo "  - MCP server"
   [[ "$INSTALL_STUDIO" -eq 1 ]] && echo "  - Studio dashboard"
@@ -575,6 +706,14 @@ fi
 
 if [[ "$INSTALL_QODER" -eq 1 ]]; then
   install_qoder
+fi
+
+if [[ "$INSTALL_CLAUDE" -eq 1 ]]; then
+  install_claude
+fi
+
+if [[ "$INSTALL_CODEX" -eq 1 ]]; then
+  install_codex
 fi
 
 if [[ "$INSTALL_PROJECT" -eq 1 ]]; then
@@ -594,6 +733,12 @@ if [[ "$INSTALL_CURSOR" -eq 1 ]]; then
 fi
 if [[ "$INSTALL_OPENCODE" -eq 1 ]]; then
   health_opencode
+fi
+if [[ "$INSTALL_CLAUDE" -eq 1 ]]; then
+  health_claude
+fi
+if [[ "$INSTALL_CODEX" -eq 1 ]]; then
+  health_codex
 fi
 
 echo ""
@@ -620,6 +765,17 @@ if [[ "$INSTALL_QODER" -eq 1 ]]; then
   echo "  Qoder test:      node $QODER/hooks/orchestra-enable.js status"
   echo "  Qoder tip:       qoder --agent orchestra  (conductor as session agent)"
 fi
+if [[ "$INSTALL_CLAUDE" -eq 1 ]]; then
+  echo "  Claude global:   $CLAUDE"
+  echo "  Claude hooks:    merged into $CLAUDE/settings.json (SessionStart/UserPromptSubmit/SubagentStop/Stop)"
+  echo "  Claude test:     node scripts/health-claude.js --home $CLAUDE"
+  echo "  Claude tip:      Agent tool with subagent_type=orchestra-planner"
+fi
+if [[ "$INSTALL_CODEX" -eq 1 ]]; then
+  echo "  Codex global:    $CODEX"
+  echo "  Codex test:      node scripts/health-codex.js --home $CODEX"
+  echo "  Codex tip:       spawn_agent with agent_type=orchestra-planner"
+fi
 if [[ "$INSTALL_MCP" -eq 1 ]]; then
   echo "  MCP server:     @modelcontextprotocol/sdk installed; mcp-server.js in hooks/lib/"
 fi
@@ -630,6 +786,6 @@ echo "  Repo scoping:    ~/.local/bin/setup-repo-scoping.sh (run on any repo)"
 echo "  Maintenance:    ~/.local/bin/opencode-maintenance.sh --apply (clean DB/logs)"
 echo "  Global gitignore: ~/.config/git/ignore (node_modules, vendor, venv, caches)"
 echo ""
-echo "  Docs: docs/autonomous-workflow.md"
-echo "  Restart Cursor IDE or opencode for changes to take effect."
+echo "  Docs: docs/autonomous-workflow.md · docs/orchestra-cross-platform.md"
+echo "  Restart the host app (Cursor, OpenCode, Qoder, Claude Code, Codex) after install."
 echo "============================================"

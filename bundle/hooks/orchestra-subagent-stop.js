@@ -722,7 +722,13 @@ async function main() {
       iteration: state.iteration,
     });
     saveState(state);
-    emit({ followup_message: outcome.message });
+    // Claude Code resumes the same subagent on decision:block and delivers
+    // reason as its next instruction; Cursor/Qoder/OpenCode read a followup.
+    emit(
+      state.host === "claude-code"
+        ? { decision: "block", reason: outcome.message }
+        : { followup_message: outcome.message }
+    );
     return;
   }
 

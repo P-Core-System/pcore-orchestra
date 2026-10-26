@@ -8,10 +8,24 @@ const { AMBIENT_CONTEXT } = require("./lib/context-detector.js");
 const { isStalled, writeHeartbeat } = require("./lib/heartbeat-monitor.js");
 const { getAgentForPhase } = require("./lib/phase-engine.js");
 
+/** Claude Code Stop hooks block with decision+reason; other hosts read followup_message. */
+function isClaudeHost(state) {
+  if (state && state.host === "claude-code") return true;
+  if (process.env.CLAUDE_CODE_SESSION_ID) return true;
+  return /(^|[\\/])\.claude([\\/]|$)/.test(__dirname);
+}
+
 async function main() {
   const input = await readStdinJson();
   const status = input.status || "";
   const loopCount = Number(input.loop_count ?? 0);
+
+  // Claude Code sets stop_hook_active when a Stop hook already blocked; without
+  // this guard a nudge would re-block forever.
+  if (input.stop_hook_active) {
+    emit({});
+    return;
+  }
 
   if (status !== "completed") {
     emit({});
@@ -54,14 +68,15 @@ async function main() {
 
   const agent = getAgentForPhase(phase);
   const mode = state.loopMode || "core";
-  emit({
-    followup_message: [
-      `Orchestra active (${mode}) — phase **${phase}**. Launch **${agent}** subagent to continue.`,
-      `Goal: ${state.goal}`,
-      `To abort: say "stop orchestra" or run: node ~/.cursor/hooks/orchestra-enable.js stop`,
-      `(${AMBIENT_CONTEXT.split(".")[0]}.)`,
-    ].join("\n\n"),
-  });
+  const claude = isClaudeHost(state);
+  const enableCmd = claude ? "~/.claude/hooks/orchestra-enable.js" : "~/.cursor/hooks/orchestra-enable.js";
+  const nudge = [
+    `Orchestra active (${mode}) — phase **${phase}**. Launch **${agent}** subagent to continue.`,
+    `Goal: ${state.goal}`,
+    `To abort: say "stop orchestra" or run: node ${enableCmd} stop`,
+    `(${AMBIENT_CONTEXT.split(".")[0]}.)`,
+  ].join("\n\n");
+  emit(claude ? { decision: "block", reason: nudge } : { followup_message: nudge });
 }
 
 main().catch(() => {

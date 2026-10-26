@@ -1,10 +1,13 @@
-# Install Orchestra bundle to ~/.cursor, ~/.config/opencode AND ~/.qoder (global)
+# Install Orchestra bundle to ~/.cursor, ~/.config/opencode, ~/.qoder,
+# ~/.claude AND ~/.codex (global)
 # Usage:
-#   powershell -ExecutionPolicy Bypass -File install.ps1              # both
+#   powershell -ExecutionPolicy Bypass -File install.ps1              # all five
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -All         # same
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -Cursor      # Cursor only
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -OpenCode    # OpenCode only
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -Qoder       # Qoder CLI only
+#   powershell -ExecutionPolicy Bypass -File install.ps1 -Claude      # Claude Code only
+#   powershell -ExecutionPolicy Bypass -File install.ps1 -Codex       # Codex CLI only
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -Project     # + project bridge
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -Studio      # install Studio dashboard
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -DryRun      # show what would be installed
@@ -13,6 +16,8 @@ param(
   [switch]$Cursor,
   [switch]$OpenCode,
   [switch]$Qoder,
+  [switch]$Claude,
+  [switch]$Codex,
   [switch]$Project,
   [switch]$SkipOpenCodeUpgrade,
   [switch]$Studio,
@@ -25,21 +30,25 @@ $Bundle = Join-Path $Root "bundle"
 $CursorDir = if ($env:CURSOR_HOME) { $env:CURSOR_HOME } else { Join-Path $env:USERPROFILE ".cursor" }
 $OpenCodeDir = if ($env:OPENCODE_CONFIG_DIR) { $env:OPENCODE_CONFIG_DIR } else { Join-Path $env:USERPROFILE ".config\opencode" }
 $QoderDir = if ($env:QODER_CONFIG_DIR) { $env:QODER_CONFIG_DIR } else { Join-Path $env:USERPROFILE ".qoder" }
+$ClaudeDir = if ($env:CLAUDE_CONFIG_DIR) { $env:CLAUDE_CONFIG_DIR } else { Join-Path $env:USERPROFILE ".claude" }
+$CodexDir = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $env:USERPROFILE ".codex" }
 $AgentsSkills = if ($env:AGENTS_SKILLS) { $env:AGENTS_SKILLS } else { Join-Path $env:USERPROFILE ".agents\skills" }
 
 # Default: all if no flag
-if (-not $Cursor -and -not $OpenCode -and -not $Qoder) {
+if (-not $Cursor -and -not $OpenCode -and -not $Qoder -and -not $Claude -and -not $Codex) {
   $All = $true
 }
 if ($All) {
   $Cursor = $true
   $OpenCode = $true
   $Qoder = $true
+  $Claude = $true
+  $Codex = $true
 }
 
-Write-Host "============================================"
-Write-Host " Orchestra Installer (Cursor + OpenCode + Qoder)"
-Write-Host "============================================"
+Write-Host "=========================================================================="
+Write-Host " Orchestra Installer (Cursor + OpenCode + Qoder + Claude Code + Codex)"
+Write-Host "=========================================================================="
 Write-Host ""
 
 ###############################################################################
@@ -116,7 +125,7 @@ function Install-Cursor {
 
   New-Item -ItemType Directory -Force -Path $AgentsSkills | Out-Null
   foreach ($linkSkill in @(
-    "orchestra-loop", "prompt-intake", "verification-before-completion",
+    "orchestra-loop", "orchestra-install", "prompt-intake", "verification-before-completion",
     "ui-ux-pro-max", "brand", "design-system", "ui-styling", "web-design-master"
   )) {
     $srcSkill = Join-Path (Join-Path $CursorDir "skills") $linkSkill
@@ -255,7 +264,7 @@ function Install-OpenCode {
   # External skill symlinks (Agent Skills compat path)
   New-Item -ItemType Directory -Force -Path $AgentsSkills | Out-Null
   foreach ($linkSkill in @(
-    "orchestra-loop", "prompt-intake", "verification-before-completion",
+    "orchestra-loop", "orchestra-install", "prompt-intake", "verification-before-completion",
     "ui-ux-pro-max", "brand", "design-system", "ui-styling", "web-design-master"
   )) {
     $srcSkill = Join-Path (Join-Path $OpenCodeDir "skills") $linkSkill
@@ -402,6 +411,123 @@ function Install-Qoder {
 }
 
 ###############################################################################
+# Claude Code installation
+###############################################################################
+function Install-Claude {
+  Write-Host "==> Installing Claude Code Orchestra to $ClaudeDir"
+
+  if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+    Write-Error "Node.js 18+ required. Install from https://nodejs.org"
+  }
+
+  @(
+    (Join-Path $ClaudeDir "hooks\state"),
+    (Join-Path $ClaudeDir "agents"),
+    (Join-Path $ClaudeDir "skills")
+  ) | ForEach-Object { New-Item -ItemType Directory -Force -Path $_ | Out-Null }
+
+  # Hooks (same entrypoints as Cursor; lib/io.js normalizes agent_type)
+  Copy-Item (Join-Path $Bundle "hooks\orchestra-*.js") (Join-Path $ClaudeDir "hooks\") -Force
+  $libDest = Join-Path $ClaudeDir "hooks\lib"
+  if (Test-Path $libDest) { Remove-Item $libDest -Recurse -Force }
+  Copy-Item (Join-Path $Bundle "hooks\lib") $libDest -Recurse -Force
+
+  # State (fresh clones lack the gitignored runtime file; use tracked template)
+  $stateDest = Join-Path $ClaudeDir "hooks\state\orchestra.json"
+  if (-not (Test-Path $stateDest)) {
+    $trackedState = Join-Path $Bundle "opencode\state\orchestra.json"
+    $hooksState = Join-Path $Bundle "hooks\state\orchestra.json"
+    if (Test-Path $trackedState) {
+      Copy-Item $trackedState $stateDest -Force
+    } elseif (Test-Path $hooksState) {
+      Copy-Item $hooksState $stateDest -Force
+    } else {
+      Set-Content -Path $stateDest -Value '{}' -Encoding UTF8
+    }
+  }
+
+  # Agents (flat generated mirror; never delete user-authored agents)
+  $claudeAgentsSrc = Join-Path $Bundle "claude\agents"
+  if (Test-Path $claudeAgentsSrc) {
+    Copy-Item (Join-Path $claudeAgentsSrc "*.md") (Join-Path $ClaudeDir "agents\") -Force
+  } else {
+    Write-Host "WARN bundle\claude\agents missing - run: node scripts\sync-claude-agents.js"
+  }
+
+  # Skills (Claude Code reads ~/.claude/skills/{name}/SKILL.md)
+  $skillDirs = Get-ChildItem -Path (Join-Path $Bundle "skills") -Directory
+  foreach ($skillDir in $skillDirs) {
+    $destDir = Join-Path (Join-Path $ClaudeDir "skills") $skillDir.Name
+    if (Test-Path $destDir) { Remove-Item $destDir -Recurse -Force }
+    $null = robocopy $skillDir.FullName $destDir /E /NDL /NJH /NJS /NP
+  }
+
+  Copy-Item (Join-Path $Bundle "ORCHESTRA.md") (Join-Path $ClaudeDir "ORCHESTRA.md") -Force
+
+  # Merge hooks into settings.json (preserves permissions/model/env/mcpServers)
+  node (Join-Path $Root "scripts\merge-claude-settings.js") --claude-home $ClaudeDir
+
+  # Shared Agent Skills links
+  New-Item -ItemType Directory -Force -Path $AgentsSkills | Out-Null
+  foreach ($linkSkill in @(
+    "orchestra-loop", "orchestra-install", "prompt-intake", "verification-before-completion",
+    "ui-ux-pro-max", "brand", "design-system", "ui-styling", "web-design-master"
+  )) {
+    $srcSkill = Join-Path (Join-Path $ClaudeDir "skills") $linkSkill
+    $skillLink = Join-Path $AgentsSkills $linkSkill
+    if (Test-Path $srcSkill) {
+      if (Test-Path $skillLink) { Remove-Item $skillLink -Force -Recurse -ErrorAction SilentlyContinue }
+      New-Item -ItemType SymbolicLink -Path $skillLink -Target $srcSkill -Force -ErrorAction SilentlyContinue | Out-Null
+      if (-not (Test-Path $skillLink)) {
+        Copy-Item $srcSkill $skillLink -Recurse -Force
+      }
+    }
+  }
+
+  Write-Host "  Claude agents:  $ClaudeDir\agents\ (conductor + phase + specialists)"
+  Write-Host "  Claude hooks:   $ClaudeDir\hooks\ + settings.json (SessionStart/UserPromptSubmit/SubagentStop/Stop)"
+  Write-Host "  Claude skills:  $ClaudeDir\skills\ (orchestra-loop + install + UI + Cloudflare)"
+  Write-Host "  Claude spawn:   Agent tool + subagent_type"
+}
+
+###############################################################################
+# Codex CLI installation
+###############################################################################
+function Install-Codex {
+  Write-Host "==> Installing Codex CLI Orchestra to $CodexDir"
+
+  New-Item -ItemType Directory -Force -Path (Join-Path $CodexDir "agents") | Out-Null
+
+  # Flat TOML agents (never delete user-authored agents)
+  $codexAgentsSrc = Join-Path $Bundle "codex\agents"
+  if (Test-Path $codexAgentsSrc) {
+    Copy-Item (Join-Path $codexAgentsSrc "*.toml") (Join-Path $CodexDir "agents\") -Force
+  } else {
+    Write-Host "WARN bundle\codex\agents missing - run: node scripts\sync-codex-agents.js"
+  }
+
+  Copy-Item (Join-Path $Bundle "ORCHESTRA.md") (Join-Path $CodexDir "ORCHESTRA.md") -Force
+
+  # Shared Agent Skills path; never replace what another host installer owns
+  New-Item -ItemType Directory -Force -Path $AgentsSkills | Out-Null
+  foreach ($linkSkill in @(
+    "orchestra-loop", "orchestra-install", "prompt-intake", "verification-before-completion",
+    "ui-ux-pro-max", "brand", "design-system", "ui-styling", "web-design-master"
+  )) {
+    $srcSkill = Join-Path (Join-Path $Bundle "skills") $linkSkill
+    $skillLink = Join-Path $AgentsSkills $linkSkill
+    if ((Test-Path $srcSkill) -and -not (Test-Path $skillLink)) {
+      Copy-Item $srcSkill $skillLink -Recurse -Force
+    }
+  }
+
+  Write-Host "  Codex agents:   $CodexDir\agents\ (160 TOML custom agents)"
+  Write-Host "  Codex skills:   $AgentsSkills\ (shared Agent Skills path)"
+  Write-Host "  Codex spawn:    spawn_agent + agent_type"
+  Write-Host "  Codex hooks:    not wired (features.hooks is gated; conductor drives phases)"
+}
+
+###############################################################################
 # Studio installation
 ###############################################################################
 function Install-Studio {
@@ -479,6 +605,8 @@ if ($DryRun) {
   if ($Cursor) { Write-Host "  - Cursor" }
   if ($OpenCode) { Write-Host "  - OpenCode" }
   if ($Qoder) { Write-Host "  - Qoder CLI" }
+  if ($Claude) { Write-Host "  - Claude Code" }
+  if ($Codex) { Write-Host "  - Codex CLI" }
   if ($Project) { Write-Host "  - Project bridge" }
   if ($Studio) { Write-Host "  - Studio dashboard" }
   exit 0
@@ -487,6 +615,8 @@ if ($DryRun) {
 if ($Cursor) { Install-Cursor }
 if ($OpenCode) { Install-OpenCode }
 if ($Qoder) { Install-Qoder }
+if ($Claude) { Install-Claude }
+if ($Codex) { Install-Codex }
 
 if ($Project) {
   $RepoRoot = (Get-Location).Path
@@ -508,6 +638,14 @@ if ($OpenCode -and (Get-Command node -ErrorAction SilentlyContinue)) {
   Write-Host "==> OpenCode health check"
   node (Join-Path $OpenCodeDir "hooks\orchestra-health-opencode.js")
 }
+if ($Claude -and (Get-Command node -ErrorAction SilentlyContinue)) {
+  Write-Host "==> Claude Code health check"
+  node (Join-Path $Root "scripts\health-claude.js") --home $ClaudeDir
+}
+if ($Codex -and (Get-Command node -ErrorAction SilentlyContinue)) {
+  Write-Host "==> Codex CLI health check"
+  node (Join-Path $Root "scripts\health-codex.js") --home $CodexDir
+}
 
 Write-Host ""
 Write-Host "============================================"
@@ -523,6 +661,14 @@ if ($OpenCode) {
 if ($Qoder) {
   Write-Host "  Qoder:    $QoderDir"
   Write-Host "            Restart Qoder sessions; try: qoder --agent orchestra"
+}
+if ($Claude) {
+  Write-Host "  Claude:   $ClaudeDir"
+  Write-Host "            Hooks in settings.json; use Agent + subagent_type"
+}
+if ($Codex) {
+  Write-Host "  Codex:    $CodexDir"
+  Write-Host "            Use spawn_agent + agent_type; hooks stay unwired"
 }
 if ($Cursor) {
   Write-Host "  Autonomy: Settings ? Agents ? Approvals ? Auto-review"
