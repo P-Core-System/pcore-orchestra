@@ -158,10 +158,37 @@ body {
   }
 }
 
-/* shadcn/ui ScrollArea */
-[data-radix-scroll-area-viewport] {
+/* Scrollbars — thin, rounded, auto-tinted to each container's text color, so
+   dark log/kanban panes and light surfaces both get a correct, subtle thumb
+   without per-surface rules. Applies to every native overflow container and
+   the radix ScrollArea viewport. */
+* {
   scrollbar-width: thin;
-  scrollbar-color: hsl(var(--muted-foreground)) transparent;
+  scrollbar-color: color-mix(in oklab, currentColor 28%, transparent) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, currentColor 28%, transparent);
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in oklab, currentColor 45%, transparent);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* React Flow custom styles */
