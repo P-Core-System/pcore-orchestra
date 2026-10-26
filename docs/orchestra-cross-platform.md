@@ -36,6 +36,16 @@ subagent(agent="orchestra-planner", description="plan login fix", prompt="Goal: 
 - Required parameters: **agent** = same four names, **description** (3–5 words), **prompt** (V2 uses `agent`, not `subagent_type`; `sessionID` continues a prior child)
 - **No hooks** — the `orchestra` conductor must call **subagent** for each phase in order and wait for markers
 
+#### OpenCode versions (V1 vs V2)
+
+The orchestra runtime requires **OpenCode V2** (`@opencode/cli`; verified against 2.1.4). The conductor contract — `subagent` tool shape, `sessionID` resume, plugin ambient-context API, `agents/` discovery — is V2; none of it runs on the V1 CLI (`opencode-ai`, which tops out at 1.19.x).
+
+- **Install always targets V2.** `install.sh` (default) upgrades to the npm `latest` via `scripts/ensure-opencode-latest.sh`, with a downgrade guard that refuses to step onto the V1 line. `--skip-opencode-upgrade` keeps the current CLI — if that CLI is V1, orchestra will not drive it.
+- **V1 configs are handled, not abandoned.** V2 reads supported V1 `opencode.json` without rewriting; the installer additionally migrates the tree to native V2 shape (`permission`→`permissions`, `bash`→`shell`, `task`→`subagent`, `agent`→`agents`, MCP restructure) via `scripts/lib/opencode-v2.js` before merging autonomy profiles — idempotent, round-trip tested (`scripts/test-opencode-v2.js`).
+- **V1 frontmatter ≠ V1 CLI.** Agent files deliberately keep the V1 `permission:` object form because current V2 CLIs honor it most reliably (V2 arrays are dropped when `name:` is present — see `docs/agent-permissions.md`, RC2).
+- **The three V1→V2 breaking changes** (plugin API, server/SDK API, config form) do not affect the bundle: we ship only V2 default-export plugins (`{id, setup}` + `ctx.session.hook("context")`), never call OpenCode's HTTP server, and migrate config as above. If you carried V1 plugins from another setup they will not run under V2 — port them.
+- **Do not keep the legacy `opencode-ai` 1.x package installed alongside** `@opencode/cli` — both provide the `opencode` bin and the wrong one may win.
+
 ### Qoder CLI
 
 ```text

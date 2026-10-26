@@ -47,7 +47,7 @@ Orchestra auto-runs: **planner → implementer → verifier → reviewer**.
 |-------------|---------|---------|
 | Node.js | 18+ (22.5+ for hybrid recall) | Hook scripts; SQLite FTS5 memory uses the built-in `node:sqlite`, so on older Node recall stays JSON-only |
 | Cursor | Latest | IDE Agent mode or Cursor CLI |
-| OpenCode CLI | Latest ([install](https://opencode.ai)) | Optional; `install.sh` upgrades CLI automatically |
+| OpenCode CLI | **V2 required** (`@opencode/cli`, latest) | Optional; `install.sh` upgrades automatically and migrates V1 `opencode.json` to V2 — V1 (`opencode-ai` 1.x) cannot run orchestra |
 | Qoder CLI | Latest | Optional; installs to `~/.qoder` (agents, skills, hooks in settings.json) |
 | Git | 2.x | Version control |
 | Python 3 | Optional | Only for `ui-ux-pro-max` / design-system `search.py` scripts — not required for orchestra hooks |
