@@ -269,7 +269,7 @@ pcore-orchestra/
 │       ├── hooks/orchestra-health-opencode.js
 │       ├── hooks/lib/                   # byte-identical mirror of hooks/lib
 │       ├── plugins/orchestra-ambient.js # injects the orchestra policy into sessions
-│       ├── skills/                      # 39 skills (+ setup, OpenCode-only)
+│       ├── skills/                      # 39 skills incl. setup (OpenCode-only)
 │       └── state/orchestra.json
 │
 ├── context/                   # THIS REPO'S OWN SIX-FILE CONTEXT (dogfooding)
