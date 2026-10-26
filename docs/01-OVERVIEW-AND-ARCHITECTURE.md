@@ -195,9 +195,9 @@ pcore-orchestra/
 │   │   │
 │   │   ├── lib/               # SHARED LIBRARY (43 modules + domain/ dashboard, mirrors/tickets)
 │   │   │   ├── io.js                    # stdin/stdout helpers (readStdinJson, emit)
-│   │   │   ├── constants.js             # 20 named numeric constants
+│   │   │   ├── constants.js             # 55 named constants
 │   │   │   ├── state-manager.js         # State CRUD + startOrchestra
-│   │   │   ├── prompt-classifier.js     # 6 regex patterns, classification logic
+│   │   │   ├── prompt-classifier.js     # 9 regex patterns, classification logic
 │   │   │   ├── phase-engine.js          # Phase chain config + transitions
 │   │   │   ├── lifecycle-recorder.js    # Events ring buffer + phase timers
 │   │   │   ├── heartbeat-monitor.js     # Stall detection helpers
@@ -311,7 +311,7 @@ pcore-orchestra/
 | File | Role |
 |------|------|
 | `bundle/hooks/lib/state-manager.js` | State CRUD (loadState, saveState, startOrchestra). Deep merge ensures V1→V2 backward compatibility. |
-| `bundle/hooks/lib/prompt-classifier.js` | 6 regex patterns for prompt classification. Determines whether to auto-start orchestra. |
+| `bundle/hooks/lib/prompt-classifier.js` | 9 regex patterns for prompt classification. Determines whether to auto-start orchestra. |
 | `bundle/hooks/lib/phase-engine.js` | Config-driven phase chain (plan→implement→verify→review). Add a phase by adding a config entry. |
 | `bundle/hooks/orchestra-subagent-stop.js` | Most complex hook. Handles phase transitions, FIX_REQUIRED loops, max iterations, completion. |
 | `project-bridge/hooks/bridge.js` | 35-line delegation script. Essential for cloud Cursor agents that only load project hooks. |
