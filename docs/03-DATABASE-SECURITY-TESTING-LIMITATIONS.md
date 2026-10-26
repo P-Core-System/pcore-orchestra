@@ -290,8 +290,11 @@ verifier agent inside an orchestra run.
 
 ### CI suites (`.github/workflows/ci.yml`)
 
-37 Node suites (`scripts/test-*.js`) plus one bash suite (`scripts/test-studio-service.sh`)
-run on every pull request. The `lint` job additionally runs `node --check` over every
+39 Node suites (`scripts/test-*.js`) exist; 37 run in CI, plus one bash suite
+(`scripts/test-studio-service.sh`). The two local gates are `test-agent-capabilities.js`
+(registry v2 tool allowlists, skill frontmatter, installed Qoder tree) and
+`test-e2e-suite.js` (runs every suite in isolation with a PASS/FAIL summary).
+The `lint` job additionally runs `node --check` over every
 JavaScript file, `shellcheck --severity=error`, and the blocking secret scan.
 
 | Area | Suites |
@@ -304,6 +307,12 @@ JavaScript file, `shellcheck --severity=error`, and the blocking secret scan.
 | Orchestration | `test-worktree-isolation`, `test-spawn-adapter`, `test-spawn-adapter-integration`, `test-parallel-execution`, `test-mcp-server`, `test-mcp-lifecycle` |
 | Studio | `test-studio-data-layer`, `test-studio-ui`, `test-studio-server`, `test-studio-integration`, `test-studio-service.sh` |
 | Security | `test-security-scanner` (heuristic rules + allowlist integrity) |
+
+Local-only (not wired into CI): `test-agent-capabilities` and `test-e2e-suite`.
+Before copying files, the installers run the Qoder-tree, capability, and registry
+generators with `--check`, regenerate on drift, and abort if the regenerated output
+still drifts — so a stale `tools:` allowlist or missing skill metadata cannot be
+installed silently.
 
 `test-mirror-sync` enforces the byte-identical invariant between `bundle/hooks/` and
 `bundle/opencode/hooks/`; `sync-qoder-agents.js --check` fails the build when Qoder agents

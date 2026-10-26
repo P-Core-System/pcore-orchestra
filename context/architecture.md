@@ -76,7 +76,7 @@
 | Studio service PID/port/log | `~/.local/state/orchestra-studio/` + `~/.local/log/orchestra-studio/` | Managed by studio-service.sh |
 | Token usage | `~/.cursor/hooks/state/orchestra-tokens.json` | Per-run estimates, aggregates, improvement tips |
 | Plan artifact | `<project>/.cursor/orchestra-plan.md` | Approved plan for implement→verify→review (gitignored) |
-| Agent registry | `bundle/agent-registry.json` | Generated SSOT (160 agent files, 27 hook agents, 160/side coverage) — also regenerates the conductor `permission.task` allowlist; `--check` gate in CI |
+| Agent registry | `bundle/agent-registry.json` | Generated SSOT v2 (160 agent files, 27 hook agents, 160/side coverage, per-agent `capabilities.tools`/`readonly`/`model`/`independence`) — also regenerates the conductor `permission.task` allowlist; `--check` gate in CI |
 | Domain events | `<state>/domain-events.json` (`bundle/hooks/state/` in-repo, `PCORE_STATE_DIR` redirect in tests/CI) | Ring-capped domain event log (`DOMAIN_EVENT_CAP` = 500, oldest trimmed) — written **only** by `domain/store.js` via safe-write; every subagent stop appends a `phase.outcome` |
 | Domain checkpoint | `<state>/domain-checkpoint.json` | Resume checkpoint (Scenario J domain half): sessionId, ticketId, completed/running/pendingTasks, lastEventId, lastVerifiedCommit, createdAt; session-filtered on load. Both files gitignored as `domain-*.json` |
 | Cycle reports | `~/.cursor/hooks/state/cycles/{run_id}.json` | Production audit per completed run |

@@ -276,9 +276,10 @@ node scripts/test-security-scanner.js         # scanner coverage, redaction, blo
 node scripts/scan-secrets.js --dir . --fail-on=high   # blocking secret scan (CI runs this too)
 ```
 
-The list above is the core subset; every `scripts/test-*.js` suite plus the bash service
-suite runs in `.github/workflows/ci.yml` on every PR. See `CONTRIBUTING.md` §3 for the
-full command set.
+The list above is the core subset; `node scripts/test-e2e-suite.js` runs every
+`scripts/test-*.js` suite in isolation with a PASS/FAIL summary. CI runs 37 Node suites
+plus the bash service suite on every PR; the capability suite and the e2e runner are
+local gates. See `CONTRIBUTING.md` §3 for the full command set.
 
 ---
 

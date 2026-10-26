@@ -43,12 +43,12 @@ This section is designed to be read directly by AI agents (Cursor, OpenCode CLI,
 │   ├── skills-cursor/    # Cursor built-in skill mirrors
 │   ├── rules/            # Always-on .mdc rules
 │   ├── config/           # autonomy + OpenCode config templates
-│   ├── agent-registry.json  # Generated SSOT for agents, hook agents, task allowlist
+│   ├── agent-registry.json  # Generated SSOT (v2): agents, hook agents, capabilities, task allowlist
 │   └── hooks.json        # Hook wiring
 ├── templates/
 │   ├── context/          # Blank six-file context templates
 │   └── AGENTS.md         # Entry-point template
-├── scripts/              # 52 JS (47 top-level + 5 lib/) + 17 shell: suites, automation, service managers
+├── scripts/              # 54 JS (49 top-level + 5 lib/) + 17 shell: suites, automation, service managers
 ├── server/               # Studio API (Node)
 ├── studio/               # Read-only React/Vite dashboard
 ├── docs/                 # 01–04 core docs, topic guides, dated audit/ + plans/
@@ -417,7 +417,7 @@ pcore-orchestra/
 ├── context/                       # Six-file project context
 ├── project-bridge/                # 🌉 Per-repo cursor config bridge
 ├── templates/                     # 📋 Context/AGENTS.md templates
-├── scripts/                       # 🔧 52 JS + 17 shell
+├── scripts/                       # 🔧 54 JS + 17 shell
 ├── install.sh                     # 🚀 macOS/Linux installer
 ├── install.ps1                    # 🚀 Windows installer
 └── README.md                      # Project docs
@@ -545,7 +545,7 @@ node bundle/hooks/orchestra-health.js
 | PowerShell — `install.ps1` + `scripts/*.ps1` | ~1,100 |
 | Markdown — README + `context/` + `docs/` (incl. dated audit/plans) | ~13,500 |
 
-**Tests:** 37 `scripts/test-*.js` suites plus `scripts/test-studio-service.sh` (21 checks), all wired into CI alongside the agent-registry, secret-scan, and Qoder-drift gates.
+**Tests:** 39 `scripts/test-*.js` suites plus `scripts/test-studio-service.sh` (21 checks). CI wires 37 Node suites + the bash suite alongside the agent-registry, secret-scan, and Qoder-drift gates; `test-agent-capabilities.js` (registry v2 / tool allowlists / skill metadata, with its installed-tree check skipped on a clean runner) and the `test-e2e-suite.js` fan-out runner are local gates.
 
 ## Largest `bundle/hooks/lib` modules
 
@@ -586,7 +586,7 @@ node bundle/hooks/orchestra-health.js
 | System | Size | Notes |
 |--------|------|-------|
 | Installers | 1,159 lines (bash + PowerShell) | `install.sh` (611), `install.ps1` (548) |
-| Scripts | 52 JS (47 top-level + 5 `lib/`) + 17 shell | Automation, suites, service managers, watcher |
+| Scripts | 54 JS (49 top-level + 5 `lib/`) + 17 shell | Automation, suites, service managers, watcher |
 | Templates | 42 files | Six-file context blanks, specs, AGENTS, 29 architecture templates |
 | Agents | 160 agent files, 27 hook agents | Generated SSOT: `bundle/agent-registry.json` |
 

@@ -277,7 +277,7 @@ pcore-orchestra/
 │   ├── project-overview.md              # Product definition
 │   ├── architecture.md                  # System structure + invariants
 │   ├── code-standards.md                # Code conventions + SOLID
-│   ├── ui-context.md                    # N/A (CLI/hooks only)
+│   ├── ui-context.md                    # Studio UI + docs presentation tokens
 │   ├── ai-workflow-rules.md             # AI workflow + verification
 │   └── progress-tracker.md             # Current state + decisions log
 │

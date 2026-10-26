@@ -410,7 +410,7 @@ additionally routes to the 155 specialist agents in `bundle/agents/<category>/`)
 | `orchestra-verifier` | 3 — Verify | ✅ | `VERIFY_PASS` / `VERIFY_FAIL` | 15,000 |
 | `orchestra-reviewer` | 4 — Review | ✅ | `ORCHESTRA_COMPLETE` / `FIX_REQUIRED` | 8,000 |
 
-**Cursor agents** use `readonly: true` frontmatter. **OpenCode agents** use `mode: subagent` + `permission: { edit: deny, bash: allow }` (readonly phases still deny edit; bash allow avoids inspection prompts). **Qoder agents** use `disallowedTools: [Write, Edit, NotebookEdit]` for readonly phases and full tools for the implementer.
+**Cursor agents** use `readonly: true` frontmatter. **OpenCode agents** use `mode: subagent` + `permission: { edit: deny, bash: allow }` (readonly phases still deny edit; bash allow avoids inspection prompts). **Qoder agents** use `disallowedTools: [Write, Edit, NotebookEdit]` for readonly phases and full tools for the implementer. Every agent also carries an explicit `tools:` allowlist derived from its `readonly` policy by `scripts/enrich-agent-capabilities.js`; `bundle/agent-registry.json` (v2) records the same allowlist under `agentDetails[*].capabilities`, and `scripts/test-agent-capabilities.js` fails when files, registry, and skill metadata disagree.
 
 **Model defaults:** Cursor agents are pinned to `composer-2.5` (escalate to `grok-4.6` standard for hard/long-horizon tasks). OpenCode agents use free models only — they **inherit the global `model`** set by `scripts/update-free-models.sh --apply` (highest-stability probe-reachable free model, currently `opencode/big-pickle`) — never per-agent pins. See `docs/token-optimization.md` and `docs/orchestra-cross-platform.md`.
 

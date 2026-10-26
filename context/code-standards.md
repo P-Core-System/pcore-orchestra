@@ -38,6 +38,7 @@ node scripts/test-state-manager-compat.js
 node scripts/test-conductor-state.js
 node scripts/test-phase-outcome.js
 node scripts/test-agent-registry.js
+node scripts/test-agent-capabilities.js
 node scripts/test-handshake-contract.js
 node scripts/test-mirror-sync.js
 node scripts/test-permission-review.js
@@ -76,8 +77,10 @@ node scripts/gen-agent-registry.js --check
 node scripts/scan-secrets.js --dir . --fail-on=high
 ```
 
-All must exit 0. `.github/workflows/ci.yml` runs the same list on every PR (the
-secret scan is a required CI step — see invariant 24). `test-studio-ui.js`
+All must exit 0. `.github/workflows/ci.yml` runs the same list on every PR minus
+`test-agent-capabilities.js` (a local gate; its installed-tree check skips on a
+clean runner); `node scripts/test-e2e-suite.js` runs every suite with a PASS/FAIL
+summary (the secret scan is a required CI step — see invariant 24). `test-studio-ui.js`
 imports pure `.ts` modules via native type stripping and needs Node >= 23
 (CI uses Node 24).
 
