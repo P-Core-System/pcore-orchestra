@@ -59,6 +59,8 @@ Commits follow `<type>(<scope>): <description>`:
 - `docs(...): ...` — documentation only
 - `chore(...): ...` — maintenance
 
+User-visible changes also get one line under **Unreleased** in [`CHANGELOG.md`](CHANGELOG.md).
+
 ### 7. Progress Tracker
 
 Every meaningful change to this repo must add a dated entry to `context/progress-tracker.md`:
@@ -104,4 +106,5 @@ Open an issue or discussion on GitHub. We welcome questions, bug reports, and fe
 
 ## Code of Conduct
 
-Be respectful, inclusive, and constructive. Harassment, spam, or off-topic behavior will not be tolerated.
+This project is governed by the [Contributor Covenant 2.1](CODE_OF_CONDUCT.md).
+Be respectful, inclusive, and constructive. Harassment, spam, or off-topic behavior will not be tolerated; report issues through the channels listed in `CODE_OF_CONDUCT.md`.
