@@ -147,7 +147,7 @@ Orchestration can **reduce** total tokens vs monolithic agent if phases use fres
 
 | Gap | Why it matters | Suggested approach |
 |-----|----------------|-------------------|
-| **Structured plan artifact** | Planner output lost in chat; implementer re-reads repo | Write `.cursor/orchestra-plan.md` or `context/specs/active-plan.md` on PLAN_READY |
+| ~~**Structured plan artifact**~~ | ✅ Done 2026-10 | `plan-artifact.js` writes `.cursor/orchestra-plan.md` on PLAN_READY and `buildPlanHandoffLine` carries it to the implementer |
 | ~~SQLite FTS memory~~ | ✅ Done V3.7.0 | `memory-fts.js` → `<state>/memory-fts.db` (FTS5 over `node:sqlite`); JSON index stays as the source of truth and the fail-open fallback |
 | **Transcript indexing** | Planner learns from past *approaches*, not just goals | Index agent-transcripts deltas (see agents-memory-updater skill) |
 | **Compaction of phase outputs** | Parent context bloat across 4 phases | Store 200-char summary in `state.memory.phases_completed` only (partial ✅) |
@@ -186,8 +186,8 @@ Orchestration can **reduce** total tokens vs monolithic agent if phases use fres
 ### P3 (next sprints)
 
 1. ✅ Semantic recall BM25-lite (V3.5.0)
-2. Structured plan artifact between phases
-3. SQLite FTS5 memory backend (optional migration)
+2. ✅ Structured plan artifact between phases — `bundle/hooks/lib/plan-artifact.js`
+3. ✅ SQLite FTS5 memory backend — `bundle/hooks/lib/memory-fts.js` + RRF fusion (`memory-index.js`); recall-fidelity/IDF upgrades 2026-10-26
 4. Transcript delta indexing for planner
 5. Model tier mapping doc (when API available)
 
@@ -221,4 +221,19 @@ Orchestration can **reduce** total tokens vs monolithic agent if phases use fres
 
 ---
 
-*Last updated: V3.5.0 — semantic recall + research synthesis.*
+## 2026-10 loop-engineering status
+
+Re-status 2026-10-29 of the P3 gaps above:
+
+| P3 gap | Status | Implementing module |
+|--------|--------|---------------------|
+| Structured plan artifact | ✅ shipped | `bundle/hooks/lib/plan-artifact.js` — writes `.cursor/orchestra-plan.md` on PLAN_READY; `buildPlanHandoffLine` carries plan path + AC count into the implementer handoff (also feeds the verifier/reviewer agents) |
+| SQLite FTS memory | ✅ shipped 2026-10-26 | `bundle/hooks/lib/memory-fts.js` (FTS5 via built-in `node:sqlite`, no native deps) + `memory-index.js` reciprocal-rank fusion (K=60); JSON index stays source of truth with fail-open fallback; byte-identical OpenCode mirror |
+
+Still open from this doc's roadmap: transcript delta indexing (P3), hybrid embeddings (P4), code chunk index (P4), worktree parallel implementers (P4).
+
+**External harness survey:** the 2026-10 comparison against LangChain/LangGraph/Deep Agents, the six harness responsibilities (arXiv 2606.20683), and the loop-engineering sources (arXiv 2608.21884, Proof-or-Stop arXiv 2607.14890, and friends) lives once in `docs/agent-harness-recommendations.md` § 2026-10 loop-engineering status — see that section for the terminology-reference vs adopted-pattern labels. Forward roadmap: `docs/plans/2026-10-29-loop-engineering-roadmap.md`.
+
+---
+
+*Last updated: 2026-10-29 — Orchestra loop-engineering refresh*

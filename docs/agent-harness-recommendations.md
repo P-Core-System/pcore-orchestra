@@ -102,8 +102,8 @@ Setpoint (goal) → Planner (feedforward) → Implementer (actuator)
 | **Compaction hook** (optional) | Prune tool output from parent context between phases | High |
 | **Harness metrics export** | Prometheus-style counters from `orchestra-metrics.json` | Medium |
 | **Semantic memory (BM25-lite)** | ✅ V3.5.0 — `semantic-memory.js`, `memory recall` CLI | Done |
-| **Structured plan artifact** | Persist planner output between phases | High |
-| **SQLite FTS memory** | Scale episodic memory with BM25 | Medium |
+| **Structured plan artifact** | ✅ Done — `plan-artifact.js` persists `.cursor/orchestra-plan.md` between phases | Done |
+| **SQLite FTS memory** | ✅ Done — `memory-fts.js` (FTS5 via `node:sqlite`) + `memory-index.js` RRF fusion | Done |
 
 See also: **`docs/agent-orchestra-rag-research.md`** — RAG tiers, context engineering, gaps vs 2026 harness practice.
 
@@ -329,9 +329,11 @@ See `docs/token-optimization.md` for full detail. Harness-level summary:
 
 ## 9. Prioritized roadmap for pcore-orchestra
 
+Status re-verified 2026-10-29 — shipped items name their implementing module.
+
 ### P0 — Do now (high ROI, low effort)
 
-1. ✅ Token tracker + `orchestra-enable.js tokens`
+1. ✅ Token tracker + `orchestra-enable.js tokens` — **SHIPPED** `bundle/hooks/lib/token-tracker.js`
 2. ✅ Token efficiency sections in core agents
 3. ✅ `docs/token-optimization.md`
 4. **Restart Cursor after install** — operators must reload hooks
@@ -340,22 +342,22 @@ See `docs/token-optimization.md` for full detail. Harness-level summary:
 ### P1 — Next sprint
 
 1. **`docs/opencode.json.example`** — committed balanced profile
-2. **Agent identity split** — `references/identity.md` per core agent
-3. **Cache-shaped sessionStart** — reorder `additional_context`: static → dynamic
+2. ✅ Agent identity split — **SHIPPED** `bundle/agents/references/orchestra-{planner,implementer,verifier,reviewer}-identity.md`
+3. ✅ Cache-shaped sessionStart — **SHIPPED** `bundle/hooks/orchestra-session-start.js` (static blocks before dynamic)
 4. **Harness metrics dashboard** — extend `orchestra-enable.js metrics` CLI
 
 ### P2 — Medium term
 
-1. **Project phase profiles** — `project.yaml` field: `orchestra.route`, `orchestra.max_iterations`
-2. **Optional plan-only mode** — ambient starts planner, user confirms before implement
+1. ✅ Project phase profiles — **SHIPPED** `bundle/hooks/lib/orchestra-config.js` (`orchestra.route`, `orchestra.max_iterations` from `project.yaml`)
+2. ✅ Optional plan-only mode — **SHIPPED** `bundle/hooks/orchestra-subagent-stop.js` `handlePlanOnlyPause` (`planAwaitingConfirm` pauses before implement)
 3. **Evidence gate automation** — wire `evidence-runner.js` output into verifier prompt
 4. **Enterprise phase picker** — template YAML listing enabled SDLC phases
 
 ### P3 — Research / optional
 
 1. **Model tier per phase** — Cursor when API exposes per-Task model
-2. ~~**Semantic memory** — embed past goals for planner retrieval~~ ✅ BM25-lite V3.5.0; hybrid embeddings P4
-3. **Structured plan artifact** — `.cursor/orchestra-plan.md` between phases
+2. ~~**Semantic memory** — embed past goals for planner retrieval~~ ✅ BM25-lite V3.5.0 (`semantic-memory.js`); hybrid embeddings P4
+3. ✅ Structured plan artifact — **SHIPPED** `bundle/hooks/lib/plan-artifact.js` (`.cursor/orchestra-plan.md` + `buildPlanHandoffLine`)
 4. **Worktree orchestration** — parallel implementers for monorepo packages
 5. **STEM edu mode** — export cycle as “lab report” (hypothesis, method, results)
 
@@ -377,4 +379,35 @@ See `docs/token-optimization.md` for full detail. Harness-level summary:
 
 ---
 
-*Last updated: 2026-07-22 — Orchestra V3.3.5*
+## 2026-10 loop-engineering status
+
+Re-audit 2026-10-29: the five loop-engineering loops from the literature map onto concrete modules in this repo. One loop is partial (no fitness metric); one is warning-only by design.
+
+| Loop | Reference pattern | Implementing module(s) | Status |
+|------|-------------------|------------------------|--------|
+| **Inner agent loop** | reason→act→observe within one phase | `bundle/hooks/lib/phase-engine.js` | ✅ shipped |
+| **Verification / evidence loop** | binary verdict + evidence gates + commit gate | `bundle/hooks/lib/phase-outcome.js`, `lib/quality-gate.js`, `lib/evidence-runner.js`, `lib/phase-commit-gate.js` | ✅ shipped |
+| **Event-driven hook loop** | phase chain driven by host lifecycle events | `lib/handoff-enforcer.js` + `bundle/hooks/orchestra-session-start.js` (sessionStart), `orchestra-prompt.js` (beforeSubmitPrompt), `orchestra-subagent-stop.js` (subagentStop), `orchestra-stop.js` (stop), `orchestra-heartbeat.js` (heartbeat) | ✅ shipped |
+| **Hill-climbing loop** | re-approach the problem when the current hill stops rising | `lib/handoff-enforcer.js` `ESCALATION_AFTER_FIX_CYCLES` (=2): root-cause/split-scope directive + `grok-4.6` escalation after repeated fix cycles | ⚠️ partial — no fitness metric yet (P2 gap: outcomes are recorded but not scored) |
+| **Continuous-improvement / ratchet** | never repeat the same mistake | `lib/memory-index.js`, `lib/memory-fts.js`, `lib/semantic-memory.js`, `lib/token-tracker.js`, and `buildOutcomeHistoryWarning` in `lib/memory-manager.js` | ⚠️ warning-only — informs planning, not enforced as a gate |
+
+### External harness survey (terminology reference)
+
+Comparison points from the 2026 agent-harness ecosystem. IDs are cited exactly as supplied in the 2026-10 survey — verify the source before quoting content; no abstracts are paraphrased here.
+
+| Source | What it is cited for | Label |
+|--------|----------------------|-------|
+| **LangChain 1.0 / LangGraph 1.0 / Deep Agents harness** | Context compaction & offload, isolated-vs-fork subagent fan-out, search-before-read retrieval discipline | Terminology reference — orchestra covers the same needs differently (phase isolation + `MAX_HANDOFF_CHARS` handoff cap + read-only auditors) |
+| **Six harness responsibilities** — observation, context, control, action, state, verification (arXiv 2606.20683) | Responsibility checklist for a harness | Adopted pattern (mapped) — observation: `orchestra-heartbeat.js` + `token-tracker.js`; context: six-file injection; control: `phase-engine.js`; action: implementer (only writer); state: `orchestra.json`; verification: quality/evidence gates |
+| **Loop-engineering survey** (arXiv 2608.21884) | Loop-pattern vocabulary used in the table above | Terminology reference (sources to verify) |
+| **Proof-or-Stop** (arXiv 2607.14890) | Stop unless the phase produces proof | Adopted pattern (aligned) — binary `VERIFY_PASS`/`VERIFY_FAIL` + red-gate block + completion-contract "report VERIFY_FAIL instead" |
+| **h-kod/loop-engineering-patterns** | Community loop-pattern catalog | Terminology reference (sources to verify) |
+| **Santander — "Engineering the loop"** | Loop-engineering essay | Terminology reference (sources to verify) |
+| **OpenAI — Harness Engineering** | Harness-engineering terminology | Terminology reference (sources to verify) |
+| **Lil Weng — "Harness Engineering for Self-Improvement"** | Self-improving harness framing | Terminology reference (sources to verify) |
+
+**Cross-reference:** RAG/memory re-status lives in `docs/agent-orchestra-rag-research.md` § 2026-10 loop-engineering status. Forward roadmap (Phase 4 context-aware verify, retry evidence check, state versioning): `docs/plans/2026-10-29-loop-engineering-roadmap.md`.
+
+---
+
+*Last updated: 2026-10-29 — Orchestra loop-engineering refresh*
