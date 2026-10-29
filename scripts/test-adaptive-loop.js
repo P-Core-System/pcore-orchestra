@@ -475,6 +475,112 @@ test("token tracker records prompt-cache reads and hit rate", () => {
   assert.equal(entry3.cache_hit_rate, null);
 });
 
+test("reportByOutcome: completed-cycle cost vs fix-cycle waste", () => {
+  const history = [
+    {
+      outcome: "completed",
+      iterations: 1,
+      total_estimated: 50000,
+      phases: [
+        { phase: "plan", estimated_tokens: 8000 },
+        { phase: "implement", estimated_tokens: 25000 },
+        { phase: "verify", estimated_tokens: 12000 },
+        { phase: "review", estimated_tokens: 5000 },
+      ],
+    },
+    {
+      outcome: "completed",
+      iterations: 2,
+      total_estimated: 70000,
+      phases: [
+        { phase: "plan", estimated_tokens: 8000 },
+        { phase: "implement", estimated_tokens: 25000 },
+        { phase: "verify", estimated_tokens: 12000 },
+        { phase: "implement", estimated_tokens: 12000 }, // FIX_REQUIRED replay
+        { phase: "verify", estimated_tokens: 8000 }, // FIX_REQUIRED replay
+        { phase: "review", estimated_tokens: 5000 },
+      ],
+    },
+    {
+      outcome: "max_iterations",
+      iterations: 5,
+      total_estimated: 90000,
+      phases: [
+        { phase: "plan", estimated_tokens: 8000 },
+        { phase: "implement", estimated_tokens: 30000 },
+        { phase: "verify", estimated_tokens: 15000 },
+        { phase: "implement", estimated_tokens: 20000 },
+        { phase: "verify", estimated_tokens: 17000 },
+      ],
+    },
+  ];
+
+  const r = tokenTracker.reportByOutcome(history);
+  // Fully loaded: 210000 total spend / 2 completed runs.
+  assert.equal(r.costPerCompletedCycle, 105000);
+  // Completed-run replays (12000 + 8000) + the whole dead run (90000).
+  assert.equal(r.wastedTokensInFixCycles, 110000);
+  // First-pass averages: plan (8000*3)/3, implement (25000+25000+30000)/3,
+  // verify (12000+12000+15000)/3, review (5000*2)/2.
+  assert.deepEqual(r.perPhaseAverages, {
+    plan: 8000,
+    implement: 26667,
+    verify: 13000,
+    review: 5000,
+  });
+  // 105k > 63k budget -> high outcome tip; waste share 52% >= 25% -> fix-waste tip.
+  assert.ok(r.tips.length >= 2, `expected accuracy tips, got ${r.tips.length}`);
+  assert.equal(r.tips[0].priority, "high");
+  assert.match(r.tips[0].message, /completed cycle/i);
+  assert.ok(
+    r.tips.some((t) => t.phase === "fix-waste"),
+    "waste-share tip present"
+  );
+});
+
+test("reportByOutcome: clean single-pass run has zero waste", () => {
+  const r = tokenTracker.reportByOutcome([
+    {
+      outcome: "completed",
+      total_estimated: 60000,
+      phases: [
+        { phase: "plan", estimated_tokens: 8000 },
+        { phase: "implement", estimated_tokens: 30000 },
+        { phase: "verify", estimated_tokens: 15000 },
+        { phase: "review", estimated_tokens: 7000 },
+      ],
+    },
+  ]);
+  assert.equal(r.costPerCompletedCycle, 60000);
+  assert.equal(r.wastedTokensInFixCycles, 0);
+  assert.deepEqual(r.tips, []);
+});
+
+test("reportByOutcome: empty or missing history keeps a stable shape", () => {
+  for (const input of [[], undefined, null, "nope"]) {
+    const r = tokenTracker.reportByOutcome(input);
+    assert.equal(r.costPerCompletedCycle, null);
+    assert.equal(r.wastedTokensInFixCycles, 0);
+    assert.deepEqual(r.perPhaseAverages, {});
+    assert.deepEqual(r.tips, []);
+  }
+  // Run with no usable numbers still reports (cost 0, no fake precision).
+  const emptyRun = tokenTracker.reportByOutcome([{ phases: null }]);
+  assert.equal(emptyRun.costPerCompletedCycle, 0);
+  assert.equal(emptyRun.wastedTokensInFixCycles, 0);
+  // Run without total_estimated falls back to its phase sum.
+  const fallback = tokenTracker.reportByOutcome([
+    {
+      outcome: "completed",
+      phases: [
+        { phase: "plan", estimated_tokens: 10000 },
+        { phase: "implement", estimated_tokens: 20000 },
+      ],
+    },
+  ]);
+  assert.equal(fallback.costPerCompletedCycle, 30000);
+});
+
 if (!process.exitCode) {
   console.log("\nAll adaptive loop tests passed.");
 }

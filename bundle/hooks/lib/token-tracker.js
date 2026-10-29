@@ -576,6 +576,143 @@ function formatRunSummary(run, tips) {
   return lines.join("\n");
 }
 
+/**
+ * Accuracy-aware token metrics — group tracked runs by outcome so operators see
+ * what one COMPLETED cycle really costs versus tokens burned replaying phases in
+ * FIX_REQUIRED loops or in runs that never completed.
+ *
+ * Waste model (documented in docs/token-optimization.md §11.4):
+ *  - completed run: phase entries beyond the first occurrence of that phase name
+ *    inside the run are FIX_REQUIRED replays → their tokens are waste;
+ *  - non-completed run (e.g. max_iterations): no cycle landed, so the run's
+ *    whole spend counts as waste (its own replays included exactly once).
+ *
+ * `costPerCompletedCycle` is fully loaded by design: ALL tracked spend ÷
+ * completed runs, so fix waste and dead runs stay visible in the per-cycle
+ * number instead of hiding behind optimistic averaging.
+ *
+ * @param {Array} history run records (session or aggregated `runs`)
+ * @returns {{costPerCompletedCycle: number|null,
+ *            wastedTokensInFixCycles: number,
+ *            perPhaseAverages: Object<string, number>,
+ *            tips: Array<{priority: string, phase: string, agent: string|null,
+ *                         message: string, action: string}>}}
+ *   `perPhaseAverages` averages each phase name's FIRST occurrence per run —
+ *   the clean cost of executing that phase once.
+ */
+function reportByOutcome(history) {
+  const result = {
+    costPerCompletedCycle: null,
+    wastedTokensInFixCycles: 0,
+    perPhaseAverages: {},
+    tips: [],
+  };
+  if (!Array.isArray(history) || history.length === 0) return result;
+
+  const phaseBudgets = {
+    plan: { budget: AGENT_BUDGETS["orchestra-planner"], agent: "orchestra-planner" },
+    implement: { budget: AGENT_BUDGETS["orchestra-implementer"], agent: "orchestra-implementer" },
+    verify: { budget: AGENT_BUDGETS["orchestra-verifier"], agent: "orchestra-verifier" },
+    review: { budget: AGENT_BUDGETS["orchestra-reviewer"], agent: "orchestra-reviewer" },
+  };
+
+  let totalSpend = 0;
+  let completedRuns = 0;
+  let deadRuns = 0;
+  let deadSpend = 0;
+  let replayWaste = 0;
+  const firstPass = {};
+
+  for (const run of history) {
+    if (!run || typeof run !== "object") continue;
+    const phases = Array.isArray(run.phases) ? run.phases : [];
+    const phaseSum = phases.reduce((s, p) => s + (Number(p && p.estimated_tokens) || 0), 0);
+    const spend = Number(run.total_estimated) || phaseSum;
+    const completed = (run.outcome || "completed") === "completed";
+    totalSpend += spend;
+
+    const seen = new Set();
+    let runReplay = 0;
+    for (const p of phases) {
+      if (!p) continue;
+      const name = p.phase || "unknown";
+      const tokens = Number(p.estimated_tokens) || 0;
+      if (seen.has(name)) {
+        runReplay += tokens;
+        continue;
+      }
+      seen.add(name);
+      if (!firstPass[name]) firstPass[name] = { tokens: 0, count: 0 };
+      firstPass[name].tokens += tokens;
+      firstPass[name].count += 1;
+    }
+
+    if (completed) {
+      completedRuns += 1;
+      replayWaste += runReplay;
+    } else {
+      deadRuns += 1;
+      deadSpend += spend;
+    }
+  }
+
+  const wastedTokensInFixCycles = replayWaste + deadSpend;
+  for (const [name, row] of Object.entries(firstPass)) {
+    result.perPhaseAverages[name] = row.count > 0 ? Math.round(row.tokens / row.count) : 0;
+  }
+  result.wastedTokensInFixCycles = wastedTokensInFixCycles;
+  if (completedRuns > 0) {
+    result.costPerCompletedCycle = Math.round(totalSpend / completedRuns);
+  }
+
+  const tips = [];
+  if (completedRuns === 0) {
+    tips.push({
+      priority: "high",
+      phase: "outcome",
+      agent: null,
+      message: `No completed cycle in ${history.length} tracked run(s) — ~${totalSpend.toLocaleString()} tokens spent, nothing landed.`,
+      action: "Shrink scope so verify/review can pass in one cycle; tighten the plan's Done-when criteria (docs/token-optimization.md §5.2).",
+    });
+  } else if (result.costPerCompletedCycle > CYCLE_BUDGET) {
+    const overPct = Math.round(((result.costPerCompletedCycle - CYCLE_BUDGET) / CYCLE_BUDGET) * 100);
+    tips.push({
+      priority: "high",
+      phase: "outcome",
+      agent: null,
+      message: `A completed cycle really costs ~${result.costPerCompletedCycle.toLocaleString()} tokens (${overPct}% over the ${CYCLE_BUDGET.toLocaleString()} budget) once fix waste is included.`,
+      action: "Fix red checks in one implement pass; the phase handoff escalates after repeated fix cycles.",
+    });
+  }
+
+  const wasteShare = totalSpend > 0 ? Math.round((wastedTokensInFixCycles / totalSpend) * 100) : 0;
+  if (totalSpend > 0 && wastedTokensInFixCycles > 0 && wasteShare >= 25) {
+    tips.push({
+      priority: "medium",
+      phase: "fix-waste",
+      agent: null,
+      message: `~${wastedTokensInFixCycles.toLocaleString()} tokens (${wasteShare}% of spend) wasted in fix-cycle replays or runs that never completed.`,
+      action: "Root-cause the red gate instead of patching symptoms; cap fix iterations (docs/token-optimization.md §5.2).",
+    });
+  }
+
+  for (const [name, avg] of Object.entries(result.perPhaseAverages)) {
+    const cfg = phaseBudgets[name];
+    if (cfg && cfg.budget && avg > cfg.budget) {
+      tips.push({
+        priority: "medium",
+        phase: name,
+        agent: null,
+        message: `First-pass ${name} phase averages ~${avg.toLocaleString()} tokens — over its ${cfg.budget.toLocaleString()} budget.`,
+        action: agentTipAction(cfg.agent),
+      });
+    }
+  }
+
+  result.tips = tips;
+  return result;
+}
+
 function buildTokenContextForSession(sessionId) {
   const fullState = loadTokenState(sessionId);
   const aggregated = getAggregatedTokenState(fullState);
@@ -664,6 +801,29 @@ function printTokenReport(sessionId) {
     console.log("\n--- Last run summary ---\n" + aggregated.last_summary);
   }
 
+  const accuracy = reportByOutcome(aggregated.runs);
+  console.log("\n--- Accuracy by outcome ---");
+  if (accuracy.costPerCompletedCycle != null) {
+    console.log(
+      `  Cost per completed cycle: ~${accuracy.costPerCompletedCycle.toLocaleString()}` +
+        ` (fully loaded: all tracked spend / ${aggregated.runs.filter((r) => (r.outcome || "completed") === "completed").length} completed)`
+    );
+  } else {
+    console.log("  Cost per completed cycle: n/a — no completed cycles tracked yet");
+  }
+  console.log(`  Wasted in fix cycles: ~${accuracy.wastedTokensInFixCycles.toLocaleString()}`);
+  const avgEntries = Object.entries(accuracy.perPhaseAverages);
+  if (avgEntries.length > 0) {
+    console.log(
+      "  First-pass phase avg: " +
+        avgEntries.map(([p, v]) => `${p} ~${v.toLocaleString()}`).join(", ")
+    );
+  }
+  for (const t of accuracy.tips) {
+    console.log(`  [${t.priority}] ${t.message}`);
+    console.log(`    → ${t.action}`);
+  }
+
   const openTips = (aggregated.tips || []).slice(-5);
   if (openTips.length > 0) {
     console.log("\n--- Tips for next run ---");
@@ -696,6 +856,7 @@ module.exports = {
   recordPhaseTokens,
   finalizeRunTokens,
   generateImprovementTips,
+  reportByOutcome,
   buildTokenContextForSession,
   formatRunSummary,
   printTokenReport,
