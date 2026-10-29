@@ -154,7 +154,7 @@ function generate() {
   for (const name of SHARED_REFS) {
     const srcPath = path.join(refSrc, name);
     if (!fs.existsSync(srcPath)) continue;
-    out.set(path.join("references", name), fs.readFileSync(srcPath, "utf8"));
+    out.set("references/" + name, fs.readFileSync(srcPath, "utf8"));
   }
   for (const src of walk(SRC)) {
     const rel = path.relative(SRC, src);

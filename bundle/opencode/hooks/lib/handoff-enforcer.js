@@ -32,13 +32,83 @@ function buildEscalationLine(state) {
   ].join(" ");
 }
 
+/**
+ * Completion contract — forbidden-actions clause. Always emitted: a phase
+ * that weakens evidence to turn a red check green destroys the verification
+ * loop's only sensor, so the contract says so explicitly in every handoff.
+ */
+const FORBIDDEN_ACTIONS_CLAUSE =
+  "Forbidden actions: may not weaken/delete/skip a failing test, lower a threshold, or bypass a gate to make verify pass; report VERIFY_FAIL instead.";
+
+/**
+ * Completion contract — human-gate clause, emitted ONLY when the run state
+ * marks a phase as needing human approval. Derived defensively from
+ * `state.last_outcome` / `state.memory`: any missing or unrecognized shape
+ * means the clause is absent (never invented).
+ *
+ * Signals honored (all optional):
+ * - `state.last_outcome.needs_human === true` (blocked outcomes stamp this)
+ * - `state.last_outcome.decision` in {"needs_human","block"} (the same
+ *   OPEN_DECISIONS set the review queue and quality gate honor)
+ * - `state.planAwaitingConfirm === true` (plan-only pause before implement)
+ * - `state.memory.humanReview.required` / `state.memory.humanReviewRequired`
+ */
+function buildHumanGateLine(state) {
+  if (!state || typeof state !== "object") return null;
+  const outcome =
+    state.last_outcome && typeof state.last_outcome === "object" ? state.last_outcome : null;
+  const memory = state.memory && typeof state.memory === "object" ? state.memory : null;
+
+  const openDecision =
+    outcome &&
+    (outcome.needs_human === true ||
+      outcome.decision === "needs_human" ||
+      outcome.decision === "block");
+  const planConfirm = state.planAwaitingConfirm === true;
+  const memoryRequired = !!(
+    memory &&
+    ((memory.humanReview && memory.humanReview.required === true) ||
+      memory.humanReviewRequired === true)
+  );
+  if (!openDecision && !planConfirm && !memoryRequired) return null;
+
+  const phase =
+    (outcome && typeof outcome.phase === "string" && outcome.phase) ||
+    (planConfirm ? "plan-confirm" : "review");
+  return `Human gate: ${phase} requires human approval (humanReview.required) — do not auto-continue past it; stop and report.`;
+}
+
+/**
+ * Completion contract for the next phase agent — two clauses:
+ * 1. Forbidden actions (always): no weakening a failing check to pass verify.
+ * 2. Human gate (only when the state marks it required).
+ *
+ * Returns an array of lines so callers place them EARLY in the handoff —
+ * ahead of any truncatable tail and adjacent to the escalation line — so the
+ * MAX_HANDOFF_CHARS truncation can never hide the contract.
+ *
+ * @param {object} state - orchestra state
+ * @param {string} [nextAgentId] - agent being spawned (reserved for future
+ *   agent-specific variants; the clauses are identical for every phase)
+ * @returns {string[]} contract lines (1–2)
+ */
+function buildCompletionContract(state, nextAgentId) {
+  const lines = [FORBIDDEN_ACTIONS_CLAUSE];
+  const humanGate = buildHumanGateLine(state);
+  if (humanGate) lines.push(humanGate);
+  return lines;
+}
+
 function buildPhaseHandoff(state, nextAgentId) {
-  const lines = [
-    HANDOFF_RULES,
-    "",
+  const lines = [HANDOFF_RULES, ""];
+
+  // Contract before goal/history so it is never crowded out of a long handoff.
+  lines.push(...buildCompletionContract(state, nextAgentId));
+
+  lines.push(
     `Goal: ${state.goal || "(none)"}`,
     `Auto-continue: ${spawnLine("cursor", nextAgentId)} immediately — do not wait for the user.`,
-  ];
+  );
 
   const completed = state.memory?.phases_completed;
   if (completed?.length > 0) {
@@ -74,19 +144,22 @@ function buildPhaseHandoff(state, nextAgentId) {
  * @returns {string} enriched handoff, truncated to MAX_HANDOFF_CHARS with marker
  */
 function buildHandoffEnforcement(state, evidenceRecords, workItemContext) {
-  const lines = [];
+  // Completion contract FIRST: the evidence digest below can overflow
+  // MAX_HANDOFF_CHARS on its own, and truncation cuts the tail — so only a
+  // head placement guarantees the contract (and the escalation line) survive.
+  const lines = [...buildCompletionContract(state, null)];
 
-  // Evidence digest: gate names + pass/fail summary
+  // Escalation next — ahead of the truncatable tail so it can never hide it.
+  const escalation = buildEscalationLine(state);
+  if (escalation) lines.push(escalation);
+
+  // Evidence digest: gate names + pass/fail summary (truncatable tail).
   if (evidenceRecords && evidenceRecords.length > 0) {
     const digest = evidenceRecords
       .map((r) => `${r.gate}:${r.ok ? "PASS" : "FAIL"}`)
       .join(" ");
     lines.push(`Evidence: ${digest}`);
   }
-
-  // Keep escalation ahead of the tail so truncation can never hide it.
-  const escalation = buildEscalationLine(state);
-  if (escalation) lines.push(escalation);
 
   // Work-item context: ticket ID + AC count
   const ticketId =
@@ -147,8 +220,10 @@ module.exports = {
   MAX_HANDOFF_CHARS,
   HANDOFF_RULES,
   ESCALATION_AFTER_FIX_CYCLES,
+  FORBIDDEN_ACTIONS_CLAUSE,
   buildPhaseHandoff,
   buildHandoffEnforcement,
+  buildCompletionContract,
   buildEscalationLine,
   validateHandoffCompact,
   handoffWarningBlock,

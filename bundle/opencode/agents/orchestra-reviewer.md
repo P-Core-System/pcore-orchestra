@@ -136,6 +136,15 @@ commit; call out the root cause and require a smaller, testable slice next.
 If the same Critical finding survives another round, recommend escalating the
 implementer to `grok-4.6` standard and report the blocker to the user.
 
+## Completion contract
+
+The phase handoff carries a completion contract; it binds this phase:
+
+- **Forbidden actions:** may not weaken/delete/skip a failing test, lower a
+  threshold, or bypass a gate to make verify pass; report VERIFY_FAIL instead.
+- **Human gate:** when the handoff (or run state) marks `humanReview.required`
+  for a phase, stop and report — never auto-continue past it.
+
 ## Step budget awareness
 
 The conductor may pass a step budget. Respect it:

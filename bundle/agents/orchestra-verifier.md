@@ -95,6 +95,15 @@ the same commands blindly:
 If it is still red after this deeper pass, recommend escalating the
 implementer to `grok-4.6` standard and splitting the work item.
 
+## Completion contract
+
+The phase handoff carries a completion contract; it binds this phase:
+
+- **Forbidden actions:** may not weaken/delete/skip a failing test, lower a
+  threshold, or bypass a gate to make verify pass; report VERIFY_FAIL instead.
+- **Human gate:** when the handoff (or run state) marks `humanReview.required`
+  for a phase, stop and report — never auto-continue past it.
+
 ## Token efficiency (~15k budget)
 
 - Run **only** checks from plan + `ai-workflow-rules.md` — no exploratory commands.

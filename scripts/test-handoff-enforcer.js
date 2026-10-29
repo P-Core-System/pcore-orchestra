@@ -289,6 +289,102 @@ async function runTests() {
     failed += 2;
   }
 
+  // Test 13: completion contract — forbidden clause in BOTH builders' output
+  try {
+    const state = {
+      goal: "Test goal",
+      memory: { ticketId: "TEST-123" },
+      last_outcome: { phase: "implement", decision: "advance", token: "IMPLEMENT_DONE" },
+    };
+    const enforcement = mod.buildHandoffEnforcement(state, [], {});
+    assertContains(enforcement, mod.FORBIDDEN_ACTIONS_CLAUSE, "buildHandoffEnforcement carries the forbidden-actions clause");
+    assertContains(enforcement, "report VERIFY_FAIL instead", "forbidden clause tells the phase to report VERIFY_FAIL");
+
+    const phaseHandoff = mod.buildPhaseHandoff(state, "orchestra-verifier");
+    assertContains(phaseHandoff, mod.FORBIDDEN_ACTIONS_CLAUSE, "buildPhaseHandoff carries the forbidden-actions clause");
+    passed += 3;
+  } catch (e) {
+    console.log(`  ✗ Forbidden-actions clause: ${e.message}`);
+    failed += 3;
+  }
+
+  // Test 14: human-gate clause present ONLY when the state marks it required
+  try {
+    const base = { goal: "Test goal", memory: { ticketId: "TEST-1" } };
+
+    const needsHuman = Object.assign({}, base, {
+      last_outcome: { phase: "verify", decision: "block", reason: "failed-gates", needs_human: true },
+    });
+    assertContains(
+      mod.buildHandoffEnforcement(needsHuman, [], {}),
+      "Human gate: verify requires human approval (humanReview.required)",
+      "human-gate line derives the phase from a needs_human/block outcome"
+    );
+
+    const planConfirm = Object.assign({}, base, { planAwaitingConfirm: true, last_outcome: null });
+    assertContains(
+      mod.buildHandoffEnforcement(planConfirm, [], {}),
+      "Human gate: plan-confirm requires human approval (humanReview.required)",
+      "human-gate line fires for a plan-only confirmation pause"
+    );
+
+    const memoryRequired = Object.assign({}, base, {
+      memory: { ticketId: "TEST-1", humanReview: { required: true } },
+      last_outcome: { phase: "review", decision: "advance" },
+    });
+    assertContains(
+      mod.buildPhaseHandoff(memoryRequired, "orchestra-reviewer"),
+      "Human gate: review requires human approval (humanReview.required)",
+      "buildPhaseHandoff carries the human-gate clause when memory marks it"
+    );
+    passed += 3;
+  } catch (e) {
+    console.log(`  ✗ Human-gate clause presence: ${e.message}`);
+    failed += 3;
+  }
+
+  // Test 15: human-gate clause ABSENT on a plain advance state (defensive derivation)
+  try {
+    const plain = {
+      goal: "Test goal",
+      memory: { ticketId: "TEST-2" },
+      last_outcome: { phase: "implement", decision: "advance", token: "IMPLEMENT_DONE" },
+    };
+    const enforcement = mod.buildHandoffEnforcement(plain, [{ gate: "tests", ok: true }], {});
+    assert(!enforcement.includes("Human gate"), "no human-gate line on an advance outcome");
+
+    const empty = mod.buildPhaseHandoff({}, "orchestra-implementer");
+    assert(!empty.includes("Human gate"), "no human-gate line when state is empty");
+    passed += 2;
+  } catch (e) {
+    console.log(`  ✗ Human-gate clause absence: ${e.message}`);
+    failed += 2;
+  }
+
+  // Test 16: contract lines survive truncation (contract placed ahead of the tail)
+  try {
+    const state = {
+      goal: "Test goal",
+      memory: { ticketId: "LONG-TEST" },
+      last_outcome: { phase: "verify", decision: "block", needs_human: true },
+    };
+    const evidenceRecords = Array.from({ length: 300 }, (_, i) => ({
+      gate: `very-long-gate-name-${i}`,
+      ok: false,
+      details: "x".repeat(200),
+    }));
+
+    const result = mod.buildHandoffEnforcement(state, evidenceRecords, {});
+    assertLengthLessOrEqual(result, 2500, "Contract-bearing result is still ≤ 2500 chars");
+    assertContains(result, mod.FORBIDDEN_ACTIONS_CLAUSE, "forbidden clause survives truncation");
+    assertContains(result, "Human gate: verify requires human approval", "human-gate clause survives truncation");
+    assert(result.indexOf("Forbidden actions:") < result.indexOf("Evidence:"), "contract is placed before the truncatable evidence tail");
+    passed += 4;
+  } catch (e) {
+    console.log(`  ✗ Contract survives truncation: ${e.message}`);
+    failed += 4;
+  }
+
   console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);
   process.exit(failed > 0 ? 1 : 0);
 }
