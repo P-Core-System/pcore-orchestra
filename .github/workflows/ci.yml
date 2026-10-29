@@ -48,7 +48,7 @@ jobs:
         run: npm ci --prefix server
       - name: Agent registry in sync
         run: node scripts/gen-agent-registry.js --check
-      - name: Hook suites (safe-write, state, conductor, outcome, registry, handshake, mirrors, triggers, permissions, adaptive, domain, evidence, review queue, security scanner, studio service)
+      - name: Hook suites (safe-write, state, conductor, outcome, registry, handshake, mirrors, triggers, permissions, adaptive, injection order, domain, evidence, review queue, security scanner, studio service)
         run: |
           set -e
           node scripts/test-safe-write.js
@@ -61,6 +61,7 @@ jobs:
           node scripts/test-trigger-scheduler.js
           node scripts/test-permission-review.js
           node scripts/test-adaptive-loop.js
+          node scripts/test-injection-order.js
           node scripts/test-domain-model.js
           node scripts/test-domain-completion.js
           node scripts/test-domain-store.js
@@ -80,7 +81,7 @@ jobs:
           node scripts/test-studio-server.js
           node scripts/test-studio-integration.js
       # Phase 5: worktree isolation, spawn adapter, MCP server, parallelism
-      - name: Orchestration suites (worktree, spawn adapter, MCP, parallel, six-file, memory, handoff, review producer)
+      - name: Orchestration suites (worktree, spawn adapter, MCP, parallel, six-file, memory, handoff, context preservation, review producer)
         run: |
           set -e
           node scripts/test-worktree-isolation.js
@@ -95,6 +96,7 @@ jobs:
           node scripts/test-memory-hybrid.js
           node scripts/test-memory-patterns.js
           node scripts/test-handoff-enforcer.js
+          node scripts/test-context-preservation.js
           node scripts/test-review-queue-producer.js
           node scripts/test-agent-sync.js
 

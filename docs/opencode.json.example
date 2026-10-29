@@ -557,7 +557,10 @@
   },
   "compaction": {
     "auto": true,
-    "buffer": 6000
+    "buffer": 6000,
+    "keep": {
+      "tokens": 4000
+    }
   },
   "tool_output": {
     "max_lines": 300,

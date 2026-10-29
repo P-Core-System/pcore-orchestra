@@ -290,7 +290,7 @@ verifier agent inside an orchestra run.
 
 ### CI suites (`.github/workflows/ci.yml`)
 
-43 Node suites (`scripts/test-*.js`) exist; 41 run in CI, plus one bash suite
+45 Node suites (`scripts/test-*.js`) exist; 43 run in CI, plus one bash suite
 (`scripts/test-studio-service.sh`). The two local gates are `test-agent-capabilities.js`
 (registry v2 tool allowlists, skill frontmatter, installed Qoder tree) and
 `test-e2e-suite.js` (runs every suite in isolation with a PASS/FAIL summary).
@@ -301,7 +301,7 @@ JavaScript file, `shellcheck --severity=error`, and the blocking secret scan.
 |------|--------|
 | State + safety | `test-safe-write`, `test-state-manager-compat`, `test-conductor-state`, `test-phase-outcome` |
 | Agent contracts | `test-agent-registry`, `test-agent-sync`, `test-handshake-contract`, `test-mirror-sync`, `test-qoder-sync` (frontmatter + hook event surface), `test-merge-qoder-settings` |
-| Core loop | `test-adaptive-loop`, `test-permission-review`, `test-opencode-v2`, `test-opencode-permission-contract`, `test-handoff-enforcer`, `test-sixfile-validation` |
+| Core loop | `test-adaptive-loop`, `test-injection-order`, `test-permission-review`, `test-opencode-v2`, `test-opencode-permission-contract`, `test-handoff-enforcer`, `test-context-preservation`, `test-sixfile-validation` |
 | Enterprise domain | `test-domain-model`, `test-domain-completion`, `test-domain-store`, `test-domain-evidence`, `test-domain-state-dir`, `test-evidence-runner`, `test-review-queue`, `test-review-queue-producer` |
 | Memory | `test-memory-retrieval`, `test-memory-hybrid`, `test-memory-patterns` |
 | Orchestration | `test-worktree-isolation`, `test-spawn-adapter`, `test-spawn-adapter-integration`, `test-parallel-execution`, `test-mcp-server`, `test-mcp-lifecycle` |
