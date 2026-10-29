@@ -306,7 +306,7 @@ node scripts/scan-secrets.js --dir . --fail-on=high   # blocking secret scan (CI
 ```
 
 The list above is the core subset; `node scripts/test-e2e-suite.js` runs every
-`scripts/test-*.js` suite in isolation with a PASS/FAIL summary. CI runs 41 Node suites
+`scripts/test-*.js` suite in isolation with a PASS/FAIL summary. CI runs 44 Node suites
 plus the bash service suite on every PR; the capability suite and the e2e runner are
 local gates. See `CONTRIBUTING.md` §3 for the full command set.
 

@@ -811,7 +811,7 @@ function printTokenReport(sessionId) {
   } else {
     console.log("  Cost per completed cycle: n/a — no completed cycles tracked yet");
   }
-  console.log(`  Wasted in fix cycles: ~${accuracy.wastedTokensInFixCycles.toLocaleString()}`);
+  console.log(`  Wasted (fix replays + incomplete runs): ~${accuracy.wastedTokensInFixCycles.toLocaleString()}`);
   const avgEntries = Object.entries(accuracy.perPhaseAverages);
   if (avgEntries.length > 0) {
     console.log(

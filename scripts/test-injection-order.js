@@ -14,8 +14,10 @@
  * every subsequent call, and defeats §11.2 of docs/token-optimization.md.
  *
  * This test pins three things:
- *   1. the static blocks (AMBIENT_CONTEXT / PARENT_HANDOFF_CONTEXT) are textually
- *      stable — no timestamps, run/session/pid ids, or UUIDs;
+ *   1. the static blocks (AMBIENT_CONTEXT / PARENT_HANDOFF_CONTEXT) AND the
+ *      two static text builders that feed staticParts (ctxBlock from
+ *      buildContextInjection, pyBlock from buildProjectYamlInjection) are
+ *      textually stable — no timestamps, run/session/pid ids, or UUIDs;
  *   2. session-start declares staticParts before dynamicParts and emits them in
  *      that order, with the volatile builders (state/crash, memory, tokens)
  *      feeding only the dynamic tail;
@@ -43,7 +45,7 @@ function test(name, fn) {
 
 console.log("=== test-injection-order.js ===");
 
-const { AMBIENT_CONTEXT, PARENT_HANDOFF_CONTEXT } = require(
+const { AMBIENT_CONTEXT, PARENT_HANDOFF_CONTEXT, SIX_FILE_CONTEXT, buildContextInjection, buildProjectYamlInjection } = require(
   path.join(ROOT, "bundle", "hooks", "lib", "context-detector.js")
 );
 
@@ -68,6 +70,43 @@ for (const [re, label] of VOLATILE_PATTERNS) {
   test(`static blocks contain no ${label}`, () => {
     assert.ok(!re.test(AMBIENT_CONTEXT), `AMBIENT_CONTEXT must not contain a ${label}`);
     assert.ok(!re.test(PARENT_HANDOFF_CONTEXT), `PARENT_HANDOFF_CONTEXT must not contain a ${label}`);
+  });
+}
+
+// §11.2 also lists ctxBlock and pyBlock as static — the two pure builders that
+// feed staticParts in session-start. They are deterministic text builders (no
+// Date.now(), run/session/pid ids, or UUIDs — verified against their sources),
+// so the same volatile-pattern scan applies to representative outputs.
+const ctxFixture = {
+  root: path.join("some", "root"),
+  contextDir: "context",
+  entryPoint: "AGENTS.md",
+  foundCount: SIX_FILE_CONTEXT.length,
+  totalCount: SIX_FILE_CONTEXT.length,
+  files: SIX_FILE_CONTEXT.map(({ file }) => ({ file, exists: true })),
+};
+const identityFixture = {
+  project: { name: "demo", display_name: "Demo", type: "app" },
+  version: { current: "1.0.0", channel: "stable" },
+  lifecycle: { stage: "development", status: "active" },
+  stack: { languages: ["javascript"], frameworks: [] },
+  team: {},
+  environments: {},
+};
+const ctxBlockFixture = buildContextInjection(ctxFixture);
+const pyBlockFixture = buildProjectYamlInjection(identityFixture);
+
+test("ctxBlock and pyBlock builders emit non-empty static text", () => {
+  assert.equal(typeof ctxBlockFixture, "string");
+  assert.equal(typeof pyBlockFixture, "string");
+  assert.ok(ctxBlockFixture.trim().length > 0, "ctxBlock non-empty");
+  assert.ok(pyBlockFixture.trim().length > 0, "pyBlock non-empty");
+});
+
+for (const [re, label] of VOLATILE_PATTERNS) {
+  test(`ctxBlock and pyBlock contain no ${label}`, () => {
+    assert.ok(!re.test(ctxBlockFixture), `ctxBlock must not contain a ${label}`);
+    assert.ok(!re.test(pyBlockFixture), `pyBlock must not contain a ${label}`);
   });
 }
 

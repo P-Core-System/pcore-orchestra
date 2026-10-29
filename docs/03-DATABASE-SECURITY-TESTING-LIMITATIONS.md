@@ -290,7 +290,7 @@ verifier agent inside an orchestra run.
 
 ### CI suites (`.github/workflows/ci.yml`)
 
-45 Node suites (`scripts/test-*.js`) exist; 43 run in CI, plus one bash suite
+46 Node suites (`scripts/test-*.js`) exist; 44 run in CI, plus one bash suite
 (`scripts/test-studio-service.sh`). The two local gates are `test-agent-capabilities.js`
 (registry v2 tool allowlists, skill frontmatter, installed Qoder tree) and
 `test-e2e-suite.js` (runs every suite in isolation with a PASS/FAIL summary).
