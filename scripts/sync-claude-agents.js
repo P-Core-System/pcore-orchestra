@@ -32,6 +32,16 @@ const MAX_DESCRIPTION = 1024;
 const READONLY_DISALLOWED_TOOLS = "Write, Edit, NotebookEdit";
 const WRITABLE_PERMISSION_MODE = "acceptEdits";
 
+/**
+ * Compare mirror content EOL-agnostically: generated content is always LF,
+ * but a checkout without the `*.md eol=lf` gitattributes rule (or a host
+ * honoring core.autocrlf ahead of it) can present CRLF on disk, which would
+ * false-fail a raw byte compare. Same bug class as the codex-sync fix.
+ */
+function normalizeEol(text) {
+  return text.replace(/\r\n/g, "\n");
+}
+
 function toClaudeMarkdown(raw, fallbackName) {
   const { fm, body } = splitFrontmatter(raw);
   if (!fm) return raw;
@@ -81,7 +91,7 @@ function main() {
     for (const [rel, content] of expected) {
       const dest = path.join(DEST, rel);
       if (!fs.existsSync(dest)) drift.push(`missing: bundle/claude/agents/${rel}`);
-      else if (fs.readFileSync(dest, "utf8") !== content) drift.push(`differs: bundle/claude/agents/${rel}`);
+      else if (normalizeEol(fs.readFileSync(dest, "utf8")) !== normalizeEol(content)) drift.push(`differs: bundle/claude/agents/${rel}`);
     }
     if (fs.existsSync(DEST)) {
       for (const file of walkMarkdown(DEST)) {
@@ -102,7 +112,7 @@ function main() {
   let unchanged = 0;
   for (const [rel, content] of expected) {
     const dest = path.join(DEST, rel);
-    if (fs.existsSync(dest) && fs.readFileSync(dest, "utf8") === content) {
+    if (fs.existsSync(dest) && normalizeEol(fs.readFileSync(dest, "utf8")) === normalizeEol(content)) {
       unchanged++;
       continue;
     }

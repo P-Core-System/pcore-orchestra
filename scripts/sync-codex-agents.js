@@ -28,6 +28,16 @@ const DEST = path.join(ROOT, "bundle", "codex", "agents");
 
 const MAX_DESCRIPTION = 1024;
 
+/**
+ * Compare mirror content EOL-agnostically: generated content is always LF,
+ * but on Windows `core.autocrlf=true` checks out *.toml as CRLF (no .toml
+ * rule in .gitattributes), so a raw byte compare false-fails every file.
+ * Same bug class as the qoder references fix in a8be9b8.
+ */
+function normalizeEol(text) {
+  return text.replace(/\r\n/g, "\n");
+}
+
 /** Single-line TOML basic string. JSON string escapes are valid TOML escapes. */
 function tomlString(value) {
   return JSON.stringify(value);
@@ -108,7 +118,7 @@ function main() {
     for (const [rel, content] of expected) {
       const dest = path.join(DEST, rel);
       if (!fs.existsSync(dest)) drift.push(`missing: bundle/codex/agents/${rel}`);
-      else if (fs.readFileSync(dest, "utf8") !== content) drift.push(`differs: bundle/codex/agents/${rel}`);
+      else if (normalizeEol(fs.readFileSync(dest, "utf8")) !== normalizeEol(content)) drift.push(`differs: bundle/codex/agents/${rel}`);
     }
     if (fs.existsSync(DEST)) {
       for (const file of walkToml(DEST)) {
@@ -129,7 +139,7 @@ function main() {
   let unchanged = 0;
   for (const [rel, content] of expected) {
     const dest = path.join(DEST, rel);
-    if (fs.existsSync(dest) && fs.readFileSync(dest, "utf8") === content) {
+    if (fs.existsSync(dest) && normalizeEol(fs.readFileSync(dest, "utf8")) === normalizeEol(content)) {
       unchanged++;
       continue;
     }
