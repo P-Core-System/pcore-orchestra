@@ -13,10 +13,12 @@ bundle/hooks/state/orchestra-metrics.json
 bundle/hooks/state/memory-index.json
 bundle/hooks/state/memory-fts.db*
 bundle/hooks/state/domain-*.json
+bundle/hooks/state/trigger-state.json
 bundle/hooks/lib/state/
 bundle/opencode/hooks/state/cycles/
 bundle/opencode/hooks/state/plans/
 bundle/opencode/hooks/state/orchestra.json
+bundle/opencode/hooks/state/trigger-state.json
 bundle/opencode/hooks/state/domain-*.json
 bundle/opencode/hooks/lib/state/
 .pcore/
