@@ -110,6 +110,12 @@ Semantics that matter:
   tick exactly on the boundary is due.
 - **Local time:** `daily` and cron-lite match the host's local calendar;
   `nextDue` returns the next local occurrence (ISO-8601 in `status`).
+- **Clock skew:** a `lastRun` stamped in the future (backward clock jump) makes
+  `isDue`/`shouldRun` **fail closed** — runs are suppressed until the clock
+  catches up, and `status`/`due` say so in their refusal messages. (Contrast: a
+  corrupt state file fails **open** via `readJsonSafe` — treated as fresh state,
+  so it can't strand automation, and it stays bounded by `daily_budget` and
+  self-heals on the next recorded run.)
 
 ## CLI
 
