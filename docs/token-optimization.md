@@ -18,6 +18,7 @@ Practical guide for reducing token spend in P-Core Orchestra, OpenCode, and cust
 8. [Monitoring and budgets](#8-monitoring-and-budgets)
 9. [Implementation checklist](#9-implementation-checklist)
 10. [References](#10-references)
+11. [2026-10 — Token, accuracy & long-context policy](#11-2026-10--token-accuracy--long-context-policy)
 
 ---
 
@@ -480,4 +481,116 @@ Ordered by ROI (fastest wins first):
 
 ---
 
-*Last updated: 2026-07-22 — Orchestra V3.3.3*
+## 11. 2026-10 — Token, accuracy & long-context policy
+
+Dated policy entry for the token/context workstream. The rules in §11.1–§11.5
+are normative for the core loop; the gates named beside them run in CI.
+
+### 11.1 Preference order under long-context pressure
+
+When a session or subagent approaches the context limit, act in this order —
+never jump straight to the last step:
+
+1. **Subagent isolation** — fresh context per phase; the parent passes only
+   goal (1 line) + plan bullets + prior failures (§7.4). A clean 8k subagent
+   context beats a compacted 180k one.
+2. **Externalize** — move durable state out of the prompt into files the next
+   phase re-reads on demand: plan artifact (`.cursor/orchestra-plan.md` +
+   `state/plans/<run>.md`), long-term memory (`state/orchestra-memory.json`),
+   token history (`state/orchestra-tokens.json`), lifecycle events (§2.3).
+3. **Summarize / compact last** — only after 1 and 2, let the host's
+   `compaction` trim the transcript (§11.6). Compaction discards detail it
+   cannot re-read from disk; externalized state survives every compaction.
+
+### 11.2 Protected region (cache-safe injection)
+
+`sessionStart` emits a two-part injection, enforced by
+`scripts/test-injection-order.js`:
+
+- **Static prefix (protected):** `AMBIENT_CONTEXT` + `PARENT_HANDOFF_CONTEXT`
+  + present six-file / `project.yaml` blocks — byte-identical every session,
+  no timestamps, run/session ids, or UUIDs.
+- **Dynamic tail (volatile):** identity notice, crash/resume state, memory
+  hits, token context — the only part allowed to change between sessions.
+
+Prompt-cache pricing rewards exactly this shape: a stable prefix is served
+from cache at a discount (Anthropic `cache_control` ~90% off, OpenAI cached
+input — §2.5), while compaction only helps the churning tail (Zylos
+cache-vs-compaction framing). One timestamp inside the static prefix re-keys
+the cache and pays full input price for the rest of the session. Same rule
+for subagent system prompts: keep them byte-stable across cycles.
+
+### 11.3 Context preservation under truncation
+
+Enforced by `scripts/test-context-preservation.js` (handoff-enforcer is a
+read-only contract):
+
+- Phase handoffs cap at `MAX_HANDOFF_CHARS` (2500). The work item (goal or
+  ticket) and the fix-cycle escalation line are pushed **before** the
+  truncation-prone tail, so the cut lands on verbose outcome detail first —
+  `validateHandoffCompact` flags anything that still exceeds the cap.
+- The plan survives as a **file**, not prompt text: `.cursor/orchestra-plan.md`
+  (constants `PLAN_DIR` / `PLAN_FILENAME`) plus the global `state/plans/<run>.md`
+  backup; handoffs carry a path pointer (`Read approved plan: …`) the next
+  phase re-reads even after the original planner message is gone.
+- Long-term memory survives as `state/orchestra-memory.json`, re-injected per
+  query instead of being carried verbatim.
+
+### 11.4 Accuracy-aware token metrics
+
+Raw "tokens spent" hides loops — a run that ends `max_iterations` burned real
+budget that an optimistic average would wash out. `reportByOutcome(history)`
+(`bundle/hooks/lib/token-tracker.js`, surfaced by
+`node ~/.cursor/hooks/orchestra-enable.js tokens` → "Accuracy by outcome"):
+
+| Metric | Meaning |
+|--------|---------|
+| `costPerCompletedCycle` | fully loaded — all tracked spend ÷ completed runs (fix waste and dead runs stay visible) |
+| `wastedTokensInFixCycles` | completed-run replay phases (2nd+ occurrence of a phase name) + the entire spend of runs that never completed |
+| `perPhaseAverages` | first-pass average per phase name — the clean cost of executing a phase once |
+| `tips` | deterministic actionable deltas in the same shape as the existing tips (high: no completed cycle / over-budget completed cost; medium: ≥25% waste share, phase over budget) |
+
+Gate: `scripts/test-adaptive-loop.js`.
+
+### 11.5 Tool surface = standing context tax
+
+Every `tools:` allowlist line in agent frontmatter and every permission action
+rule in `docs/opencode.json.example` is schema the model pays for on **every**
+call, invoked or not — the idle-tool tax (Zeng et al. 2026, terminology
+reference; §11.7). `node scripts/audit-tool-surface.js` inventories the
+surface: per-agent tool counts, files without a `tools:` allowlist, and the
+config's action-rule lines. Report-only by default; `--fail-over <n>` turns it
+into a gate (exit 1 when any agent exceeds `n` tools). Current surface: 158 of
+165 agents at 6–8 tools, none over 8.
+
+### 11.6 Host compaction config
+
+Guidance for `compaction` in `opencode.json` — V2 native keys (the V1→V2
+mapping lives in `scripts/lib/opencode-v2.js`):
+
+| Key | Guidance |
+|-----|----------|
+| `compaction.auto` | keep `true` — compact before the window hard-stops the session |
+| `compaction.buffer` | headroom before compaction engages; orchestra default `6000` (V1 `reserved` maps here; lower = more aggressive) |
+| `compaction.keep.tokens` | recent-turn floor compaction must not eat (V1 `preserve_recent_tokens` maps here; example ships `4000`) |
+| V1 `prune` / `tail_turns` | dropped by the V2 migration — use `tool_output` caps instead (§6.1) |
+
+`docs/opencode.json.example` now ships
+`"compaction": { "auto": true, "buffer": 6000, "keep": { "tokens": 4000 } }`.
+Note: the §6.1 snippet (`prune` / `reserved`) is V1-era shorthand — on V2
+migrate, `reserved` becomes `buffer` and `prune`/`tail_turns` are dropped.
+
+### 11.7 Citations
+
+| Source | Label | How this policy uses it |
+|--------|-------|-------------------------|
+| Chroma "Context Rot" + Anthropic attention-budget framing | **adopted** | keeps injected context lean and bounded: protected static region stays minimal, volatile data externalized (§11.2–§11.3) |
+| LangChain Deep Agents (planning / subagents / memory primitives) | **adopted** | same three primitives in orchestra form: plan artifact, phase subagents, external memory (§11.1) |
+| CompactionBench | terminology reference | vocabulary for comparing compaction strategies; we do not run the benchmark |
+| ACON — [arXiv:2510.00615](https://arxiv.org/abs/2510.00615) | terminology reference | "compress history while preserving critical state" — our preserve-first ordering (§11.1) echoes its framing; we externalize instead of running its compressor |
+| Xia et al. — [arXiv:2606.29718](https://arxiv.org/abs/2606.29718) | terminology reference | *inconclusive search failures*: models give up long before the window fills — evidence that shorter contexts beat bigger ones |
+| Zeng et al. 2026 — idle-tool taxonomy | terminology reference | declared-but-unused tools as pure context tax (§11.5) |
+
+---
+
+*Last updated: 2026-10-29 — Token, accuracy & long-context policy (§11)*
