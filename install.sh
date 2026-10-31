@@ -74,7 +74,7 @@ Options:
   --project    Install the project bridge into the CURRENT repo ($PWD/.cursor)
   --project-dir PATH  Install the project bridge into PATH/.cursor instead of $PWD
   --force-project  Allow the bridge target to be the orchestra clone itself
-  --mcp        Install MCP server dependencies (npm install @modelcontextprotocol/sdk)
+  --mcp        Install the MCP server (SDK into the clone + hooks/lib launcher)
   --studio     Install Studio dashboard (build + launcher)
   --dry-run    Show what would be installed without making changes
   --skip-opencode-upgrade  Skip upgrading OpenCode CLI to latest (npm/bun)
@@ -181,6 +181,74 @@ if [[ "$UNINSTALL" -eq 0 ]]; then
 fi
 
 ###############################################################################
+# MCP server launcher (#16)
+###############################################################################
+# The installed host copy of mcp-server.js lives in <host>/hooks/lib, but Node
+# resolves the bare specifier "@modelcontextprotocol/sdk/…" only by walking up
+# from that directory — which never reaches the clone's node_modules — so a plain
+# copy throws "Cannot find module" the first time a hook calls .start(). Rather
+# than duplicate the SDK into every host config dir, we drop a small launcher that
+# boots the clone's real server (SDK + siblings resolve from the clone; state paths
+# there are homedir/cwd-based, so behavior is identical). The shared bundle copies
+# are left byte-identical — test-mcp-lifecycle asserts Cursor/OpenCode mirror parity.
+install_mcp_launcher() { # $1=host lib dir   $2=bundle-relative server path
+  local host_lib="$1" server_rel="$2"
+  local server_src="$ROOT/$server_rel"
+  local launcher="$host_lib/mcp-server.js"
+  if [[ ! -f "$server_src" ]]; then
+    echo "  WARN: $server_src missing — skipping MCP launcher"
+    return 0
+  fi
+
+  # Ensure the SDK is present in the clone, surfacing npm failures (#16: was 2>/dev/null).
+  if ! node -e "require.resolve('@modelcontextprotocol/sdk/server/index.js', { paths: ['$ROOT/node_modules'] })" >/dev/null 2>&1; then
+    echo "==> Installing @modelcontextprotocol/sdk in the clone ($ROOT)"
+    local npm_out
+    if ! npm_out="$(cd "$ROOT" && npm install --omit=dev 2>&1)"; then
+      echo "  npm install reported a problem:" >&2
+      echo "$npm_out" | sed 's/^/    /' >&2
+    fi
+  fi
+  if ! node -e "require.resolve('@modelcontextprotocol/sdk/server/index.js', { paths: ['$ROOT/node_modules'] })" >/dev/null 2>&1; then
+    echo "  ERROR: @modelcontextprotocol/sdk is not resolvable from $ROOT/node_modules." >&2
+    echo "         The MCP server cannot start. Fix with: (cd $ROOT && npm install)" >&2
+    return 1
+  fi
+
+  mkdir -p "$host_lib"
+  node - "$ROOT" "$server_rel" "$launcher" <<'JS'
+const fs = require('fs');
+const [root, serverRel, out] = process.argv.slice(2);
+const body = [
+  "// Installed by install.sh --mcp (#16). Boots the Orchestra clone's real MCP server",
+  "// so '@modelcontextprotocol/sdk' resolves from the clone's node_modules. Re-run",
+  "// 'bash install.sh --mcp' if you move the clone, or set PCORE_ORCHESTRA_REPO.",
+  "'use strict';",
+  "const path = require('path');",
+  "const fs = require('fs');",
+  "const ROOT = process.env.PCORE_ORCHESTRA_REPO || " + JSON.stringify(root) + ";",
+  "const sdk = path.join(ROOT, 'node_modules', '@modelcontextprotocol', 'sdk');",
+  "if (!fs.existsSync(sdk)) {",
+  "  console.error('[orchestra-mcp] @modelcontextprotocol/sdk missing at ' + sdk +",
+  "    ' — run: (cd ' + ROOT + ' && npm install)');",
+  "  process.exit(1);",
+  "}",
+  "module.exports = require(path.join(ROOT, " + JSON.stringify(serverRel) + "));",
+  ""
+].join("\n");
+fs.writeFileSync(out, body);
+JS
+
+  # Boot-test the launcher the way a host hook does (require it, expect .start/.McpServer).
+  if node -e "const m=require(process.argv[1]); process.exit(typeof m.start==='function' && typeof m.McpServer==='function' ? 0 : 2)" "$launcher" >/dev/null 2>&1; then
+    echo "  MCP launcher: $launcher -> $server_src (SDK resolves)"
+  else
+    echo "  ERROR: launcher $launcher failed to boot the MCP server." >&2
+    return 1
+  fi
+}
+
+###############################################################################
 # Cursor installation
 ###############################################################################
 install_cursor() {
@@ -195,11 +263,9 @@ install_cursor() {
   rm -rf "$CURSOR/hooks/lib"
   cp -rf "$BUNDLE/hooks/lib" "$CURSOR/hooks/lib"
 
-  # MCP server (if requested)
+  # MCP server (if requested) — launcher resolves the SDK from the clone (#16)
   if [[ "$INSTALL_MCP" -eq 1 ]]; then
-    echo "==> Installing MCP server dependencies"
-    (cd "$ROOT" && npm install --production 2>/dev/null || npm install 2>/dev/null)
-    cp -f "$BUNDLE/hooks/lib/mcp-server.js" "$CURSOR/hooks/lib/"
+    install_mcp_launcher "$CURSOR/hooks/lib" "bundle/hooks/lib/mcp-server.js" || exit 1
   fi
 
   # Default state (don't overwrite). Source the tracked template — the
@@ -364,11 +430,9 @@ JS
   # Copy OpenCode plugins (ambient system-prompt policy; default-export V2)
   cp -f "$BUNDLE/opencode/plugins/"*.js "$OPENCODE/plugins/" 2>/dev/null || true
 
-  # MCP server (if requested)
+  # MCP server (if requested) — launcher resolves the SDK from the clone (#16)
   if [[ "$INSTALL_MCP" -eq 1 ]]; then
-    echo "==> Installing MCP server dependencies"
-    (cd "$ROOT" && npm install --production 2>/dev/null || npm install 2>/dev/null)
-    cp -f "$BUNDLE/opencode/hooks/lib/mcp-server.js" "$OPENCODE/hooks/lib/"
+    install_mcp_launcher "$OPENCODE/hooks/lib" "bundle/opencode/hooks/lib/mcp-server.js" || exit 1
   fi
 
   # Default state (don't overwrite) — runtime reads hooks/state/orchestra.json
@@ -1045,7 +1109,7 @@ if [[ "$INSTALL_CODEX" -eq 1 ]]; then
   echo "  Codex tip:       spawn_agent with agent_type=orchestra-planner"
 fi
 if [[ "$INSTALL_MCP" -eq 1 ]]; then
-  echo "  MCP server:     @modelcontextprotocol/sdk installed; mcp-server.js in hooks/lib/"
+  echo "  MCP server:     hooks/lib/mcp-server.js launcher -> $ROOT (SDK resolves from clone)"
 fi
 if [[ "$INSTALL_STUDIO" -eq 1 ]]; then
   echo "  Studio dashboard: ~/.local/bin/orchestra-studio (starts on http://localhost:3110)"

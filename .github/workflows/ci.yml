@@ -74,6 +74,7 @@ jobs:
           node scripts/test-opencode-permission-contract.js
           bash scripts/test-studio-service.sh
           bash scripts/test-ensure-opencode-latest.sh
+          bash scripts/test-mcp-installed-launcher.sh
       - name: Studio suites (data layer, UI, server, integration)
         run: |
           set -e

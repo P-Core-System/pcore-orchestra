@@ -20,6 +20,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **OpenCode agent model-strip no longer needs python3** — the frontmatter `model: opencode/…` cleanup runs through `node` (which the installer already requires) instead of a `python3` heredoc, so a machine without python3 can no longer abort the OpenCode install under `set -e` (#27).
 - **`opencode-maintenance.sh` is scoped to `--opencode`** — a single-host install (e.g. `--cursor`) no longer drops unrelated files into `~/.local/bin`; the copy and its closing summary line are both gated on the OpenCode install flag (#24).
 - **`ensure-opencode-latest.sh` verifies the upgrade instead of trusting it** — bun and npm results are now checked (`if cmd; then`), the `curl | bash` fallback is off unless `--allow-remote-script` is passed, a post-install `WARN` fires when the landed version differs from the registry tag, and `install.sh --dry-run` previews the upgrade via `--check` (#23).
+- **`install.sh --mcp` produces a working MCP server** — the installed `hooks/lib/mcp-server.js` is now a launcher that boots the clone's real server (so `@modelcontextprotocol/sdk` resolves from the clone's `node_modules`, which a plain copy into the host dir could never reach); `npm install` failures are surfaced instead of swallowed via `2>/dev/null`, and the SDK's resolvability is verified before and after writing the launcher (#16).
 
 ## [3.9.0] - 2026-10-31
 
