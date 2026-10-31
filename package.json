@@ -1,6 +1,6 @@
 {
   "name": "pcore-orchestra",
-  "version": "3.8.0",
+  "version": "3.9.0",
   "description": "Multi-agent orchestra for Cursor, OpenCode CLI, Qoder CLI, Claude Code, and Codex CLI",
   "main": "bundle/hooks/orchestra-prompt.js",
   "scripts": {

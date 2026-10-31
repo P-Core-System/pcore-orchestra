@@ -11,12 +11,12 @@
 [![Qoder CLI](https://img.shields.io/badge/Qoder-CLI-6C5CE7.svg)](https://qoder.com)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-CLI-D97757.svg)](https://claude.com/claude-code)
 [![Codex CLI](https://img.shields.io/badge/Codex-CLI-10A37F.svg)](https://developers.openai.com/codex/)
-[![Release](https://img.shields.io/github/v/release/P-Core-System/pcore-orchestra?label=release&color=6C5CE7)](https://github.com/P-Core-System/pcore-orchestra/releases/tag/v3.8.0)
+[![Release](https://img.shields.io/github/v/release/P-Core-System/pcore-orchestra?label=release&color=6C5CE7)](https://github.com/P-Core-System/pcore-orchestra/releases/tag/v3.9.0)
 
 **Repository:** [github.com/P-Core-System/pcore-orchestra](https://github.com/P-Core-System/pcore-orchestra)
 **Docs map:** [docs/index.md](docs/index.md)
 
-**Status:** Production-ready (lifecycle stage: `production`, channel: `stable`) | **Version:** 3.8.0 | **Last updated:** 2026-10-31
+**Status:** Production-ready (lifecycle stage: `production`, channel: `stable`) | **Version:** 3.9.0 | **Last updated:** 2026-10-31
 
 ---
 
@@ -24,13 +24,13 @@
 
 ```bash
 # 1. Clone the stable release tag and install (all five hosts; hooks + skills + agents + settings merge)
-git clone --branch v3.8.0 --depth 1 https://github.com/P-Core-System/pcore-orchestra.git
+git clone --branch v3.9.0 --depth 1 https://github.com/P-Core-System/pcore-orchestra.git
 cd pcore-orchestra
 bash install.sh
 # One host only: bash install.sh --cursor | --opencode | --qoder | --claude | --codex
 # Preview changes: bash install.sh --dry-run
 # Skip CLI upgrade: bash install.sh --skip-opencode-upgrade
-# Track latest (unstable) instead of a pinned tag: drop `--branch v3.8.0` to clone main
+# Track latest (unstable) instead of a pinned tag: drop `--branch v3.9.0` to clone main
 # Remove later: bash install.sh --uninstall  (scope with --cursor etc.; add --studio to tear down Studio)
 # Windows: powershell -ExecutionPolicy Bypass -File install.ps1
 

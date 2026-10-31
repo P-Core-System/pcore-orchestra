@@ -12,13 +12,17 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+_None yet._
+
+## [3.9.0] - 2026-10-31
+
 ### Added
 - **`install.sh --uninstall`** — manifest-driven removal that deletes only Orchestra-owned files across all five hosts (never user-authored agents/skills) and restores merged `settings.json` / `hooks.json` / `opencode.json` from the `.bak-*` / `.bak.*` backups the installers wrote. Scope per host (`--cursor`, …) and combine with `--studio` to tear down the service.
 - **CI `installer-smoke` job** — runs `install.sh` end to end (preflight + dry-run + a real offline install into a throwaway `$HOME` + `orchestra-health.js` + uninstall) on an **ubuntu + macOS** matrix; `main` now also builds on **push**, not just PR/manual dispatch.
 
 ### Changed
 - **`install.sh` preflight** — fails fast, before touching any global config, on an unsupported OS (routes Windows users to `install.ps1`), missing `git`, or Node < 18.
-- **README / `AGENTS.md`** — quick start pins the clone to the `v3.8.0` tag (`git clone --branch v3.8.0 --depth 1 …`) with a Releases badge; the Uninstall section documents `--uninstall`; the AGENTS command list is updated to five hosts.
+- **README / `AGENTS.md`** — quick start pins the clone to the `v3.9.0` tag (`git clone --branch v3.9.0 --depth 1 …`) with a Releases badge; the Uninstall section documents `--uninstall`; the AGENTS command list is updated to five hosts.
 
 ## [3.8.0] - 2026-10-31
 
@@ -67,5 +71,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Ambient Cursor hooks chain (plan → implement → verify → review), OpenCode conductor + ambient plugin, memory (short/long-term, hybrid recall via `node:sqlite` FTS5), token budgets, greenfield scaffolding, project bridges, Windows installer (`install.ps1`)
 
 [Unreleased]: https://github.com/P-Core-System/pcore-orchestra/commits/main
+[3.9.0]: https://github.com/P-Core-System/pcore-orchestra/releases/tag/v3.9.0
 [3.8.0]: https://github.com/P-Core-System/pcore-orchestra/releases/tag/v3.8.0
 [3.7.0]: https://github.com/P-Core-System/pcore-orchestra/commits/main

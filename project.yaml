@@ -9,7 +9,7 @@ project:
   description: Global orchestra harness for Cursor, OpenCode CLI, and Qoder CLI
 
 version:
-  current: 3.8.0
+  current: 3.9.0
   channel: stable
   build_number: 1
 
@@ -61,6 +61,13 @@ _pcore:
   initialized: 2026-07-22T00:00:00Z
   orchestration_count: 0
   version_history:
+    - version: "3.9.0"
+      date: "2026-10-31"
+      tag: v3.9.0
+      note: >-
+        Install-path hardening (minor): install.sh --uninstall, preflight
+        fail-fast (OS/git/node>=18), README clone pinned to the release tag, and
+        a CI installer-smoke matrix on ubuntu+macOS with a push:[main] trigger.
     - version: "3.8.0"
       date: "2026-10-31"
       tag: v3.8.0

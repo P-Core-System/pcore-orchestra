@@ -3,7 +3,7 @@
 > **Project:** P-Core Orchestra (pcore-orchestra)
 > **License:** MIT | **Maintainer:** P-Core System
 > **Repository:** github.com/P-Core-System/pcore-orchestra
-> **Status:** Production-ready v3.8 · **Docs version:** 3.8 (October 2026)
+> **Status:** Production-ready v3.9 · **Docs version:** 3.9 (October 2026)
 
 ---
 

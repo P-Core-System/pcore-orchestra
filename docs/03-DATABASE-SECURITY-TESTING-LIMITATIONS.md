@@ -1,6 +1,6 @@
 # P-Core Orchestra — Database, Security, Testing & Limitations
 
-> **Project:** P-Core Orchestra | **Docs version:** 3.7 (October 2026) | **Docs map:** [index.md](index.md)
+> **Project:** P-Core Orchestra | **Docs version:** 3.9 (October 2026) | **Docs map:** [index.md](index.md)
 
 ---
 
@@ -401,8 +401,10 @@ bash install.sh            # reinstall
 
 ### Versioning
 
-`package.json` is the version source of truth (`version: 3.8.0`, `engines.node: >=18`).
-Docs 01–04 carry a matching "Docs version" stamp. No git tags are published yet.
+`package.json` is the version source of truth (`version: 3.9.0`, `engines.node: >=18`).
+Docs 01–04 carry a matching "Docs version" stamp. Git tags are published from
+`v3.8.0` (the first annotated tag; earlier versions were never tagged — see the
+`CHANGELOG.md` header note).
 
 ---
 
