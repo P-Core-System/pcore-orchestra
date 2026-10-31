@@ -58,14 +58,18 @@ Update `context/progress-tracker.md` after each meaningful implementation change
 ## Commands
 
 ```bash
-# Install orchestra globally (Cursor + OpenCode + Qoder)
-# Merges Cursor CLI/permissions/sandbox + OpenCode autonomy (MCP preserved) + Qoder settings.json hooks
+# Install orchestra globally (Cursor + OpenCode + Qoder + Claude Code + Codex)
+# Merges Cursor CLI/permissions/sandbox + OpenCode autonomy (MCP preserved) + Qoder/Claude settings.json hooks
 bash install.sh
-bash install.sh --all        # all three (default)
+bash install.sh --all        # all five (default)
 bash install.sh --cursor     # Cursor only
 bash install.sh --opencode   # OpenCode only
 bash install.sh --qoder      # Qoder CLI only
+bash install.sh --claude     # Claude Code only
+bash install.sh --codex      # Codex CLI only
 bash install.sh --project    # + project bridge in cwd
+bash install.sh --dry-run    # preview without changes
+bash install.sh --uninstall  # remove Orchestra files from selected hosts + restore merged config
 
 # Pin cheap Cursor model default (Composer 2.5 standard)
 bash scripts/setup-cursor-model.sh

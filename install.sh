@@ -14,6 +14,8 @@
 #   bash install.sh --skip-opencode-upgrade   # skip npm/bun OpenCode CLI upgrade
 #   bash install.sh --studio     # install Studio dashboard (build + launcher)
 #   bash install.sh --all --studio
+#   bash install.sh --uninstall  # remove Orchestra from selected hosts (default: all)
+#   bash install.sh --cursor --uninstall   # uninstall Cursor only
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -35,6 +37,7 @@ SKIP_OPENCODE_UPGRADE=0
 INSTALL_MCP=0
 INSTALL_STUDIO=0
 DRY_RUN=0
+UNINSTALL=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -48,10 +51,11 @@ while [[ $# -gt 0 ]]; do
     --mcp)        INSTALL_MCP=1; shift ;;
     --studio)     INSTALL_STUDIO=1; shift ;;
     --dry-run)    DRY_RUN=1; shift ;;
+    --uninstall)  UNINSTALL=1; shift ;;
     --skip-opencode-upgrade) SKIP_OPENCODE_UPGRADE=1; shift ;;
     -h|--help)
       cat <<'HELP'
-Usage: bash install.sh [--all|--cursor|--opencode|--qoder|--claude|--codex] [--project] [--mcp] [--studio] [--dry-run] [--skip-opencode-upgrade]
+Usage: bash install.sh [--all|--cursor|--opencode|--qoder|--claude|--codex] [--project] [--mcp] [--studio] [--dry-run] [--skip-opencode-upgrade] [--uninstall]
 
 Options:
   --all        Install for Cursor, OpenCode, Qoder CLI, Claude Code, and Codex CLI (default)
@@ -65,6 +69,10 @@ Options:
   --studio     Install Studio dashboard (build + launcher)
   --dry-run    Show what would be installed without making changes
   --skip-opencode-upgrade  Skip upgrading OpenCode CLI to latest (npm/bun)
+  --uninstall  Remove Orchestra files from the selected hosts (default: all) and
+               restore merged config from the backups the installers wrote.
+               Combine with --cursor/--opencode/etc. to scope; add --studio to
+               also tear down the Studio service.
 
 OpenCode: upgrades CLI via scripts/ensure-opencode-latest.sh unless skipped.
           Set OPENCODE_CHANNEL=beta|dev for pre-release builds.
@@ -95,11 +103,52 @@ if [[ "$INSTALL_CURSOR" -eq 0 && "$INSTALL_OPENCODE" -eq 0 && "$INSTALL_QODER" -
   INSTALL_CODEX=1
 fi
 
+# --- preflight: fail fast before touching any global config ----------------
+# Runs only for the install path (--uninstall removes files; no node/git needed).
+if [[ "$UNINSTALL" -eq 0 ]]; then
+  _OS="$(uname -s 2>/dev/null || echo unknown)"
+  case "$_OS" in
+    Linux|Darwin) : ;;
+    MINGW*|MSYS*|CYGWIN*)
+      echo "ERROR: Windows shell detected ($_OS). Use the PowerShell installer:"
+      echo "       powershell -ExecutionPolicy Bypass -File install.ps1"
+      exit 1 ;;
+    *)
+      echo "ERROR: Unsupported OS '$_OS' (expected Linux or macOS; Windows uses install.ps1)."
+      exit 1 ;;
+  esac
+
+  if ! command -v git >/dev/null 2>&1; then
+    echo "ERROR: 'git' is required — this bundle installs from a git clone."
+    exit 1
+  fi
+
+  if ! command -v node >/dev/null 2>&1; then
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      echo "WARN: 'node' not found — dry run proceeds, but a real install needs Node.js 18+."
+    else
+      echo "ERROR: 'node' is required (Node.js 18+). Install it, then re-run."
+      exit 1
+    fi
+  else
+    _NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
+    if [[ "$_NODE_MAJOR" -lt 18 ]]; then
+      echo "ERROR: Node.js 18+ required, found $(node --version 2>/dev/null)."
+      exit 1
+    fi
+  fi
+
+  if [[ "$DRY_RUN" -eq 0 ]]; then
+    echo "== preflight OK — OS: $_OS · git $(git --version 2>/dev/null | awk '{print $3}') · node $(node --version 2>/dev/null || echo n/a)"
+    echo ""
+  fi
+fi
+
 # --- bundle freshness guards ----------------------------------------------
 # Derived artifacts (qoder agent tree, agent registry) are generated from
 # bundle/agents. Never install a stale derivative: check, regenerate on
 # drift, re-verify. Skipped for --dry-run (read-only) and without node.
-if [[ "$DRY_RUN" -eq 0 ]] && command -v node >/dev/null 2>&1; then
+if [[ "$DRY_RUN" -eq 0 && "$UNINSTALL" -eq 0 ]] && command -v node >/dev/null 2>&1; then
   echo "== bundle freshness =="
   for guard in "scripts/enrich-agent-capabilities.js" "scripts/sync-qoder-agents.js" \
       "scripts/sync-claude-agents.js" "scripts/sync-codex-agents.js" "scripts/gen-agent-registry.js"; do
@@ -115,10 +164,12 @@ if [[ "$DRY_RUN" -eq 0 ]] && command -v node >/dev/null 2>&1; then
   echo ""
 fi
 
-echo "=========================================================================="
-echo " Orchestra Installer (Cursor + OpenCode + Qoder + Claude Code + Codex)"
-echo "=========================================================================="
-echo ""
+if [[ "$UNINSTALL" -eq 0 ]]; then
+  echo "=========================================================================="
+  echo " Orchestra Installer (Cursor + OpenCode + Qoder + Claude Code + Codex)"
+  echo "=========================================================================="
+  echo ""
+fi
 
 ###############################################################################
 # Cursor installation
@@ -681,8 +732,174 @@ LAUNCHER
 }
 
 ###############################################################################
+# Uninstall (bundle/ is the manifest of what we installed — remove only those)
+###############################################################################
+_LINK_SKILLS="orchestra-loop orchestra-install prompt-intake verification-before-completion ui-ux-pro-max brand design-system ui-styling web-design-master"
+
+# Restore a merged JSON file from the newest orchestra backup the installers
+# wrote (`*.bak-<iso>` for settings, `*.bak.<stamp>` for autonomy). Echo + return
+# 0 when restored; return 1 when no backup exists.
+restore_backup() {
+  local f="$1" newest=""
+  [[ -f "$f" ]] || return 1
+  newest="$(ls -1 "$f".bak-* "$f".bak.* 2>/dev/null | sort | tail -1 || true)"
+  [[ -n "$newest" ]] || return 1
+  mv -f "$newest" "$f"
+  rm -f "$f".bak-* "$f".bak.* 2>/dev/null || true
+  echo "  restored $(basename "$f") from backup"
+  return 0
+}
+
+# No-backup fallback for Cursor hooks.json: drop hook entries whose command
+# points at an orchestra-*.js script (leaves unrelated user hooks untouched).
+strip_orchestra_hooks() {
+  local f="$1"
+  [[ -f "$f" ]] || return 0
+  command -v node >/dev/null 2>&1 || { echo "  WARN: node missing — could not strip $f"; return 1; }
+  node -e '
+    const fs = require("fs");
+    const f = process.argv[1];
+    let j; try { j = JSON.parse(fs.readFileSync(f, "utf8")); } catch { process.exit(0); }
+    const orch = (c) => typeof c === "string" && /orchestra-.*\.js/.test(c);
+    const hooks = j && j.hooks;
+    if (hooks && typeof hooks === "object" && !Array.isArray(hooks)) {
+      for (const ev of Object.keys(hooks)) {
+        if (Array.isArray(hooks[ev])) {
+          hooks[ev] = hooks[ev].filter((e) => !(e && orch(e.command)));
+        }
+      }
+    }
+    fs.writeFileSync(f, JSON.stringify(j, null, 2) + "\n");
+  ' "$f" 2>/dev/null && echo "  stripped orchestra hooks from $(basename "$f")" || true
+}
+
+# Remove bundle-matched subdirectories/files under a host dir (only what we copied).
+_rm_bundle_dirs() {
+  local dest="$1" srcset="$2" d
+  [ -d "$srcset" ] || return 0
+  for d in "$srcset"/*/; do [ -d "$d" ] && rm -rf "$dest/$(basename "$d")"; done
+}
+
+uninstall_cursor() {
+  echo "==> Uninstalling Orchestra from $CURSOR"
+  rm -f "$CURSOR/hooks/"orchestra-*.js
+  rm -rf "$CURSOR/hooks/lib" "$CURSOR/hooks/state"
+  rm -f "$CURSOR/agents/orchestra.md" "$CURSOR/agents/"orchestra-*.md
+  rm -rf "$CURSOR/agents/references"
+  _rm_bundle_dirs "$CURSOR/agents" "$BUNDLE/agents"
+  _rm_bundle_dirs "$CURSOR/skills" "$BUNDLE/skills"
+  _rm_bundle_dirs "$CURSOR/skills-cursor" "$BUNDLE/skills-cursor"
+  rm -f "$CURSOR/rules/orchestra-loop.mdc" "$CURSOR/ORCHESTRA.md"
+  for ls in $_LINK_SKILLS; do rm -rf "$AGENTS_SKILLS/$ls"; done
+  restore_backup "$CURSOR/hooks.json" || strip_orchestra_hooks "$CURSOR/hooks.json"
+  for cf in cli-config.json permissions.json sandbox.json; do restore_backup "$CURSOR/$cf" || true; done
+}
+
+uninstall_opencode() {
+  echo "==> Uninstalling Orchestra from $OPENCODE"
+  rm -f "$OPENCODE/hooks/"orchestra-*.js
+  rm -rf "$OPENCODE/hooks/lib" "$OPENCODE/hooks/state" "$OPENCODE/state"
+  rm -f "$OPENCODE/agents/orchestra.md" "$OPENCODE/agents/"orchestra-*.md
+  rm -rf "$OPENCODE/agents/references"
+  _rm_bundle_dirs "$OPENCODE/agents" "$BUNDLE/opencode/agents"
+  _rm_bundle_dirs "$OPENCODE/skills" "$BUNDLE/opencode/skills"
+  rm -f "$OPENCODE/plugins/orchestra-"*.js
+  for ls in $_LINK_SKILLS; do rm -rf "$AGENTS_SKILLS/$ls"; done
+  restore_backup "$OPENCODE/opencode.json" || true
+  # free-model weekly schedule (best-effort; manual fallback always printed)
+  if command -v systemctl >/dev/null 2>&1; then
+    systemctl --user disable --now pcore-free-models.timer >/dev/null 2>&1 || true
+    systemctl --user stop pcore-free-models.service >/dev/null 2>&1 || true
+  fi
+  if command -v crontab >/dev/null 2>&1; then
+    crontab -l 2>/dev/null | grep -v "update-free-models.sh" | crontab - 2>/dev/null || true
+  fi
+  echo "  NOTE: if a free-model timer unit or cron entry remains, remove it manually."
+}
+
+uninstall_qoder() {
+  echo "==> Uninstalling Orchestra from $QODER"
+  rm -f "$QODER/hooks/"orchestra-*.js
+  rm -rf "$QODER/hooks/lib" "$QODER/hooks/state"
+  _rm_bundle_dirs "$QODER/agents" "$BUNDLE/qoder"
+  rm -f "$QODER/agents/orchestra.md" "$QODER/agents/"orchestra-*.md
+  _rm_bundle_dirs "$QODER/skills" "$BUNDLE/skills"
+  rm -f "$QODER/ORCHESTRA.md"
+  restore_backup "$QODER/settings.json" || strip_orchestra_hooks "$QODER/settings.json"
+}
+
+uninstall_claude() {
+  echo "==> Uninstalling Orchestra from $CLAUDE"
+  rm -f "$CLAUDE/hooks/"orchestra-*.js
+  rm -rf "$CLAUDE/hooks/lib" "$CLAUDE/hooks/state"
+  # remove only agents we shipped (never user-authored Claude agents)
+  if [ -d "$BUNDLE/claude/agents" ]; then
+    for a in "$BUNDLE/claude/agents"/*.md; do [ -f "$a" ] && rm -f "$CLAUDE/agents/$(basename "$a")"; done
+  fi
+  _rm_bundle_dirs "$CLAUDE/skills" "$BUNDLE/skills"
+  rm -f "$CLAUDE/ORCHESTRA.md"
+  for ls in $_LINK_SKILLS; do rm -rf "$AGENTS_SKILLS/$ls"; done
+  restore_backup "$CLAUDE/settings.json" || strip_orchestra_hooks "$CLAUDE/settings.json"
+}
+
+uninstall_codex() {
+  echo "==> Uninstalling Orchestra from $CODEX"
+  # remove only TOML agents we shipped
+  if [ -d "$BUNDLE/codex/agents" ]; then
+    for a in "$BUNDLE/codex/agents"/*.toml; do [ -f "$a" ] && rm -f "$CODEX/agents/$(basename "$a")"; done
+  fi
+  rm -f "$CODEX/ORCHESTRA.md"
+  for ls in $_LINK_SKILLS; do rm -rf "$AGENTS_SKILLS/$ls"; done
+}
+
+uninstall_project_bridge() {
+  REPO_ROOT="$(cd "$ROOT/.." 2>/dev/null && pwd || true)"
+  if [[ -n "$REPO_ROOT" ]]; then
+    echo "==> Removing project bridge from $REPO_ROOT/.cursor"
+    rm -f "$REPO_ROOT/.cursor/hooks.json" "$REPO_ROOT/.cursor/hooks/bridge.js"
+  fi
+}
+
+uninstall_global_bin() {
+  echo "==> Removing global helper scripts"
+  rm -f "$HOME/.local/bin/setup-repo-scoping.sh" \
+        "$HOME/.local/bin/opencode-maintenance.sh" \
+        "$HOME/.local/bin/orchestra-studio"
+  # global gitignore + excludesfile are left in place (may hold user entries).
+}
+
+run_uninstall() {
+  echo "=========================================================================="
+  echo " Orchestra Uninstaller"
+  echo "=========================================================================="
+  echo ""
+  [[ "$INSTALL_CURSOR" -eq 1 ]] && uninstall_cursor
+  [[ "$INSTALL_OPENCODE" -eq 1 ]] && uninstall_opencode
+  [[ "$INSTALL_QODER" -eq 1 ]] && uninstall_qoder
+  [[ "$INSTALL_CLAUDE" -eq 1 ]] && uninstall_claude
+  [[ "$INSTALL_CODEX" -eq 1 ]] && uninstall_codex
+  [[ "$INSTALL_PROJECT" -eq 1 ]] && uninstall_project_bridge
+  if [[ "$INSTALL_STUDIO" -eq 1 ]]; then
+    echo "==> Removing Studio service"
+    bash "$ROOT/scripts/studio-service.sh" uninstall 2>/dev/null || true
+  fi
+  uninstall_global_bin
+  echo ""
+  echo "============================================"
+  echo " Orchestra uninstalled."
+  echo " Restart the host app(s) to drop cached hooks/agents."
+  echo "============================================"
+}
+
+###############################################################################
 # Main
 ###############################################################################
+if [[ "$UNINSTALL" -eq 1 ]]; then
+  [[ "$DRY_RUN" -eq 1 ]] && echo "NOTE: --dry-run is ignored for --uninstall; changes apply now." || true
+  run_uninstall
+  exit 0
+fi
+
 if [[ "$DRY_RUN" -eq 1 ]]; then
   echo "DRY RUN: Would install:"
   [[ "$INSTALL_CURSOR" -eq 1 ]] && echo "  - Cursor"

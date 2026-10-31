@@ -11,6 +11,7 @@
 [![Qoder CLI](https://img.shields.io/badge/Qoder-CLI-6C5CE7.svg)](https://qoder.com)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-CLI-D97757.svg)](https://claude.com/claude-code)
 [![Codex CLI](https://img.shields.io/badge/Codex-CLI-10A37F.svg)](https://developers.openai.com/codex/)
+[![Release](https://img.shields.io/github/v/release/P-Core-System/pcore-orchestra?label=release&color=6C5CE7)](https://github.com/P-Core-System/pcore-orchestra/releases/tag/v3.8.0)
 
 **Repository:** [github.com/P-Core-System/pcore-orchestra](https://github.com/P-Core-System/pcore-orchestra)
 **Docs map:** [docs/index.md](docs/index.md)
@@ -22,14 +23,15 @@
 ## Quick Start (2 minutes)
 
 ```bash
-# 1. Clone and install (all five hosts; hooks + skills + agents + settings merge)
-git clone https://github.com/P-Core-System/pcore-orchestra.git
+# 1. Clone the stable release tag and install (all five hosts; hooks + skills + agents + settings merge)
+git clone --branch v3.8.0 --depth 1 https://github.com/P-Core-System/pcore-orchestra.git
 cd pcore-orchestra
 bash install.sh
 # One host only: bash install.sh --cursor | --opencode | --qoder | --claude | --codex
 # Preview changes: bash install.sh --dry-run
 # Skip CLI upgrade: bash install.sh --skip-opencode-upgrade
-# Pre-release OpenCode: OPENCODE_CHANNEL=beta bash install.sh
+# Track latest (unstable) instead of a pinned tag: drop `--branch v3.8.0` to clone main
+# Remove later: bash install.sh --uninstall  (scope with --cursor etc.; add --studio to tear down Studio)
 # Windows: powershell -ExecutionPolicy Bypass -File install.ps1
 
 # 2. Restart Cursor → Settings → Agents → Approvals → Auto-review
@@ -469,27 +471,27 @@ Agent-tool wiring: OpenCode global `AGENTS.md` + `opencode.json` instructions fi
 
 ## Uninstall
 
+`install.sh` uses the bundle as a manifest of what it installed, so `--uninstall`
+removes only Orchestra's files (never your own agents/skills) and restores the
+merged `settings.json` / `hooks.json` / `opencode.json` from the backups the
+installers wrote.
+
 ```bash
-# Remove Cursor hooks
-rm -rf ~/.cursor/hooks/orchestra-*
-rm -rf ~/.cursor/agents/orchestra-*
-rm -rf ~/.cursor/skills/orchestra-loop
-rm -rf ~/.cursor/rules/orchestra-loop.mdc
-rm -f ~/.cursor/hooks.json
+# Remove from all five hosts + global helper scripts (Studio service kept unless --studio)
+bash install.sh --uninstall
 
-# Remove OpenCode files
-rm -rf ~/.config/opencode/agents/orchestra-*
-rm -rf ~/.config/opencode/skills/orchestra-loop
-rm -f ~/.config/opencode/hooks/orchestra-health-opencode.js
+# Scope it: a single host, or add the Studio service teardown
+bash install.sh --uninstall --cursor
+bash install.sh --uninstall --all --studio
 
-# Remove Qoder files (also remove the orchestra entries from ~/.qoder/settings.json)
-rm -rf ~/.qoder/agents/orchestra-*
-rm -rf ~/.qoder/skills/orchestra-loop
-rm -f ~/.qoder/ORCHESTRA.md
-
-# Remove symlink
-rm -rf ~/.agents/skills/orchestra-loop
+# Manual fallback (if you prefer, or if you installed from a different clone path):
+rm -rf ~/.cursor/hooks/orchestra-* ~/.cursor/agents/orchestra-* ~/.cursor/ORCHESTRA.md
+rm -rf ~/.qoder/hooks/orchestra-*  ~/.qoder/agents/orchestra-*  ~/.qoder/ORCHESTRA.md
+rm -f  ~/.cursor/hooks.json  # then re-add any non-orchestra hooks you had
 ```
+
+> The global gitignore (`~/.config/git/ignore`) and `git config core.excludesfile`
+> are intentionally left in place — they may contain your own entries.
 
 ---
 

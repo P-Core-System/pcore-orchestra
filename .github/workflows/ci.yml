@@ -2,6 +2,8 @@ name: CI
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -113,3 +115,60 @@ jobs:
           node scripts/test-codex-sync.js
           node scripts/sync-claude-agents.js --check
           node scripts/sync-codex-agents.js --check
+
+  installer-smoke:
+    name: Installer smoke (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    env:
+      ORCH_HOME: ${{ runner.temp }}/orch
+      CURSOR_HOME: ${{ runner.temp }}/orch/.cursor
+      OPENCODE_CONFIG_DIR: ${{ runner.temp }}/orch/.config/opencode
+      QODER_CONFIG_DIR: ${{ runner.temp }}/orch/.qoder
+      CLAUDE_CONFIG_DIR: ${{ runner.temp }}/orch/.claude
+      CODEX_HOME: ${{ runner.temp }}/orch/.codex
+      AGENTS_SKILLS: ${{ runner.temp }}/orch/.agents/skills
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      # Dry-run exercises preflight + arg parsing with no side effects / no network.
+      - name: Preflight + dry-run
+        run: bash install.sh --all --dry-run
+      # Real install for the four offline-capable hosts (OpenCode excluded: its
+      # free-model refresh hits the network). HOME is redirected to a throwaway
+      # dir so global helper scripts + git config stay isolated.
+      - name: Install into throwaway HOME + assert artifacts + health
+        env:
+          HOME: ${{ runner.temp }}/orch
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME"
+          bash install.sh --cursor --qoder --claude --codex --skip-opencode-upgrade
+          test -f "$CURSOR_HOME/hooks/orchestra-health.js"
+          test -f "$CURSOR_HOME/agents/orchestra.md"
+          test -f "$CURSOR_HOME/hooks/lib/io.js"
+          test -f "$QODER_CONFIG_DIR/settings.json"
+          test -f "$CLAUDE_CONFIG_DIR/settings.json"
+          ls "$CODEX_HOME/agents"/*.toml >/dev/null
+          test -d "$AGENTS_SKILLS/orchestra-loop"
+          node "$CURSOR_HOME/hooks/orchestra-health.js"
+      - name: Uninstall removes only Orchestra files + restores backups
+        env:
+          HOME: ${{ runner.temp }}/orch
+        run: |
+          set -euo pipefail
+          # seed a backup so restore path is exercised
+          cp "$CURSOR_HOME/hooks.json" "$CURSOR_HOME/hooks.json.bak-2026-01-01T00-00-00-000Z" 2>/dev/null || true
+          bash install.sh --cursor --qoder --claude --codex --uninstall
+          test ! -e "$CURSOR_HOME/hooks/orchestra-health.js"
+          test ! -e "$CODEX_HOME/ORCHESTRA.md"
+          test ! -d "$AGENTS_SKILLS/orchestra-loop"
+          # no leftover .bak files for the Qoder settings after restore+cleanup
+          if ls "$QODER_CONFIG_DIR"/settings.json.bak-* >/dev/null 2>&1; then
+            echo "leftover Qoder backups"; exit 1
+          fi
