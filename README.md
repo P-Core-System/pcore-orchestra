@@ -294,6 +294,9 @@ node scripts/test-agent-registry.js           # registry SSOT
 node scripts/test-handshake-contract.js       # selector/orchestrator end tokens
 node scripts/test-mirror-sync.js              # bundle/hooks == bundle/opencode/hooks
 node scripts/test-mcp-knowledge.js            # MCP knowledge tools + HTTP front (ChatGPT)
+node scripts/test-mcp-knowledge-store.js      # SQLite knowledge store + chat/pairing + fallback
+node scripts/test-mcp-prompts.js              # MCP prompts capability + master prompts over HTTP
+bash   scripts/test-mcp-service.sh            # mcp-service.sh lifecycle + mcp-register merge
 node scripts/test-permission-review.js        # deny-first conductor allowlist, 160/160 coverage
 node scripts/test-adaptive-loop.js            # phase model / adaptive loops
 node scripts/test-domain-model.js             # domain entities + ticket/session state machine
@@ -330,21 +333,34 @@ bash scripts/init-context.sh /path/to/your-app --bridge   # with project bridge
 ## Knowledge Server (MCP → ChatGPT / remote)
 
 The MCP server also speaks **Streamable HTTP**, so remote connectors like ChatGPT
-developer mode can read your project docs/context and share knowledge back through
-a reviewed inbox. Loopback needs no token; any other bind requires `PCORE_MCP_TOKEN`.
+developer mode and Gemini can read your project docs/context, share knowledge back
+for review, resume chat threads, and pull curated **master prompts**. Knowledge,
+chat, and pairing are stored in a per-project **SQLite database**
+(`~/.pcore/state/knowledge.db`, rows partitioned by `project.slug`; JSON-inbox
+fallback on a Node without `node:sqlite`) rather than a loose file. Writes land as
+`pending` and only move to `approved`/`rejected` through `review_knowledge` — the
+server never edits docs or context. Loopback needs no token; any other bind
+requires `PCORE_MCP_TOKEN`.
 
 ```bash
 # serve the current project on http://127.0.0.1:8765/mcp
 node scripts/mcp-knowledge-server.js --root "$PWD" --port 8765
 
-# then front it with a tunnel for ChatGPT:
-#   cloudflared tunnel --url http://localhost:8765
+# manage it as a service and front it with a tunnel for ChatGPT:
+scripts/mcp-service.sh install --root "$PWD" --port 8765
+scripts/mcp-service.sh start
+scripts/mcp-service.sh tunnel            # cloudflared quick tunnel
+
+# register the stdio server for Cursor / Claude Code / Qoder (idempotent):
+node scripts/mcp-register.js --root "$PWD"   # writes ./.mcp.json
 ```
 
 Tools: `search_docs`, `read_doc`, `read_context`, `search_memory` (read-only,
-allowlisted) + `share_knowledge`, `list_knowledge` (pending inbox only — the
-server never edits docs or context). Full setup, auth, and ChatGPT connector
-steps: [`docs/mcp-chatgpt.md`](docs/mcp-chatgpt.md).
+allowlisted) + `share_knowledge`, `list_knowledge`, `review_knowledge` (store, never
+docs) + `start_thread`, `post_message`, `get_thread`, `list_threads`, `pair_thread`,
+`list_pairs` (chat + per-project pairing) + the `prompts` capability
+(`orchestra_plan`/`_implement`/`_verify`/`_review`, `project_knowledge`). Full setup,
+auth, and ChatGPT connector steps: [`docs/mcp-chatgpt.md`](docs/mcp-chatgpt.md).
 
 ---
 

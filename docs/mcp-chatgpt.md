@@ -8,7 +8,7 @@ on top of it.
 
 ## What it exposes
 
-Six read/queue tools over an allowlist (see `bundle/hooks/lib/knowledge-tools.js`):
+**Read / knowledge tools** (`bundle/hooks/lib/knowledge-tools.js`):
 
 | Tool | Purpose | Writes? |
 |------|---------|---------|
@@ -16,11 +16,29 @@ Six read/queue tools over an allowlist (see `bundle/hooks/lib/knowledge-tools.js
 | `read_doc` | Read one allowlisted markdown file by project-relative path | No |
 | `read_context` | Read one onboarding context file (`context/<name>.md`) | No |
 | `search_memory` | Hybrid recall from the orchestra memory index (goals/decisions) | No |
-| `share_knowledge` | Append a knowledge item to the **pending review inbox** | Inbox only |
-| `list_knowledge` | List inbox entries, optionally filter `status=pending\|applied\|rejected` | No |
+| `share_knowledge` | Append a knowledge item to the store as `pending` | Store only |
+| `list_knowledge` | List entries, optionally filter `status=pending\|approved\|rejected\|applied` | No |
+| `review_knowledge` | Promote/demote an entry (`approved`/`rejected`/`applied`/`pending`) | Store status only |
+
+**Chat + pairing tools** (resume work across connectors and the local CLI):
+
+| Tool | Purpose |
+|------|---------|
+| `start_thread` | Open a project chat thread, optionally bound to an external conversation id |
+| `post_message` | Append a message (role `assistant`/`user`/`system`) |
+| `get_thread` | Resume a thread by id *or* by external binding (`externalKind`+`externalId`) |
+| `list_threads` | List this project's threads |
+| `pair_thread` / `list_pairs` | Bind / list external-conversation ↔ thread mappings |
 
 Plus the existing read-only run tools: `get_run_status`, `get_gate_results`,
 `get_evidence`, `list_runs`.
+
+**Master prompts** (`bundle/hooks/lib/master-prompts.js`, first-class MCP
+`prompts` capability): `orchestra_plan`, `orchestra_implement`,
+`orchestra_verify`, `orchestra_review`, `project_knowledge`. Each is rendered
+with the project identity and any `approved` knowledge baked in, and is
+reachable over `prompts/list` / `prompts/get` or the `get_master_prompt` /
+`list_master_prompts` tools.
 
 Security posture:
 
@@ -28,9 +46,12 @@ Security posture:
   are readable. Anything matching `.env`, `secret`, `credential`, `token`,
   `private-key`, `.pem`, `id_rsa` is denied even inside an allowed directory;
   paths that escape the project root are denied; files over 200 KB are refused.
-- The server **never edits docs or context directly**. `share_knowledge` only
-  queues a `pending` entry in `~/.pcore/state/knowledge-inbox.json`
-  (honors `PCORE_STATE_DIR`); a human or an orchestra phase promotes it.
+- The server **never edits docs or context directly**. `share_knowledge` writes
+  a `pending` row to the SQLite store at `~/.pcore/state/knowledge.db` (JSON
+  inbox fallback on a Node without `node:sqlite`, honoring `PCORE_STATE_DIR`);
+  `review_knowledge` flips status. A human or orchestra phase reads `approved`
+  rows back and edits the files. Every row is partitioned by `project.slug`, so
+  one connector serving project A cannot read project B's knowledge or threads.
 - Loopback binds (`127.0.0.1`) need no auth. Any other bind address **refuses to
   start without a bearer token**.
 
@@ -91,27 +112,62 @@ settings) only accepts **public HTTPS** MCP servers.
      what you find"*.
 
 4. Knowledge exchange: ask ChatGPT to `share_knowledge` with
-   `source: "chatgpt"`; review the queue locally with
-   `node scripts/mcp-knowledge-server.js` + `list_knowledge`, then a human
-   promotes entries into `context/` or `docs/`.
+   `source: "chatgpt"`; list the queue with `list_knowledge`, promote what you
+   want to keep with `review_knowledge { status: "approved" }`, then a human or
+   an orchestra phase reads `approved` rows back into `context/` or `docs/`.
+   To continue the same conversation locally, `get_thread` by the connector's
+   conversation id once you've `pair_thread`'d it.
+
+## Managed service & client registration
+
+For anything longer-lived than a single `node …` invocation, `scripts/mcp-service.sh`
+runs the hub as a managed service (systemd user unit / launchd plist / nohup),
+loopback by default; `--expose` binds `0.0.0.0` and is **refused without a token**:
+
+```bash
+scripts/mcp-service.sh install --port 8765 --root "$PWD"   # write the unit
+scripts/mcp-service.sh start                               # start + health probe
+scripts/mcp-service.sh tunnel                              # cloudflared quick tunnel
+scripts/mcp-service.sh status | logs | stop | uninstall
+```
+
+Register the stdio server into an `mcpServers` config that Cursor / Claude Code /
+Qoder read (idempotent — unrelated entries are preserved):
+
+```bash
+node <orchestra>/scripts/mcp-register.js --root "$PWD"                 # writes ./.mcp.json
+node <orchestra>/scripts/mcp-register.js --target ~/.cursor/mcp.json   # global Cursor
+node <orchestra>/scripts/mcp-register.js --url https://<tunnel>/mcp    # remote HTTP instead
+```
 
 ## Verify
 
 ```bash
-node scripts/test-mcp-knowledge.js
+node scripts/test-mcp-knowledge.js        # allowlist, tools surface, HTTP handshake, bind policy
+node scripts/test-mcp-knowledge-store.js  # SQLite store, review, chat, pairing, project split, JSON fallback
+node scripts/test-mcp-prompts.js          # master prompts over stdio config + HTTP prompts/list|get
+bash scripts/test-mcp-service.sh          # service lifecycle + mcp-register merge
 ```
 
 Covers the allowlist (deny `.env`, secret names, `../` escapes), the search/read
-tools, the share→list inbox round trip, the tool surface inside `tools/list`,
-the bind policy (non-loopback without token is refused), and a real HTTP
-`initialize` → `tools/list` → `tools/call` handshake with bearer enforcement.
+tools, the share→list→review round trip, the chat-thread + pairing surface, the
+project-slug partition, the JSON-inbox fallback, the tool surface inside
+`tools/list`, the master-prompt rendering (project-aware + approved-knowledge
+injection) over `prompts/list`/`prompts/get`, the bind policy (non-loopback
+without token is refused), and a real HTTP `initialize` → `tools/list` →
+`tools/call` handshake with bearer enforcement.
 
 ## Design notes
 
 - Transport: `StreamableHTTPServerTransport` from `@modelcontextprotocol/sdk`
   with `sessionIdGenerator: undefined` (stateless mode) — the mode remote
   connectors such as ChatGPT and Claude.ai expect.
-- The stdio path is unchanged; HTTP is additive. Both reuse the same
-  `McpServer` class, so the tool surface cannot drift between transports.
+- Capabilities: `resources`, `tools`, and `prompts`. The stdio path is unchanged;
+  HTTP is additive. Both reuse the same `McpServer` class, so the tool and prompt
+  surface cannot drift between transports.
+- Storage: `node:sqlite` (`DatabaseSync`), the same driver as `memory-fts.js`,
+  loaded lazily so a Node without it falls back to the JSON inbox rather than
+  throwing. The store is the single writer for knowledge, chat, and pairs;
+  `knowledge-tools.js` stays the allowlist/authz boundary.
 - Files are byte-mirrored into `bundle/opencode/hooks/lib/` per the mirror rule
   (`node scripts/test-mirror-sync.js`).

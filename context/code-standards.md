@@ -66,6 +66,9 @@ node scripts/test-spawn-adapter-integration.js
 node scripts/test-mcp-server.js
 node scripts/test-mcp-lifecycle.js
 node scripts/test-mcp-knowledge.js
+node scripts/test-mcp-knowledge-store.js
+node scripts/test-mcp-prompts.js
+bash scripts/test-mcp-service.sh
 node scripts/test-parallel-execution.js
 node scripts/test-sixfile-validation.js
 node scripts/test-memory-retrieval.js
