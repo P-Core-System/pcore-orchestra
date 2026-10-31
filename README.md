@@ -501,6 +501,9 @@ rm -f  ~/.cursor/hooks.json  # then re-add any non-orchestra hooks you had
 > `--project` installs the Cursor project bridge into the **current repo**
 > (`$PWD/.cursor`); use `--project-dir PATH` to target another repo, or
 > `--force-project` to allow the orchestra clone itself as the target.
+> The Windows installer mirrors this: `-Project`, `-ProjectDir PATH`, and
+> `-ForceProject` (and, like the shell side, refuses to write the bridge into
+> the clone unless `-ForceProject` is passed).
 
 ---
 
