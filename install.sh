@@ -322,24 +322,27 @@ install_opencode() {
   done
 
   # Inherit: strip agent frontmatter model: after copy so subagents use global model
+  # (Node, not python3 — Node is already a hard requirement; a missing python3 must
+  # never abort the install under `set -e`.)
   find "$OPENCODE/agents" -name '*.md' -print0 2>/dev/null | while IFS= read -r -d '' f; do
     if grep -qE '^model:[[:space:]]*opencode/' "$f" 2>/dev/null; then
-      python3 - "$f" <<'PY'
-import re, sys
-path = sys.argv[1]
-text = open(path, encoding='utf-8').read()
-bom = ''
-if text.startswith('﻿'):
-    bom, text = '﻿', text[1:]
-m = re.match(r'^---\n(.*?)\n---\n(.*)$', text, re.S)
-if not m:
-    sys.exit(0)
-fm, rest = m.group(1), m.group(2)
-new_fm, n = re.subn(r'(?m)^model:[ \t]*opencode/[A-Za-z0-9_.-]+[ \t]*\n?', '', fm)
-if n:
-    new_fm = re.sub(r'\n{3,}', '\n\n', new_fm)
-    open(path, 'w', encoding='utf-8').write(bom + '---\n' + new_fm + '\n---\n' + rest)
-PY
+      node - "$f" <<'JS'
+const fs = require('fs');
+const path = process.argv[2];
+let text = fs.readFileSync(path, 'utf8');
+let bom = '';
+if (text.charCodeAt(0) === 0xFEFF) { bom = '﻿'; text = text.slice(1); }
+const m = text.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+if (!m) process.exit(0);
+let fm = m[1];
+const rest = m[2];
+let n = 0;
+fm = fm.replace(/^model:[ \t]*opencode\/[A-Za-z0-9_.-]+[ \t]*\n?/gm, () => { n++; return ''; });
+if (n) {
+  fm = fm.replace(/\n{3,}/g, '\n\n');
+  fs.writeFileSync(path, bom + '---\n' + fm + '\n---\n' + rest);
+}
+JS
     fi
   done
 
@@ -622,8 +625,10 @@ install_scoping() {
     echo "  Global script:   ~/.local/bin/setup-repo-scoping.sh"
   fi
 
-  # Install opencode-maintenance.sh to ~/.local/bin
-  if [[ -f "$ROOT/scripts/opencode-maintenance.sh" ]]; then
+  # Install opencode-maintenance.sh to ~/.local/bin — only when OpenCode is in
+  # scope (#24): a --codex/--cursor-only install shouldn't drop an unrelated
+  # OpenCode helper into the global bin.
+  if [[ "$INSTALL_OPENCODE" -eq 1 && -f "$ROOT/scripts/opencode-maintenance.sh" ]]; then
     rm -f "$HOME/.local/bin/opencode-maintenance.sh"
     cp -f "$ROOT/scripts/opencode-maintenance.sh" "$HOME/.local/bin/opencode-maintenance.sh"
     chmod +x "$HOME/.local/bin/opencode-maintenance.sh"
@@ -949,6 +954,13 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   [[ "$INSTALL_PROJECT" -eq 1 ]] && echo "  - Project bridge"
   [[ "$INSTALL_MCP" -eq 1 ]] && echo "  - MCP server"
   [[ "$INSTALL_STUDIO" -eq 1 ]] && echo "  - Studio dashboard"
+  # #23: preview the OpenCode CLI upgrade (current vs target) without installing.
+  if [[ "$INSTALL_OPENCODE" -eq 1 && "$SKIP_OPENCODE_UPGRADE" -eq 0 ]]; then
+    echo ""
+    echo "DRY RUN: OpenCode CLI upgrade preview:"
+    bash "$ROOT/scripts/ensure-opencode-latest.sh" --check 2>&1 | sed 's/^/  /' || \
+      echo "  (could not preview — offline, or opencode CLI / npm registry unreachable)"
+  fi
   exit 0
 fi
 
@@ -1039,7 +1051,7 @@ if [[ "$INSTALL_STUDIO" -eq 1 ]]; then
   echo "  Studio dashboard: ~/.local/bin/orchestra-studio (starts on http://localhost:3110)"
 fi
 echo "  Repo scoping:    ~/.local/bin/setup-repo-scoping.sh (run on any repo)"
-echo "  Maintenance:    ~/.local/bin/opencode-maintenance.sh --apply (clean DB/logs)"
+[[ "$INSTALL_OPENCODE" -eq 1 ]] && echo "  Maintenance:    ~/.local/bin/opencode-maintenance.sh --apply (clean DB/logs)"
 echo "  Global gitignore: ~/.config/git/ignore (node_modules, vendor, venv, caches)"
 echo ""
 echo "  Docs: docs/autonomous-workflow.md · docs/orchestra-cross-platform.md"

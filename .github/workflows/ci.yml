@@ -50,7 +50,7 @@ jobs:
         run: npm ci --prefix server
       - name: Agent registry in sync
         run: node scripts/gen-agent-registry.js --check
-      - name: Hook suites (safe-write, state, conductor, outcome, registry, handshake, mirrors, permissions, adaptive, domain, evidence, review queue, security scanner, studio service)
+      - name: Hook suites (safe-write, state, conductor, outcome, registry, handshake, mirrors, permissions, adaptive, domain, evidence, review queue, security scanner, studio service, opencode upgrade)
         run: |
           set -e
           node scripts/test-safe-write.js
@@ -73,6 +73,7 @@ jobs:
           node scripts/test-opencode-v2.js
           node scripts/test-opencode-permission-contract.js
           bash scripts/test-studio-service.sh
+          bash scripts/test-ensure-opencode-latest.sh
       - name: Studio suites (data layer, UI, server, integration)
         run: |
           set -e

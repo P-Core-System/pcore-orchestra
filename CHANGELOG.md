@@ -17,6 +17,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **`~/.agents/skills` is host-independent** — the shared Agent Skills discovery dir is now a copy from `bundle/skills` instead of a symlink to whichever host installed last, so removing/reinstalling one host no longer dangles it for the others; on uninstall each shared entry is pruned only once no remaining host still provides it (#26).
 - **`--project` installs the bridge into the current repo** — the target is now `$PWD` (or an explicit `--project-dir PATH`) instead of the orchestra clone's parent directory; running it inside the clone is refused unless `--force-project` is passed (#22).
 - **`install.sh --studio` Cursor dist path** — both host `studio/` parents are created before the copy, so the dashboard lands at `<host>/studio/dist/index.html` (matching the README) rather than one level too high (#19).
+- **OpenCode agent model-strip no longer needs python3** — the frontmatter `model: opencode/…` cleanup runs through `node` (which the installer already requires) instead of a `python3` heredoc, so a machine without python3 can no longer abort the OpenCode install under `set -e` (#27).
+- **`opencode-maintenance.sh` is scoped to `--opencode`** — a single-host install (e.g. `--cursor`) no longer drops unrelated files into `~/.local/bin`; the copy and its closing summary line are both gated on the OpenCode install flag (#24).
+- **`ensure-opencode-latest.sh` verifies the upgrade instead of trusting it** — bun and npm results are now checked (`if cmd; then`), the `curl | bash` fallback is off unless `--allow-remote-script` is passed, a post-install `WARN` fires when the landed version differs from the registry tag, and `install.sh --dry-run` previews the upgrade via `--check` (#23).
 
 ## [3.9.0] - 2026-10-31
 

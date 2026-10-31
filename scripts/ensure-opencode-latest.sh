@@ -14,16 +14,23 @@ set -euo pipefail
 
 CHANNEL="${OPENCODE_CHANNEL:-stable}"
 CHECK_ONLY=0
+ALLOW_REMOTE_SCRIPT=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --check) CHECK_ONLY=1; shift ;;
+    --allow-remote-script) ALLOW_REMOTE_SCRIPT=1; shift ;;
     --channel) CHANNEL="${2:-stable}"; shift 2 ;;
     -h|--help)
       cat <<'EOF'
-Usage: bash scripts/ensure-opencode-latest.sh [--check] [--channel stable|beta|dev]
+Usage: bash scripts/ensure-opencode-latest.sh [--check] [--channel stable|beta|dev] [--allow-remote-script]
 
 Upgrades OpenCode CLI before orchestra install. Default channel: stable (npm latest).
+
+Options:
+  --check                 Print current vs target version and exit (no install).
+  --allow-remote-script  Permit the https://opencode.ai/install (curl | bash)
+                         fallback if both bun and npm upgrade paths fail.
 
 Environment:
   OPENCODE_CHANNEL   stable | beta | dev
@@ -90,29 +97,52 @@ if [[ -n "$BEFORE" && -n "$TARGET" && "$BEFORE" == "$TARGET" ]]; then
   exit 0
 fi
 
-installed=0
+# Try bun, then npm — each wrapped in `if` so a non-zero exit is handled here
+# (and NOT mistaken for success). #23: never set installed=1 on a failed command.
+upgraded=0
 if command -v bun >/dev/null 2>&1; then
   echo "    Upgrading via bun (${PKG}@${TAG})..."
   if bun install -g "${PKG}@${TAG}"; then
-    installed=1
+    upgraded=1
+  else
+    echo "    bun install -g failed (exit $?); trying npm..."
   fi
 fi
 
-if [[ "$installed" -eq 0 ]] && command -v npm >/dev/null 2>&1; then
+if [[ "$upgraded" -eq 0 ]] && command -v npm >/dev/null 2>&1; then
   echo "    Upgrading via npm (${PKG}@${TAG})..."
-  npm install -g "${PKG}@${TAG}"
-  installed=1
+  if npm install -g "${PKG}@${TAG}"; then
+    upgraded=1
+  else
+    echo "    npm install -g failed (exit $?)."
+  fi
 fi
 
-if [[ "$installed" -eq 0 ]]; then
-  echo "    Installing via https://opencode.ai/install ..."
-  curl -fsSL https://opencode.ai/install | bash
-  installed=1
+# curl | bash fallback is OFF by default (#23: piping a remote script to a shell).
+if [[ "$upgraded" -eq 0 ]]; then
+  if [[ "$ALLOW_REMOTE_SCRIPT" -eq 1 ]]; then
+    echo "    Installing via https://opencode.ai/install (--allow-remote-script)..."
+    if curl -fsSL https://opencode.ai/install | bash; then
+      upgraded=1
+    else
+      echo "ERROR: remote installer (curl | bash) failed."
+      exit 1
+    fi
+  else
+    echo "ERROR: neither bun nor npm could upgrade ${PKG}@${TAG}."
+    echo "       The curl | bash fallback is disabled by default. Re-run with"
+    echo "       --allow-remote-script, or install ${PKG} manually."
+    exit 1
+  fi
 fi
 
 AFTER="$(parse_version || true)"
 if [[ -n "$AFTER" ]]; then
   echo "OK   OpenCode CLI now $AFTER (channel $CHANNEL)"
+  # #23: verify the install actually landed the requested version.
+  if [[ -n "$TARGET" && "$AFTER" != "$TARGET" ]]; then
+    echo "WARN expected $TARGET but got $AFTER (registry tag may have moved, or install did not take effect)"
+  fi
 else
   echo "WARN Could not verify opencode --version after install"
   exit 1
