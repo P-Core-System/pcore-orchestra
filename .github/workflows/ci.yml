@@ -123,14 +123,6 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-    env:
-      ORCH_HOME: ${{ runner.temp }}/orch
-      CURSOR_HOME: ${{ runner.temp }}/orch/.cursor
-      OPENCODE_CONFIG_DIR: ${{ runner.temp }}/orch/.config/opencode
-      QODER_CONFIG_DIR: ${{ runner.temp }}/orch/.qoder
-      CLAUDE_CONFIG_DIR: ${{ runner.temp }}/orch/.claude
-      CODEX_HOME: ${{ runner.temp }}/orch/.codex
-      AGENTS_SKILLS: ${{ runner.temp }}/orch/.agents/skills
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -143,10 +135,18 @@ jobs:
       # free-model refresh hits the network). HOME is redirected to a throwaway
       # dir so global helper scripts + git config stay isolated.
       - name: Install into throwaway HOME + assert artifacts + health
-        env:
-          HOME: ${{ runner.temp }}/orch
         run: |
           set -euo pipefail
+          # `runner` context isn't valid in job-level env, so redirect HOME + the
+          # per-host dirs here via $RUNNER_TEMP (always set for steps).
+          export HOME="$RUNNER_TEMP/orch"
+          export ORCH_HOME="$HOME"
+          export CURSOR_HOME="$HOME/.cursor"
+          export OPENCODE_CONFIG_DIR="$HOME/.config/opencode"
+          export QODER_CONFIG_DIR="$HOME/.qoder"
+          export CLAUDE_CONFIG_DIR="$HOME/.claude"
+          export CODEX_HOME="$HOME/.codex"
+          export AGENTS_SKILLS="$HOME/.agents/skills"
           mkdir -p "$HOME"
           bash install.sh --cursor --qoder --claude --codex --skip-opencode-upgrade
           test -f "$CURSOR_HOME/hooks/orchestra-health.js"
@@ -158,10 +158,17 @@ jobs:
           test -d "$AGENTS_SKILLS/orchestra-loop"
           node "$CURSOR_HOME/hooks/orchestra-health.js"
       - name: Uninstall removes only Orchestra files + restores backups
-        env:
-          HOME: ${{ runner.temp }}/orch
         run: |
           set -euo pipefail
+          # same isolated HOME/dirs as the install step (must match to target them)
+          export HOME="$RUNNER_TEMP/orch"
+          export ORCH_HOME="$HOME"
+          export CURSOR_HOME="$HOME/.cursor"
+          export OPENCODE_CONFIG_DIR="$HOME/.config/opencode"
+          export QODER_CONFIG_DIR="$HOME/.qoder"
+          export CLAUDE_CONFIG_DIR="$HOME/.claude"
+          export CODEX_HOME="$HOME/.codex"
+          export AGENTS_SKILLS="$HOME/.agents/skills"
           # seed a backup so restore path is exercised
           cp "$CURSOR_HOME/hooks.json" "$CURSOR_HOME/hooks.json.bak-2026-01-01T00-00-00-000Z" 2>/dev/null || true
           bash install.sh --cursor --qoder --claude --codex --uninstall
