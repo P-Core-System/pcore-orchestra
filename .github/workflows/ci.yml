@@ -148,7 +148,14 @@ jobs:
           export CODEX_HOME="$HOME/.codex"
           export AGENTS_SKILLS="$HOME/.agents/skills"
           mkdir -p "$HOME"
+          # #15 regression: pre-seed a user global git excludesfile; install must
+          # keep it, not re-point core.excludesfile at the orchestra ignore.
+          MY_EXCL="$HOME/my-global-ignore"
+          printf '[core]\n  excludesfile = %s\n' "$MY_EXCL" > "$HOME/.gitconfig"
           bash install.sh --cursor --qoder --claude --codex --skip-opencode-upgrade
+          test "$(git config --global --get core.excludesfile)" = "$MY_EXCL" \
+            || { echo "#15 FAIL: core.excludesfile was overwritten"; exit 1; }
+          echo "#15 OK: user core.excludesfile preserved"
           test -f "$CURSOR_HOME/hooks/orchestra-health.js"
           test -f "$CURSOR_HOME/agents/orchestra.md"
           test -f "$CURSOR_HOME/hooks/lib/io.js"
