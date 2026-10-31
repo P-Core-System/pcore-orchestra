@@ -3,7 +3,7 @@
 > **Project:** P-Core Orchestra (pcore-orchestra)
 > **License:** MIT | **Maintainer:** P-Core System
 > **Repository:** github.com/P-Core-System/pcore-orchestra
-> **Status:** Production-ready v3.7 · **Docs version:** 3.7 (October 2026)
+> **Status:** Production-ready v3.8 · **Docs version:** 3.8 (October 2026)
 
 ---
 
@@ -118,8 +118,8 @@ All core features complete (64 completed items). All critical and important code
 | **Cursor IDE** | Latest | Primary target via hooks API (sessionStart, beforeSubmitPrompt, subagentStop, stop) |
 | **OpenCode CLI** | Latest | Secondary target via skill system with `mode: subagent` agents |
 | **Qoder CLI** | Latest | Third target: agents in `bundle/qoder/agents/`, hooks wired through `settings.json` |
-| **Claude Code** | Latest | Native spawn bridge — adapter emits `Agent` + `subagent_type` and hooks settings are documented; `install.sh` does not install to it yet |
-| **Codex CLI** | Latest | Native spawn bridge — adapter emits `spawn_agent` + `agent_type` (`multi_agent` stable); `install.sh` does not install to it yet |
+| **Claude Code** | Latest | Native spawn bridge + installer support (`install.sh --claude`, included in `--all`) — adapter emits `Agent` + `subagent_type`; agents in `~/.claude/agents/`, hooks merged into `~/.claude/settings.json` |
+| **Codex CLI** | Latest | Native spawn bridge + installer support (`install.sh --codex`, included in `--all`) — adapter emits `spawn_agent` + `agent_type` (`multi_agent` stable); TOML agents in `~/.codex/agents/` |
 | **Cloudflare Workers** | Latest | Worker template in turnstile-spin skill (optional, not core) |
 
 ## Libraries

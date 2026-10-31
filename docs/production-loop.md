@@ -1,4 +1,4 @@
-# Production Orchestra Loop (V3.7)
+# Production Orchestra Loop (V3.8)
 
 How pcore-orchestra runs a **production-grade** plan→implement→verify→review cycle with durable artifacts, gates, and observability.
 
@@ -126,4 +126,4 @@ orchestra:
 
 ---
 
-*V3.7 — plan artifact, cycle reports, hybrid memory recall, fail-closed commit gate*
+*V3.8 — plan artifact, cycle reports, hybrid memory recall, fail-closed commit gate, five-host installers*

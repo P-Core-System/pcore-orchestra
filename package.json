@@ -1,6 +1,6 @@
 {
   "name": "pcore-orchestra",
-  "version": "3.7.0",
+  "version": "3.8.0",
   "description": "Multi-agent orchestra for Cursor, OpenCode CLI, Qoder CLI, Claude Code, and Codex CLI",
   "main": "bundle/hooks/orchestra-prompt.js",
   "scripts": {
@@ -23,6 +23,14 @@
   ],
   "author": "P-Core",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/P-Core-System/pcore-orchestra.git"
+  },
+  "homepage": "https://github.com/P-Core-System/pcore-orchestra#readme",
+  "bugs": {
+    "url": "https://github.com/P-Core-System/pcore-orchestra/issues"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.0"
   },

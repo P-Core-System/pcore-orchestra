@@ -15,7 +15,7 @@
 **Repository:** [github.com/P-Core-System/pcore-orchestra](https://github.com/P-Core-System/pcore-orchestra)
 **Docs map:** [docs/index.md](docs/index.md)
 
-**Status:** Production-ready | **Version:** 3.7.0 | **Last updated:** October 2026
+**Status:** Production-ready (lifecycle stage: `production`, channel: `stable`) | **Version:** 3.8.0 | **Last updated:** 2026-10-31
 
 ---
 

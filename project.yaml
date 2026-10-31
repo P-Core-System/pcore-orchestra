@@ -9,15 +9,15 @@ project:
   description: Global orchestra harness for Cursor, OpenCode CLI, and Qoder CLI
 
 version:
-  current: 3.7.0
-  channel: dev
+  current: 3.8.0
+  channel: stable
   build_number: 1
 
 lifecycle:
-  stage: development
+  stage: production
   status: active
   started: 2026-01-01
-  updated: 2026-10-09
+  updated: 2026-10-31
 
 repository:
   url: https://github.com/P-Core-System/pcore-orchestra
@@ -60,9 +60,26 @@ _pcore:
   version: 2
   initialized: 2026-07-22T00:00:00Z
   orchestration_count: 0
-  version_history: []
+  version_history:
+    - version: "3.8.0"
+      date: "2026-10-31"
+      tag: v3.8.0
+      note: >-
+        First annotated git tag; open-source publish. Bundles five-host installers
+        (Claude Code + Codex), MCP start() cache-race fix, verdict-accurate phase
+        outcomes, memory/learning lane, and the orchestra-install skill.
   lifecycle_transitions:
     - stage: development
       status: active
       date: 2026-10-09
       note: Added GitHub team assignment (core-platform).
+    - stage: production
+      status: active
+      date: 2026-10-31
+      note: >-
+        Promoted to production/stable. Repo is public and synced to origin/main,
+        version cut and tagged as v3.8.0 (first git tag; 3.7.0 was the pre-tag
+        curated baseline), 41 CI test suites green, quality gates
+        block phase completion (P0 "gates don't gate" and S-19 fail-closed closed),
+        tree sanitized for open source, zero open GitHub issues. Aligns lifecycle
+        with the README "Production-ready" status.

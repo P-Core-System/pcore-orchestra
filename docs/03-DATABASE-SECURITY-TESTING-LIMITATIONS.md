@@ -401,7 +401,7 @@ bash install.sh            # reinstall
 
 ### Versioning
 
-`package.json` is the version source of truth (`version: 3.7.0`, `engines.node: >=18`).
+`package.json` is the version source of truth (`version: 3.8.0`, `engines.node: >=18`).
 Docs 01–04 carry a matching "Docs version" stamp. No git tags are published yet.
 
 ---
