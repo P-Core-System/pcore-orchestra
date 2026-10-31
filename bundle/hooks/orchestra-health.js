@@ -208,8 +208,8 @@ function checkState() {
 function checkMemory() {
   console.log("\n=== Long-term Memory ===");
   const memExists = fs.existsSync(MEMORY_PATH);
-  console.log(memExists ? "OK  " : "MISS ", "state/orchestra-memory.json");
   if (memExists) {
+    console.log("OK  ", "state/orchestra-memory.json");
     try {
       const mem = JSON.parse(fs.readFileSync(MEMORY_PATH, "utf8"));
       console.log(`    completed_goals: ${mem.completed_goals?.length || 0}`);
@@ -218,6 +218,11 @@ function checkMemory() {
     } catch (e) {
       console.log("    WARN: memory file is invalid JSON:", e.message);
     }
+  } else {
+    // #25: the memory file is created lazily by orchestra-memory.js on the first
+    // completed run, so its absence right after a clean install is normal — treat
+    // it as informational, not a failure.
+    console.log("INFO ", "state/orchestra-memory.json — created on first run (not yet present)");
   }
 }
 
@@ -232,19 +237,76 @@ function checkClassification() {
   }
 }
 
+// #25: the full agent list lives in the generated registry (bundle/agent-registry.json),
+// which is NOT copied into the host config dir. Locate the clone (env → walk-up → cwd)
+// so health can cross-check every agent, and degrade to the core-hook subset when the
+// clone isn't present (a plain installed host without the source repo).
+function locateRegistry() {
+  const rel = path.join("bundle", "agent-registry.json");
+  const cand = [];
+  if (process.env.PCORE_ORCHESTRA_REPO) cand.push(path.join(process.env.PCORE_ORCHESTRA_REPO, rel));
+  let dir = HOOKS_DIR;
+  for (let i = 0; i < 6; i++) {
+    cand.push(path.join(dir, rel));
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  cand.push(path.join(process.cwd(), rel));
+  for (const p of cand) {
+    try { if (fs.existsSync(p)) return p; } catch { /* ignore */ }
+  }
+  return null;
+}
+
+function listAgentBasenames(agentsDir) {
+  const have = new Set();
+  (function walk(d) {
+    let entries;
+    try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch { return; }
+    for (const e of entries) {
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (e.name.endsWith(".md")) have.add(e.name.replace(/\.md$/, ""));
+    }
+  })(agentsDir);
+  return have;
+}
+
 function checkAgents() {
   const agentsDir = path.join(ROOT, "agents");
-  if (fs.existsSync(agentsDir)) {
-    console.log("\n=== Agents ===");
-    let agentOk = 0;
-    let agentMiss = 0;
-    for (const name of AGENT_NAMES) {
-      const exists = fs.existsSync(path.join(agentsDir, name));
-      console.log(exists ? "OK " : "MISSING ", name);
-      if (exists) agentOk++; else { agentMiss++; ok = false; }
+  if (!fs.existsSync(agentsDir)) return;
+  console.log("\n=== Agents ===");
+  const installed = listAgentBasenames(agentsDir);
+  const regPath = locateRegistry();
+  if (regPath) {
+    let expected = null;
+    try {
+      const reg = JSON.parse(fs.readFileSync(regPath, "utf8"));
+      if (Array.isArray(reg.agents)) expected = reg.agents;
+    } catch (e) {
+      console.log("    WARN: could not parse agent-registry.json:", e.message);
     }
-    console.log(`    Agents: ${agentOk} present, ${agentMiss} missing`);
+    if (expected) {
+      const missing = expected.filter((n) => !installed.has(n));
+      console.log(`    source: ${regPath}`);
+      console.log(`    Agents: ${expected.length - missing.length}/${expected.length} present (full registry)`);
+      if (missing.length) {
+        console.log("    MISSING:", missing.slice(0, 12).join(", ") + (missing.length > 12 ? ` … +${missing.length - 12} more` : ""));
+        ok = false;
+      }
+      return;
+    }
   }
+  // Registry not locatable: report the installed count and still gate on the core
+  // hook agents every install must contain (#25 fallback).
+  console.log(`    Agents: ${installed.size} installed (agent-registry.json not found — set PCORE_ORCHESTRA_REPO for a full cross-check)`);
+  let coreMiss = 0;
+  for (const name of AGENT_NAMES) {
+    const base = name.replace(/\.md$/, "").split("/").pop();
+    if (!installed.has(base)) { console.log("    MISSING ", name); coreMiss++; ok = false; }
+  }
+  if (coreMiss === 0) console.log("    core hook agents: all present");
 }
 
 function checkProjectFiles() {
