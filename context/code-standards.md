@@ -54,6 +54,8 @@ node scripts/test-security-scanner.js
 node scripts/test-opencode-v2.js
 node scripts/test-opencode-permission-contract.js
 bash scripts/test-studio-service.sh
+bash scripts/test-install-ps1-parity.sh
+bash scripts/lint-install-ps1.sh
 node scripts/test-studio-data-layer.js
 node scripts/test-studio-ui.js
 node scripts/test-studio-server.js

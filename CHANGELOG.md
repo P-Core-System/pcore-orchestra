@@ -12,6 +12,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **CI now syntax- and lint-checks the PowerShell installers** — `scripts/lint-install-ps1.sh` (wired into the `test` job's hook-suites step) runs the PowerShell AST parser over `install.ps1` + `scripts/*.ps1` (a parse error fails CI, catching hand-edit breakage that no Linux/macOS test could otherwise see) and then PSScriptAnalyzer, using `scripts/psscriptanalyzer-settings.psd1` to suppress installer-inappropriate rules. ERROR-severity findings are blocking; WARNINGs are reported but non-blocking; the gate degrades to a clean SKIP when `pwsh`/the analyzer are unavailable so it never false-reddies an offline runner (#28).
+
 ### Fixed
 - **`install.sh` no longer clobbers the user's global git `core.excludesfile`** — it now sets it only when currently unset (or already pointing at the orchestra ignore) and otherwise keeps the existing value with guidance to merge manually (#15).
 - **`~/.agents/skills` is host-independent** — the shared Agent Skills discovery dir is now a copy from `bundle/skills` instead of a symlink to whichever host installed last, so removing/reinstalling one host no longer dangles it for the others; on uninstall each shared entry is pruned only once no remaining host still provides it (#26).
