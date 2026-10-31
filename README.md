@@ -491,7 +491,16 @@ rm -f  ~/.cursor/hooks.json  # then re-add any non-orchestra hooks you had
 ```
 
 > The global gitignore (`~/.config/git/ignore`) and `git config core.excludesfile`
-> are intentionally left in place — they may contain your own entries.
+> are intentionally left in place on uninstall — they may contain your own entries.
+>
+> **On install**, `core.excludesfile` is set to `~/.config/git/ignore` only if you
+> don't already have a global excludes file configured; an existing value is never
+> overwritten (the installer prints what it kept). To combine both, append the
+> lines from `~/.config/git/ignore` to your own excludes file.
+
+> `--project` installs the Cursor project bridge into the **current repo**
+> (`$PWD/.cursor`); use `--project-dir PATH` to target another repo, or
+> `--force-project` to allow the orchestra clone itself as the target.
 
 ---
 

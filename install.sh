@@ -9,8 +9,9 @@
 #   bash install.sh --qoder      # Qoder CLI only
 #   bash install.sh --claude     # Claude Code only
 #   bash install.sh --codex      # Codex CLI only
-#   bash install.sh --project    # also install project bridge in current repo
+#   bash install.sh --project    # install project bridge into $PWD/.cursor (current repo)
 #   bash install.sh --all --project
+#   bash install.sh --project-dir /path/to/repo   # bridge into that repo instead of $PWD
 #   bash install.sh --skip-opencode-upgrade   # skip npm/bun OpenCode CLI upgrade
 #   bash install.sh --studio     # install Studio dashboard (build + launcher)
 #   bash install.sh --all --studio
@@ -33,6 +34,8 @@ INSTALL_QODER=0
 INSTALL_CLAUDE=0
 INSTALL_CODEX=0
 INSTALL_PROJECT=0
+PROJECT_DIR=""
+FORCE_PROJECT=0
 SKIP_OPENCODE_UPGRADE=0
 INSTALL_MCP=0
 INSTALL_STUDIO=0
@@ -48,6 +51,10 @@ while [[ $# -gt 0 ]]; do
     --claude)     INSTALL_CLAUDE=1; shift ;;
     --codex)      INSTALL_CODEX=1; shift ;;
     --project)    INSTALL_PROJECT=1; shift ;;
+    --project-dir)
+      [[ $# -ge 2 && -n "${2:-}" && "${2}" != --* ]] || { echo "ERROR: --project-dir requires a path argument"; exit 1; }
+      INSTALL_PROJECT=1; PROJECT_DIR="$2"; shift 2 ;;
+    --force-project) INSTALL_PROJECT=1; FORCE_PROJECT=1; shift ;;
     --mcp)        INSTALL_MCP=1; shift ;;
     --studio)     INSTALL_STUDIO=1; shift ;;
     --dry-run)    DRY_RUN=1; shift ;;
@@ -55,7 +62,7 @@ while [[ $# -gt 0 ]]; do
     --skip-opencode-upgrade) SKIP_OPENCODE_UPGRADE=1; shift ;;
     -h|--help)
       cat <<'HELP'
-Usage: bash install.sh [--all|--cursor|--opencode|--qoder|--claude|--codex] [--project] [--mcp] [--studio] [--dry-run] [--skip-opencode-upgrade] [--uninstall]
+Usage: bash install.sh [--all|--cursor|--opencode|--qoder|--claude|--codex] [--project|--project-dir PATH] [--mcp] [--studio] [--dry-run] [--skip-opencode-upgrade] [--uninstall]
 
 Options:
   --all        Install for Cursor, OpenCode, Qoder CLI, Claude Code, and Codex CLI (default)
@@ -64,7 +71,9 @@ Options:
   --qoder      Install for Qoder CLI only
   --claude     Install for Claude Code only
   --codex      Install for Codex CLI only
-  --project    Also install project bridge (.cursor/) in current repo
+  --project    Install the project bridge into the CURRENT repo ($PWD/.cursor)
+  --project-dir PATH  Install the project bridge into PATH/.cursor instead of $PWD
+  --force-project  Allow the bridge target to be the orchestra clone itself
   --mcp        Install MCP server dependencies (npm install @modelcontextprotocol/sdk)
   --studio     Install Studio dashboard (build + launcher)
   --dry-run    Show what would be installed without making changes
@@ -261,16 +270,8 @@ fs.writeFileSync(destPath, JSON.stringify(dest, null, 2) + "\n");
 console.log("  Merged hooks.json ->", destPath);
 MERGE
 
-  # Link skills for external discovery (Agent Skills compat path)
-  mkdir -p "$AGENTS_SKILLS"
-  for link_skill in orchestra-loop orchestra-install prompt-intake verification-before-completion \
-      ui-ux-pro-max brand design-system ui-styling web-design-master; do
-    if [[ -d "$CURSOR/skills/$link_skill" ]]; then
-      rm -rf "$AGENTS_SKILLS/$link_skill"
-      ln -sf "$CURSOR/skills/$link_skill" "$AGENTS_SKILLS/$link_skill" 2>/dev/null || \
-        cp -r "$CURSOR/skills/$link_skill" "$AGENTS_SKILLS/$link_skill"
-    fi
-  done
+  # Link skills for external discovery (Agent Skills compat path, host-independent #26)
+  populate_agents_skills
 
   # Autonomy: CLI + permissions.json + sandbox.json (preserves auth/model)
   node "$ROOT/scripts/merge-autonomy-config.js" --cursor --cursor-home "$CURSOR"
@@ -378,16 +379,8 @@ PY
     cp -f "$BUNDLE/config/opencode/AGENTS.md" "$OPENCODE/AGENTS.md"
   fi
 
-  # Link to external skills directory
-  mkdir -p "$AGENTS_SKILLS"
-  for link_skill in orchestra-loop orchestra-install prompt-intake verification-before-completion \
-      ui-ux-pro-max brand design-system ui-styling web-design-master; do
-    if [[ -d "$OPENCODE/skills/$link_skill" ]]; then
-      rm -rf "$AGENTS_SKILLS/$link_skill"
-      ln -sf "$OPENCODE/skills/$link_skill" "$AGENTS_SKILLS/$link_skill" 2>/dev/null || \
-        cp -r "$OPENCODE/skills/$link_skill" "$AGENTS_SKILLS/$link_skill"
-    fi
-  done
+  # Link to external skills directory (host-independent copy from bundle, #26)
+  populate_agents_skills
 
   # Autonomy: merge permission/agent into opencode.json (preserves mcp secrets)
   node "$ROOT/scripts/merge-autonomy-config.js" --opencode --opencode-home "$OPENCODE"
@@ -518,16 +511,8 @@ install_claude() {
   # Merge hooks into ~/.claude/settings.json (preserves permissions/model/env/mcpServers)
   node "$ROOT/scripts/merge-claude-settings.js" --claude-home "$CLAUDE"
 
-  # Link skills for external discovery (Agent Skills compat path)
-  mkdir -p "$AGENTS_SKILLS"
-  for link_skill in orchestra-loop orchestra-install prompt-intake verification-before-completion \
-      ui-ux-pro-max brand design-system ui-styling web-design-master; do
-    if [[ -d "$CLAUDE/skills/$link_skill" ]]; then
-      rm -rf "$AGENTS_SKILLS/$link_skill"
-      ln -sf "$CLAUDE/skills/$link_skill" "$AGENTS_SKILLS/$link_skill" 2>/dev/null || \
-        cp -r "$CLAUDE/skills/$link_skill" "$AGENTS_SKILLS/$link_skill"
-    fi
-  done
+  # Link skills for external discovery (Agent Skills compat path, host-independent #26)
+  populate_agents_skills
 
   echo "  Claude agents:   $CLAUDE/agents/ (conductor + phase + specialists)"
   echo "  Claude hooks:    $CLAUDE/hooks/ (registered in $CLAUDE/settings.json)"
@@ -553,15 +538,10 @@ install_codex() {
 
   cp -f "$BUNDLE/ORCHESTRA.md" "$CODEX/ORCHESTRA.md"
 
-  # Codex reads skills from ~/.agents/skills (shared with other hosts). Do not
-  # replace an existing link/copy that another host installer owns.
-  mkdir -p "$AGENTS_SKILLS"
-  for link_skill in orchestra-loop orchestra-install prompt-intake verification-before-completion \
-      ui-ux-pro-max brand design-system ui-styling web-design-master; do
-    if [[ -d "$BUNDLE/skills/$link_skill" && ! -e "$AGENTS_SKILLS/$link_skill" ]]; then
-      cp -r "$BUNDLE/skills/$link_skill" "$AGENTS_SKILLS/$link_skill"
-    fi
-  done
+  # Codex reads skills from ~/.agents/skills (shared with other hosts). Populate
+  # it host-independently from the bundle (#26) rather than leaving it to whichever
+  # host installer ran last.
+  populate_agents_skills
 
   echo "  Codex agents:    $CODEX/agents/ (160 TOML custom agents)"
   echo "  Codex skills:    $AGENTS_SKILLS/ (shared Agent Skills path)"
@@ -605,12 +585,26 @@ health_codex() {
 ###############################################################################
 # Project bridge
 ###############################################################################
+# Canonical --project target (#22): an explicit --project-dir wins, else the
+# caller's CWD — NOT the clone's parent, which is what the old code wrote to.
+_project_target() {
+  local t="${PROJECT_DIR:-$PWD}"
+  [[ -d "$t" ]] && t="$(cd "$t" && pwd)"
+  printf '%s' "$t"
+}
+
 install_project_bridge() {
-  REPO_ROOT="$(cd "$ROOT/.." && pwd)"
-  echo "==> Installing project bridge to $REPO_ROOT/.cursor"
-  mkdir -p "$REPO_ROOT/.cursor/hooks"
-  cp -f "$ROOT/project-bridge/hooks.json" "$REPO_ROOT/.cursor/hooks.json"
-  cp -f "$ROOT/project-bridge/hooks/bridge.js" "$REPO_ROOT/.cursor/hooks/bridge.js"
+  local target; target="$(_project_target)"
+  if [[ "$target" == "$ROOT" && "$FORCE_PROJECT" -ne 1 ]]; then
+    echo "REFUSING: --project target is the orchestra clone itself ($ROOT)."
+    echo "  cd into the repo you want the bridge in (it lands in \$PWD/.cursor),"
+    echo "  pass --project-dir <path>, or add --force-project to override."
+    return 0
+  fi
+  echo "==> Installing project bridge to $target/.cursor"
+  mkdir -p "$target/.cursor/hooks"
+  cp -f "$ROOT/project-bridge/hooks.json" "$target/.cursor/hooks.json"
+  cp -f "$ROOT/project-bridge/hooks/bridge.js" "$target/.cursor/hooks/bridge.js"
 }
 
 ###############################################################################
@@ -665,10 +659,21 @@ GITEOF
     echo "  Global gitignore: $GITIGNORE (exists, kept)"
   fi
 
-  # Tell git to use it
+  # Tell git to use it — but never clobber a pre-existing user setting (#15).
+  # Only point core.excludesfile at the orchestra ignore when it's currently
+  # unset; if the user already has their own global excludes file, leave it
+  # alone and print guidance to merge manually.
   if command -v git >/dev/null 2>&1; then
-    git config --global core.excludesfile "$GITIGNORE"
-    echo "  git excludesfile: $(git config --global core.excludesfile)"
+    local _cur_excl
+    _cur_excl="$(git config --global --get core.excludesfile 2>/dev/null || true)"
+    if [[ -n "$_cur_excl" && "$_cur_excl" != "$GITIGNORE" ]]; then
+      echo "  git excludesfile: kept existing user value ($_cur_excl) — not overwriting (#15)"
+      echo "                    To also ignore node_modules/vendor/etc, append the lines from"
+      echo "                    $GITIGNORE to your excludes file."
+    else
+      git config --global core.excludesfile "$GITIGNORE"
+      echo "  git excludesfile: $(git config --global core.excludesfile)"
+    fi
   fi
 
   echo "  Usage:           setup-repo-scoping.sh /path/to/any/repo"
@@ -684,7 +689,10 @@ install_studio() {
   # Build studio
   echo "  Building Studio..."
   (cd "$ROOT/studio" && npm install --legacy-peer-deps && npm run build)
-  mkdir -p "$OPENCODE/studio"
+  # mkdir BOTH studio parents first (#19): `cp -rf dist/ <dest>/` only preserves a
+  # `dist/` level when <dest>/ already exists; otherwise it copies dist's contents
+  # up a level, landing the dashboard at ~/.cursor/studio/index.html, not .../dist/.
+  mkdir -p "$OPENCODE/studio" "$CURSOR/studio"
   rm -rf "$CURSOR/studio/dist"
   rm -rf "$OPENCODE/studio/dist"
   cp -rf "$ROOT/studio/dist" "$CURSOR/studio/"
@@ -735,6 +743,22 @@ LAUNCHER
 # Uninstall (bundle/ is the manifest of what we installed — remove only those)
 ###############################################################################
 _LINK_SKILLS="orchestra-loop orchestra-install prompt-intake verification-before-completion ui-ux-pro-max brand design-system ui-styling web-design-master"
+
+# Populate ~/.agents/skills from the bundle so the shared Agent Skills discovery
+# dir is host-independent (#26). Previously each host installer symlinked this
+# path to its OWN skills dir, so the last-installing host "owned" the links and
+# removing/reinstalling it dangled them for the others. A copy from the single
+# bundle source is identical regardless of install order.
+populate_agents_skills() {
+  mkdir -p "$AGENTS_SKILLS"
+  local s
+  for s in $_LINK_SKILLS; do
+    if [[ -d "$BUNDLE/skills/$s" ]]; then
+      rm -rf "$AGENTS_SKILLS/$s"
+      cp -r "$BUNDLE/skills/$s" "$AGENTS_SKILLS/$s"
+    fi
+  done
+}
 
 # Restore a merged JSON file from the newest orchestra backup the installers
 # wrote (`*.bak-<iso>` for settings, `*.bak.<stamp>` for autonomy). Echo + return
@@ -790,7 +814,8 @@ uninstall_cursor() {
   _rm_bundle_dirs "$CURSOR/skills" "$BUNDLE/skills"
   _rm_bundle_dirs "$CURSOR/skills-cursor" "$BUNDLE/skills-cursor"
   rm -f "$CURSOR/rules/orchestra-loop.mdc" "$CURSOR/ORCHESTRA.md"
-  for ls in $_LINK_SKILLS; do rm -rf "$AGENTS_SKILLS/$ls"; done
+  # shared ~/.agents/skills is device-level; torn down once by run_uninstall on
+  # a full all-host uninstall (#26), never here so a scoped uninstall is safe.
   restore_backup "$CURSOR/hooks.json" || strip_orchestra_hooks "$CURSOR/hooks.json"
   for cf in cli-config.json permissions.json sandbox.json; do restore_backup "$CURSOR/$cf" || true; done
 }
@@ -804,7 +829,8 @@ uninstall_opencode() {
   _rm_bundle_dirs "$OPENCODE/agents" "$BUNDLE/opencode/agents"
   _rm_bundle_dirs "$OPENCODE/skills" "$BUNDLE/opencode/skills"
   rm -f "$OPENCODE/plugins/orchestra-"*.js
-  for ls in $_LINK_SKILLS; do rm -rf "$AGENTS_SKILLS/$ls"; done
+  # shared ~/.agents/skills is device-level; torn down once by run_uninstall on
+  # a full all-host uninstall (#26), never here so a scoped uninstall is safe.
   restore_backup "$OPENCODE/opencode.json" || true
   # free-model weekly schedule (best-effort; manual fallback always printed)
   if command -v systemctl >/dev/null 2>&1; then
@@ -838,7 +864,8 @@ uninstall_claude() {
   fi
   _rm_bundle_dirs "$CLAUDE/skills" "$BUNDLE/skills"
   rm -f "$CLAUDE/ORCHESTRA.md"
-  for ls in $_LINK_SKILLS; do rm -rf "$AGENTS_SKILLS/$ls"; done
+  # shared ~/.agents/skills is device-level; torn down once by run_uninstall on
+  # a full all-host uninstall (#26), never here so a scoped uninstall is safe.
   restore_backup "$CLAUDE/settings.json" || strip_orchestra_hooks "$CLAUDE/settings.json"
 }
 
@@ -849,15 +876,14 @@ uninstall_codex() {
     for a in "$BUNDLE/codex/agents"/*.toml; do [ -f "$a" ] && rm -f "$CODEX/agents/$(basename "$a")"; done
   fi
   rm -f "$CODEX/ORCHESTRA.md"
-  for ls in $_LINK_SKILLS; do rm -rf "$AGENTS_SKILLS/$ls"; done
+  # shared ~/.agents/skills is device-level; torn down once by run_uninstall on
+  # a full all-host uninstall (#26), never here so a scoped uninstall is safe.
 }
 
 uninstall_project_bridge() {
-  REPO_ROOT="$(cd "$ROOT/.." 2>/dev/null && pwd || true)"
-  if [[ -n "$REPO_ROOT" ]]; then
-    echo "==> Removing project bridge from $REPO_ROOT/.cursor"
-    rm -f "$REPO_ROOT/.cursor/hooks.json" "$REPO_ROOT/.cursor/hooks/bridge.js"
-  fi
+  local target; target="$(_project_target)"
+  echo "==> Removing project bridge from $target/.cursor"
+  rm -f "$target/.cursor/hooks.json" "$target/.cursor/hooks/bridge.js"
 }
 
 uninstall_global_bin() {
@@ -883,6 +909,19 @@ run_uninstall() {
     echo "==> Removing Studio service"
     bash "$ROOT/scripts/studio-service.sh" uninstall 2>/dev/null || true
   fi
+  # #26: ~/.agents/skills is shared, device-level content (host-independent copy
+  # from the bundle). Drop each entry only once NO remaining host install still
+  # provides it, so a scoped single-host uninstall can't strand the other hosts,
+  # while a full teardown still cleans up. (Codex reads the shared dir directly,
+  # so it has no private skills dir to check here.)
+  echo "==> Pruning shared Agent Skills no longer used by any host"
+  for _sk in $_LINK_SKILLS; do
+    _used=0
+    for _d in "$CURSOR/skills" "$OPENCODE/skills" "$CLAUDE/skills" "$QODER/skills"; do
+      [[ -d "$_d/$_sk" ]] && _used=1 && break
+    done
+    [[ "$_used" -eq 0 ]] && rm -rf "$AGENTS_SKILLS/$_sk"
+  done
   uninstall_global_bin
   echo ""
   echo "============================================"

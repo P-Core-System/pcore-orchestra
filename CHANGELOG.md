@@ -12,7 +12,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-_None yet._
+### Fixed
+- **`install.sh` no longer clobbers the user's global git `core.excludesfile`** — it now sets it only when currently unset (or already pointing at the orchestra ignore) and otherwise keeps the existing value with guidance to merge manually (#15).
+- **`~/.agents/skills` is host-independent** — the shared Agent Skills discovery dir is now a copy from `bundle/skills` instead of a symlink to whichever host installed last, so removing/reinstalling one host no longer dangles it for the others; on uninstall each shared entry is pruned only once no remaining host still provides it (#26).
+- **`--project` installs the bridge into the current repo** — the target is now `$PWD` (or an explicit `--project-dir PATH`) instead of the orchestra clone's parent directory; running it inside the clone is refused unless `--force-project` is passed (#22).
+- **`install.sh --studio` Cursor dist path** — both host `studio/` parents are created before the copy, so the dashboard lands at `<host>/studio/dist/index.html` (matching the README) rather than one level too high (#19).
 
 ## [3.9.0] - 2026-10-31
 
