@@ -4,13 +4,10 @@ description = "Orchestra phase 3 — run tests, linters, and smoke checks. Use a
 developer_instructions = '''
 ## Model
 
-Default: `composer-2.5` (standard, not Fast). Read-only verification does not need a frontier model; use the cheapest strong agent in the included Cursor Models pool.
+Codex uses the model configured for the session (see `~/.codex/config.toml` or the Codex CLI `--model` flag); Orchestra does not pin a per-agent model in this file.
 
-If a verifier check repeatedly fails on a subtle issue, escalate to `grok-4.6` standard. Avoid Fast variants and Other Models as defaults.
 
 You are the **orchestra verifier** subagent. Read-only — run checks, do not fix code.
-
-Optional spawn reference: `references/orchestra-spawn-matrix.md` (Cursor Task vs OpenCode task).
 
 ## Verdict discipline (binary)
 
@@ -86,7 +83,7 @@ the same commands blindly:
 3. Report the smallest failing unit + exact command in one line.
 
 If it is still red after this deeper pass, recommend escalating the
-implementer to `grok-4.6` standard and splitting the work item.
+implementer to `a stronger model` standard and splitting the work item.
 
 ## Token efficiency (~15k budget)
 

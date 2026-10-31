@@ -38,6 +38,71 @@ function normalizeBody(body) {
   return text.endsWith("\n") ? text : `${text}\n`;
 }
 
+// #38: The Cursor/OpenCode source bodies carry a `## Model` (root orchestra agents)
+// or `## Models` (category agents) section that names Cursor's model pool
+// (`composer-2.5`, `grok-4.6`, "Other Models") and the Cursor Task vs OpenCode spawn
+// note. None of that applies under Codex, where a custom agent inherits the session
+// model. Rewrite that one section to a Codex-neutral note, then scrub any stray
+// Cursor-specific tokens so no generated TOML mentions them.
+const CODEX_MODEL_SECTION =
+  "## Model\n\n" +
+  "Codex uses the model configured for the session (see `~/.codex/config.toml` or the " +
+  "Codex CLI `--model` flag); Orchestra does not pin a per-agent model in this file.\n\n";
+
+function isModelHeading(line) {
+  return /^##\s+Models?\s*$/.test(line);
+}
+
+function rewriteModelSection(body) {
+  const lines = body.split("\n");
+  const out = [];
+  let i = 0;
+  let replaced = false;
+  while (i < lines.length) {
+    if (isModelHeading(lines[i])) {
+      // Collect the section body up to the next top-level `## ` heading or EOF.
+      let j = i + 1;
+      const section = [];
+      while (j < lines.length && !/^##\s+/.test(lines[j])) {
+        section.push(lines[j]);
+        j++;
+      }
+      if (!replaced) {
+        out.push(CODEX_MODEL_SECTION.replace(/\n$/, ""));
+        // Preserve role lines ("You are the … subagent") that merely sat in the
+        // model section; drop the Cursor/OpenCode pool + spawn guidance around them.
+        for (const l of section) {
+          if (/^\s*You are the\b/i.test(l)) out.push("", l.trim(), "");
+        }
+        replaced = true;
+      }
+      i = j;
+      continue;
+    }
+    out.push(lines[i]);
+    i++;
+  }
+  return out.join("\n");
+}
+
+function scrubCursorTokens(body) {
+  return body
+    .replace(/Cursor\s+Task\s+vs\s+OpenCode\s+task/gi, "Codex `spawn_agent`")
+    .replace(/\(\s*Cursor\s+Task\s+vs\s+OpenCode\s+task\s*\)/gi, "(Codex spawn_agent)")
+    .replace(/references\/orchestra-spawn-matrix\.md/g, "Codex spawn_agent")
+    .replace(/Cursor\s+Models?\s+pool/gi, "the session model")
+    .replace(/Cursor\s+Agent/g, "the agent")
+    .replace(/Cursor\s+Models\b/g, "the model pool")
+    .replace(/\bcomposer-2\.5\b/gi, "the session model")
+    .replace(/\bgrok-4\.6\b/gi, "a stronger model")
+    .replace(/Other\s+Models\s+pool/gi, "the alternate-model pool")
+    .replace(/\bOther\s+Models\b/g, "alternate models");
+}
+
+function codexifyBody(body) {
+  return scrubCursorTokens(rewriteModelSection(body));
+}
+
 /**
  * Emit developer_instructions as a TOML multi-line literal string when the
  * body has no `'''` (preserves backslashes in code samples verbatim), else a
@@ -62,14 +127,14 @@ function toCodexToml(raw, fallbackName) {
   const fields = parseFmFields(fm);
   const name = fields.name || fallbackName;
   const description = clampDescription(
-    fields.description || "Orchestra agent. Use proactively when this phase is active.",
+    scrubCursorTokens(fields.description || "Orchestra agent. Use proactively when this phase is active."),
     MAX_DESCRIPTION
   );
   return [
     `name = ${tomlString(name)}`,
     `description = ${tomlString(description)}`,
     "",
-    `developer_instructions = ${tomlInstructions(body)}`,
+    `developer_instructions = ${tomlInstructions(codexifyBody(body))}`,
     "",
   ].join("\n");
 }

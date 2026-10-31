@@ -110,6 +110,21 @@ On `VERIFY_FAIL` / `FIX_REQUIRED`: implementer → verifier again (max 3 loops).
 | Hooks config | `~/.cursor/hooks.json` (`version: 1`) | none (conductor-driven) | `~/.qoder/settings.json` `hooks` (PascalCase events) | `.claude/settings.json` / `~/.claude/settings.json` (PascalCase events) | `~/.codex/hooks.json` / `.codex/hooks.json` (`features.hooks`) |
 | Agent frontmatter | Cursor format | `permission:` V1 objects, `hidden:` | Qoder format (`disallowedTools`, `maxTurns`, `permissionMode`, `effort`) via `scripts/sync-qoder-agents.js` | md frontmatter (`name`, `description`, `tools`, `permissionMode` / `disallowedTools`) via `scripts/sync-claude-agents.js` | TOML (`name`, `description`, `developer_instructions`) via `scripts/sync-codex-agents.js` |
 
+### Codex agent mirror (#38)
+
+`scripts/sync-codex-agents.js` generates the 160 `~/.codex/agents/*.toml` files from the
+Cursor markdown agents. Because a Codex custom agent inherits the session model and
+spawns via `spawn_agent` (not Cursor's `Task` + `subagent_type` or OpenCode's `subagent`),
+the Cursor/OpenCode-only `## Model` / `## Models` section — `composer-2.5`/`grok-4.6`,
+the "Other Models" pool, and the "Cursor Task vs OpenCode task" spawn note — is
+**stripped** and replaced with a Codex-neutral "uses the model configured for the session"
+note. Non-model role lines ("You are the … subagent") are preserved. `test-codex-sync.js`
+asserts that no generated TOML mentions any of those Cursor phrases.
+
+Remaining intentional difference: the conductor `orchestra.toml` keeps a
+`## Cursor cross-reference` section that points here — it documents how the same loop maps
+to Cursor/OpenCode rather than instructing the Codex agent to use them.
+
 ### OpenCode permission fix scope (RC1–RC5)
 
 The OpenCode permission surface was reworked across five release candidates (verified

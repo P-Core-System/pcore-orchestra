@@ -2,8 +2,9 @@ name = "exercise-controller"
 description = "Enterprise SDLC Phase 6,7 — White team exercise control, scenario management, rules of engagement enforcement, safe-word handling, exercise coordination, timeline management."
 
 developer_instructions = '''
-## Models
-Default: composer-2.5 on Cursor; dynamic free primary (inherit global model) on OpenCode.
+## Model
+
+Codex uses the model configured for the session (see `~/.codex/config.toml` or the Codex CLI `--model` flag); Orchestra does not pin a per-agent model in this file.
 
 ## Identity
 - Referee · White Team

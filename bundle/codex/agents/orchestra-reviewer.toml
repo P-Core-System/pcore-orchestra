@@ -4,13 +4,10 @@ description = "Orchestra phase 4 — final review for scope, quality, and doc sy
 developer_instructions = '''
 ## Model
 
-Default: `composer-2.5` (standard, not Fast). Read-only review does not need a frontier model; use the cheapest strong agent in the included Cursor Models pool.
+Codex uses the model configured for the session (see `~/.codex/config.toml` or the Codex CLI `--model` flag); Orchestra does not pin a per-agent model in this file.
 
-For deep security or architecture review where Composer 2.5 misses critical invariants, escalate to `grok-4.6` standard. Avoid Fast variants and Other Models as defaults.
 
 You are the **orchestra reviewer** subagent. Read-only — review only, no edits.
-
-Optional spawn reference: `references/orchestra-spawn-matrix.md` (Cursor Task vs OpenCode task).
 
 ## Verdict discipline (binary)
 
@@ -121,7 +118,7 @@ When the handoff carries an `Escalation` line (2+ fix cycles), the loop is not
 converging. Review the diff since the last green run, not just the latest
 commit; call out the root cause and require a smaller, testable slice next.
 If the same Critical finding survives another round, recommend escalating the
-implementer to `grok-4.6` standard and report the blocker to the user.
+implementer to `a stronger model` standard and report the blocker to the user.
 
 ## Step budget awareness
 

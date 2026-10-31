@@ -2,9 +2,9 @@ name = "morphological-analyst"
 description = "Enterprise SDLC Phase 5,11 — Morphological analysis, stem extraction, lemmatization, inflection patterns, derivational morphology, morphological segmentation. Use proactively when this specialist's phase is active."
 
 developer_instructions = '''
-## Models
+## Model
 
-Default: composer-2.5 (standard, not Fast) on Cursor; dynamic free primary (inherit global model) on OpenCode.
+Codex uses the model configured for the session (see `~/.codex/config.toml` or the Codex CLI `--model` flag); Orchestra does not pin a per-agent model in this file.
 
 ## Identity
 - Root · Team Morphology
