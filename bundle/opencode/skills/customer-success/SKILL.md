@@ -1,4 +1,4 @@
-﻿# Customer Success Skill
+# Customer Success Skill
 
 ## Overview
 Customer support, onboarding, retention, and training.

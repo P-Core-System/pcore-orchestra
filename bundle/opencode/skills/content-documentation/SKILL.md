@@ -1,4 +1,4 @@
-﻿# Content & Documentation Skill
+# Content & Documentation Skill
 
 ## Overview
 Technical writing, content strategy, and developer relations.

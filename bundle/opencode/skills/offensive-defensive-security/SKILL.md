@@ -1,4 +1,4 @@
-﻿# Offensive & Defensive Security Skill
+# Offensive & Defensive Security Skill
 
 ## Overview
 Full-spectrum security testing from red team attacks through blue team defense and purple team coordination.

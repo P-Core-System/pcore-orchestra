@@ -1,4 +1,4 @@
-﻿# Full-Spectrum Security Skill
+# Full-Spectrum Security Skill
 
 ## Overview
 Complete security team coverage from offensive to defensive, management to operations.

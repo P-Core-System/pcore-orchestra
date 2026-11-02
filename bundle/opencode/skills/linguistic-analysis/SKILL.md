@@ -1,4 +1,4 @@
-﻿# Linguistic Analysis Skill
+# Linguistic Analysis Skill
 
 ## Overview
 NLP and linguistic analysis from corpus building through deep language understanding.

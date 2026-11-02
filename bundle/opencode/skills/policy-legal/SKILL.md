@@ -1,4 +1,4 @@
-﻿# Policy & Legal Skill
+# Policy & Legal Skill
 
 ## Overview
 Policy design, legal compliance, licensing, and governance frameworks.

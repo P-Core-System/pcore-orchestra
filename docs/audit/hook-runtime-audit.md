@@ -1,4 +1,4 @@
-﻿# HOOKS RUNTIME + STATE/MEMORY AUDIT — `pcore-orchestra`
+# HOOKS RUNTIME + STATE/MEMORY AUDIT — `pcore-orchestra`
 
 > **Scope**: READ-ONLY architecture audit of this repo (all reads scoped to repo root).
 > **Method note**: `rg` is not installed in the audit shell; equivalent `Select-String` scans

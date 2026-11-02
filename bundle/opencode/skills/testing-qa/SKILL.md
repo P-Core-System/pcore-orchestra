@@ -1,4 +1,4 @@
-﻿# Testing & QA Skill
+# Testing & QA Skill
 
 ## Overview
 Quality assurance from test strategy through chaos engineering.

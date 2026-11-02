@@ -1,4 +1,4 @@
-﻿# Research & Innovation Skill
+# Research & Innovation Skill
 
 ## Overview
 Research design, technology scouting, and innovation management.

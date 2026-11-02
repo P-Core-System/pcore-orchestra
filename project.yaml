@@ -9,9 +9,9 @@ project:
   description: Global orchestra harness for Cursor, OpenCode CLI, and Qoder CLI
 
 version:
-  current: 3.9.0
+  current: 3.9.1
   channel: stable
-  build_number: 1
+  build_number: 2
 
 lifecycle:
   stage: production
@@ -61,6 +61,14 @@ _pcore:
   initialized: 2026-07-22T00:00:00Z
   orchestration_count: 0
   version_history:
+    - version: "3.9.1"
+      date: "2026-11-02"
+      tag: v3.9.1
+      note: >-
+        BOM purge (patch): removed UTF-8 BOMs that broke Node shebang parsing
+        in orchestra-prompt/orchestra-session-start hooks (UserPromptSubmit
+        SyntaxError), plus 12 opencode SKILL.md files and assorted docs;
+        installed copies under ~/.qoder/hooks repaired and all hooks smoke-tested.
     - version: "3.9.0"
       date: "2026-10-31"
       tag: v3.9.0

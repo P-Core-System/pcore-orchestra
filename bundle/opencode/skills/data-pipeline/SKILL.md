@@ -1,4 +1,4 @@
-﻿# Data Pipeline Skill
+# Data Pipeline Skill
 
 ## Overview
 Data engineering pipeline from collection through quality assurance.

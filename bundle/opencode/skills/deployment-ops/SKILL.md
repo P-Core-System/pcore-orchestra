@@ -1,4 +1,4 @@
-﻿# Deployment & Operations Skill
+# Deployment & Operations Skill
 
 ## Overview
 Release management, deployment, monitoring, and incident response.

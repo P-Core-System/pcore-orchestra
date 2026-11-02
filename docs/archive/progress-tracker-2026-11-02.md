@@ -1,4 +1,4 @@
-﻿# Progress Tracker
+# Progress Tracker
 
 Update this file after every meaningful implementation change.
 

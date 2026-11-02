@@ -1,4 +1,4 @@
-﻿# AI/ML Pipeline Skill
+# AI/ML Pipeline Skill
 
 ## Overview
 End-to-end AI/ML pipeline orchestration from data collection through model deployment.

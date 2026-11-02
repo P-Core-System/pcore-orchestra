@@ -1,4 +1,4 @@
-﻿# Security & Compliance Skill
+# Security & Compliance Skill
 
 ## Overview
 Security architecture, compliance frameworks, and audit readiness.
