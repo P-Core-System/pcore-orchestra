@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 "use strict";
 
 const { readStdinJson, emit } = require("./lib/io.js");
@@ -24,19 +24,19 @@ const { resumeOrchestra, detectCrashRecovery } = require("./lib/checkpoint-manag
 const { loadLongTermMemory, buildMemoryContext, buildPatternContext } = require("./lib/memory-manager.js");
 const { getAgentForPhase, LOOP_MODE_ENTERPRISE } = require("./lib/phase-engine.js");
 
-// MCP server — lazy + guarded for fail-open
+// MCP server â€” lazy + guarded for fail-open
 let mcpServerStart = null;
 try {
   ({ start: mcpServerStart } = require("./lib/mcp-server.js"));
 } catch {}
 
-// Harness observability — lazy + guarded for fail-open (never breaks the hook)
+// Harness observability â€” lazy + guarded for fail-open (never breaks the hook)
 let harnessObs = null;
 try {
   harnessObs = require("./lib/harness-observability.js");
 } catch {}
 
-/** Record a received input — additive-only, never throws. */
+/** Record a received input â€” additive-only, never throws. */
 function observeInput(input, prompt, sessionId, state) {
   try {
     harnessObs?.recordInputReceived({
@@ -50,7 +50,7 @@ function observeInput(input, prompt, sessionId, state) {
   }
 }
 
-/** Record the classifier decision — additive-only, never throws. */
+/** Record the classifier decision â€” additive-only, never throws. */
 function observeClassification(classified, sessionId, state) {
   try {
     harnessObs?.recordInputClassification({
@@ -203,7 +203,7 @@ async function main() {
   } = classified;
   observeClassification(classified, sessionId, state);
   const isGreenfield = !!(greenfield || intake?.greenfield);
-  const ctxBlock = buildContextInjection(detectContextInWorkspaces(input));
+  const ctxBlock = buildContextInjection(detectContextInWorkspaces(input), session.currentPhase);
 
   const pyMeta = detectProjectYamlInWorkspaces(input);
   let orchestraConfig = null;
@@ -241,11 +241,11 @@ async function main() {
     return;
   }
 
-  // Legacy clarify path (kept for safety) — prefer informal_inferred start below
+  // Legacy clarify path (kept for safety) â€” prefer informal_inferred start below
   if (clarifyNeeded && !inferFromContext) {
     const parts = [
       AMBIENT_CONTEXT,
-      "Orchestra prompt intake (planner-first) — clarify before implementing.",
+      "Orchestra prompt intake (planner-first) â€” clarify before implementing.",
       `Draft goal: ${goal || prompt}`,
       clarifyPrompt ||
         "Ask the user for concrete target, success criteria, and constraints. Then re-run with a clearer implement prompt.",
@@ -279,24 +279,24 @@ async function main() {
   const ltm = loadLongTermMemory();
   const memCtx = buildMemoryContext(ltm, { query: goal || prompt });
   const modeLabel =
-    route === LOOP_MODE_ENTERPRISE ? "enterprise SDLC" : "core loop (plan→implement→verify→review)";
+    route === LOOP_MODE_ENTERPRISE ? "enterprise SDLC" : "core loop (planâ†’implementâ†’verifyâ†’review)";
 
   // Reload session state after startOrchestra
   const freshSession = getSessionState(state, sessionId);
   const firstAgent = getAgentForPhase(freshSession.currentPhase);
   const parts = [
     AMBIENT_CONTEXT,
-    `Orchestra auto-started (${reason}, route=${freshSession.loopMode || "core"} / ${routeReason || "default"}) — no /orchestra needed.`,
+    `Orchestra auto-started (${reason}, route=${freshSession.loopMode || "core"} / ${routeReason || "default"}) â€” no /orchestra needed.`,
     `Mode: ${modeLabel}`,
     `Goal: ${goal || prompt}`,
-    `Phase: ${freshSession.currentPhase} — launch **${firstAgent}** subagent first (Task tool). Do not implement until planning completes.`,
+    `Phase: ${freshSession.currentPhase} â€” launch **${firstAgent}** subagent first (Task tool). Do not implement until planning completes.`,
     buildPhaseHandoff(freshSession, firstAgent),
   ];
 
   if (informal || inferFromContext) {
     parts.push(
       [
-        "Informal/short prompt intake — do **not** block the user.",
+        "Informal/short prompt intake â€” do **not** block the user.",
         "Planner must expand the goal before PLAN_READY:",
         "1. Read `context/progress-tracker.md` Next Up / Current Goal",
         "2. Read `git status` / recent diff if useful",
@@ -322,7 +322,7 @@ async function main() {
     if (!pyMeta) {
       parts.push(
         [
-          "⚠️ No project.yaml/project.json found in workspace.",
+          "âš ï¸ No project.yaml/project.json found in workspace.",
           "Bootstrap project identity + six-file context:",
           "`bash scripts/init-project.sh .`  (flags --type/--name optional)",
         ].join("\n")
@@ -344,7 +344,7 @@ async function main() {
       "Enterprise mode: discovery/design agents are readonly. Before code changes, ensure a plan exists (orchestra-planner or tech-lead/task-breakdown)."
     );
   } else {
-    parts.push("Core mode: **orchestra-planner** → implementer → verifier → reviewer. No code edits in plan phase.");
+    parts.push("Core mode: **orchestra-planner** â†’ implementer â†’ verifier â†’ reviewer. No code edits in plan phase.");
   }
   if (orchestraConfig?.plan_only) {
     parts.push(
@@ -370,3 +370,4 @@ async function main() {
 main().catch(() => {
   emit({});
 });
+

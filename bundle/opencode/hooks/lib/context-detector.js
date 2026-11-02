@@ -22,6 +22,14 @@ const PARENT_HANDOFF_CONTEXT = [
   "Harness: docs/agent-harness-recommendations.md | tokens: orchestra-enable.js tokens",
 ].join("\n");
 
+const CONTEXT_INDEX_FILE = "context-index.json";
+
+const VALID_PHASES = ["plan", "implement", "verify", "review"];
+
+/** Module-level cache for the context index (keyed by resolved index path). */
+let contextIndexCache = null;
+let contextIndexCachePath = null;
+
 const SIX_FILE_CONTEXT = [
   { file: "project-overview.md", label: "product definition, goals, features, scope" },
   { file: "architecture.md", label: "system structure, boundaries, invariants" },
@@ -122,7 +130,8 @@ function detectFullWorkspaceContext(input) {
   return Object.keys(result).length > 0 ? result : null;
 }
 
-function buildContextInjection(ctx) {
+/** Legacy lightweight listing (no phase) — backward compatible single-arg behavior. */
+function buildLegacyContextInjection(ctx) {
   if (!ctx) return "";
 
   const lines = [
@@ -140,6 +149,105 @@ function buildContextInjection(ctx) {
     const mark = exists ? "✓" : "○";
     lines.push(`${i + 1}. \`${ctx.contextDir}/${file}\` — ${label} ${mark}`);
   });
+  lines.push(
+    "Update `context/progress-tracker.md` after meaningful changes.",
+    "Bootstrap missing context: `bash scripts/init-context.sh` from pcore-orchestra repo."
+  );
+  return lines.join("\n");
+}
+
+/**
+ * Resolve and cache the context index JSON for a workspace.
+ * Returns null when missing/malformed (caller falls back to phase-blind listing).
+ */
+function loadContextIndex(ctx) {
+  if (!ctx || !ctx.root || !ctx.contextDir) return null;
+  const indexPath = path.join(ctx.root, ctx.contextDir, CONTEXT_INDEX_FILE);
+  if (contextIndexCache && contextIndexCachePath === indexPath) {
+    return contextIndexCache;
+  }
+  try {
+    if (fs.existsSync(indexPath)) {
+      const raw = fs.readFileSync(indexPath, "utf8");
+      contextIndexCache = JSON.parse(raw);
+      contextIndexCachePath = indexPath;
+      return contextIndexCache;
+    }
+  } catch {
+    /* index missing or malformed -> fall back to phase-blind listing */
+  }
+  contextIndexCache = null;
+  contextIndexCachePath = null;
+  return null;
+}
+
+/**
+ * Phase-selective context injection.
+ *
+ * When `phase` is set (one of plan/implement/verify/review), emits only
+ * phase-relevant section summaries + file pointers — never full file contents —
+ * with a header stating the phase + budget. When `phase` is null/omitted, falls
+ * back to the legacy lightweight listing (backward compatible).
+ *
+ * Signature stays one-arg compatible: buildContextInjection(ctx).
+ */
+function buildContextInjection(ctx, phase = null, opts = {}) {
+  if (!ctx) return "";
+
+  const phaseIsSet = phase != null && VALID_PHASES.includes(phase);
+  if (!phaseIsSet) {
+    return buildLegacyContextInjection(ctx);
+  }
+
+  const index = loadContextIndex(ctx);
+  const budget = index?.phaseBudgetTokens?.[phase] ?? 0;
+
+  const lines = [
+    `Phase-Selective Context Injection (phase=${phase}, budget=${budget.toLocaleString()} tokens)`,
+    "Read only the sections below; full file contents are NOT injected.",
+  ];
+  if (ctx.entryPoint) {
+    lines.push(`Entry point: \`${ctx.entryPoint}\` at project root.`);
+  }
+  lines.push(
+    `Context folder: \`${ctx.contextDir}/\` (${ctx.foundCount}/${ctx.totalCount} files present).`
+  );
+  lines.push("");
+
+  let emittedTokens = 0;
+
+  for (const { file, label } of SIX_FILE_CONTEXT) {
+    const exists = ctx.files.find((f) => f.file === file)?.exists;
+    if (!exists) continue;
+
+    const idx = index?.files.find((fi) => fi.file === file);
+    const estTokens = idx?.estTokens ?? 0;
+    const fullReadOnly = idx?.fullReadOnlyWhenExplicitlyNeeded ?? false;
+    const phaseSections = idx?.sections?.[phase] ?? [];
+
+    lines.push(`${file} — ${label}`);
+    lines.push(
+      `  present: yes · estTokens: ${estTokens.toLocaleString()} · fullReadOnlyWhenExplicitlyNeeded: ${fullReadOnly}`
+    );
+    if (fullReadOnly) {
+      lines.push(
+        `  phase sections (${phase}): pointer only — read \`${file}\` directly when explicitly needed.`
+      );
+    } else if (phaseSections.length > 0) {
+      lines.push(`  phase sections (${phase}): ${phaseSections.join(", ")}`);
+    } else {
+      lines.push(`  phase sections (${phase}): none — file not needed this phase.`);
+    }
+    lines.push("");
+
+    if (!fullReadOnly) {
+      emittedTokens += estTokens;
+    }
+  }
+
+  lines.push(
+    `Phase budget used (pointers only, estTokens): ${emittedTokens.toLocaleString()} / ${budget.toLocaleString()}`
+  );
   lines.push(
     "Update `context/progress-tracker.md` after meaningful changes.",
     "Bootstrap missing context: `bash scripts/init-context.sh` from pcore-orchestra repo."

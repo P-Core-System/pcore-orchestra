@@ -1,0 +1,97 @@
+{
+  "$schema": "context-index.schema.json",
+  "generated": "2026-11-02",
+  "purpose": "Phase-selective context injection index for pcore-orchestra. Maps each six-file context file to its purpose, estimated size, per-phase section relevance, and a fullReadOnlyWhenExplicitlyNeeded flag. Used by context-detector.js buildContextInjection() to emit only phase-relevant summaries + file pointers (never full file contents) so context stays well under per-phase token budgets.",
+  "phaseBudgetTokens": {
+    "plan": 8000,
+    "implement": 12000,
+    "verify": 6000,
+    "review": 4000
+  },
+  "files": [
+    {
+      "file": "project-overview.md",
+      "label": "product definition, goals, features, scope",
+      "estBytes": 6756,
+      "estTokens": 1689,
+      "fullReadOnlyWhenExplicitlyNeeded": false,
+      "sections": {
+        "plan": ["Goals", "Core User Flow", "Scope"],
+        "implement": ["Features — Trading bots", "Scope — In Scope"],
+        "verify": ["Success Criteria"],
+        "review": ["Goals", "Success Criteria"]
+      },
+      "notes": "Read first for product grounding; small enough to include fully in plan/implement."
+    },
+    {
+      "file": "architecture.md",
+      "label": "system structure, boundaries, invariants",
+      "estBytes": 43596,
+      "estTokens": 10899,
+      "fullReadOnlyWhenExplicitlyNeeded": true,
+      "sections": {
+        "plan": ["Stack", "System Boundaries", "Clean Architecture Layers", "Bot Lifecycle"],
+        "implement": ["Module Wiring", "Bot Registry", "Risk Controls"],
+        "verify": ["Invariants", "Database engine and repository policy"],
+        "review": ["Database engine and repository policy", "Invariants"]
+      },
+      "notes": "Large (~11k tokens) — only emit section summaries + file pointers unless explicitly needed. Never fully inject."
+    },
+    {
+      "file": "code-standards.md",
+      "label": "implementation rules and conventions",
+      "estBytes": 12014,
+      "estTokens": 3004,
+      "fullReadOnlyWhenExplicitlyNeeded": false,
+      "sections": {
+        "plan": ["Code quality checklist", "File Organization"],
+        "implement": ["Node hook scripts", "Hook mirrors (invariant)", "Agent markdown"],
+        "verify": ["Self-check suites (run before every commit)"],
+        "review": ["Five Design Principles", "Code quality checklist"]
+      },
+      "notes": "Conventions implementer must follow; verifier checks suites."
+    },
+    {
+      "file": "ui-context.md",
+      "label": "theme, colors, typography, components",
+      "estBytes": 1658,
+      "estTokens": 415,
+      "fullReadOnlyWhenExplicitlyNeeded": false,
+      "sections": {
+        "plan": ["Docs presentation", "Markdown conventions"],
+        "implement": ["Studio UI", "Target projects"],
+        "verify": ["Studio UI"],
+        "review": ["Markdown conventions"]
+      },
+      "notes": "Small; only relevant when UI/Studio docs are touched."
+    },
+    {
+      "file": "ai-workflow-rules.md",
+      "label": "workflow, scoping, verification",
+      "estBytes": 6815,
+      "estTokens": 1704,
+      "fullReadOnlyWhenExplicitlyNeeded": false,
+      "sections": {
+        "plan": ["Repo type detection", "Performance scoping", "Scoping rules"],
+        "implement": ["Approach", "Repo-type scoping (single-repo vs monorepo)"],
+        "verify": ["Self-check suites", "Git workflow rules"],
+        "review": ["Handling missing requirements", "Keeping docs in sync"]
+      },
+      "notes": "Scoping + workflow rules; verifier runs the listed checks."
+    },
+    {
+      "file": "progress-tracker.md",
+      "label": "current phase, completed work, next steps",
+      "estBytes": 193400,
+      "estTokens": 48350,
+      "fullReadOnlyWhenExplicitlyNeeded": true,
+      "sections": {
+        "plan": ["Current Phase"],
+        "implement": ["Current Phase"],
+        "verify": ["Current Phase"],
+        "review": ["Current Phase"]
+      },
+      "notes": "Very large (~48k tokens) — never fully injected. Emit only the Current Phase section pointer; read fully only when explicitly needed."
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 "use strict";
 
 const { readStdinJson, emit } = require("./lib/io.js");
@@ -32,7 +32,7 @@ async function main() {
   const staticParts = [AMBIENT_CONTEXT, PARENT_HANDOFF_CONTEXT];
 
   const ctx = detectContextInWorkspaces(input);
-  const ctxBlock = buildContextInjection(ctx);
+  const ctxBlock = buildContextInjection(ctx, state.currentPhase);
   if (ctxBlock) staticParts.push(ctxBlock);
 
   const pyMeta = identitySync?.pyMeta || detectProjectYamlInWorkspaces(input);
@@ -58,13 +58,13 @@ async function main() {
       );
     } else {
       dynamicParts.push(
-        `Orchestra ACTIVE — goal: ${state.goal}`,
+        `Orchestra ACTIVE â€” goal: ${state.goal}`,
         `Mode: ${state.loopMode || "core"}. Phase: ${state.currentPhase}. Continue with the matching subagent.`
       );
     }
 
     if (state.memory?.phases_completed?.length > 0) {
-      const completed = state.memory.phases_completed.map((p) => p.phase).join(" → ");
+      const completed = state.memory.phases_completed.map((p) => p.phase).join(" â†’ ");
       dynamicParts.push(`Phases completed so far: ${completed}`);
     }
   }
@@ -83,3 +83,4 @@ async function main() {
 main().catch(() => {
   emit({});
 });
+
