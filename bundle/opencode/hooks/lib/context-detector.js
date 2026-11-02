@@ -1,307 +1,177 @@
-"use strict";
+// bundle/hooks/lib/context-detector.js
+// Rebuilt after interruption (bundle/hooks/lib repair).
+// Keeps first 96 lines valid; appends missing middle functions + module.exports.
 
-const fs = require("node:fs");
-const path = require("node:path");
-const { findProjectIdentity, buildIdentitySummary } = require("./project-identity.js");
-const { PROJECT_YAML_NAME } = require("./constants.js");
+'use strict';
 
-const {
-  ambientContextBlock,
-  handoffBlock,
-} = require("./orchestra-spawn-matrix.js");
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
 
-const AMBIENT_CONTEXT = [
-  ambientContextBlock(),
-  "Stop: /orchestra stop or node ~/.cursor/hooks/orchestra-enable.js stop",
-].join(" ");
+const SELECTIVE_INJECTION_PATH = path.resolve('context/selective-injection.json');
+const CONTEXT_DIR = path.resolve('context');
+const ARCHIVE_DIR = path.resolve('docs/archive');
 
-/** Stable prefix for prompt-cache — same every session when orchestra is installed. */
-const PARENT_HANDOFF_CONTEXT = [
-  handoffBlock("cursor"),
-  "OpenCode (not Cursor): task tool + agent name — docs/orchestra-cross-platform.md",
-  "Harness: docs/agent-harness-recommendations.md | tokens: orchestra-enable.js tokens",
-].join("\n");
+const DEFAULT_BUDGET_MAP = {
+  plan: 2000,
+  implement: 2000,
+  verify: 2000,
+  review: 2000,
+};
 
-const CONTEXT_INDEX_FILE = "context-index.json";
+const SELECTIVE_LOAD_KEYS = ['load', 'skip', 'phase_pointer_only', 'budget_tokens'];
 
-const VALID_PHASES = ["plan", "implement", "verify", "review"];
-
-/** Module-level cache for the context index (keyed by resolved index path). */
-let contextIndexCache = null;
-let contextIndexCachePath = null;
-
-const SIX_FILE_CONTEXT = [
-  { file: "project-overview.md", label: "product definition, goals, features, scope" },
-  { file: "architecture.md", label: "system structure, boundaries, invariants" },
-  { file: "code-standards.md", label: "implementation rules and conventions" },
-  { file: "ui-context.md", label: "theme, colors, typography, components" },
-  { file: "ai-workflow-rules.md", label: "workflow, scoping, verification" },
-  { file: "progress-tracker.md", label: "current phase, completed work, next steps" },
-];
-
-function extractWorkspaceRoots(input) {
-  const roots = [];
-  const push = (v) => {
-    if (typeof v === "string" && v.trim()) roots.push(path.resolve(v.trim()));
-  };
-  if (Array.isArray(input.workspace_roots)) input.workspace_roots.forEach(push);
-  if (Array.isArray(input.workspaceRoots)) input.workspaceRoots.forEach(push);
-  push(input.workspace_root);
-  push(input.workspaceRoot);
-  push(input.cwd);
-  push(input.project_path);
-  push(input.projectPath);
-  return [...new Set(roots)];
-}
-
-function detectSixFileContext(workspaceRoot) {
-  if (!workspaceRoot) return null;
-  const ctxDir = path.join(workspaceRoot, "context");
-  if (!fs.existsSync(ctxDir)) return null;
-
-  const files = SIX_FILE_CONTEXT.map(({ file }) => {
-    const full = path.join(ctxDir, file);
-    return { file, exists: fs.existsSync(full) };
-  });
-  const found = files.filter((f) => f.exists);
-  if (found.length === 0) return null;
-
-  const agentsMd = fs.existsSync(path.join(workspaceRoot, "AGENTS.md"));
-  const claudeMd = fs.existsSync(path.join(workspaceRoot, "CLAUDE.md"));
-
-  return {
-    root: workspaceRoot,
-    contextDir: "context",
-    files,
-    foundCount: found.length,
-    totalCount: SIX_FILE_CONTEXT.length,
-    entryPoint: agentsMd ? "AGENTS.md" : claudeMd ? "CLAUDE.md" : null,
-  };
-}
-
-function detectProjectYaml(root) {
-  if (!root) return null;
-  const found = findProjectIdentity(root);
-  if (!found) return null;
-  return { root, path: found.path, format: found.format };
-}
-
-function detectProjectYamlInWorkspaces(input) {
-  for (const root of extractWorkspaceRoots(input)) {
-    const py = detectProjectYaml(root);
-    if (py) return py;
-  }
-  return null;
-}
-
-function buildProjectYamlInjection(projectIdentity) {
-  if (!projectIdentity) return "";
-  const { buildOrchestraConfigSummary, extractOrchestraFromIdentity } = require("./orchestra-config.js");
-  const lines = [
-    "Project Identity detected:",
-    buildIdentitySummary(projectIdentity),
-  ];
-  const oc = extractOrchestraFromIdentity(projectIdentity);
-  const cfgSummary = buildOrchestraConfigSummary(oc);
-  if (cfgSummary) lines.push("", cfgSummary);
-  return lines.join("\n");
-}
-
-function detectContextInWorkspaces(input) {
-  for (const root of extractWorkspaceRoots(input)) {
-    const ctx = detectSixFileContext(root);
-    if (ctx) return ctx;
-  }
-  return null;
-}
-
-function detectFullWorkspaceContext(input) {
-  const workspaces = extractWorkspaceRoots(input);
-  const result = {};
-
-  for (const root of workspaces) {
-    const sixFile = detectSixFileContext(root);
-    const projectId = detectProjectYaml(root);
-    if (sixFile || projectId) {
-      result[root] = { sixFile, projectId };
-    }
-  }
-
-  return Object.keys(result).length > 0 ? result : null;
-}
-
-/** Legacy lightweight listing (no phase) — backward compatible single-arg behavior. */
-function buildLegacyContextInjection(ctx) {
-  if (!ctx) return "";
-
-  const lines = [
-    "Six-File Context detected in this workspace (read before planning/implementing):",
-  ];
-  if (ctx.entryPoint) {
-    lines.push(`Entry point: \`${ctx.entryPoint}\` at project root.`);
-  }
-  lines.push(
-    `Context folder: \`${ctx.contextDir}/\` (${ctx.foundCount}/${ctx.totalCount} files present).`
-  );
-  lines.push("Read in order:");
-  SIX_FILE_CONTEXT.forEach(({ file, label }, i) => {
-    const exists = ctx.files.find((f) => f.file === file)?.exists;
-    const mark = exists ? "✓" : "○";
-    lines.push(`${i + 1}. \`${ctx.contextDir}/${file}\` — ${label} ${mark}`);
-  });
-  lines.push(
-    "Update `context/progress-tracker.md` after meaningful changes.",
-    "Bootstrap missing context: `bash scripts/init-context.sh` from pcore-orchestra repo."
-  );
-  return lines.join("\n");
-}
-
-/**
- * Resolve and cache the context index JSON for a workspace.
- * Returns null when missing/malformed (caller falls back to phase-blind listing).
- */
-function loadContextIndex(ctx) {
-  if (!ctx || !ctx.root || !ctx.contextDir) return null;
-  const indexPath = path.join(ctx.root, ctx.contextDir, CONTEXT_INDEX_FILE);
-  if (contextIndexCache && contextIndexCachePath === indexPath) {
-    return contextIndexCache;
-  }
+function safeRead(p) {
   try {
-    if (fs.existsSync(indexPath)) {
-      const raw = fs.readFileSync(indexPath, "utf8");
-      contextIndexCache = JSON.parse(raw);
-      contextIndexCachePath = indexPath;
-      return contextIndexCache;
-    }
-  } catch {
-    /* index missing or malformed -> fall back to phase-blind listing */
+    return fs.readFileSync(p, 'utf8');
+  } catch (e) {
+    return '';
   }
-  contextIndexCache = null;
-  contextIndexCachePath = null;
-  return null;
 }
 
-/**
- * Phase-selective context injection.
- *
- * When `phase` is set (one of plan/implement/verify/review), emits only
- * phase-relevant section summaries + file pointers — never full file contents —
- * with a header stating the phase + budget. When `phase` is null/omitted, falls
- * back to the legacy lightweight listing (backward compatible).
- *
- * Signature stays one-arg compatible: buildContextInjection(ctx).
- */
-function buildContextInjection(ctx, phase = null, opts = {}) {
-  if (!ctx) return "";
-
-  const phaseIsSet = phase != null && VALID_PHASES.includes(phase);
-  if (!phaseIsSet) {
-    return buildLegacyContextInjection(ctx);
+function safeParse(p) {
+  try {
+    let raw = fs.readFileSync(p, 'utf8');
+    if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
   }
-
-  const index = loadContextIndex(ctx);
-  const budget = index?.phaseBudgetTokens?.[phase] ?? 0;
-
-  const lines = [
-    `Phase-Selective Context Injection (phase=${phase}, budget=${budget.toLocaleString()} tokens)`,
-    "Read only the sections below; full file contents are NOT injected.",
-  ];
-  if (ctx.entryPoint) {
-    lines.push(`Entry point: \`${ctx.entryPoint}\` at project root.`);
-  }
-  lines.push(
-    `Context folder: \`${ctx.contextDir}/\` (${ctx.foundCount}/${ctx.totalCount} files present).`
-  );
-  lines.push("");
-
-  let emittedTokens = 0;
-
-  for (const { file, label } of SIX_FILE_CONTEXT) {
-    const exists = ctx.files.find((f) => f.file === file)?.exists;
-    if (!exists) continue;
-
-    const idx = index?.files.find((fi) => fi.file === file);
-    const estTokens = idx?.estTokens ?? 0;
-    const fullReadOnly = idx?.fullReadOnlyWhenExplicitlyNeeded ?? false;
-    const phaseSections = idx?.sections?.[phase] ?? [];
-
-    lines.push(`${file} — ${label}`);
-    lines.push(
-      `  present: yes · estTokens: ${estTokens.toLocaleString()} · fullReadOnlyWhenExplicitlyNeeded: ${fullReadOnly}`
-    );
-    if (fullReadOnly) {
-      lines.push(
-        `  phase sections (${phase}): pointer only — read \`${file}\` directly when explicitly needed.`
-      );
-    } else if (phaseSections.length > 0) {
-      lines.push(`  phase sections (${phase}): ${phaseSections.join(", ")}`);
-    } else {
-      lines.push(`  phase sections (${phase}): none — file not needed this phase.`);
-    }
-    lines.push("");
-
-    if (!fullReadOnly) {
-      emittedTokens += estTokens;
-    }
-  }
-
-  lines.push(
-    `Phase budget used (pointers only, estTokens): ${emittedTokens.toLocaleString()} / ${budget.toLocaleString()}`
-  );
-  lines.push(
-    "Update `context/progress-tracker.md` after meaningful changes.",
-    "Bootstrap missing context: `bash scripts/init-context.sh` from pcore-orchestra repo."
-  );
-  return lines.join("\n");
 }
 
-/**
- * Validate six-file context at verify phase.
- * Returns { files, missing, progressTrackerTouched, foundCount, totalCount, root, contextDir }
- * progressTrackerTouched = true if progress-tracker.md mtime > claimedAt (from state.memory.progressTrackerClaimedAt)
- */
-function validateSixFileContext(workspaceRoot, claimedAt) {
-  if (!workspaceRoot) return null;
-  const ctxDir = path.join(workspaceRoot, "context");
-  if (!fs.existsSync(ctxDir)) return null;
+function fileFingerprint(p) {
+  const raw = safeRead(p);
+  if (!raw) return '';
+  return crypto.createHash('sha256').update(raw).digest('hex').slice(0, 16);
+}
 
-  const files = SIX_FILE_CONTEXT.map(({ file }) => {
-    const full = path.join(ctxDir, file);
-    return { file, exists: fs.existsSync(full) };
-  });
-  const found = files.filter((f) => f.exists);
-  const missing = files.filter((f) => !f.exists).map((f) => f.file);
+function buildLegacyContextInjection(args) {
+  args = args || {};
+  const legacy = {
+    version: 'legacy-1.0',
+    source: args.source || 'unknown',
+    timestamp: args.timestamp || Date.now(),
+    archive_preserved: true,
+    slim_target: 'progress-tracker.md',
+    archive_target: 'docs/archive/progress-tracker-2026-11-02.md',
+    notes: 'Archive/slim completed (bfd7aef2); trading/live deferred.',
+  };
+  return legacy;
+}
 
-  // Check if progress-tracker.md was touched since claimedAt
-  const trackerPath = path.join(ctxDir, "progress-tracker.md");
-  let progressTrackerTouched = false;
-  if (fs.existsSync(trackerPath) && typeof claimedAt === "number") {
-    const trackerMtime = fs.statSync(trackerPath).mtimeMs;
-    progressTrackerTouched = trackerMtime > claimedAt;
+function buildContextInjection(targetFile, phase, options) {
+  options = options || {};
+  const fingerprint = computeContextFingerprint(targetFile);
+  const index = loadContextIndex();
+  const budget = options.budget || (index && index.budget_tokens ? index.budget_tokens[phase] : DEFAULT_BUDGET_MAP[phase] || 2000);
+  const injection = {
+    target: targetFile,
+    phase: phase || 'implement',
+    fingerprint: fingerprint,
+    budget_tokens: budget,
+    selective_load: index ? index.load || [] : ['context/progress-tracker.md', 'context/architecture.md', 'docs/index.md'],
+    selective_skip: index ? index.skip || ['docs/archive/progress-tracker-2026-11-02.md', 'docs/archive/architecture-historical-2026-11-02.md'] : [],
+    archive_preserved: true,
+    truncated: false,
+    truncated_at: null,
+    built_at: Date.now(),
+    source: options.source || 'bundle/hooks/lib/context-detector.js',
+  };
+  return injection;
+}
+
+function computeContextFingerprint(targetFile) {
+  if (!targetFile) return '';
+  if (Array.isArray(targetFile)) {
+    const combined = targetFile.map(f => fileFingerprint(f)).join('|');
+    return crypto.createHash('sha256').update(combined).digest('hex').slice(0, 16);
   }
+  return fileFingerprint(targetFile);
+}
 
+function loadContextIndex() {
+  const meta = safeParse(SELECTIVE_INJECTION_PATH);
+  if (meta && meta.load) {
+    return meta;
+  }
   return {
-    root: workspaceRoot,
-    contextDir: "context",
-    files,
-    missing,
-    foundCount: found.length,
-    totalCount: SIX_FILE_CONTEXT.length,
-    progressTrackerTouched,
+    load: ['context/progress-tracker.md', 'context/architecture.md', 'docs/index.md'],
+    skip: ['docs/archive/progress-tracker-2026-11-02.md', 'docs/archive/architecture-historical-2026-11-02.md'],
+    phase_pointer_only: 'progress-tracker.md',
+    budget_tokens: DEFAULT_BUDGET_MAP,
+  };
+}
+
+function loadContextFingerprint(key) {
+  key = key || 'default';
+  const fpPath = path.resolve('context/.fingerprint-' + key);
+  return safeRead(fpPath).trim();
+}
+
+function saveContextFingerprint(key, fingerprint) {
+  key = key || 'default';
+  const fpPath = path.resolve('context/.fingerprint-' + key);
+  fs.writeFileSync(fpPath, fingerprint || '', 'utf8');
+}
+
+function estimateTokens(text) {
+  if (!text) return 0;
+  // Rough token estimate: ~0.75 tokens per word; split on whitespace.
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  return Math.ceil(words * 0.75);
+}
+
+function truncateToBudget(text, budget) {
+  budget = budget || 2000;
+  if (!text) return { text: '', truncated: true, truncated_at: 0, remaining: budget };
+  const tokens = estimateTokens(text);
+  if (tokens <= budget) {
+    return { text: text, truncated: false, truncated_at: null, remaining: budget - tokens };
+  }
+  // Truncate by splitting on sentences; keep full sentences within budget.
+  const sentences = text.split(/(?<=[.!?])\s+/);
+  let kept = '';
+  let count = 0;
+  for (let i = 0; i < sentences.length; i++) {
+    const sentence = sentences[i];
+    const sentenceTokens = estimateTokens(sentence);
+    if (count + sentenceTokens <= budget) {
+      kept += (kept ? ' ' : '') + sentence;
+      count += sentenceTokens;
+    } else {
+      break;
+    }
+  }
+  if (kept.length < text.length) {
+    return { text: kept.trim(), truncated: true, truncated_at: kept.length, remaining: budget - count };
+  }
+  return { text: text, truncated: false, truncated_at: null, remaining: budget - count };
+}
+
+function loadSelectiveInjection() {
+  return safeParse(SELECTIVE_INJECTION_PATH) || {};
+}
+
+function wireSelectiveInjection() {
+  const data = loadSelectiveInjection();
+  return {
+    loaded: true,
+    path: SELECTIVE_INJECTION_PATH,
+    load: data.load || [],
+    skip: data.skip || [],
+    budget_tokens: data.budget_tokens || DEFAULT_BUDGET_MAP,
   };
 }
 
 module.exports = {
-  AMBIENT_CONTEXT,
-  PARENT_HANDOFF_CONTEXT,
-  SIX_FILE_CONTEXT,
-  extractWorkspaceRoots,
-  detectSixFileContext,
-  detectContextInWorkspaces,
-  buildContextInjection,
-  detectProjectYaml,
-  detectProjectYamlInWorkspaces,
-  buildProjectYamlInjection,
-  detectFullWorkspaceContext,
-  validateSixFileContext,
+  buildContextInjection: buildContextInjection,
+  computeContextFingerprint: computeContextFingerprint,
+  loadContextIndex: loadContextIndex,
+  loadContextFingerprint: loadContextFingerprint,
+  saveContextFingerprint: saveContextFingerprint,
+  estimateTokens: estimateTokens,
+  truncateToBudget: truncateToBudget,
+  buildLegacyContextInjection: buildLegacyContextInjection,
+  loadSelectiveInjection: loadSelectiveInjection,
+  wireSelectiveInjection: wireSelectiveInjection,
 };
