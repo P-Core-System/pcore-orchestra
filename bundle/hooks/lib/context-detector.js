@@ -163,6 +163,29 @@ function wireSelectiveInjection() {
   };
 }
 
+// Static context blocks for prompt-cache safety (no timestamps, UUIDs, run/session ids).
+// These are intentionally stable across sessions so prompt-cache providers can
+// discount the prefix (OpenAI cached-input pricing; Anthropic cache_control ~90% off).
+// Volatile state (memory, tokens, crash state) goes into the dynamic tail only.
+
+const AMBIENT_CONTEXT = [
+  "P-Core Orchestra — ambient session context",
+  "Phase-driven orchestration: plan → implement → verify → review",
+  "Six-file context invariant: project-overview, architecture, code-standards, ui-context, ai-workflow-rules, progress-tracker",
+  "Repo-scoped: each subfolder owns its git history and context metadata",
+  "Bridge-backed single brain (:41794) with per-service Bearer auth",
+  "Free-model pool: nemotron-3.5-lightning-free, big-pickle, mimo-v2.5-free, hy3-free, muse-spark-1.2-contributor-free",
+].join("\n");
+
+const PARENT_HANDOFF_CONTEXT = [
+  "Parent/previous session handoff — if resuming, goal and mode persist",
+  "Loop mode: core (plan→implement→verify→review) or enterprise (tech-lead/breaker/qa/release)",
+  "Last completed phase recorded in long-term memory; checkpoint saved on interrupt",
+  "Resume: say 'resume orchestra' or 'continue orchestra' to recommence from checkpoint",
+  "Discard: say 'stop orchestra' or 'new goal' to start fresh",
+  "Handoff guard: no code edits in plan phase; planner outputs PLAN_READY before implement",
+].join("\n");
+
 module.exports = {
   buildContextInjection: buildContextInjection,
   computeContextFingerprint: computeContextFingerprint,
@@ -174,4 +197,6 @@ module.exports = {
   buildLegacyContextInjection: buildLegacyContextInjection,
   loadSelectiveInjection: loadSelectiveInjection,
   wireSelectiveInjection: wireSelectiveInjection,
+  AMBIENT_CONTEXT: AMBIENT_CONTEXT,
+  PARENT_HANDOFF_CONTEXT: PARENT_HANDOFF_CONTEXT,
 };
