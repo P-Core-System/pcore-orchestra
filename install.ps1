@@ -8,7 +8,9 @@
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -Qoder       # Qoder CLI only
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -Claude      # Claude Code only
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -Codex       # Codex CLI only
-#   powershell -ExecutionPolicy Bypass -File install.ps1 -Project     # + project bridge
+#   powershell -ExecutionPolicy Bypass -File install.ps1 -Project     # + project bridge (into CWD)
+#   powershell -ExecutionPolicy Bypass -File install.ps1 -ProjectDir PATH  # project bridge into PATH
+#   powershell -ExecutionPolicy Bypass -File install.ps1 -ForceProject # allow bridge into the clone itself
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -Studio      # install Studio dashboard
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -DryRun      # show what would be installed
 param(
@@ -19,6 +21,8 @@ param(
   [switch]$Claude,
   [switch]$Codex,
   [switch]$Project,
+  [string]$ProjectDir,
+  [switch]$ForceProject,
   [switch]$SkipOpenCodeUpgrade,
   [switch]$Studio,
   [switch]$DryRun
@@ -44,6 +48,20 @@ if ($All) {
   $Qoder = $true
   $Claude = $true
   $Codex = $true
+}
+
+# -ProjectDir/-ForceProject imply -Project (mirrors install.sh --project-dir/--force-project)
+if ($ProjectDir -or $ForceProject) { $Project = $true }
+
+# Canonical --Project target (#22): explicit -ProjectDir wins, else the caller's
+# CWD — NOT the clone's parent. Mirrors install.sh _project_target().
+function Resolve-ProjectTarget {
+  $t = if ($ProjectDir) { $ProjectDir } else { (Get-Location).Path }
+  if (Test-Path -LiteralPath $t -PathType Container) {
+    try { $t = (Resolve-Path -LiteralPath $t).Path } catch {}
+  }
+  try { $t = [System.IO.Path]::GetFullPath($t) } catch {}
+  return $t.TrimEnd('\', '/')
 }
 
 Write-Host "=========================================================================="
@@ -390,6 +408,11 @@ function Install-Qoder {
     Write-Host "WARN (run: node scripts\sync-qoder-agents.js to regenerate)"
     $null = robocopy (Join-Path $Bundle "agents") $agentsDest /E /NDL /NJH /NJS /NP
   }
+  # Qoder parses every *.md under agents/ as an agent config; the shared references
+  # doc has no frontmatter and becomes a load error ("Operation aborted" headless).
+  # Keep it in the bundle mirror, not the install (mirrors install.sh #17).
+  $qoderRefsDest = Join-Path $agentsDest "references"
+  if (Test-Path $qoderRefsDest) { Remove-Item $qoderRefsDest -Recurse -Force }
 
   # Skills (Qoder reads ~/.qoder/skills/{name}/SKILL.md - same layout as Cursor)
   $skillDirs = Get-ChildItem -Path (Join-Path $Bundle "skills") -Directory
@@ -619,11 +642,19 @@ if ($Claude) { Install-Claude }
 if ($Codex) { Install-Codex }
 
 if ($Project) {
-  $RepoRoot = (Get-Location).Path
-  Write-Host "==> Installing project bridge to $RepoRoot\.cursor"
-  New-Item -ItemType Directory -Force -Path (Join-Path $RepoRoot ".cursor\hooks") | Out-Null
-  Copy-Item (Join-Path $Root "project-bridge\hooks.json") (Join-Path $RepoRoot ".cursor\hooks.json") -Force
-  Copy-Item (Join-Path $Root "project-bridge\hooks\bridge.js") (Join-Path $RepoRoot ".cursor\hooks\bridge.js") -Force
+  $target = Resolve-ProjectTarget
+  # $Root = Split-Path of the script's own full path, already drive-qualified;
+  # trim separators so it compares cleanly against the canonical target.
+  $rootCanonical = $Root.TrimEnd('\', '/')
+  if ($target -ieq $rootCanonical -and -not $ForceProject) {
+    Write-Host "REFUSING: -Project target is the orchestra clone itself ($rootCanonical)."
+    Write-Host "  cd into the repo you want the bridge in (it lands in .cursor), pass -ProjectDir <path>, or add -ForceProject to override."
+  } else {
+    Write-Host "==> Installing project bridge to $target\.cursor"
+    New-Item -ItemType Directory -Force -Path (Join-Path $target ".cursor\hooks") | Out-Null
+    Copy-Item (Join-Path $Root "project-bridge\hooks.json") (Join-Path $target ".cursor\hooks.json") -Force
+    Copy-Item (Join-Path $Root "project-bridge\hooks\bridge.js") (Join-Path $target ".cursor\hooks\bridge.js") -Force
+  }
 }
 
 if ($Studio) { Install-Studio }

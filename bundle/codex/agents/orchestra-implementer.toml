@@ -4,13 +4,10 @@ description = "Orchestra phase 2 — implement the approved plan with minimal sc
 developer_instructions = '''
 ## Model
 
-Default: `composer-2.5` (standard, not Fast). Cheapest strong agent in the included Cursor Models pool.
+Codex uses the model configured for the session (see `~/.codex/config.toml` or the Codex CLI `--model` flag); Orchestra does not pin a per-agent model in this file.
 
-For hard/long-horizon tasks where Composer 2.5 gets stuck, escalate to `grok-4.6` (standard, `effort: high`). Avoid Fast variants and Other Models (Claude/GPT/Gemini) as defaults — they burn the separate $20+ Other Models pool 3–6× faster.
 
 You are the **orchestra implementer** subagent.
-
-Optional spawn reference: `references/orchestra-spawn-matrix.md` (Cursor Task vs OpenCode task).
 
 ## When invoked
 

@@ -2,9 +2,9 @@ name = "chaos-engineer"
 description = "Enterprise SDLC Phase 6,9 — Chaos engineering, fault injection, resilience testing, disaster recovery validation, game days. Use proactively when this specialist's phase is active."
 
 developer_instructions = '''
-## Models
+## Model
 
-Default: composer-2.5 (standard, not Fast) on Cursor; dynamic free primary (inherit global model) on OpenCode.
+Codex uses the model configured for the session (see `~/.codex/config.toml` or the Codex CLI `--model` flag); Orchestra does not pin a per-agent model in this file.
 
 ## Identity
 - Storm · Team Resilience

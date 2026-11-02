@@ -4,17 +4,18 @@
  * Knowledge tools for the MCP server (local stdio hosts + remote ChatGPT).
  *
  * Read side: allowlisted project docs (docs/**, context/*.md, top-level md),
- * and hybrid memory recall. Write side: a knowledge INBOX only — shared
- * entries are appended to state/knowledge-inbox.json and stay `pending`
- * until a human or an orchestra phase applies them. The server never edits
- * context/docs directly, because a remote connector is untrusted input.
+ * and hybrid memory recall. Write side: a knowledge store — SQLite at
+ * `state/knowledge.db` (JSON inbox fallback on Node without `node:sqlite`) —
+ * where shared entries land as `pending` and only move to `approved`/`rejected`
+ * through `review_knowledge`. The server never edits docs/context directly,
+ * because a remote connector is untrusted input: it records status, and a human
+ * or an orchestra phase reads approved rows back and edits the files.
  */
 
 const fs = require("node:fs");
 const path = require("node:path");
-const os = require("node:os");
-const { readJsonSafe, writeJson, resolveStateDir } = require("./safe-write.js");
 const { searchMemoryIndex } = require("./memory-index.js");
+const store = require("./knowledge-store.js");
 
 const ROOT = () => process.env.PCORE_MCP_ROOT || process.cwd();
 const MAX_FILE_BYTES = 200 * 1024;
@@ -137,38 +138,81 @@ function searchMemory({ query, topK = 5 } = {}) {
   }
 }
 
-const INBOX_FILE = "knowledge-inbox.json";
-
 function inboxPath() {
-  const base = resolveStateDir(path.join(os.homedir(), ".pcore", "state"));
-  return path.join(base, INBOX_FILE);
+  return store.dbAvailable() ? store.dbPath() : path.join(path.dirname(store.dbPath()), "knowledge-inbox.json");
 }
 
 function shareKnowledge({ title, body, tags, source } = {}) {
   if (!title || !body) throw new Error("title and body required");
-  const inbox = readJsonSafe(inboxPath(), { entries: [] }) || { entries: [] };
-  if (!Array.isArray(inbox.entries)) inbox.entries = [];
-  const entry = {
-    id: "kb-" + Date.now().toString(36),
-    ts: new Date().toISOString(),
-    title: String(title).slice(0, 200),
-    body: String(body).slice(0, 8000),
-    tags: Array.isArray(tags) ? tags.map(String).slice(0, 10) : [],
-    source: String(source || "mcp-client").slice(0, 80),
-    status: "pending",
-  };
-  inbox.entries.push(entry);
-  writeJson(inboxPath(), inbox);
-  return { id: entry.id, status: entry.status, inbox: inboxPath() };
+  const entry = store.insertKnowledge({ title, body, tags, source, status: "pending" });
+  return { id: entry.id, status: entry.status, store: entry.store, inbox: inboxPath() };
 }
 
 function listKnowledge({ status } = {}) {
-  const inbox = readJsonSafe(inboxPath(), { entries: [] }) || { entries: [] };
-  const entries = Array.isArray(inbox.entries) ? inbox.entries : [];
   return {
     inbox: inboxPath(),
-    entries: (status ? entries.filter((e) => e.status === status) : entries).slice(-50),
+    entries: store.queryKnowledge({ status, limit: 50 }),
   };
+}
+
+/**
+ * Move a knowledge entry out of `pending`. The human-review gate: an
+ * authorized connector (behind PCORE_MCP_TOKEN) marks reviewed knowledge so a
+ * local CLI/orchestra phase pulls `approved` rows back — but the server never
+ * writes those rows into docs/context itself.
+ */
+function reviewKnowledge({ id: entryId, status } = {}) {
+  if (!entryId || !status) throw new Error("id and status required");
+  const allowed = ["pending", "approved", "rejected", "applied"];
+  if (!allowed.includes(status)) throw new Error("status must be one of: " + allowed.join(", "));
+  const updated = store.setKnowledgeStatus(entryId, status);
+  if (!updated) throw new Error("knowledge entry not found (or store unavailable): " + entryId);
+  return { id: updated.id, status: updated.status, inbox: inboxPath() };
+}
+
+/**
+ * Chat-thread + pairing handlers — the "continue this conversation from the
+ * CLI" half of the hub. Every write is partitioned to the current project slug
+ * inside the store; nothing here touches docs/context.
+ */
+function startThread({ title, externalKind, externalId } = {}) {
+  const thread = store.createThread({ title: title || "", externalKind, externalId });
+  if (!thread) throw new Error("chat store unavailable (requires node:sqlite)");
+  return thread;
+}
+
+function postMessage({ threadId, role, content, author } = {}) {
+  if (!threadId || !content) throw new Error("threadId and content required");
+  const msg = store.addMessage({ threadId, role, content, author });
+  if (!msg) throw new Error("thread not found or store unavailable: " + threadId);
+  return msg;
+}
+
+function getThread({ threadId, externalKind, externalId, messageLimit } = {}) {
+  let id = threadId;
+  if (!id && externalKind && externalId) {
+    const pair = store.getPair({ externalKind, externalId });
+    if (pair) id = pair.thread_id;
+  }
+  if (!id) throw new Error("threadId (or externalKind + externalId) required");
+  const thread = store.getThread(id, { messageLimit });
+  if (!thread) throw new Error("thread not found: " + id);
+  return thread;
+}
+
+function listThreads({ status, limit } = {}) {
+  return { project: store.projectKey(), threads: store.listThreads({ status, limit }) };
+}
+
+function pairThread({ externalKind, externalId, threadId } = {}) {
+  if (!externalId || !threadId) throw new Error("externalId and threadId required");
+  const pair = store.upsertPair({ externalKind, externalId, threadId });
+  if (!pair) throw new Error("pairing store unavailable (requires node:sqlite)");
+  return pair;
+}
+
+function listPairs() {
+  return { project: store.projectKey(), pairs: store.listPairs() };
 }
 
 /** MCP tool definitions (JSON Schema input). */
@@ -222,7 +266,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "share_knowledge",
     description:
-      "Append a knowledge item to the project inbox for review. Never edits docs/context directly.",
+      "Append a knowledge item to the project store as `pending`. Never edits docs/context directly.",
     inputSchema: {
       type: "object",
       properties: {
@@ -237,12 +281,99 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "list_knowledge",
-    description: "List inbox entries (optionally filter status=pending|applied|rejected)",
+    description: "List knowledge entries (optionally filter status=pending|approved|rejected|applied)",
     inputSchema: {
       type: "object",
       properties: { status: { type: "string" } },
     },
     handler: listKnowledge,
+  },
+  {
+    name: "review_knowledge",
+    description: "Promote/demote a knowledge entry out of pending (approved|rejected|applied|pending).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "knowledge entry id" },
+        status: { type: "string", enum: ["pending", "approved", "rejected", "applied"] },
+      },
+      required: ["id", "status"],
+    },
+    handler: reviewKnowledge,
+  },
+  {
+    name: "start_thread",
+    description: "Open a chat thread for this project; optionally bind it to an external conversation id.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        externalKind: { type: "string", description: "connector label, e.g. chatgpt|gemini|cursor" },
+        externalId: { type: "string", description: "the connector's conversation id" },
+      },
+    },
+    handler: startThread,
+  },
+  {
+    name: "post_message",
+    description: "Append a message to a chat thread (role=assistant|user|system).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        threadId: { type: "string" },
+        role: { type: "string" },
+        content: { type: "string" },
+        author: { type: "string" },
+      },
+      required: ["threadId", "content"],
+    },
+    handler: postMessage,
+  },
+  {
+    name: "get_thread",
+    description: "Resume a chat thread by id or by external binding; returns ordered messages.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        threadId: { type: "string" },
+        externalKind: { type: "string" },
+        externalId: { type: "string" },
+        messageLimit: { type: "number", description: "default 100, max 500" },
+      },
+    },
+    handler: getThread,
+  },
+  {
+    name: "list_threads",
+    description: "List this project's chat threads (optionally filter status=open|closed).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        status: { type: "string" },
+        limit: { type: "number", description: "default 50, max 200" },
+      },
+    },
+    handler: listThreads,
+  },
+  {
+    name: "pair_thread",
+    description: "Bind an external conversation id to a thread so either side can resume by that id.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        externalKind: { type: "string", description: "connector label, e.g. chatgpt|gemini" },
+        externalId: { type: "string" },
+        threadId: { type: "string" },
+      },
+      required: ["externalId", "threadId"],
+    },
+    handler: pairThread,
+  },
+  {
+    name: "list_pairs",
+    description: "List this project's external-conversation-to-thread bindings.",
+    inputSchema: { type: "object", properties: {} },
+    handler: listPairs,
   },
 ];
 
@@ -254,6 +385,13 @@ module.exports = {
   searchMemory,
   shareKnowledge,
   listKnowledge,
+  reviewKnowledge,
+  startThread,
+  postMessage,
+  getThread,
+  listThreads,
+  pairThread,
+  listPairs,
   inboxPath,
   isAllowedRel,
   resolveAllowed,

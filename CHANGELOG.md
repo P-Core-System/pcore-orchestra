@@ -4,11 +4,49 @@ All notable changes to **P-Core Orchestra** are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-> Releases were not git-tagged before this file was adopted (2026-10-26). The 3.7.0
-> entry below is a curated summary of the current state; earlier history is thematic
-> and lives in full in `git log` and `docs/index.md` (historical plans and audits).
+> **v3.8.0 (2026-10-31) is the first annotated git tag.** Releases before this
+> file was adopted (2026-10-26) were never tagged; the 3.7.0 entry below is a
+> curated summary of the state at that date, not a commit boundary, so no
+> retroactive `v3.7.0` tag was fabricated. Pre-3.7.0 history is thematic and lives
+> in full in `git log` and `docs/index.md` (historical plans and audits).
 
 ## [Unreleased]
+
+### Added
+- **MCP knowledge hub — SQLite store, chat threads, project pairing, and master prompts.** The orchestra MCP server is now a two-way knowledge hub a remote connector (ChatGPT/Gemini) and a local CLI/IDE can both use, scoped per project:
+  - **`bundle/hooks/lib/knowledge-store.js`** (mirrored) replaces the unbounded, lock-free `knowledge-inbox.json` with a `node:sqlite` database at `~/.pcore/state/knowledge.db`, every row partitioned by `project.slug`, with indexed `status`/`ts` and tables for `knowledge`, `chat_threads`, `chat_messages`, and `pairs`. It degrades gracefully to the JSON inbox on a Node without `node:sqlite`, and imports any pre-existing `knowledge-inbox.json` once into the table.
+  - **New MCP tools**: `review_knowledge` (the missing human-review gate — promote `pending`→`approved`/`rejected`/`applied` without ever writing docs/context), plus the chat/pairing surface `start_thread`, `post_message`, `get_thread` (resume by thread id *or* by an external conversation binding), `list_threads`, `pair_thread`, `list_pairs`.
+  - **First-class MCP `prompts` capability**: the server now advertises `prompts` and serves `bundle/hooks/lib/master-prompts.js` — project-aware plan/implement/verify/review/knowledge master prompts that embed the project identity and any `approved` knowledge. Reachable over both `prompts/list`/`prompts/get` and the `get_master_prompt` / `list_master_prompts` tools.
+  - **`scripts/mcp-service.sh`** manages the Streamable-HTTP hub as a systemd/launchd/nohup service (loopback by default; a non-loopback bind is refused without a bearer token, mirroring the server's own guard) with a best-effort `tunnel` command that fronts the port with `cloudflared` for remote connectors.
+  - **`scripts/mcp-register.js`** idempotently writes the stdio (or tunneled-HTTP) server into an `mcpServers` config (`.mcp.json` / `~/.cursor/mcp.json`) that Cursor, Claude Code, and Qoder read, preserving unrelated entries.
+  - Covered by `test-mcp-knowledge-store.js`, `test-mcp-prompts.js`, and `test-mcp-service.sh`, all wired into CI.
+- **CI now syntax- and lint-checks the PowerShell installers** — `scripts/lint-install-ps1.sh` (wired into the `test` job's hook-suites step) runs the PowerShell AST parser over `install.ps1` + `scripts/*.ps1` (a parse error fails CI, catching hand-edit breakage that no Linux/macOS test could otherwise see) and then PSScriptAnalyzer, using `scripts/psscriptanalyzer-settings.psd1` to suppress installer-inappropriate rules. ERROR-severity findings are blocking; WARNINGs are reported but non-blocking; the gate degrades to a clean SKIP when `pwsh`/the analyzer are unavailable so it never false-reddies an offline runner (#28).
+
+### Fixed
+- **`install.sh` no longer clobbers the user's global git `core.excludesfile`** — it now sets it only when currently unset (or already pointing at the orchestra ignore) and otherwise keeps the existing value with guidance to merge manually (#15).
+- **`~/.agents/skills` is host-independent** — the shared Agent Skills discovery dir is now a copy from `bundle/skills` instead of a symlink to whichever host installed last, so removing/reinstalling one host no longer dangles it for the others; on uninstall each shared entry is pruned only once no remaining host still provides it (#26).
+- **`--project` installs the bridge into the current repo** — the target is now `$PWD` (or an explicit `--project-dir PATH`) instead of the orchestra clone's parent directory; running it inside the clone is refused unless `--force-project` is passed (#22).
+- **`install.sh --studio` Cursor dist path** — both host `studio/` parents are created before the copy, so the dashboard lands at `<host>/studio/dist/index.html` (matching the README) rather than one level too high (#19).
+- **OpenCode agent model-strip no longer needs python3** — the frontmatter `model: opencode/…` cleanup runs through `node` (which the installer already requires) instead of a `python3` heredoc, so a machine without python3 can no longer abort the OpenCode install under `set -e` (#27).
+- **`opencode-maintenance.sh` is scoped to `--opencode`** — a single-host install (e.g. `--cursor`) no longer drops unrelated files into `~/.local/bin`; the copy and its closing summary line are both gated on the OpenCode install flag (#24).
+- **`ensure-opencode-latest.sh` verifies the upgrade instead of trusting it** — bun and npm results are now checked (`if cmd; then`), the `curl | bash` fallback is off unless `--allow-remote-script` is passed, a post-install `WARN` fires when the landed version differs from the registry tag, and `install.sh --dry-run` previews the upgrade via `--check` (#23).
+- **`install.sh --mcp` produces a working MCP server** — the installed `hooks/lib/mcp-server.js` is now a launcher that boots the clone's real server (so `@modelcontextprotocol/sdk` resolves from the clone's `node_modules`, which a plain copy into the host dir could never reach); `npm install` failures are surfaced instead of swallowed via `2>/dev/null`, and the SDK's resolvability is verified before and after writing the launcher (#16).
+- **`orchestra-health.js` no longer false-alarms on a fresh install and now checks every agent** — the memory file is treated as optional (`INFO … created on first run` instead of `MISS`, since `orchestra-memory.js` seeds it lazily), and the agent check reads `bundle/agent-registry.json` and cross-checks all 160 agents (printing `N/160 present`) instead of a hard-coded 27, degrading to the core-hook subset only when the clone isn't locatable (#25).
+- **Codex TOML agents no longer carry Cursor-specific model/spawn guidance** — `sync-codex-agents.js` now rewrites each agent's `## Model`/`## Models` section (which named `composer-2.5`/`grok-4.6`, the Cursor "Other Models" pool, and the "Cursor Task vs OpenCode" spawn note) to a Codex-neutral "inherits the session model" note and scrubs the remaining Cursor tokens, preserving non-model role lines; a new `test-codex-sync.js` assertion fails if any generated TOML mentions those phrases (#38).
+- **`install.ps1` no longer installs Qoder `agents\references\`** — after copying the Qoder agent tree, the Windows installer now strips `agents\references` (mirroring `install.sh`), so the no-frontmatter references doc can't be parsed as an agent config and abort Qoder headless runs with "Operation aborted" (#17).
+- **`install.ps1` project bridge matches `install.sh`** — added `-ProjectDir PATH` and `-ForceProject`; `-Project` now resolves its target from `-ProjectDir` else the current directory (not the clone's parent) and **refuses to write the bridge into the orchestra clone itself** unless `-ForceProject` is passed. A new static `test-install-ps1-parity.sh` (runs in CI, since install.ps1 can't execute on Linux/macOS) guards both this and the #17 references strip against drift from `install.sh` (#22).
+
+## [3.9.0] - 2026-10-31
+
+### Added
+- **`install.sh --uninstall`** — manifest-driven removal that deletes only Orchestra-owned files across all five hosts (never user-authored agents/skills) and restores merged `settings.json` / `hooks.json` / `opencode.json` from the `.bak-*` / `.bak.*` backups the installers wrote. Scope per host (`--cursor`, …) and combine with `--studio` to tear down the service.
+- **CI `installer-smoke` job** — runs `install.sh` end to end (preflight + dry-run + a real offline install into a throwaway `$HOME` + `orchestra-health.js` + uninstall) on an **ubuntu + macOS** matrix; `main` now also builds on **push**, not just PR/manual dispatch.
+
+### Changed
+- **`install.sh` preflight** — fails fast, before touching any global config, on an unsupported OS (routes Windows users to `install.ps1`), missing `git`, or Node < 18.
+- **README / `AGENTS.md`** — quick start pins the clone to the `v3.9.0` tag (`git clone --branch v3.9.0 --depth 1 …`) with a Releases badge; the Uninstall section documents `--uninstall`; the AGENTS command list is updated to five hosts.
+
+## [3.8.0] - 2026-10-31
 
 ### Added
 - **Claude Code + Codex CLI installer support** (`--claude` / `--codex`, both included in `--all`) — flat mirrors generated by `scripts/sync-claude-agents.js` (160 markdown agents; `disallowedTools` for readonly, `permissionMode: acceptEdits` for writable) and `scripts/sync-codex-agents.js` (160 TOML agents with TOML-safe `developer_instructions`); `scripts/merge-claude-settings.js` merges the four hook events into `~/.claude/settings.json` with backup + idempotency; `health-claude.js` / `health-codex.js`; Windows parity in `install.ps1` (issue #14)
@@ -20,6 +58,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Verdict-accurate phase outcomes** — `phase-outcome.js` now reads the last line carrying a phase token instead of scanning the whole output, so quoted `VERIFY_FAIL` text cannot force a fix replay and a trailing `VERIFY_PASS` wins; tokens are phase-scoped.
 - **Binary verification/review rubrics** — verifier and reviewer agents ship explicit verdict discipline (final line is the verdict), PASS/FAIL evidence tables, and a fix-cycle escalation directive.
 - **Lossless agent mirrors** — `sync-opencode-agents.js` preserves invested step budgets, gained `--check` drift detection, and core agent bodies are identical across Cursor, OpenCode, and Qoder (`scripts/test-agent-sync.js` guards parity).
+- **Open-source publish** — project promoted to `production`/`stable`; version cut to **3.8.0** across `package.json`, `project.yaml`, README, and docs; `package.json` gained `repository` / `homepage` / `bugs` publish metadata; stale `docs/01` host rows corrected (Claude Code and Codex are now installed by `install.sh`, no longer "documented only").
 
 ### Fixed
 - MCP `start()` no longer returns an internal record when two implicit starts collide in the same millisecond — callers always get a handle with `close()`; implicit run IDs are sequence-suffixed
@@ -54,4 +93,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Ambient Cursor hooks chain (plan → implement → verify → review), OpenCode conductor + ambient plugin, memory (short/long-term, hybrid recall via `node:sqlite` FTS5), token budgets, greenfield scaffolding, project bridges, Windows installer (`install.ps1`)
 
 [Unreleased]: https://github.com/P-Core-System/pcore-orchestra/commits/main
+[3.9.0]: https://github.com/P-Core-System/pcore-orchestra/releases/tag/v3.9.0
+[3.8.0]: https://github.com/P-Core-System/pcore-orchestra/releases/tag/v3.8.0
 [3.7.0]: https://github.com/P-Core-System/pcore-orchestra/commits/main

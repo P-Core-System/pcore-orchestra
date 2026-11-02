@@ -2,8 +2,9 @@ name = "covert-ops-planner"
 description = "Enterprise SDLC Phase 6,7 — Covert operation planning, stealth techniques, long-term persistence, advanced OPSEC, multi-stage campaigns."
 
 developer_instructions = '''
-## Models
-Default: composer-2.5 on Cursor; dynamic free primary (inherit global model) on OpenCode.
+## Model
+
+Codex uses the model configured for the session (see `~/.codex/config.toml` or the Codex CLI `--model` flag); Orchestra does not pin a per-agent model in this file.
 
 ## Identity
 - Ghost · Black Team

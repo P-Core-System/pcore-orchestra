@@ -9,11 +9,14 @@
 #   bash install.sh --qoder      # Qoder CLI only
 #   bash install.sh --claude     # Claude Code only
 #   bash install.sh --codex      # Codex CLI only
-#   bash install.sh --project    # also install project bridge in current repo
+#   bash install.sh --project    # install project bridge into $PWD/.cursor (current repo)
 #   bash install.sh --all --project
+#   bash install.sh --project-dir /path/to/repo   # bridge into that repo instead of $PWD
 #   bash install.sh --skip-opencode-upgrade   # skip npm/bun OpenCode CLI upgrade
 #   bash install.sh --studio     # install Studio dashboard (build + launcher)
 #   bash install.sh --all --studio
+#   bash install.sh --uninstall  # remove Orchestra from selected hosts (default: all)
+#   bash install.sh --cursor --uninstall   # uninstall Cursor only
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -31,10 +34,13 @@ INSTALL_QODER=0
 INSTALL_CLAUDE=0
 INSTALL_CODEX=0
 INSTALL_PROJECT=0
+PROJECT_DIR=""
+FORCE_PROJECT=0
 SKIP_OPENCODE_UPGRADE=0
 INSTALL_MCP=0
 INSTALL_STUDIO=0
 DRY_RUN=0
+UNINSTALL=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -45,13 +51,18 @@ while [[ $# -gt 0 ]]; do
     --claude)     INSTALL_CLAUDE=1; shift ;;
     --codex)      INSTALL_CODEX=1; shift ;;
     --project)    INSTALL_PROJECT=1; shift ;;
+    --project-dir)
+      [[ $# -ge 2 && -n "${2:-}" && "${2}" != --* ]] || { echo "ERROR: --project-dir requires a path argument"; exit 1; }
+      INSTALL_PROJECT=1; PROJECT_DIR="$2"; shift 2 ;;
+    --force-project) INSTALL_PROJECT=1; FORCE_PROJECT=1; shift ;;
     --mcp)        INSTALL_MCP=1; shift ;;
     --studio)     INSTALL_STUDIO=1; shift ;;
     --dry-run)    DRY_RUN=1; shift ;;
+    --uninstall)  UNINSTALL=1; shift ;;
     --skip-opencode-upgrade) SKIP_OPENCODE_UPGRADE=1; shift ;;
     -h|--help)
       cat <<'HELP'
-Usage: bash install.sh [--all|--cursor|--opencode|--qoder|--claude|--codex] [--project] [--mcp] [--studio] [--dry-run] [--skip-opencode-upgrade]
+Usage: bash install.sh [--all|--cursor|--opencode|--qoder|--claude|--codex] [--project|--project-dir PATH] [--mcp] [--studio] [--dry-run] [--skip-opencode-upgrade] [--uninstall]
 
 Options:
   --all        Install for Cursor, OpenCode, Qoder CLI, Claude Code, and Codex CLI (default)
@@ -60,11 +71,17 @@ Options:
   --qoder      Install for Qoder CLI only
   --claude     Install for Claude Code only
   --codex      Install for Codex CLI only
-  --project    Also install project bridge (.cursor/) in current repo
-  --mcp        Install MCP server dependencies (npm install @modelcontextprotocol/sdk)
+  --project    Install the project bridge into the CURRENT repo ($PWD/.cursor)
+  --project-dir PATH  Install the project bridge into PATH/.cursor instead of $PWD
+  --force-project  Allow the bridge target to be the orchestra clone itself
+  --mcp        Install the MCP server (SDK into the clone + hooks/lib launcher)
   --studio     Install Studio dashboard (build + launcher)
   --dry-run    Show what would be installed without making changes
   --skip-opencode-upgrade  Skip upgrading OpenCode CLI to latest (npm/bun)
+  --uninstall  Remove Orchestra files from the selected hosts (default: all) and
+               restore merged config from the backups the installers wrote.
+               Combine with --cursor/--opencode/etc. to scope; add --studio to
+               also tear down the Studio service.
 
 OpenCode: upgrades CLI via scripts/ensure-opencode-latest.sh unless skipped.
           Set OPENCODE_CHANNEL=beta|dev for pre-release builds.
@@ -95,11 +112,52 @@ if [[ "$INSTALL_CURSOR" -eq 0 && "$INSTALL_OPENCODE" -eq 0 && "$INSTALL_QODER" -
   INSTALL_CODEX=1
 fi
 
+# --- preflight: fail fast before touching any global config ----------------
+# Runs only for the install path (--uninstall removes files; no node/git needed).
+if [[ "$UNINSTALL" -eq 0 ]]; then
+  _OS="$(uname -s 2>/dev/null || echo unknown)"
+  case "$_OS" in
+    Linux|Darwin) : ;;
+    MINGW*|MSYS*|CYGWIN*)
+      echo "ERROR: Windows shell detected ($_OS). Use the PowerShell installer:"
+      echo "       powershell -ExecutionPolicy Bypass -File install.ps1"
+      exit 1 ;;
+    *)
+      echo "ERROR: Unsupported OS '$_OS' (expected Linux or macOS; Windows uses install.ps1)."
+      exit 1 ;;
+  esac
+
+  if ! command -v git >/dev/null 2>&1; then
+    echo "ERROR: 'git' is required — this bundle installs from a git clone."
+    exit 1
+  fi
+
+  if ! command -v node >/dev/null 2>&1; then
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      echo "WARN: 'node' not found — dry run proceeds, but a real install needs Node.js 18+."
+    else
+      echo "ERROR: 'node' is required (Node.js 18+). Install it, then re-run."
+      exit 1
+    fi
+  else
+    _NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
+    if [[ "$_NODE_MAJOR" -lt 18 ]]; then
+      echo "ERROR: Node.js 18+ required, found $(node --version 2>/dev/null)."
+      exit 1
+    fi
+  fi
+
+  if [[ "$DRY_RUN" -eq 0 ]]; then
+    echo "== preflight OK — OS: $_OS · git $(git --version 2>/dev/null | awk '{print $3}') · node $(node --version 2>/dev/null || echo n/a)"
+    echo ""
+  fi
+fi
+
 # --- bundle freshness guards ----------------------------------------------
 # Derived artifacts (qoder agent tree, agent registry) are generated from
 # bundle/agents. Never install a stale derivative: check, regenerate on
 # drift, re-verify. Skipped for --dry-run (read-only) and without node.
-if [[ "$DRY_RUN" -eq 0 ]] && command -v node >/dev/null 2>&1; then
+if [[ "$DRY_RUN" -eq 0 && "$UNINSTALL" -eq 0 ]] && command -v node >/dev/null 2>&1; then
   echo "== bundle freshness =="
   for guard in "scripts/enrich-agent-capabilities.js" "scripts/sync-qoder-agents.js" \
       "scripts/sync-claude-agents.js" "scripts/sync-codex-agents.js" "scripts/gen-agent-registry.js"; do
@@ -115,10 +173,80 @@ if [[ "$DRY_RUN" -eq 0 ]] && command -v node >/dev/null 2>&1; then
   echo ""
 fi
 
-echo "=========================================================================="
-echo " Orchestra Installer (Cursor + OpenCode + Qoder + Claude Code + Codex)"
-echo "=========================================================================="
-echo ""
+if [[ "$UNINSTALL" -eq 0 ]]; then
+  echo "=========================================================================="
+  echo " Orchestra Installer (Cursor + OpenCode + Qoder + Claude Code + Codex)"
+  echo "=========================================================================="
+  echo ""
+fi
+
+###############################################################################
+# MCP server launcher (#16)
+###############################################################################
+# The installed host copy of mcp-server.js lives in <host>/hooks/lib, but Node
+# resolves the bare specifier "@modelcontextprotocol/sdk/…" only by walking up
+# from that directory — which never reaches the clone's node_modules — so a plain
+# copy throws "Cannot find module" the first time a hook calls .start(). Rather
+# than duplicate the SDK into every host config dir, we drop a small launcher that
+# boots the clone's real server (SDK + siblings resolve from the clone; state paths
+# there are homedir/cwd-based, so behavior is identical). The shared bundle copies
+# are left byte-identical — test-mcp-lifecycle asserts Cursor/OpenCode mirror parity.
+install_mcp_launcher() { # $1=host lib dir   $2=bundle-relative server path
+  local host_lib="$1" server_rel="$2"
+  local server_src="$ROOT/$server_rel"
+  local launcher="$host_lib/mcp-server.js"
+  if [[ ! -f "$server_src" ]]; then
+    echo "  WARN: $server_src missing — skipping MCP launcher"
+    return 0
+  fi
+
+  # Ensure the SDK is present in the clone, surfacing npm failures (#16: was 2>/dev/null).
+  if ! node -e "require.resolve('@modelcontextprotocol/sdk/server/index.js', { paths: ['$ROOT/node_modules'] })" >/dev/null 2>&1; then
+    echo "==> Installing @modelcontextprotocol/sdk in the clone ($ROOT)"
+    local npm_out
+    if ! npm_out="$(cd "$ROOT" && npm install --omit=dev 2>&1)"; then
+      echo "  npm install reported a problem:" >&2
+      echo "$npm_out" | sed 's/^/    /' >&2
+    fi
+  fi
+  if ! node -e "require.resolve('@modelcontextprotocol/sdk/server/index.js', { paths: ['$ROOT/node_modules'] })" >/dev/null 2>&1; then
+    echo "  ERROR: @modelcontextprotocol/sdk is not resolvable from $ROOT/node_modules." >&2
+    echo "         The MCP server cannot start. Fix with: (cd $ROOT && npm install)" >&2
+    return 1
+  fi
+
+  mkdir -p "$host_lib"
+  node - "$ROOT" "$server_rel" "$launcher" <<'JS'
+const fs = require('fs');
+const [root, serverRel, out] = process.argv.slice(2);
+const body = [
+  "// Installed by install.sh --mcp (#16). Boots the Orchestra clone's real MCP server",
+  "// so '@modelcontextprotocol/sdk' resolves from the clone's node_modules. Re-run",
+  "// 'bash install.sh --mcp' if you move the clone, or set PCORE_ORCHESTRA_REPO.",
+  "'use strict';",
+  "const path = require('path');",
+  "const fs = require('fs');",
+  "const ROOT = process.env.PCORE_ORCHESTRA_REPO || " + JSON.stringify(root) + ";",
+  "const sdk = path.join(ROOT, 'node_modules', '@modelcontextprotocol', 'sdk');",
+  "if (!fs.existsSync(sdk)) {",
+  "  console.error('[orchestra-mcp] @modelcontextprotocol/sdk missing at ' + sdk +",
+  "    ' — run: (cd ' + ROOT + ' && npm install)');",
+  "  process.exit(1);",
+  "}",
+  "module.exports = require(path.join(ROOT, " + JSON.stringify(serverRel) + "));",
+  ""
+].join("\n");
+fs.writeFileSync(out, body);
+JS
+
+  # Boot-test the launcher the way a host hook does (require it, expect .start/.McpServer).
+  if node -e "const m=require(process.argv[1]); process.exit(typeof m.start==='function' && typeof m.McpServer==='function' ? 0 : 2)" "$launcher" >/dev/null 2>&1; then
+    echo "  MCP launcher: $launcher -> $server_src (SDK resolves)"
+  else
+    echo "  ERROR: launcher $launcher failed to boot the MCP server." >&2
+    return 1
+  fi
+}
 
 ###############################################################################
 # Cursor installation
@@ -135,11 +263,9 @@ install_cursor() {
   rm -rf "$CURSOR/hooks/lib"
   cp -rf "$BUNDLE/hooks/lib" "$CURSOR/hooks/lib"
 
-  # MCP server (if requested)
+  # MCP server (if requested) — launcher resolves the SDK from the clone (#16)
   if [[ "$INSTALL_MCP" -eq 1 ]]; then
-    echo "==> Installing MCP server dependencies"
-    (cd "$ROOT" && npm install --production 2>/dev/null || npm install 2>/dev/null)
-    cp -f "$BUNDLE/hooks/lib/mcp-server.js" "$CURSOR/hooks/lib/"
+    install_mcp_launcher "$CURSOR/hooks/lib" "bundle/hooks/lib/mcp-server.js" || exit 1
   fi
 
   # Default state (don't overwrite). Source the tracked template — the
@@ -210,16 +336,8 @@ fs.writeFileSync(destPath, JSON.stringify(dest, null, 2) + "\n");
 console.log("  Merged hooks.json ->", destPath);
 MERGE
 
-  # Link skills for external discovery (Agent Skills compat path)
-  mkdir -p "$AGENTS_SKILLS"
-  for link_skill in orchestra-loop orchestra-install prompt-intake verification-before-completion \
-      ui-ux-pro-max brand design-system ui-styling web-design-master; do
-    if [[ -d "$CURSOR/skills/$link_skill" ]]; then
-      rm -rf "$AGENTS_SKILLS/$link_skill"
-      ln -sf "$CURSOR/skills/$link_skill" "$AGENTS_SKILLS/$link_skill" 2>/dev/null || \
-        cp -r "$CURSOR/skills/$link_skill" "$AGENTS_SKILLS/$link_skill"
-    fi
-  done
+  # Link skills for external discovery (Agent Skills compat path, host-independent #26)
+  populate_agents_skills
 
   # Autonomy: CLI + permissions.json + sandbox.json (preserves auth/model)
   node "$ROOT/scripts/merge-autonomy-config.js" --cursor --cursor-home "$CURSOR"
@@ -270,24 +388,27 @@ install_opencode() {
   done
 
   # Inherit: strip agent frontmatter model: after copy so subagents use global model
+  # (Node, not python3 — Node is already a hard requirement; a missing python3 must
+  # never abort the install under `set -e`.)
   find "$OPENCODE/agents" -name '*.md' -print0 2>/dev/null | while IFS= read -r -d '' f; do
     if grep -qE '^model:[[:space:]]*opencode/' "$f" 2>/dev/null; then
-      python3 - "$f" <<'PY'
-import re, sys
-path = sys.argv[1]
-text = open(path, encoding='utf-8').read()
-bom = ''
-if text.startswith('﻿'):
-    bom, text = '﻿', text[1:]
-m = re.match(r'^---\n(.*?)\n---\n(.*)$', text, re.S)
-if not m:
-    sys.exit(0)
-fm, rest = m.group(1), m.group(2)
-new_fm, n = re.subn(r'(?m)^model:[ \t]*opencode/[A-Za-z0-9_.-]+[ \t]*\n?', '', fm)
-if n:
-    new_fm = re.sub(r'\n{3,}', '\n\n', new_fm)
-    open(path, 'w', encoding='utf-8').write(bom + '---\n' + new_fm + '\n---\n' + rest)
-PY
+      node - "$f" <<'JS'
+const fs = require('fs');
+const path = process.argv[2];
+let text = fs.readFileSync(path, 'utf8');
+let bom = '';
+if (text.charCodeAt(0) === 0xFEFF) { bom = '﻿'; text = text.slice(1); }
+const m = text.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+if (!m) process.exit(0);
+let fm = m[1];
+const rest = m[2];
+let n = 0;
+fm = fm.replace(/^model:[ \t]*opencode\/[A-Za-z0-9_.-]+[ \t]*\n?/gm, () => { n++; return ''; });
+if (n) {
+  fm = fm.replace(/\n{3,}/g, '\n\n');
+  fs.writeFileSync(path, bom + '---\n' + fm + '\n---\n' + rest);
+}
+JS
     fi
   done
 
@@ -309,11 +430,9 @@ PY
   # Copy OpenCode plugins (ambient system-prompt policy; default-export V2)
   cp -f "$BUNDLE/opencode/plugins/"*.js "$OPENCODE/plugins/" 2>/dev/null || true
 
-  # MCP server (if requested)
+  # MCP server (if requested) — launcher resolves the SDK from the clone (#16)
   if [[ "$INSTALL_MCP" -eq 1 ]]; then
-    echo "==> Installing MCP server dependencies"
-    (cd "$ROOT" && npm install --production 2>/dev/null || npm install 2>/dev/null)
-    cp -f "$BUNDLE/opencode/hooks/lib/mcp-server.js" "$OPENCODE/hooks/lib/"
+    install_mcp_launcher "$OPENCODE/hooks/lib" "bundle/opencode/hooks/lib/mcp-server.js" || exit 1
   fi
 
   # Default state (don't overwrite) — runtime reads hooks/state/orchestra.json
@@ -327,16 +446,8 @@ PY
     cp -f "$BUNDLE/config/opencode/AGENTS.md" "$OPENCODE/AGENTS.md"
   fi
 
-  # Link to external skills directory
-  mkdir -p "$AGENTS_SKILLS"
-  for link_skill in orchestra-loop orchestra-install prompt-intake verification-before-completion \
-      ui-ux-pro-max brand design-system ui-styling web-design-master; do
-    if [[ -d "$OPENCODE/skills/$link_skill" ]]; then
-      rm -rf "$AGENTS_SKILLS/$link_skill"
-      ln -sf "$OPENCODE/skills/$link_skill" "$AGENTS_SKILLS/$link_skill" 2>/dev/null || \
-        cp -r "$OPENCODE/skills/$link_skill" "$AGENTS_SKILLS/$link_skill"
-    fi
-  done
+  # Link to external skills directory (host-independent copy from bundle, #26)
+  populate_agents_skills
 
   # Autonomy: merge permission/agent into opencode.json (preserves mcp secrets)
   node "$ROOT/scripts/merge-autonomy-config.js" --opencode --opencode-home "$OPENCODE"
@@ -467,16 +578,8 @@ install_claude() {
   # Merge hooks into ~/.claude/settings.json (preserves permissions/model/env/mcpServers)
   node "$ROOT/scripts/merge-claude-settings.js" --claude-home "$CLAUDE"
 
-  # Link skills for external discovery (Agent Skills compat path)
-  mkdir -p "$AGENTS_SKILLS"
-  for link_skill in orchestra-loop orchestra-install prompt-intake verification-before-completion \
-      ui-ux-pro-max brand design-system ui-styling web-design-master; do
-    if [[ -d "$CLAUDE/skills/$link_skill" ]]; then
-      rm -rf "$AGENTS_SKILLS/$link_skill"
-      ln -sf "$CLAUDE/skills/$link_skill" "$AGENTS_SKILLS/$link_skill" 2>/dev/null || \
-        cp -r "$CLAUDE/skills/$link_skill" "$AGENTS_SKILLS/$link_skill"
-    fi
-  done
+  # Link skills for external discovery (Agent Skills compat path, host-independent #26)
+  populate_agents_skills
 
   echo "  Claude agents:   $CLAUDE/agents/ (conductor + phase + specialists)"
   echo "  Claude hooks:    $CLAUDE/hooks/ (registered in $CLAUDE/settings.json)"
@@ -502,15 +605,10 @@ install_codex() {
 
   cp -f "$BUNDLE/ORCHESTRA.md" "$CODEX/ORCHESTRA.md"
 
-  # Codex reads skills from ~/.agents/skills (shared with other hosts). Do not
-  # replace an existing link/copy that another host installer owns.
-  mkdir -p "$AGENTS_SKILLS"
-  for link_skill in orchestra-loop orchestra-install prompt-intake verification-before-completion \
-      ui-ux-pro-max brand design-system ui-styling web-design-master; do
-    if [[ -d "$BUNDLE/skills/$link_skill" && ! -e "$AGENTS_SKILLS/$link_skill" ]]; then
-      cp -r "$BUNDLE/skills/$link_skill" "$AGENTS_SKILLS/$link_skill"
-    fi
-  done
+  # Codex reads skills from ~/.agents/skills (shared with other hosts). Populate
+  # it host-independently from the bundle (#26) rather than leaving it to whichever
+  # host installer ran last.
+  populate_agents_skills
 
   echo "  Codex agents:    $CODEX/agents/ (160 TOML custom agents)"
   echo "  Codex skills:    $AGENTS_SKILLS/ (shared Agent Skills path)"
@@ -554,12 +652,26 @@ health_codex() {
 ###############################################################################
 # Project bridge
 ###############################################################################
+# Canonical --project target (#22): an explicit --project-dir wins, else the
+# caller's CWD — NOT the clone's parent, which is what the old code wrote to.
+_project_target() {
+  local t="${PROJECT_DIR:-$PWD}"
+  [[ -d "$t" ]] && t="$(cd "$t" && pwd)"
+  printf '%s' "$t"
+}
+
 install_project_bridge() {
-  REPO_ROOT="$(cd "$ROOT/.." && pwd)"
-  echo "==> Installing project bridge to $REPO_ROOT/.cursor"
-  mkdir -p "$REPO_ROOT/.cursor/hooks"
-  cp -f "$ROOT/project-bridge/hooks.json" "$REPO_ROOT/.cursor/hooks.json"
-  cp -f "$ROOT/project-bridge/hooks/bridge.js" "$REPO_ROOT/.cursor/hooks/bridge.js"
+  local target; target="$(_project_target)"
+  if [[ "$target" == "$ROOT" && "$FORCE_PROJECT" -ne 1 ]]; then
+    echo "REFUSING: --project target is the orchestra clone itself ($ROOT)."
+    echo "  cd into the repo you want the bridge in (it lands in \$PWD/.cursor),"
+    echo "  pass --project-dir <path>, or add --force-project to override."
+    return 0
+  fi
+  echo "==> Installing project bridge to $target/.cursor"
+  mkdir -p "$target/.cursor/hooks"
+  cp -f "$ROOT/project-bridge/hooks.json" "$target/.cursor/hooks.json"
+  cp -f "$ROOT/project-bridge/hooks/bridge.js" "$target/.cursor/hooks/bridge.js"
 }
 
 ###############################################################################
@@ -577,8 +689,10 @@ install_scoping() {
     echo "  Global script:   ~/.local/bin/setup-repo-scoping.sh"
   fi
 
-  # Install opencode-maintenance.sh to ~/.local/bin
-  if [[ -f "$ROOT/scripts/opencode-maintenance.sh" ]]; then
+  # Install opencode-maintenance.sh to ~/.local/bin — only when OpenCode is in
+  # scope (#24): a --codex/--cursor-only install shouldn't drop an unrelated
+  # OpenCode helper into the global bin.
+  if [[ "$INSTALL_OPENCODE" -eq 1 && -f "$ROOT/scripts/opencode-maintenance.sh" ]]; then
     rm -f "$HOME/.local/bin/opencode-maintenance.sh"
     cp -f "$ROOT/scripts/opencode-maintenance.sh" "$HOME/.local/bin/opencode-maintenance.sh"
     chmod +x "$HOME/.local/bin/opencode-maintenance.sh"
@@ -614,10 +728,21 @@ GITEOF
     echo "  Global gitignore: $GITIGNORE (exists, kept)"
   fi
 
-  # Tell git to use it
+  # Tell git to use it — but never clobber a pre-existing user setting (#15).
+  # Only point core.excludesfile at the orchestra ignore when it's currently
+  # unset; if the user already has their own global excludes file, leave it
+  # alone and print guidance to merge manually.
   if command -v git >/dev/null 2>&1; then
-    git config --global core.excludesfile "$GITIGNORE"
-    echo "  git excludesfile: $(git config --global core.excludesfile)"
+    local _cur_excl
+    _cur_excl="$(git config --global --get core.excludesfile 2>/dev/null || true)"
+    if [[ -n "$_cur_excl" && "$_cur_excl" != "$GITIGNORE" ]]; then
+      echo "  git excludesfile: kept existing user value ($_cur_excl) — not overwriting (#15)"
+      echo "                    To also ignore node_modules/vendor/etc, append the lines from"
+      echo "                    $GITIGNORE to your excludes file."
+    else
+      git config --global core.excludesfile "$GITIGNORE"
+      echo "  git excludesfile: $(git config --global core.excludesfile)"
+    fi
   fi
 
   echo "  Usage:           setup-repo-scoping.sh /path/to/any/repo"
@@ -633,7 +758,10 @@ install_studio() {
   # Build studio
   echo "  Building Studio..."
   (cd "$ROOT/studio" && npm install --legacy-peer-deps && npm run build)
-  mkdir -p "$OPENCODE/studio"
+  # mkdir BOTH studio parents first (#19): `cp -rf dist/ <dest>/` only preserves a
+  # `dist/` level when <dest>/ already exists; otherwise it copies dist's contents
+  # up a level, landing the dashboard at ~/.cursor/studio/index.html, not .../dist/.
+  mkdir -p "$OPENCODE/studio" "$CURSOR/studio"
   rm -rf "$CURSOR/studio/dist"
   rm -rf "$OPENCODE/studio/dist"
   cp -rf "$ROOT/studio/dist" "$CURSOR/studio/"
@@ -681,8 +809,205 @@ LAUNCHER
 }
 
 ###############################################################################
+# Uninstall (bundle/ is the manifest of what we installed — remove only those)
+###############################################################################
+_LINK_SKILLS="orchestra-loop orchestra-install prompt-intake verification-before-completion ui-ux-pro-max brand design-system ui-styling web-design-master"
+
+# Populate ~/.agents/skills from the bundle so the shared Agent Skills discovery
+# dir is host-independent (#26). Previously each host installer symlinked this
+# path to its OWN skills dir, so the last-installing host "owned" the links and
+# removing/reinstalling it dangled them for the others. A copy from the single
+# bundle source is identical regardless of install order.
+populate_agents_skills() {
+  mkdir -p "$AGENTS_SKILLS"
+  local s
+  for s in $_LINK_SKILLS; do
+    if [[ -d "$BUNDLE/skills/$s" ]]; then
+      rm -rf "$AGENTS_SKILLS/$s"
+      cp -r "$BUNDLE/skills/$s" "$AGENTS_SKILLS/$s"
+    fi
+  done
+}
+
+# Restore a merged JSON file from the newest orchestra backup the installers
+# wrote (`*.bak-<iso>` for settings, `*.bak.<stamp>` for autonomy). Echo + return
+# 0 when restored; return 1 when no backup exists.
+restore_backup() {
+  local f="$1" newest=""
+  [[ -f "$f" ]] || return 1
+  newest="$(ls -1 "$f".bak-* "$f".bak.* 2>/dev/null | sort | tail -1 || true)"
+  [[ -n "$newest" ]] || return 1
+  mv -f "$newest" "$f"
+  rm -f "$f".bak-* "$f".bak.* 2>/dev/null || true
+  echo "  restored $(basename "$f") from backup"
+  return 0
+}
+
+# No-backup fallback for Cursor hooks.json: drop hook entries whose command
+# points at an orchestra-*.js script (leaves unrelated user hooks untouched).
+strip_orchestra_hooks() {
+  local f="$1"
+  [[ -f "$f" ]] || return 0
+  command -v node >/dev/null 2>&1 || { echo "  WARN: node missing — could not strip $f"; return 1; }
+  node -e '
+    const fs = require("fs");
+    const f = process.argv[1];
+    let j; try { j = JSON.parse(fs.readFileSync(f, "utf8")); } catch { process.exit(0); }
+    const orch = (c) => typeof c === "string" && /orchestra-.*\.js/.test(c);
+    const hooks = j && j.hooks;
+    if (hooks && typeof hooks === "object" && !Array.isArray(hooks)) {
+      for (const ev of Object.keys(hooks)) {
+        if (Array.isArray(hooks[ev])) {
+          hooks[ev] = hooks[ev].filter((e) => !(e && orch(e.command)));
+        }
+      }
+    }
+    fs.writeFileSync(f, JSON.stringify(j, null, 2) + "\n");
+  ' "$f" 2>/dev/null && echo "  stripped orchestra hooks from $(basename "$f")" || true
+}
+
+# Remove bundle-matched subdirectories/files under a host dir (only what we copied).
+_rm_bundle_dirs() {
+  local dest="$1" srcset="$2" d
+  [ -d "$srcset" ] || return 0
+  for d in "$srcset"/*/; do [ -d "$d" ] && rm -rf "$dest/$(basename "$d")"; done
+}
+
+uninstall_cursor() {
+  echo "==> Uninstalling Orchestra from $CURSOR"
+  rm -f "$CURSOR/hooks/"orchestra-*.js
+  rm -rf "$CURSOR/hooks/lib" "$CURSOR/hooks/state"
+  rm -f "$CURSOR/agents/orchestra.md" "$CURSOR/agents/"orchestra-*.md
+  rm -rf "$CURSOR/agents/references"
+  _rm_bundle_dirs "$CURSOR/agents" "$BUNDLE/agents"
+  _rm_bundle_dirs "$CURSOR/skills" "$BUNDLE/skills"
+  _rm_bundle_dirs "$CURSOR/skills-cursor" "$BUNDLE/skills-cursor"
+  rm -f "$CURSOR/rules/orchestra-loop.mdc" "$CURSOR/ORCHESTRA.md"
+  # shared ~/.agents/skills is device-level; torn down once by run_uninstall on
+  # a full all-host uninstall (#26), never here so a scoped uninstall is safe.
+  restore_backup "$CURSOR/hooks.json" || strip_orchestra_hooks "$CURSOR/hooks.json"
+  for cf in cli-config.json permissions.json sandbox.json; do restore_backup "$CURSOR/$cf" || true; done
+}
+
+uninstall_opencode() {
+  echo "==> Uninstalling Orchestra from $OPENCODE"
+  rm -f "$OPENCODE/hooks/"orchestra-*.js
+  rm -rf "$OPENCODE/hooks/lib" "$OPENCODE/hooks/state" "$OPENCODE/state"
+  rm -f "$OPENCODE/agents/orchestra.md" "$OPENCODE/agents/"orchestra-*.md
+  rm -rf "$OPENCODE/agents/references"
+  _rm_bundle_dirs "$OPENCODE/agents" "$BUNDLE/opencode/agents"
+  _rm_bundle_dirs "$OPENCODE/skills" "$BUNDLE/opencode/skills"
+  rm -f "$OPENCODE/plugins/orchestra-"*.js
+  # shared ~/.agents/skills is device-level; torn down once by run_uninstall on
+  # a full all-host uninstall (#26), never here so a scoped uninstall is safe.
+  restore_backup "$OPENCODE/opencode.json" || true
+  # free-model weekly schedule (best-effort; manual fallback always printed)
+  if command -v systemctl >/dev/null 2>&1; then
+    systemctl --user disable --now pcore-free-models.timer >/dev/null 2>&1 || true
+    systemctl --user stop pcore-free-models.service >/dev/null 2>&1 || true
+  fi
+  if command -v crontab >/dev/null 2>&1; then
+    crontab -l 2>/dev/null | grep -v "update-free-models.sh" | crontab - 2>/dev/null || true
+  fi
+  echo "  NOTE: if a free-model timer unit or cron entry remains, remove it manually."
+}
+
+uninstall_qoder() {
+  echo "==> Uninstalling Orchestra from $QODER"
+  rm -f "$QODER/hooks/"orchestra-*.js
+  rm -rf "$QODER/hooks/lib" "$QODER/hooks/state"
+  _rm_bundle_dirs "$QODER/agents" "$BUNDLE/qoder"
+  rm -f "$QODER/agents/orchestra.md" "$QODER/agents/"orchestra-*.md
+  _rm_bundle_dirs "$QODER/skills" "$BUNDLE/skills"
+  rm -f "$QODER/ORCHESTRA.md"
+  restore_backup "$QODER/settings.json" || strip_orchestra_hooks "$QODER/settings.json"
+}
+
+uninstall_claude() {
+  echo "==> Uninstalling Orchestra from $CLAUDE"
+  rm -f "$CLAUDE/hooks/"orchestra-*.js
+  rm -rf "$CLAUDE/hooks/lib" "$CLAUDE/hooks/state"
+  # remove only agents we shipped (never user-authored Claude agents)
+  if [ -d "$BUNDLE/claude/agents" ]; then
+    for a in "$BUNDLE/claude/agents"/*.md; do [ -f "$a" ] && rm -f "$CLAUDE/agents/$(basename "$a")"; done
+  fi
+  _rm_bundle_dirs "$CLAUDE/skills" "$BUNDLE/skills"
+  rm -f "$CLAUDE/ORCHESTRA.md"
+  # shared ~/.agents/skills is device-level; torn down once by run_uninstall on
+  # a full all-host uninstall (#26), never here so a scoped uninstall is safe.
+  restore_backup "$CLAUDE/settings.json" || strip_orchestra_hooks "$CLAUDE/settings.json"
+}
+
+uninstall_codex() {
+  echo "==> Uninstalling Orchestra from $CODEX"
+  # remove only TOML agents we shipped
+  if [ -d "$BUNDLE/codex/agents" ]; then
+    for a in "$BUNDLE/codex/agents"/*.toml; do [ -f "$a" ] && rm -f "$CODEX/agents/$(basename "$a")"; done
+  fi
+  rm -f "$CODEX/ORCHESTRA.md"
+  # shared ~/.agents/skills is device-level; torn down once by run_uninstall on
+  # a full all-host uninstall (#26), never here so a scoped uninstall is safe.
+}
+
+uninstall_project_bridge() {
+  local target; target="$(_project_target)"
+  echo "==> Removing project bridge from $target/.cursor"
+  rm -f "$target/.cursor/hooks.json" "$target/.cursor/hooks/bridge.js"
+}
+
+uninstall_global_bin() {
+  echo "==> Removing global helper scripts"
+  rm -f "$HOME/.local/bin/setup-repo-scoping.sh" \
+        "$HOME/.local/bin/opencode-maintenance.sh" \
+        "$HOME/.local/bin/orchestra-studio"
+  # global gitignore + excludesfile are left in place (may hold user entries).
+}
+
+run_uninstall() {
+  echo "=========================================================================="
+  echo " Orchestra Uninstaller"
+  echo "=========================================================================="
+  echo ""
+  [[ "$INSTALL_CURSOR" -eq 1 ]] && uninstall_cursor
+  [[ "$INSTALL_OPENCODE" -eq 1 ]] && uninstall_opencode
+  [[ "$INSTALL_QODER" -eq 1 ]] && uninstall_qoder
+  [[ "$INSTALL_CLAUDE" -eq 1 ]] && uninstall_claude
+  [[ "$INSTALL_CODEX" -eq 1 ]] && uninstall_codex
+  [[ "$INSTALL_PROJECT" -eq 1 ]] && uninstall_project_bridge
+  if [[ "$INSTALL_STUDIO" -eq 1 ]]; then
+    echo "==> Removing Studio service"
+    bash "$ROOT/scripts/studio-service.sh" uninstall 2>/dev/null || true
+  fi
+  # #26: ~/.agents/skills is shared, device-level content (host-independent copy
+  # from the bundle). Drop each entry only once NO remaining host install still
+  # provides it, so a scoped single-host uninstall can't strand the other hosts,
+  # while a full teardown still cleans up. (Codex reads the shared dir directly,
+  # so it has no private skills dir to check here.)
+  echo "==> Pruning shared Agent Skills no longer used by any host"
+  for _sk in $_LINK_SKILLS; do
+    _used=0
+    for _d in "$CURSOR/skills" "$OPENCODE/skills" "$CLAUDE/skills" "$QODER/skills"; do
+      [[ -d "$_d/$_sk" ]] && _used=1 && break
+    done
+    [[ "$_used" -eq 0 ]] && rm -rf "$AGENTS_SKILLS/$_sk"
+  done
+  uninstall_global_bin
+  echo ""
+  echo "============================================"
+  echo " Orchestra uninstalled."
+  echo " Restart the host app(s) to drop cached hooks/agents."
+  echo "============================================"
+}
+
+###############################################################################
 # Main
 ###############################################################################
+if [[ "$UNINSTALL" -eq 1 ]]; then
+  [[ "$DRY_RUN" -eq 1 ]] && echo "NOTE: --dry-run is ignored for --uninstall; changes apply now." || true
+  run_uninstall
+  exit 0
+fi
+
 if [[ "$DRY_RUN" -eq 1 ]]; then
   echo "DRY RUN: Would install:"
   [[ "$INSTALL_CURSOR" -eq 1 ]] && echo "  - Cursor"
@@ -693,6 +1018,13 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   [[ "$INSTALL_PROJECT" -eq 1 ]] && echo "  - Project bridge"
   [[ "$INSTALL_MCP" -eq 1 ]] && echo "  - MCP server"
   [[ "$INSTALL_STUDIO" -eq 1 ]] && echo "  - Studio dashboard"
+  # #23: preview the OpenCode CLI upgrade (current vs target) without installing.
+  if [[ "$INSTALL_OPENCODE" -eq 1 && "$SKIP_OPENCODE_UPGRADE" -eq 0 ]]; then
+    echo ""
+    echo "DRY RUN: OpenCode CLI upgrade preview:"
+    bash "$ROOT/scripts/ensure-opencode-latest.sh" --check 2>&1 | sed 's/^/  /' || \
+      echo "  (could not preview — offline, or opencode CLI / npm registry unreachable)"
+  fi
   exit 0
 fi
 
@@ -777,13 +1109,13 @@ if [[ "$INSTALL_CODEX" -eq 1 ]]; then
   echo "  Codex tip:       spawn_agent with agent_type=orchestra-planner"
 fi
 if [[ "$INSTALL_MCP" -eq 1 ]]; then
-  echo "  MCP server:     @modelcontextprotocol/sdk installed; mcp-server.js in hooks/lib/"
+  echo "  MCP server:     hooks/lib/mcp-server.js launcher -> $ROOT (SDK resolves from clone)"
 fi
 if [[ "$INSTALL_STUDIO" -eq 1 ]]; then
   echo "  Studio dashboard: ~/.local/bin/orchestra-studio (starts on http://localhost:3110)"
 fi
 echo "  Repo scoping:    ~/.local/bin/setup-repo-scoping.sh (run on any repo)"
-echo "  Maintenance:    ~/.local/bin/opencode-maintenance.sh --apply (clean DB/logs)"
+[[ "$INSTALL_OPENCODE" -eq 1 ]] && echo "  Maintenance:    ~/.local/bin/opencode-maintenance.sh --apply (clean DB/logs)"
 echo "  Global gitignore: ~/.config/git/ignore (node_modules, vendor, venv, caches)"
 echo ""
 echo "  Docs: docs/autonomous-workflow.md · docs/orchestra-cross-platform.md"

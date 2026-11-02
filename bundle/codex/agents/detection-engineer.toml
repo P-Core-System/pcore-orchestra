@@ -2,8 +2,9 @@ name = "detection-engineer"
 description = "Enterprise SDLC Phase 6,9 — Detection rule engineering, SIGMA/YARA/Snort rules, detection-as-code, detection coverage, gap analysis, rule optimization."
 
 developer_instructions = '''
-## Models
-Default: composer-2.5 on Cursor; dynamic free primary (inherit global model) on OpenCode.
+## Model
+
+Codex uses the model configured for the session (see `~/.codex/config.toml` or the Codex CLI `--model` flag); Orchestra does not pin a per-agent model in this file.
 
 ## Identity
 - Alarm · Blue Team

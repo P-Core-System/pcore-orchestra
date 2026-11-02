@@ -15,6 +15,8 @@ const {
   ReadResourceRequestSchema,
   ListToolsRequestSchema,
   CallToolRequestSchema,
+  ListPromptsRequestSchema,
+  GetPromptRequestSchema,
 } = require("@modelcontextprotocol/sdk/types.js");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -25,6 +27,7 @@ const { listRuns, readRun, getConductorBaseDir } = require("./conductor-state.js
 const { loadEvents } = require("./domain/store.js");
 const { loadIndex } = require("./memory-index.js");
 const { TOOL_DEFINITIONS } = require("./knowledge-tools.js");
+const { listPrompts, renderPrompt } = require("./master-prompts.js");
 
 class McpServer {
   constructor() {
@@ -37,6 +40,7 @@ class McpServer {
         capabilities: {
           resources: {},
           tools: {},
+          prompts: {},
         },
       }
     );
@@ -214,6 +218,23 @@ class McpServer {
             },
           },
         },
+        {
+          name: "list_master_prompts",
+          description: "List the project-aware master prompts this server exposes",
+          inputSchema: { type: "object", properties: {} },
+        },
+        {
+          name: "get_master_prompt",
+          description: "Render a project-aware master prompt by name (also available via the MCP prompts capability)",
+          inputSchema: {
+            type: "object",
+            properties: {
+              name: { type: "string", description: "e.g. orchestra_plan | orchestra_implement | orchestra_verify | orchestra_review | project_knowledge" },
+              arguments: { type: "object", description: "Prompt arguments such as { goal, plan }" },
+            },
+            required: ["name"],
+          },
+        },
       ];
       for (const t of TOOL_DEFINITIONS) {
         tools.push({ name: t.name, description: t.description, inputSchema: t.inputSchema });
@@ -315,6 +336,21 @@ class McpServer {
             }],
           };
         }
+        case "list_master_prompts": {
+          return {
+            content: [{ type: "text", text: JSON.stringify(listPrompts(), null, 2) }],
+          };
+        }
+        case "get_master_prompt": {
+          const text = renderPrompt(args.name, args.arguments || {});
+          if (text === null) {
+            return {
+              content: [{ type: "text", text: "Unknown prompt: " + args.name }],
+              isError: true,
+            };
+          }
+          return { content: [{ type: "text", text }] };
+        }
         default: {
           const knowledge = TOOL_DEFINITIONS.find((t) => t.name === name);
           if (knowledge) {
@@ -333,6 +369,23 @@ class McpServer {
           throw new Error("Unknown tool: " + name);
         }
       }
+    });
+
+    // Prompts capability — master prompts a connector can pull by name.
+    this.server.setRequestHandler(ListPromptsRequestSchema, async () => ({
+      prompts: listPrompts(),
+    }));
+
+    this.server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+      const { name, arguments: promptArgs } = request.params;
+      const text = renderPrompt(name, promptArgs || {});
+      if (text === null) {
+        throw new Error("Unknown prompt: " + name);
+      }
+      return {
+        description: "Project-aware master prompt: " + name,
+        messages: [{ role: "user", content: { type: "text", text } }],
+      };
     });
   }
 

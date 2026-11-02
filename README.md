@@ -11,25 +11,27 @@
 [![Qoder CLI](https://img.shields.io/badge/Qoder-CLI-6C5CE7.svg)](https://qoder.com)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-CLI-D97757.svg)](https://claude.com/claude-code)
 [![Codex CLI](https://img.shields.io/badge/Codex-CLI-10A37F.svg)](https://developers.openai.com/codex/)
+[![Release](https://img.shields.io/github/v/release/P-Core-System/pcore-orchestra?label=release&color=6C5CE7)](https://github.com/P-Core-System/pcore-orchestra/releases/tag/v3.9.0)
 
 **Repository:** [github.com/P-Core-System/pcore-orchestra](https://github.com/P-Core-System/pcore-orchestra)
 **Docs map:** [docs/index.md](docs/index.md)
 
-**Status:** Production-ready | **Version:** 3.7.0 | **Last updated:** October 2026
+**Status:** Production-ready (lifecycle stage: `production`, channel: `stable`) | **Version:** 3.9.0 | **Last updated:** 2026-10-31
 
 ---
 
 ## Quick Start (2 minutes)
 
 ```bash
-# 1. Clone and install (all five hosts; hooks + skills + agents + settings merge)
-git clone https://github.com/P-Core-System/pcore-orchestra.git
+# 1. Clone the stable release tag and install (all five hosts; hooks + skills + agents + settings merge)
+git clone --branch v3.9.0 --depth 1 https://github.com/P-Core-System/pcore-orchestra.git
 cd pcore-orchestra
 bash install.sh
 # One host only: bash install.sh --cursor | --opencode | --qoder | --claude | --codex
 # Preview changes: bash install.sh --dry-run
 # Skip CLI upgrade: bash install.sh --skip-opencode-upgrade
-# Pre-release OpenCode: OPENCODE_CHANNEL=beta bash install.sh
+# Track latest (unstable) instead of a pinned tag: drop `--branch v3.9.0` to clone main
+# Remove later: bash install.sh --uninstall  (scope with --cursor etc.; add --studio to tear down Studio)
 # Windows: powershell -ExecutionPolicy Bypass -File install.ps1
 
 # 2. Restart Cursor → Settings → Agents → Approvals → Auto-review
@@ -292,6 +294,9 @@ node scripts/test-agent-registry.js           # registry SSOT
 node scripts/test-handshake-contract.js       # selector/orchestrator end tokens
 node scripts/test-mirror-sync.js              # bundle/hooks == bundle/opencode/hooks
 node scripts/test-mcp-knowledge.js            # MCP knowledge tools + HTTP front (ChatGPT)
+node scripts/test-mcp-knowledge-store.js      # SQLite knowledge store + chat/pairing + fallback
+node scripts/test-mcp-prompts.js              # MCP prompts capability + master prompts over HTTP
+bash   scripts/test-mcp-service.sh            # mcp-service.sh lifecycle + mcp-register merge
 node scripts/test-permission-review.js        # deny-first conductor allowlist, 160/160 coverage
 node scripts/test-adaptive-loop.js            # phase model / adaptive loops
 node scripts/test-domain-model.js             # domain entities + ticket/session state machine
@@ -328,21 +333,34 @@ bash scripts/init-context.sh /path/to/your-app --bridge   # with project bridge
 ## Knowledge Server (MCP → ChatGPT / remote)
 
 The MCP server also speaks **Streamable HTTP**, so remote connectors like ChatGPT
-developer mode can read your project docs/context and share knowledge back through
-a reviewed inbox. Loopback needs no token; any other bind requires `PCORE_MCP_TOKEN`.
+developer mode and Gemini can read your project docs/context, share knowledge back
+for review, resume chat threads, and pull curated **master prompts**. Knowledge,
+chat, and pairing are stored in a per-project **SQLite database**
+(`~/.pcore/state/knowledge.db`, rows partitioned by `project.slug`; JSON-inbox
+fallback on a Node without `node:sqlite`) rather than a loose file. Writes land as
+`pending` and only move to `approved`/`rejected` through `review_knowledge` — the
+server never edits docs or context. Loopback needs no token; any other bind
+requires `PCORE_MCP_TOKEN`.
 
 ```bash
 # serve the current project on http://127.0.0.1:8765/mcp
 node scripts/mcp-knowledge-server.js --root "$PWD" --port 8765
 
-# then front it with a tunnel for ChatGPT:
-#   cloudflared tunnel --url http://localhost:8765
+# manage it as a service and front it with a tunnel for ChatGPT:
+scripts/mcp-service.sh install --root "$PWD" --port 8765
+scripts/mcp-service.sh start
+scripts/mcp-service.sh tunnel            # cloudflared quick tunnel
+
+# register the stdio server for Cursor / Claude Code / Qoder (idempotent):
+node scripts/mcp-register.js --root "$PWD"   # writes ./.mcp.json
 ```
 
 Tools: `search_docs`, `read_doc`, `read_context`, `search_memory` (read-only,
-allowlisted) + `share_knowledge`, `list_knowledge` (pending inbox only — the
-server never edits docs or context). Full setup, auth, and ChatGPT connector
-steps: [`docs/mcp-chatgpt.md`](docs/mcp-chatgpt.md).
+allowlisted) + `share_knowledge`, `list_knowledge`, `review_knowledge` (store, never
+docs) + `start_thread`, `post_message`, `get_thread`, `list_threads`, `pair_thread`,
+`list_pairs` (chat + per-project pairing) + the `prompts` capability
+(`orchestra_plan`/`_implement`/`_verify`/`_review`, `project_knowledge`). Full setup,
+auth, and ChatGPT connector steps: [`docs/mcp-chatgpt.md`](docs/mcp-chatgpt.md).
 
 ---
 
@@ -469,27 +487,39 @@ Agent-tool wiring: OpenCode global `AGENTS.md` + `opencode.json` instructions fi
 
 ## Uninstall
 
+`install.sh` uses the bundle as a manifest of what it installed, so `--uninstall`
+removes only Orchestra's files (never your own agents/skills) and restores the
+merged `settings.json` / `hooks.json` / `opencode.json` from the backups the
+installers wrote.
+
 ```bash
-# Remove Cursor hooks
-rm -rf ~/.cursor/hooks/orchestra-*
-rm -rf ~/.cursor/agents/orchestra-*
-rm -rf ~/.cursor/skills/orchestra-loop
-rm -rf ~/.cursor/rules/orchestra-loop.mdc
-rm -f ~/.cursor/hooks.json
+# Remove from all five hosts + global helper scripts (Studio service kept unless --studio)
+bash install.sh --uninstall
 
-# Remove OpenCode files
-rm -rf ~/.config/opencode/agents/orchestra-*
-rm -rf ~/.config/opencode/skills/orchestra-loop
-rm -f ~/.config/opencode/hooks/orchestra-health-opencode.js
+# Scope it: a single host, or add the Studio service teardown
+bash install.sh --uninstall --cursor
+bash install.sh --uninstall --all --studio
 
-# Remove Qoder files (also remove the orchestra entries from ~/.qoder/settings.json)
-rm -rf ~/.qoder/agents/orchestra-*
-rm -rf ~/.qoder/skills/orchestra-loop
-rm -f ~/.qoder/ORCHESTRA.md
-
-# Remove symlink
-rm -rf ~/.agents/skills/orchestra-loop
+# Manual fallback (if you prefer, or if you installed from a different clone path):
+rm -rf ~/.cursor/hooks/orchestra-* ~/.cursor/agents/orchestra-* ~/.cursor/ORCHESTRA.md
+rm -rf ~/.qoder/hooks/orchestra-*  ~/.qoder/agents/orchestra-*  ~/.qoder/ORCHESTRA.md
+rm -f  ~/.cursor/hooks.json  # then re-add any non-orchestra hooks you had
 ```
+
+> The global gitignore (`~/.config/git/ignore`) and `git config core.excludesfile`
+> are intentionally left in place on uninstall — they may contain your own entries.
+>
+> **On install**, `core.excludesfile` is set to `~/.config/git/ignore` only if you
+> don't already have a global excludes file configured; an existing value is never
+> overwritten (the installer prints what it kept). To combine both, append the
+> lines from `~/.config/git/ignore` to your own excludes file.
+
+> `--project` installs the Cursor project bridge into the **current repo**
+> (`$PWD/.cursor`); use `--project-dir PATH` to target another repo, or
+> `--force-project` to allow the orchestra clone itself as the target.
+> The Windows installer mirrors this: `-Project`, `-ProjectDir PATH`, and
+> `-ForceProject` (and, like the shell side, refuses to write the bridge into
+> the clone unless `-ForceProject` is passed).
 
 ---
 

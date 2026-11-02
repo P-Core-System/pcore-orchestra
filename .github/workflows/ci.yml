@@ -2,6 +2,8 @@ name: CI
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -48,7 +50,7 @@ jobs:
         run: npm ci --prefix server
       - name: Agent registry in sync
         run: node scripts/gen-agent-registry.js --check
-      - name: Hook suites (safe-write, state, conductor, outcome, registry, handshake, mirrors, triggers, permissions, adaptive, injection order, domain, evidence, review queue, security scanner, studio service)
+      - name: Hook suites (safe-write, state, conductor, outcome, registry, handshake, mirrors, permissions, adaptive, domain, evidence, review queue, security scanner, studio service, opencode upgrade, mcp launcher, mcp service, health agents, ps1 parity, ps1 lint)
         run: |
           set -e
           node scripts/test-safe-write.js
@@ -58,10 +60,8 @@ jobs:
           node scripts/test-agent-registry.js
           node scripts/test-handshake-contract.js
           node scripts/test-mirror-sync.js
-          node scripts/test-trigger-scheduler.js
           node scripts/test-permission-review.js
           node scripts/test-adaptive-loop.js
-          node scripts/test-injection-order.js
           node scripts/test-domain-model.js
           node scripts/test-domain-completion.js
           node scripts/test-domain-store.js
@@ -73,6 +73,12 @@ jobs:
           node scripts/test-opencode-v2.js
           node scripts/test-opencode-permission-contract.js
           bash scripts/test-studio-service.sh
+          bash scripts/test-ensure-opencode-latest.sh
+          bash scripts/test-mcp-installed-launcher.sh
+          bash scripts/test-mcp-service.sh
+          bash scripts/test-health-agents.sh
+          bash scripts/test-install-ps1-parity.sh
+          bash scripts/lint-install-ps1.sh
       - name: Studio suites (data layer, UI, server, integration)
         run: |
           set -e
@@ -81,7 +87,7 @@ jobs:
           node scripts/test-studio-server.js
           node scripts/test-studio-integration.js
       # Phase 5: worktree isolation, spawn adapter, MCP server, parallelism
-      - name: Orchestration suites (worktree, spawn adapter, MCP, parallel, six-file, memory, handoff, context preservation, review producer)
+      - name: Orchestration suites (worktree, spawn adapter, MCP, parallel, six-file, memory, handoff, review producer)
         run: |
           set -e
           node scripts/test-worktree-isolation.js
@@ -90,13 +96,14 @@ jobs:
           node scripts/test-mcp-server.js
           node scripts/test-mcp-lifecycle.js
           node scripts/test-mcp-knowledge.js
+          node scripts/test-mcp-knowledge-store.js
+          node scripts/test-mcp-prompts.js
           node scripts/test-parallel-execution.js
           node scripts/test-sixfile-validation.js
           node scripts/test-memory-retrieval.js
           node scripts/test-memory-hybrid.js
           node scripts/test-memory-patterns.js
           node scripts/test-handoff-enforcer.js
-          node scripts/test-context-preservation.js
           node scripts/test-review-queue-producer.js
           node scripts/test-agent-sync.js
 
@@ -116,3 +123,74 @@ jobs:
           node scripts/test-codex-sync.js
           node scripts/sync-claude-agents.js --check
           node scripts/sync-codex-agents.js --check
+
+  installer-smoke:
+    name: Installer smoke (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      # Dry-run exercises preflight + arg parsing with no side effects / no network.
+      - name: Preflight + dry-run
+        run: bash install.sh --all --dry-run
+      # Real install for the four offline-capable hosts (OpenCode excluded: its
+      # free-model refresh hits the network). HOME is redirected to a throwaway
+      # dir so global helper scripts + git config stay isolated.
+      - name: Install into throwaway HOME + assert artifacts + health
+        run: |
+          set -euo pipefail
+          # `runner` context isn't valid in job-level env, so redirect HOME + the
+          # per-host dirs here via $RUNNER_TEMP (always set for steps).
+          export HOME="$RUNNER_TEMP/orch"
+          export ORCH_HOME="$HOME"
+          export CURSOR_HOME="$HOME/.cursor"
+          export OPENCODE_CONFIG_DIR="$HOME/.config/opencode"
+          export QODER_CONFIG_DIR="$HOME/.qoder"
+          export CLAUDE_CONFIG_DIR="$HOME/.claude"
+          export CODEX_HOME="$HOME/.codex"
+          export AGENTS_SKILLS="$HOME/.agents/skills"
+          mkdir -p "$HOME"
+          # #15 regression: pre-seed a user global git excludesfile; install must
+          # keep it, not re-point core.excludesfile at the orchestra ignore.
+          MY_EXCL="$HOME/my-global-ignore"
+          printf '[core]\n  excludesfile = %s\n' "$MY_EXCL" > "$HOME/.gitconfig"
+          bash install.sh --cursor --qoder --claude --codex --skip-opencode-upgrade
+          test "$(git config --global --get core.excludesfile)" = "$MY_EXCL" \
+            || { echo "#15 FAIL: core.excludesfile was overwritten"; exit 1; }
+          echo "#15 OK: user core.excludesfile preserved"
+          test -f "$CURSOR_HOME/hooks/orchestra-health.js"
+          test -f "$CURSOR_HOME/agents/orchestra.md"
+          test -f "$CURSOR_HOME/hooks/lib/io.js"
+          test -f "$QODER_CONFIG_DIR/settings.json"
+          test -f "$CLAUDE_CONFIG_DIR/settings.json"
+          ls "$CODEX_HOME/agents"/*.toml >/dev/null
+          test -d "$AGENTS_SKILLS/orchestra-loop"
+          node "$CURSOR_HOME/hooks/orchestra-health.js"
+      - name: Uninstall removes only Orchestra files + restores backups
+        run: |
+          set -euo pipefail
+          # same isolated HOME/dirs as the install step (must match to target them)
+          export HOME="$RUNNER_TEMP/orch"
+          export ORCH_HOME="$HOME"
+          export CURSOR_HOME="$HOME/.cursor"
+          export OPENCODE_CONFIG_DIR="$HOME/.config/opencode"
+          export QODER_CONFIG_DIR="$HOME/.qoder"
+          export CLAUDE_CONFIG_DIR="$HOME/.claude"
+          export CODEX_HOME="$HOME/.codex"
+          export AGENTS_SKILLS="$HOME/.agents/skills"
+          # seed a backup so restore path is exercised
+          cp "$CURSOR_HOME/hooks.json" "$CURSOR_HOME/hooks.json.bak-2026-01-01T00-00-00-000Z" 2>/dev/null || true
+          bash install.sh --cursor --qoder --claude --codex --uninstall
+          test ! -e "$CURSOR_HOME/hooks/orchestra-health.js"
+          test ! -e "$CODEX_HOME/ORCHESTRA.md"
+          test ! -d "$AGENTS_SKILLS/orchestra-loop"
+          # no leftover .bak files for the Qoder settings after restore+cleanup
+          if ls "$QODER_CONFIG_DIR"/settings.json.bak-* >/dev/null 2>&1; then
+            echo "leftover Qoder backups"; exit 1
+          fi

@@ -1,16 +1,13 @@
 name = "orchestra-planner"
-description = "Orchestra phase 1 — research codebase and produce a short implementation plan. Use proactively for any implement/fix/build/refactor task in Cursor Agent, even when the user does not say /orchestra. Auto-invoked by ambient orchestra hooks. Reads Six-File Context (context/*.md) when present in the workspace."
+description = "Orchestra phase 1 — research codebase and produce a short implementation plan. Use proactively for any implement/fix/build/refactor task in the agent, even when the user does not say /orchestra. Auto-invoked by ambient orchestra hooks. Reads Six-File Context (context/*.md) when present in the workspace."
 
 developer_instructions = '''
 ## Model
 
-Default: `composer-2.5` (standard, not Fast). Cheapest strong agent in the included Cursor Models pool.
+Codex uses the model configured for the session (see `~/.codex/config.toml` or the Codex CLI `--model` flag); Orchestra does not pin a per-agent model in this file.
 
-For complex research or planning where Composer 2.5 is stuck, escalate to `grok-4.6` (standard, `effort: high`). Avoid Fast variants and Other Models (Claude/GPT/Gemini) as defaults — they burn the separate $20+ Other Models pool 3–6× faster.
 
 You are the **orchestra planner** subagent. Work in isolation; return a concise plan only.
-
-Optional spawn reference: `references/orchestra-spawn-matrix.md` (Cursor Task vs OpenCode task).
 
 ## When invoked
 

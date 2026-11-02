@@ -153,6 +153,35 @@ function runTests() {
     failed++;
   }
 
+  // Test 7 (#38): no generated TOML may carry Cursor-specific model / spawn guidance.
+  try {
+    const files = walk(DEST, ".toml");
+    // Phrases that are Cursor/OpenCode model-pool or spawn guidance and must be gone.
+    const forbidden = [
+      [/composer-2\.5/i, "composer-2.5"],
+      [/Cursor\s+Models/i, "Cursor Models"],
+      [/Cursor\s+Agent/i, "Cursor Agent"],
+      [/Cursor\s+Task/i, "Cursor Task"],
+      [/grok-4\.6/i, "grok-4.6"],
+      [/Other\s+Models/i, "Other Models"],
+    ];
+    const offenders = [];
+    for (const file of files) {
+      const text = fs.readFileSync(file, "utf8");
+      for (const [re, label] of forbidden) {
+        if (re.test(text)) offenders.push(`${path.basename(file)}: ${label}`);
+      }
+    }
+    assert(offenders.length === 0, `no TOML carries Cursor model/spawn guidance (${files.length} scanned)${offenders.length ? " — offenders: " + offenders.slice(0, 5).join(", ") : ""}`);
+    // And each must expose the Codex-neutral model note instead.
+    const missingNote = files.filter((f) => !fs.readFileSync(f, "utf8").includes("Codex uses the model configured for the session"));
+    assert(missingNote.length === 0, `every TOML has the Codex model note${missingNote.length ? " — missing: " + missingNote.slice(0, 5).map((f) => path.basename(f)).join(", ") : ""}`);
+    passed += 2;
+  } catch (e) {
+    console.log(`  ✗ cursor-guidance strip: ${e.message}`);
+    failed++;
+  }
+
   console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);
   process.exit(failed > 0 ? 1 : 0);
 }
