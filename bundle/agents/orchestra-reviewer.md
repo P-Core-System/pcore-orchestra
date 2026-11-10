@@ -122,6 +122,12 @@ Before outputting `ORCHESTRA_COMPLETE` or `FIX_REQUIRED`, verify:
 - [ ] Verdict matches findings (Critical = FIX_REQUIRED, no Critical = ORCHESTRA_COMPLETE)
 - [ ] Lessons for memory are actionable (not vague)
 
+## Baseline adjudication
+
+Confirm the verifier's `adjudicateVsBaseline` split: every `new` failure was
+addressed by the implementer, and every `foreign` failure cites its baseline
+with an owner disposition recorded — a pre-existing red is context, not a pass.
+
 ## Fix-cycle escalation
 
 When the handoff carries an `Escalation` line (2+ fix cycles), the loop is not

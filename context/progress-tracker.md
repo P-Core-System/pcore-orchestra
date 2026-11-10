@@ -71,3 +71,10 @@ Update this file after every meaningful implementation change.
 - `context/ai-workflow-rules.md` durable-artifact scoping rule + `context/architecture.md` invariant 38.
   Key files: `bundle/hooks/lib/plan-artifact.js`, `bundle/opencode/hooks/lib/plan-artifact.js`, `scripts/test-plan-artifact.js`, `context/ai-workflow-rules.md`, `context/architecture.md`.
   Impact: conductor plan/baseline/proof artifacts survive a `/tmp` wipe — the 2026-10-27 incident class (lost plan + recon inputs) cannot recur from temp-dir storage.
+
+## 2026-11-11 — baseline adjudication (new vs foreign failures)
+- `bundle/hooks/lib/evidence-runner.js` (+ byte-identical `bundle/opencode/hooks/lib/evidence-runner.js` mirror): NEW `recordBaseline(results, {dir, name})` (safe-write snapshot of `{gate -> {ok}}`, invariant 15) + pure `adjudicateVsBaseline(current, baseline)` → `{new, foreign}` where foreign = also failing at baseline; classification only, never flips a verdict or skips a gate.
+- NEW `scripts/test-baseline-adjudication.js` (14 checks: record shape, foreign/new split, healed-gate exclusion, null/empty baseline, verdicts untouched, no `.tmp` residue).
+- `bundle/agents/orchestra-verifier.md` + `orchestra-reviewer.md` (+ OpenCode/Qoder mirrors via sync): NEW `## Baseline adjudication` sections — verifier classifies every failure, reviewer confirms new addressed + foreign cited with owner disposition.
+  Key files: `bundle/hooks/lib/evidence-runner.js` (+ mirror), `scripts/test-baseline-adjudication.js`, `bundle/agents/orchestra-{verifier,reviewer}.md` (+ mirrors).
+  Impact: a red suite now answers "did I break this or was it already broken" from evidence instead of memory — foreign reds stay reported with a baseline cite, never silently dropped.
