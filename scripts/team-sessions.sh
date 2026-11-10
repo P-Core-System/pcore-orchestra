@@ -25,10 +25,10 @@ CMD="${1:-}"
 
 unset PCORE_MEMBER_NAME PCORE_TEAM_NAME PCORE_MEMBER_ROLE PCORE_WS \
       PCORE_CLAIM_KEY PCORE_SESSION_OVERRIDE PCORE_JSON PCORE_STALE_MIN \
-      PCORE_WORKTREE PCORE_SCOPE PCORE_FILES 2>/dev/null || true
+      PCORE_WORKTREE PCORE_SCOPE PCORE_FILES PCORE_DRY_RUN PCORE_WORKTREE_BASE 2>/dev/null || true
 
 case "$CMD" in
-  claim|heartbeat|release|list|who|check|gc)
+  claim|heartbeat|release|list|who|check|gc|dispatch)
     ;;
   -h|--help|help)
     cat <<'EOF'
@@ -41,6 +41,12 @@ Usage: bash scripts/team-sessions.sh <command> [flags]
   who       [--team T]                                         live roster, team-grouped
   check     --member M [--team T] [--claim KEY] -- <files...>  WIP scope check (exit 1 on violation)
   gc                                                       prune stale claims
+  dispatch  --team T [--member M,J...] [--session S] [--worktree-base D]
+            [--dry-run] [--json]                           fan out one session per member from backlog
+
+  --member takes a comma-separated filter for dispatch ("john,james");
+  single member elsewhere. --dry-run plans with zero side effects.
+  dispatch exits 0 (all claimed), 2 (some skipped on SCOPE_CONFLICT), 1 (error).
 
   --scope takes a comma-separated path list ("app-a/,lib-b/"); "*" claims
   the whole repo. Overlapping live scopes block a claim (scope conflict).
@@ -67,6 +73,8 @@ while [ $# -gt 0 ]; do
     --session) PCORE_SESSION_OVERRIDE="${2:-}"; shift 2 ;;
     --stale-min) PCORE_STALE_MIN="${2:-}"; shift 2 ;;
     --worktree) PCORE_WORKTREE="${2:-}"; shift 2 ;;
+    --worktree-base) PCORE_WORKTREE_BASE="${2:-}"; shift 2 ;;
+    --dry-run) PCORE_DRY_RUN=1; shift ;;
     --scope) PCORE_SCOPE="${2:-}"; shift 2 ;;
     --) shift; while [ $# -gt 0 ]; do PCORE_FILES="${PCORE_FILES:+$PCORE_FILES
 }$1"; shift; done ;;
@@ -78,7 +86,7 @@ done
 
 export PCORE_MEMBER_NAME PCORE_TEAM_NAME PCORE_MEMBER_ROLE PCORE_WS \
        PCORE_CLAIM_KEY PCORE_SESSION_OVERRIDE PCORE_JSON PCORE_STALE_MIN \
-       PCORE_WORKTREE PCORE_SCOPE PCORE_FILES
+       PCORE_WORKTREE PCORE_SCOPE PCORE_FILES PCORE_DRY_RUN PCORE_WORKTREE_BASE
 export PCORE_CMD="$CMD"
 
 NODE_PROGRAM=$(cat <<'NODEOF'
@@ -172,6 +180,54 @@ switch (env.PCORE_CMD) {
     out({ json: { claims: list, groups }, text: lines.join("\n") || "no live claims" });
     break;
   }
+  case "dispatch": {
+    const dispatch = require("DISPATCH_PATH_PLACEHOLDER");
+    const pm = require("PM_PATH_PLACEHOLDER");
+    const nodePath = require("path");
+    const nodeFs = require("fs");
+    const teamId = dispatch.sanitizeDispatchToken(env.PCORE_TEAM_NAME);
+    if (!teamId) die("dispatch needs --team <name>");
+    const sessionId = env.PCORE_SESSION_OVERRIDE || claims.resolveSessionId();
+    const wsRoot = env.PCORE_WS || env.PCORE_WORKSPACE_ROOT || process.cwd();
+    const workspaceSlug = dispatch.sanitizeDispatchToken(nodePath.basename(String(wsRoot))) || "root";
+    const fullState = pm.loadProjectState(undefined, sessionId);
+    const agg = pm.getAggregatedProjectState(fullState);
+    const bb = pm.backlogByMember(agg);
+    const memberFilter = String(env.PCORE_MEMBER_NAME || "").split(",").map((s) => s.trim()).filter(Boolean);
+    const plans = dispatch.planDispatch({
+      teamId,
+      teams: bb.teams,
+      members: memberFilter,
+      sessionId,
+      workspaceSlug,
+      workspace: wsRoot,
+      worktreeBase: env.PCORE_WORKTREE_BASE || null,
+    });
+    if (plans.length === 0) die(`dispatch: no members with backlog for team '${teamId}'`);
+    if (env.PCORE_DRY_RUN === "1") {
+      out({ json: { dryRun: true, team: teamId, plans }, text: plans.map((p) => `would dispatch ${p.teamDisplay} [${p.itemCount} item(s)] scope=[${p.scope.join(",")}]`).join("\n") });
+      break;
+    }
+    const dispatched = [];
+    const skipped = [];
+    for (const plan of plans) {
+      try {
+        const claim = claims.claimSession({ member: plan.member, team: plan.team, scope: plan.scope, sessionId: plan.sessionId, workspace: wsRoot });
+        record("claimed", claim);
+        if (plan.worktreePath) {
+          try { nodeFs.mkdirSync(nodePath.join(plan.worktreePath, ".pcore", "state"), { recursive: true }); } catch { /* best effort */ }
+        }
+        const payload = dispatch.buildDispatchPayload(plan, {});
+        dispatched.push({ member: plan.member, claimKey: claim.claimKey, branch: claim.branch || plan.branch, worktreePath: plan.worktreePath, scope: plan.scope, itemCount: plan.itemCount, payload });
+      } catch (err) {
+        if (dispatch.shouldSkipOnConflict(err)) { skipped.push({ member: plan.member, reason: "SCOPE_CONFLICT" }); continue; }
+        throw err;
+      }
+    }
+    out({ json: { dryRun: false, team: teamId, dispatched, skipped }, text: dispatched.map((d) => `OK dispatch ${d.member} ${d.claimKey} ${d.branch}`).concat(skipped.map((s) => `SKIP ${s.member} ${s.reason}`)).join("\n") || "no members dispatched" });
+    if (skipped.length > 0) process.exitCode = 2;
+    break;
+  }
   case "check": {
     const o = opts();
     const claim = claims.findClaim(o);
@@ -198,7 +254,11 @@ NODEOF
 )
 
 DOMAIN_LIB="${LIB_PATH%session-claims.js}domain/index.js"
+DISPATCH_LIB="${LIB_PATH%session-claims.js}team-dispatch.js"
+PM_LIB="${LIB_PATH%session-claims.js}project-manager.js"
 NODE_PROGRAM="${NODE_PROGRAM//LIB_PATH_PLACEHOLDER/"$LIB_PATH"}"
 NODE_PROGRAM="${NODE_PROGRAM//DOMAIN_PATH_PLACEHOLDER/"$DOMAIN_LIB"}"
+NODE_PROGRAM="${NODE_PROGRAM//DISPATCH_PATH_PLACEHOLDER/"$DISPATCH_LIB"}"
+NODE_PROGRAM="${NODE_PROGRAM//PM_PATH_PLACEHOLDER/"$PM_LIB"}"
 
 node -e "$NODE_PROGRAM"
