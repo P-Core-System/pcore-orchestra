@@ -9,15 +9,15 @@ project:
   description: Global orchestra harness for Cursor, OpenCode CLI, and Qoder CLI
 
 version:
-  current: 3.9.1
+  current: 3.10.0
   channel: stable
-  build_number: 2
+  build_number: 3
 
 lifecycle:
   stage: production
   status: active
   started: 2026-01-01
-  updated: 2026-10-31
+  updated: 2026-11-10
 
 repository:
   url: https://github.com/P-Core-System/pcore-orchestra
@@ -61,6 +61,17 @@ _pcore:
   initialized: 2026-07-22T00:00:00Z
   orchestration_count: 0
   version_history:
+    - version: "3.10.0"
+      date: "2026-11-10"
+      tag: v3.10.0
+      note: >-
+        Team-loop + knowledge-hub release (minor): MCP knowledge hub (SQLite
+        store, chat threads, pairing, master prompts, service + register
+        scripts), Wave2/Wave3 team discussion + wake/learning loop, loop
+        guardrails (resume-collision, durable artifacts, baseline
+        adjudication, live-proof bar, env-divergence), PowerShell parity lint
+        in CI, installer defect fixes; version synced across README/SECURITY/
+        CONTRIBUTING/docs.
     - version: "3.9.1"
       date: "2026-11-02"
       tag: v3.9.1

@@ -3,15 +3,15 @@
 ## Supported Versions
 
 Orchestra is a developer tool installed globally on your machine. Security fixes are
-released as tagged versions; the current supported release is **3.9.1** (`v3.9.1`).
-Install from the stable tag (`git clone --branch v3.9.1 --depth 1 ...`) to stay on a
+released as tagged versions; the current supported release is **3.10.0** (`v3.10.0`).
+Install from the stable tag (`git clone --branch v3.10.0 --depth 1 ...`) to stay on a
 supported version; `main` carries the latest (unstable) development state.
 
 | Version | Supported |
 |---------|-----------|
-| 3.9.1 (v3.9.1) | ✅ |
+| 3.10.0 (v3.10.0) | ✅ |
 | latest (main) | ✅ (development — track at your own risk) |
-| < 3.9.1 | ❌ (upgrade to 3.9.1) |
+| < 3.10.0 | ❌ (upgrade to 3.10.0) |
 
 ## Reporting a Vulnerability
 

@@ -1,6 +1,6 @@
 # P-Core Orchestra — Docs Index
 
-> **Docs version:** 3.9.1 (November 2026)
+> **Docs version:** 3.10.0 (November 2026)
 
 ## Core documentation
 
