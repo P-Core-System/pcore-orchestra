@@ -1,5 +1,10 @@
 # Architecture
 
+> NOTE (2026-11-10, pre-existing): this file is 57.7KB, over the 40KB
+> context-slim budget (`progress-tracker.md` Next Up). The overage predates
+> this round — do not grow it further; prefer new subsections only for
+> invariants/boundaries, details go in `docs/`.
+
 ## Stack
 
 | Layer | Technology | Role |

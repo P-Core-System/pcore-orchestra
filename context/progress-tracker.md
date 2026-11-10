@@ -11,9 +11,40 @@ Update this file after every meaningful implementation change.
 
 - Verify token usage per phase is under budget
 
+## 2026-11-10 — release 3.10.0 + context-truth docs sweep
+
+- Install verified: `bash install.sh --dry-run` (opencode 2.2.7 already at
+  registry target, no upgrade needed) → `bash install.sh --all` PASS; health
+  exit 0 on Cursor + OpenCode + Qoder; `gen-agent-registry.js --check` OK
+  (27 hook agents, 160 files); `test-mirror-sync.js` PASS.
+- DEFECT (pre-existing at HEAD, exposed by install): `install.sh --all` runs
+  agent sync and dirtied 8 generated mirrors (`bundle/claude/agents/` +
+  `bundle/codex/agents/` orchestra-{planner,implementer,verifier,reviewer}:
+  one-run-one-holder line + baseline/live-proof/env-divergence sections from
+  commits 4889560/8f66c01/a56f832/2ff878e were never synced). Reverted to HEAD
+  to keep this round scoped — needs a follow-up `sync-claude/codex` commit;
+  CI `--check` lines for claude/codex are red until then.
+- Release bump 3.9.1 → 3.10.0 (MINOR: knowledge hub + team loop are new
+  features): `package.json`, `project.yaml` (current + `lifecycle.updated`
+  2026-11-10 + `version_history` entry, build 2 → 3); synced `README.md`
+  (badge/status/clone tag v3.10.0), `SECURITY.md` (supported table + tag refs),
+  `docs/index.md` (3.10.0); `CONTRIBUTING.md` has no version string (no-op).
+  `CHANGELOG.md`: Unreleased Added/Fixed moved under `[3.10.0] - 2026-11-10`
+  + team-loop/guardrails Added bullet + release link ref.
+- Context truth: `architecture.md` carries a size-budget note (57.7KB,
+  pre-existing over the 40KB budget); pinned true counts re-run live
+  (`test-team-discussion.js` = 59 checks — tracker wrongly said 65, fixed;
+  `test-session-wake.js` = 65, already correct); NEW `data/conductor/`
+  `.gitignore` (`*` + `!.gitignore`, durable artifact dir).
+  Key files: `package.json`, `project.yaml`, `README.md`, `SECURITY.md`,
+  `docs/index.md`, `CHANGELOG.md`, `context/architecture.md`,
+  `context/progress-tracker.md`, `data/conductor/.gitignore`.
+  Impact: version strings agree everywhere; context budgets honest; conductor
+  artifacts have a durable, git-ignored home; two commits, no pushes.
+
 ## 2026-11-10 — Wave2: team discussion + leader-push/member-pull + CI upgrades
 
-- NEW `bundle/hooks/lib/team-discussion.js` (+ byte-identical OpenCode mirror): directional kinds m2m/l2m/m2l/l2l/group, topology filter 2way/star/group (`topologyOf`/`matchDiscussionFilter`), claim-key authorship; JSONL store `<state>/team-discussion.jsonl` (worktree-partitioned per inv 30/31), ring-capped at `DISCUSSION_CAP` 500 with `pruneDiscussion`; `post`/`list`/`resolve`/`react` via safe-write locks. Key files: `bundle/hooks/lib/team-discussion.js`, `scripts/test-team-discussion.js` (65 checks green).
+- NEW `bundle/hooks/lib/team-discussion.js` (+ byte-identical OpenCode mirror): directional kinds m2m/l2m/m2l/l2l/group, topology filter 2way/star/group (`topologyOf`/`matchDiscussionFilter`), claim-key authorship; JSONL store `<state>/team-discussion.jsonl` (worktree-partitioned per inv 30/31), ring-capped at `DISCUSSION_CAP` 500 with `pruneDiscussion`; `post`/`list`/`resolve`/`react` via safe-write locks. Key files: `bundle/hooks/lib/team-discussion.js`, `scripts/test-team-discussion.js` (59 checks green).
   Impact: leader/member pairing has a persistent, attributable channel; Studio replays it live.
 - Domain constants +3 event types (`discussion.posted`/`resolved`/`reaction`) + `recordDiscussionOutcome` fail-open (invariant 19); `server/ws.js` replays them 1:1 at `/api/ws` with `?type=`/`?team=` filter matrix (`parseWsFilter`/`matchWsEvent`, default subscribes all — Studio loopback unchanged).
 - `scripts/team-sessions.sh`: `discuss post|list|react|resolve --json` (post renews author slot, SCOPE_CONFLICT → SKIP exit 2), `dispatch --free-only` (leader push to idle slots), `request --member M` (member pull: grants next backlog item + claimKey/branch when free, SKIP exit 2 when busy/empty). Lib: `backlogByMember` `busyMembers` free-check (+`busy` list), `team-dispatch.js` `filterFreePlans`/`planLeaderPush`/`requestWork`.

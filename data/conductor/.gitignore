@@ -1,0 +1,5 @@
+# Conductor run artifacts (plans, baselines, proofs) live here per
+# bundle/hooks/lib/plan-artifact.js — durable dir, never /tmp.
+# Ignore everything except this file.
+*
+!.gitignore
