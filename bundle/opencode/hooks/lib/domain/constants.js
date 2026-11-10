@@ -73,6 +73,7 @@ const DOMAIN_EVENT_TYPES = Object.freeze([
   "session.claimed",
   "session.heartbeat",
   "session.released",
+  "session.learned",
   "discussion.posted",
   "discussion.resolved",
   "discussion.reaction",
