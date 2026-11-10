@@ -244,7 +244,41 @@ try {
   const wakesCli = JSON.parse(runCli(`node -e "const w=require('./bundle/hooks/lib/session-wake.js'); console.log(JSON.stringify(w.listWakes({})))"`, cliEnv));
   check("CLI @mention stored a wake", Array.isArray(wakesCli) && wakesCli.some((w) => w.messageId === postedCli.id && w.reason === "mention"), JSON.stringify(wakesCli).slice(0, 200));
 
-  // ---- 16. no .tmp residue ----
+  // ---- 16. getThread + ws wake replay ----
+  const discussion = require("../bundle/hooks/lib/team-discussion.js");
+  const ws = require("../server/ws.js");
+  const thA = discussion.postMessage({ kind: "m2m", from: tAuthor.claimKey, to: tSam.claimKey, team: "gamma", topic: "deploy", body: "one" });
+  const thB = discussion.postMessage({ kind: "m2m", from: tSam.claimKey, to: tAuthor.claimKey, team: "gamma", topic: "deploy", body: "two" });
+  const other = discussion.postMessage({ kind: "group", from: tAuthor.claimKey, team: "gamma", topic: "other", body: "three" });
+  discussion.resolveMessage(thA.id, { by: tAuthor.claimKey });
+  check("buildMessage stamps threadId from topic",
+    thA.threadId === "deploy" && discussion.buildMessage({ kind: "m2m", from: "a/b/c/d", body: "x", threadId: "custom" }).threadId === "custom");
+  const thread = discussion.getThread("deploy");
+  check("getThread reads topic thread incl. resolved",
+    thread.length === 2 && thread[0].id === thA.id && thread[1].id === thB.id, JSON.stringify(thread.map((m) => m.id)));
+  check("getThread by message id", discussion.getThread(thB.id).length === 1 && discussion.getThread(thB.id)[0].body === "two");
+  check("getThread unknown -> []", discussion.getThread("nope").length === 0 && discussion.getThread(null).length === 0 && discussion.getThread("").length === 0);
+  check("getThread never mutates", discussion.readAll().length >= 3 && other.topic === "other");
+  const wPrev = { events: [], runs: {} };
+  const wNext = { events: [{ type: "wake.delivered", entityId: "w_7", at: "2026-01-01T00:00:00.000Z", payload: { wakeId: "w_7", from: "t/a/w/s1", to: "t/b/w/s2", team: "team-alpha", topic: "deploy", threadId: "deploy", messageId: "d_9", topology: "2way", reason: "mention" } }], runs: {} };
+  const wsev = ws.diffSnapshots(wPrev, wNext, "2026-01-01T00:00:01.000Z");
+  check("ws replays wake.delivered",
+    wsev.length === 1 && wsev[0].type === "wake.delivered" && wsev[0].runId === null &&
+    wsev[0].data.wakeId === "w_7" && wsev[0].data.threadId === "deploy" && wsev[0].data.team === "team-alpha",
+    JSON.stringify(wsev));
+  check("ws replays all four wake types",
+    ["wake.requested", "wake.delivered", "wake.denied", "wake.throttled"].every((t) =>
+      ws.diffSnapshots({ events: [], runs: {} }, { events: [{ type: t, entityId: "w_x", at: "2026-01-01T00:00:00.000Z", payload: {} }], runs: {} }).length === 1));
+  check("WS_EVENT_TYPES +4 wake",
+    ws.WS_EVENT_TYPES.indexOf("wake.requested") !== -1 && ws.WS_EVENT_TYPES.indexOf("wake.throttled") !== -1);
+  check("wake filter matrix (type+team, loopback unchanged)",
+    ws.matchWsEvent(wsev[0], null) &&
+    ws.matchWsEvent(wsev[0], { types: [], teams: [] }) &&
+    ws.matchWsEvent(wsev[0], { types: ["wake.delivered"], teams: ["team-alpha"] }) &&
+    !ws.matchWsEvent(wsev[0], { types: ["gate.passed"], teams: [] }) &&
+    !ws.matchWsEvent(wsev[0], { types: [], teams: ["team-beta"] }));
+
+  // ---- 17. no .tmp residue ----
   const leftovers = [];
   const sweep = (dir) => {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {

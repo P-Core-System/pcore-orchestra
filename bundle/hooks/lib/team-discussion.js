@@ -159,6 +159,7 @@ function buildMessage(input) {
     to: o.to === undefined || o.to === null ? null : String(o.to),
     team: o.team === undefined || o.team === null ? null : String(o.team),
     topic: typeof o.topic === "string" ? o.topic : null,
+    threadId: typeof o.threadId === "string" && o.threadId ? o.threadId : (typeof o.topic === "string" && o.topic ? o.topic : null),
     body,
     createdAt: now,
     resolvedAt: null,
@@ -227,6 +228,26 @@ function listMessages(filter, worktreePath) {
     worktreePath = filter.worktreePath;
   }
   return readAll(worktreePath).filter((m) => matchDiscussionFilter(m, filter));
+}
+
+/**
+ * Read one thread: every message whose id, topic, or threadId equals
+ * `threadRef`, oldest first, including resolved. A wake carries
+ * threadId/messageId/topic precisely so a nudge re-opens this view —
+ * the reader never mutates the store.
+ * @param {string} threadRef message id, topic, or threadId
+ * @param {string} [worktreePath]
+ * @returns {Array} matching messages (possibly empty, never throws)
+ */
+function getThread(threadRef, worktreePath) {
+  try {
+    if (typeof threadRef !== "string" || !threadRef) return [];
+    if (threadRef && typeof threadRef === "object") return [];
+    return readAll(worktreePath).filter((m) =>
+      m && (m.id === threadRef || m.topic === threadRef || m.threadId === threadRef));
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -338,6 +359,7 @@ module.exports = {
   capLines,
   postMessage,
   listMessages,
+  getThread,
   resolveMessage,
   reactMessage,
   pruneDiscussion,

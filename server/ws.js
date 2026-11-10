@@ -68,9 +68,10 @@ function runIdForSession(snapshot, sessionId) {
  * phase/status transitions.
  *
  * Discussion events (`discussion.posted` / `discussion.resolved` /
- * `discussion.reaction`) replay 1:1 — the board renders them as team
- * chatter, never as gates. `runId` stays null: discussion threads are
- * keyed by message id + team, not by run.
+ * `discussion.reaction`) and wake events (`wake.requested` / `wake.delivered` /
+ * `wake.denied` / `wake.throttled`) replay 1:1 — the board renders them as
+ * team chatter/nudges, never as gates. `runId` stays null: discussion
+ * threads are keyed by message id + team, wakes by wake id + team.
  * @returns {object[]} spec-shaped WS events
  */
 function diffSnapshots(prev, next, nowIso) {
@@ -129,6 +130,28 @@ function diffSnapshots(prev, next, nowIso) {
             topic: payload.topic || null,
           },
         });
+      } else if (
+        event.type === "wake.requested" ||
+        event.type === "wake.delivered" ||
+        event.type === "wake.denied" ||
+        event.type === "wake.throttled"
+      ) {
+        out.push({
+          type: event.type,
+          runId: null,
+          at: stamp,
+          data: {
+            wakeId: payload.wakeId || event.entityId || null,
+            from: payload.from || null,
+            to: payload.to || null,
+            team: payload.team || null,
+            topic: payload.topic || null,
+            threadId: payload.threadId || null,
+            messageId: payload.messageId || null,
+            topology: payload.topology || null,
+            reason: payload.reason || null,
+          },
+        });
       }
     }
   }
@@ -173,6 +196,10 @@ const WS_EVENT_TYPES = Object.freeze([
   "discussion.posted",
   "discussion.resolved",
   "discussion.reaction",
+  "wake.requested",
+  "wake.delivered",
+  "wake.denied",
+  "wake.throttled",
 ]);
 
 /** Parse a query string (leading `?` optional) into `{ types, teams }`. */
