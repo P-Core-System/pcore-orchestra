@@ -27,10 +27,11 @@ unset PCORE_MEMBER_NAME PCORE_TEAM_NAME PCORE_MEMBER_ROLE PCORE_WS \
       PCORE_CLAIM_KEY PCORE_SESSION_OVERRIDE PCORE_JSON PCORE_STALE_MIN \
       PCORE_WORKTREE PCORE_SCOPE PCORE_FILES PCORE_DRY_RUN PCORE_WORKTREE_BASE \
       PCORE_KIND PCORE_TO PCORE_TOPIC PCORE_BODY PCORE_EMOJI PCORE_MSG_ID \
-      PCORE_TOPOLOGY PCORE_ALL PCORE_FREE_ONLY 2>/dev/null || true
+      PCORE_TOPOLOGY PCORE_ALL PCORE_FREE_ONLY PCORE_REASON PCORE_THREAD \
+      PCORE_MESSAGE PCORE_DECISION PCORE_BY PCORE_OUTCOME PCORE_LESSONS 2>/dev/null || true
 
 case "$CMD" in
-  claim|heartbeat|release|list|who|check|gc|dispatch|discuss|request)
+  claim|heartbeat|release|list|who|check|gc|dispatch|discuss|request|wake|learning)
     ;;
   -h|--help|help)
     cat <<'EOF'
@@ -50,10 +51,21 @@ Usage: bash scripts/team-sessions.sh <command> [flags]
             react --id ID --emoji E --member M [--team T]
             resolve --id ID --member M [--team T]        team discussion channel
   request   --member M [--team T] [--session S] [--json] member pull: next backlog item when free
+  wake      request --member M --to N [--team T] [--reason R] [--topic T]
+            [--thread REF] [--message ID] [--topology X] [--json]  teammate nudge
+            list [--member M] [--team T] [--topic T] [--thread REF] [--all] [--json]
+            ack --id ID --member M [--team T] [--json]      acknowledge a wake
+  learning  record --member M [--team T] --lessons L [--outcome O]
+            [--thread REF] [--json]                  record a session learning
+            distill [--json]                    distill candidates to review
+            approve --id ID --decision approved|rejected --by NAME [--json]
+                                                   human gate, never applies
 
   --member takes a comma-separated filter for dispatch ("john,james");
   single member elsewhere. --dry-run plans with zero side effects.
   dispatch exits 0 (all claimed), 2 (some skipped on SCOPE_CONFLICT), 1 (error).
+  wake request/ack exits 2 on deny (cross-scope, no live claim, throttled,
+  wrong acker); learning approve exits 2 without a human decision+by.
   --free-only pushes to members with no live claim (leader push to idle slots).
   discuss post claims/renews the author slot first (claim lifecycle); a
   SCOPE_CONFLICT there is a SKIP (exit 2), like dispatch. --kind is one of
@@ -97,6 +109,13 @@ while [ $# -gt 0 ]; do
     --emoji) PCORE_EMOJI="${2:-}"; shift 2 ;;
     --id) PCORE_MSG_ID="${2:-}"; shift 2 ;;
     --topology) PCORE_TOPOLOGY="${2:-}"; shift 2 ;;
+    --reason) PCORE_REASON="${2:-}"; shift 2 ;;
+    --thread) PCORE_THREAD="${2:-}"; shift 2 ;;
+    --message) PCORE_MESSAGE="${2:-}"; shift 2 ;;
+    --decision) PCORE_DECISION="${2:-}"; shift 2 ;;
+    --by) PCORE_BY="${2:-}"; shift 2 ;;
+    --outcome) PCORE_OUTCOME="${2:-}"; shift 2 ;;
+    --lessons) PCORE_LESSONS="${2:-}"; shift 2 ;;
     --) shift; while [ $# -gt 0 ]; do PCORE_FILES="${PCORE_FILES:+$PCORE_FILES
 }$1"; shift; done ;;
     --*) echo "team-sessions.sh: unknown flag: $1" >&2; exit 1 ;;
@@ -109,7 +128,8 @@ export PCORE_MEMBER_NAME PCORE_TEAM_NAME PCORE_MEMBER_ROLE PCORE_WS \
        PCORE_CLAIM_KEY PCORE_SESSION_OVERRIDE PCORE_JSON PCORE_STALE_MIN \
        PCORE_WORKTREE PCORE_SCOPE PCORE_FILES PCORE_DRY_RUN PCORE_WORKTREE_BASE \
        PCORE_KIND PCORE_TO PCORE_TOPIC PCORE_BODY PCORE_EMOJI PCORE_MSG_ID \
-       PCORE_TOPOLOGY PCORE_ALL PCORE_FREE_ONLY
+       PCORE_TOPOLOGY PCORE_ALL PCORE_FREE_ONLY PCORE_REASON PCORE_THREAD \
+       PCORE_MESSAGE PCORE_DECISION PCORE_BY PCORE_OUTCOME PCORE_LESSONS
 export PCORE_CMD="$CMD"
 
 NODE_PROGRAM=$(cat <<'NODEOF'
@@ -117,6 +137,8 @@ NODE_PROGRAM=$(cat <<'NODEOF'
 const claims = require("LIB_PATH_PLACEHOLDER");
 const domain = (() => { try { return require("DOMAIN_PATH_PLACEHOLDER"); } catch { return null; } })();
 const wakeLib = (() => { try { return require("WAKE_PATH_PLACEHOLDER"); } catch { return null; } })();
+const learnLib = (() => { try { return require("LEARN_PATH_PLACEHOLDER"); } catch { return null; } })();
+const artifactLib = (() => { try { return require("ARTIFACT_PATH_PLACEHOLDER"); } catch { return null; } })();
 const env = process.env;
 
 function out(obj) {
@@ -392,6 +414,117 @@ switch (env.PCORE_CMD) {
     out({ json: grant, text: `OK request ${grant.member} item=${grant.item && grant.item.id} claim=${grant.claimKey} branch=${grant.branch}` });
     break;
   }
+  case "wake": {
+    if (!wakeLib) die("wake channel unavailable");
+    const sub = String(env.PCORE_FILES || "").split("\n").map((s) => s.trim()).filter(Boolean)[0] || "";
+    if (sub !== "request" && sub !== "list" && sub !== "ack") die("wake needs an action: request|list|ack");
+    const o = opts();
+    const deny = (res) => {
+      out({ json: res, text: `DENIED wake ${res.code || "WAKE_DENIED"}${res.detail ? ` (${res.detail})` : ""}` });
+      process.exitCode = 2;
+    };
+    if (sub === "list") {
+      const wakes = wakeLib.listWakes({
+        member: env.PCORE_MEMBER_NAME && env.PCORE_MEMBER_NAME.indexOf(",") === -1 ? env.PCORE_MEMBER_NAME : undefined,
+        team: env.PCORE_TEAM_NAME || undefined,
+        topic: env.PCORE_TOPIC || undefined,
+        threadId: env.PCORE_THREAD || undefined,
+        includeAcked: env.PCORE_ALL === "1" ? true : undefined,
+      }, o.worktreePath);
+      out({ json: { wakes }, text: wakes.map((w) => `${w.status === "acked" ? "[acked] " : ""}${w.id} ${w.from} -> ${w.to}${w.topic ? ` #${w.topic}` : ""} (${w.reason})`).join("\n") || "no wakes" });
+      break;
+    }
+    if (sub === "request") {
+      const from = claims.findClaim(o);
+      if (!from) die("wake request needs a live claim for this member; claim first");
+      if (!env.PCORE_TO) die("wake request needs --to <member>");
+      const res = wakeLib.requestWake({
+        from: from.claimKey,
+        to: env.PCORE_TO,
+        team: env.PCORE_TEAM_NAME || undefined,
+        topic: env.PCORE_TOPIC || undefined,
+        threadId: env.PCORE_THREAD || env.PCORE_TOPIC || undefined,
+        messageId: env.PCORE_MESSAGE || undefined,
+        topology: env.PCORE_TOPOLOGY || undefined,
+        reason: env.PCORE_REASON || "nudge",
+        workspace: from.workspace || env.PCORE_WS || env.PCORE_WORKSPACE_ROOT || process.cwd(),
+        worktreePath: o.worktreePath,
+      });
+      if (!res.ok) {
+        deny(res);
+        break;
+      }
+      out({ json: res.wake, text: `OK wake ${res.wake.id} ${res.wake.from} -> ${res.wake.to}` });
+      break;
+    }
+    // sub === "ack": only the target slot holder can acknowledge.
+    const by = claims.findClaim(o);
+    if (!by) die("wake ack needs a live claim for this member; claim first");
+    if (!env.PCORE_MSG_ID) die("wake ack needs --id <wake-id>");
+    const acked = wakeLib.ackWake(env.PCORE_MSG_ID, { by: by.claimKey, worktreePath: o.worktreePath });
+    if (!acked.ok) {
+      deny(acked);
+      break;
+    }
+    out({ json: acked.wake, text: `OK ack ${acked.wake.id} by ${by.claimKey}` });
+    break;
+  }
+  case "learning": {
+    if (!learnLib) die("learning channel unavailable");
+    const sub = String(env.PCORE_FILES || "").split("\n").map((s) => s.trim()).filter(Boolean)[0] || "";
+    if (sub !== "record" && sub !== "distill" && sub !== "approve") die("learning needs an action: record|distill|approve");
+    const o = opts();
+    const artifactDir = (() => {
+      if (env.PCORE_ARTIFACT_DIR) return env.PCORE_ARTIFACT_DIR;
+      try {
+        if (artifactLib && typeof artifactLib.resolveArtifactDir === "function") {
+          const wsRoot = env.PCORE_WS || env.PCORE_WORKSPACE_ROOT || process.cwd();
+          return artifactLib.resolveArtifactDir({ workspaceRoot: wsRoot }).dir;
+        }
+      } catch {
+        /* fall through */
+      }
+      return null;
+    })();
+    if (sub === "record") {
+      const claim = claims.findClaim(o);
+      if (!claim) die("learning record needs a live claim for this member; claim first");
+      if (!env.PCORE_LESSONS) die("learning record needs --lessons <text>");
+      const event = learnLib.recordLearning(claim, {
+        outcome: env.PCORE_OUTCOME || undefined,
+        lessons: env.PCORE_LESSONS,
+        threadRef: env.PCORE_THREAD || env.PCORE_TOPIC || undefined,
+      }, o.worktreePath);
+      if (!event) die("learning record failed (domain unavailable)");
+      out({ json: event, text: `OK learning ${event.id} [${event.type}]` });
+      break;
+    }
+    if (!artifactDir) die("learning needs an artifact dir (PCORE_ARTIFACT_DIR or a workspace data/conductor)");
+    if (sub === "distill") {
+      let events = [];
+      try {
+        if (domain && domain.store && typeof domain.store.loadEvents === "function") {
+          events = domain.store.loadEvents(o.worktreePath);
+        }
+      } catch {
+        events = [];
+      }
+      const stored = learnLib.distillAndSave(events, artifactDir);
+      out({ json: { dir: artifactDir, count: stored.length, candidates: stored }, text: `OK distill ${stored.length} candidate(s) -> ${artifactDir}` });
+      break;
+    }
+    // sub === "approve": the human gate — explicit decision + human name,
+    // never auto-applied (approve only flips candidate status).
+    if (!env.PCORE_MSG_ID) die("learning approve needs --id <candidate-id>");
+    const res = learnLib.approveCandidate(artifactDir, env.PCORE_MSG_ID, { decision: env.PCORE_DECISION, by: env.PCORE_BY });
+    if (!res.ok) {
+      out({ json: res, text: `DENIED learning approve ${res.code || "LEARNING_UNKNOWN"}` });
+      process.exitCode = 2;
+      break;
+    }
+    out({ json: res.candidate, text: `OK approve ${res.candidate.id} -> ${res.candidate.status} by ${res.candidate.decidedBy}` });
+    break;
+  }
   case "check": {
     const o = opts();
     const claim = claims.findClaim(o);
@@ -422,11 +555,15 @@ DISPATCH_LIB="${LIB_PATH%session-claims.js}team-dispatch.js"
 PM_LIB="${LIB_PATH%session-claims.js}project-manager.js"
 DISCUSSION_LIB="${LIB_PATH%session-claims.js}team-discussion.js"
 WAKE_LIB="${LIB_PATH%session-claims.js}session-wake.js"
+LEARN_LIB="${LIB_PATH%session-claims.js}distill-learnings.js"
+ARTIFACT_LIB="${LIB_PATH%session-claims.js}plan-artifact.js"
 NODE_PROGRAM="${NODE_PROGRAM//LIB_PATH_PLACEHOLDER/"$LIB_PATH"}"
 NODE_PROGRAM="${NODE_PROGRAM//DOMAIN_PATH_PLACEHOLDER/"$DOMAIN_LIB"}"
 NODE_PROGRAM="${NODE_PROGRAM//DISPATCH_PATH_PLACEHOLDER/"$DISPATCH_LIB"}"
 NODE_PROGRAM="${NODE_PROGRAM//PM_PATH_PLACEHOLDER/"$PM_LIB"}"
 NODE_PROGRAM="${NODE_PROGRAM//DISCUSSION_PATH_PLACEHOLDER/"$DISCUSSION_LIB"}"
 NODE_PROGRAM="${NODE_PROGRAM//WAKE_PATH_PLACEHOLDER/"$WAKE_LIB"}"
+NODE_PROGRAM="${NODE_PROGRAM//LEARN_PATH_PLACEHOLDER/"$LEARN_LIB"}"
+NODE_PROGRAM="${NODE_PROGRAM//ARTIFACT_PATH_PLACEHOLDER/"$ARTIFACT_LIB"}"
 
 node -e "$NODE_PROGRAM"

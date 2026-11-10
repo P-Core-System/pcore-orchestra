@@ -79,6 +79,15 @@ function runCli(cmd, extraEnv) {
   return cp.execSync(cmd, { cwd: ROOT, encoding: "utf8", env: Object.assign({}, process.env, extraEnv) });
 }
 
+function runCliStatus(cmd, extraEnv) {
+  try {
+    runCli(cmd, extraEnv);
+    return 0;
+  } catch (err) {
+    return typeof err.status === "number" ? err.status : 1;
+  }
+}
+
 try {
   // ---- 1. domain ----
   check("domain +4 wake types",
@@ -278,7 +287,23 @@ try {
     !ws.matchWsEvent(wsev[0], { types: ["gate.passed"], teams: [] }) &&
     !ws.matchWsEvent(wsev[0], { types: [], teams: ["team-beta"] }));
 
-  // ---- 17. no .tmp residue ----
+  // ---- 17. CLI wake request/list/ack + deny exits ----
+  const cliWs = mkWorkspace("proj-cli");
+  const wakeCliEnv = { PCORE_STATE_DIR: st.stateDir, PCORE_CONDUCTOR_STATE_DIR: st.conductorDir, PCORE_WORKSPACE_ROOT: cliWs };
+  runCli(`bash scripts/team-sessions.sh claim --member Wamy --team Team-Sea --json`, Object.assign({}, wakeCliEnv, { PCORE_SESSION_ID: "sess-cli-a" }));
+  runCli(`bash scripts/team-sessions.sh claim --member Wben --team Team-Sea --json`, Object.assign({}, wakeCliEnv, { PCORE_SESSION_ID: "sess-cli-b" }));
+  const wReq = JSON.parse(runCli(`bash scripts/team-sessions.sh wake request --member Wamy --team Team-Sea --to wben --reason "review" --topic deploy --json`, Object.assign({}, wakeCliEnv, { PCORE_SESSION_ID: "sess-cli-a" })));
+  check("CLI wake request delivers", !!wReq.id && wReq.toMember === "wben" && wReq.threadId === "deploy", JSON.stringify(wReq).slice(0, 160));
+  const wList = JSON.parse(runCli(`bash scripts/team-sessions.sh wake list --team Team-Sea --json`, wakeCliEnv));
+  check("CLI wake list finds it", Array.isArray(wList.wakes) && wList.wakes.some((w) => w.id === wReq.id));
+  check("CLI wake request deny exits 2",
+    runCliStatus(`bash scripts/team-sessions.sh wake request --member Wamy --team Team-Sea --to ghost --json`, Object.assign({}, wakeCliEnv, { PCORE_SESSION_ID: "sess-cli-a" })) === 2);
+  check("CLI wake ack by stranger exits 2",
+    runCliStatus(`bash scripts/team-sessions.sh wake ack --id ${wReq.id} --member Wamy --team Team-Sea --json`, Object.assign({}, wakeCliEnv, { PCORE_SESSION_ID: "sess-cli-a" })) === 2);
+  const wAck = JSON.parse(runCli(`bash scripts/team-sessions.sh wake ack --id ${wReq.id} --member Wben --team Team-Sea --json`, Object.assign({}, wakeCliEnv, { PCORE_SESSION_ID: "sess-cli-b" })));
+  check("CLI wake ack by target", wAck.status === "acked", JSON.stringify(wAck).slice(0, 120));
+
+  // ---- 18. no .tmp residue ----
   const leftovers = [];
   const sweep = (dir) => {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {

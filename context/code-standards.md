@@ -79,6 +79,8 @@ node scripts/test-review-queue-producer.js
 node scripts/test-team-dispatch.js
 node scripts/test-team-sessions.js
 node scripts/test-team-discussion.js
+node scripts/test-session-wake.js
+node scripts/test-learning-loop.js
 node scripts/test-resume-collision.js
 node scripts/test-plan-artifact.js
 node scripts/test-baseline-adjudication.js

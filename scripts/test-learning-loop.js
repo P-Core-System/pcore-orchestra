@@ -22,7 +22,9 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const cp = require("node:child_process");
 
+const ROOT = path.resolve(__dirname, "..");
 const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "learn-state-"));
 const conductorDir = fs.mkdtempSync(path.join(os.tmpdir(), "learn-conductor-"));
 const artifactDir = fs.mkdtempSync(path.join(os.tmpdir(), "learn-artifact-"));
@@ -136,7 +138,37 @@ try {
   check("unknown id refused", learn.approveCandidate(artifactDir, "lc_missing", { decision: "approved", by: "peter" }).code === "LEARNING_UNKNOWN");
   check("approve never auto-applies (no source touched)", fs.readFileSync(marker, "utf8") === "untouched");
 
-  // ---- 6. no .tmp residue ----
+  // ---- 6. CLI learning record/distill/approve + gate exits ----
+  const runCli = (cmd, extraEnv) => cp.execSync(cmd, {
+    cwd: ROOT, encoding: "utf8", env: Object.assign({}, process.env, extraEnv),
+  });
+  const runCliStatus = (cmd, extraEnv) => {
+    try {
+      runCli(cmd, extraEnv);
+      return 0;
+    } catch (err) {
+      return typeof err.status === "number" ? err.status : 1;
+    }
+  };
+  const cliWs = mkWorkspace("proj-cli-learn");
+  const cliArtifact = fs.mkdtempSync(path.join(os.tmpdir(), "learn-cli-artifact-"));
+  const cliEnv = { PCORE_STATE_DIR: stateDir, PCORE_CONDUCTOR_STATE_DIR: conductorDir, PCORE_ARTIFACT_DIR: cliArtifact, PCORE_WORKSPACE_ROOT: cliWs, PCORE_SESSION_ID: "sess-cli-learn" };
+  runCli(`bash scripts/team-sessions.sh claim --member Cleo --team Team-See --json`, cliEnv);
+  const recCli = JSON.parse(runCli(`bash scripts/team-sessions.sh learning record --member Cleo --team Team-See --lessons "batch nudges" --outcome shipped --thread deploy --json`, cliEnv));
+  check("CLI learning record stores session.learned",
+    recCli.type === "session.learned" && recCli.payload.lessons === "batch nudges" && recCli.payload.threadRef === "deploy",
+    JSON.stringify(recCli.payload).slice(0, 160));
+  const distCli = JSON.parse(runCli(`bash scripts/team-sessions.sh learning distill --json`, cliEnv));
+  check("CLI learning distill writes artifact dir",
+    distCli.dir === cliArtifact && distCli.count >= 1 && fs.existsSync(path.join(cliArtifact, "learn-candidates.json")));
+  const candId = distCli.candidates[distCli.candidates.length - 1].id;
+  check("CLI approve gate exits 2 without human",
+    runCliStatus(`bash scripts/team-sessions.sh learning approve --id ${candId} --json`, cliEnv) === 2);
+  const apprCli = JSON.parse(runCli(`bash scripts/team-sessions.sh learning approve --id ${candId} --decision approved --by peter --json`, cliEnv));
+  check("CLI approve flips with human", apprCli.status === "approved" && apprCli.decidedBy === "peter");
+  try { fs.rmSync(cliArtifact, { recursive: true, force: true }); } catch { /* ignore */ }
+
+  // ---- 7. no .tmp residue ----
   const leftovers = [];
   const sweep = (dir) => {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
