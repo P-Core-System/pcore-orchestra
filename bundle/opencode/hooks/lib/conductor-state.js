@@ -27,6 +27,9 @@ const { DEFAULT_STALL_THRESHOLD_MS } = require("./constants.js");
 const INDEX_VERSION = 1;
 const INDEX_NAME = "index.json";
 
+/** Guard refusal code when a live run is held by another holder. */
+const RESUME_COLLISION = "RESUME_COLLISION";
+
 /** Base directory for the registry + per-run files. */
 function getConductorBaseDir(worktreePath) {
   if (process.env.PCORE_CONDUCTOR_STATE_DIR) return process.env.PCORE_CONDUCTOR_STATE_DIR;
@@ -240,8 +243,23 @@ function migrateLegacy() {
 }
 
 /**
+ * Holder string identifying who owns a live run (claimKey preferred).
+ * @returns {string|null} null when the run carries no holder identity
+ */
+function holderOf(run) {
+  if (!run || typeof run !== "object") return null;
+  return run.claimKey || run.memberDisplay || run.sessionId || null;
+}
+
+/**
  * Begin (or resume) a run. Idempotent: an existing live run on the same key is
  * resumed and preserves its startedAt. Returns `{ run, resumed }`.
+ *
+ * Additive collision guard (fail-open): when `opts.expectedClaimKey` is set
+ * and a live run on the same key is held by a DIFFERENT holder, the call
+ * refuses with `{ ok: false, code: RESUME_COLLISION, holder }` and writes
+ * nothing — a second session never silently resumes another holder's run.
+ * Legacy runs with no holder identity resume as before (fail-open).
  * @param {object} opts - options including optional worktreePath
  */
 function beginRun(opts) {
@@ -257,6 +275,12 @@ function beginRun(opts) {
   let run;
   let resumed = false;
   if (existing && existing.status === "active") {
+    if (opts.expectedClaimKey) {
+      const holder = holderOf(existing);
+      if (holder && holder !== opts.expectedClaimKey) {
+        return { ok: false, code: RESUME_COLLISION, holder };
+      }
+    }
     run = existing;
     run.goal = opts.goal || run.goal;
     run.phase = opts.phase || run.phase;
@@ -303,7 +327,35 @@ function beginRun(opts) {
   }
   run.lastHeartbeat = new Date().toISOString();
   saveRun(run, worktreePath);
-  return { run, resumed };
+  return { ok: true, run, resumed };
+}
+
+/**
+ * Guarded resume: refuse to take over another holder's live run.
+ *
+ * Resolves the caller's holder identity (explicit `opts.expectedClaimKey`,
+ * else the roster claimKey for this session) and delegates to `beginRun`
+ * with the guard armed. A second session resuming someone else's live run
+ * gets `{ ok: false, code: RESUME_COLLISION, holder }` instead of silently
+ * sharing the worktree — parallel resumes are parallel writers.
+ * Fail-open: any guard error falls back to a plain `beginRun`.
+ * @param {object} [opts] - same options as `beginRun`
+ */
+function resumeRun(opts) {
+  const o = opts && typeof opts === "object" ? { ...opts } : {};
+  try {
+    if (!o.expectedClaimKey) {
+      const ws = resolveWorkspace(o.workspace);
+      const sid = o.sessionId || resolveSessionId();
+      o.expectedClaimKey = resolveRoster(o, sid, ws.slug).claimKey;
+    }
+    const begun = beginRun(o);
+    if (begun && begun.code === RESUME_COLLISION) return begun;
+    return { ok: true, run: begun.run, resumed: begun.resumed };
+  } catch (err) {
+    const begun = beginRun(opts && typeof opts === "object" ? opts : {});
+    return { ok: true, run: begun.run, resumed: begun.resumed, failOpen: true };
+  }
 }
 
 /** Touches the run heartbeat and persists. */
@@ -442,6 +494,9 @@ module.exports = {
   readRun,
   saveRun,
   beginRun,
+  resumeRun,
+  holderOf,
+  RESUME_COLLISION,
   heartbeat,
   listRuns,
   listLiveRuns,

@@ -28,6 +28,7 @@ Optional spawn reference: `references/orchestra-spawn-matrix.md` (Cursor Task vs
 
 1. **Read the approved plan first:** `.cursor/orchestra-plan.md` if it exists (written by planner hook). Implement ONLY what it specifies — do not re-plan.
 2. Re-read `context/code-standards.md` and `context/architecture.md` if they exist — obey invariants.
+2b. One run, one holder: never send a second resume against a live run held by another session — check for the completion/error notification first; parallel resumes are parallel writers on one worktree.
 3. Implement only what the plan specifies — no drive-by refactors.
 3. Match existing project conventions (read surrounding files first).
 4. If `context/ui-context.md` exists, use defined tokens/patterns for any UI work.
