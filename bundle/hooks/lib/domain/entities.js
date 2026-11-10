@@ -82,6 +82,27 @@ function createSession(input) {
   return baseEntity("session", o);
 }
 
+/**
+ * Team session claim — a member's slot on a team (see lib/session-claims.js
+ * for the claimKey/display rules). Pure factory; persistence goes through
+ * store.appendEvent via recordSessionOutcome (domain/index.js).
+ */
+function createSessionClaim(input) {
+  const o = input || {};
+  return baseEntity("session_claim", {
+    claimKey: typeof o.claimKey === "string" ? o.claimKey : null,
+    member: typeof o.member === "string" ? o.member : null,
+    memberDisplay: typeof o.memberDisplay === "string" ? o.memberDisplay : null,
+    team: typeof o.team === "string" || o.team === null ? o.team || null : null,
+    teamId: typeof o.teamId === "string" || o.teamId === null ? o.teamId || null : null,
+    teamDisplay: typeof o.teamDisplay === "string" ? o.teamDisplay : null,
+    role: typeof o.role === "string" ? o.role : "member",
+    sessionId: typeof o.sessionId === "string" ? o.sessionId : null,
+    workspaceSlug: typeof o.workspaceSlug === "string" ? o.workspaceSlug : null,
+    action: typeof o.action === "string" ? o.action : "claimed",
+  });
+}
+
 function createAgentRun(input) {
   const o = Object.assign({ status: "running" }, input);
   return baseEntity("agent_run", o);
@@ -144,6 +165,7 @@ module.exports = {
   createPlan,
   createTask,
   createSession,
+  createSessionClaim,
   createAgentRun,
   createEvent,
   createEvidence,

@@ -59,6 +59,45 @@ function resolveSessionId() {
   return getSessionId();
 }
 
+/** Local slug sanitizer (mirrors session-claims.js; kept inline so this
+ *  module never requires session-claims and no require cycle can form). */
+function sanitizeRosterToken(raw) {
+  if (raw === undefined || raw === null) return "";
+  return String(raw)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function capRosterToken(slug) {
+  if (!slug) return "";
+  return slug.charAt(0).toUpperCase() + slug.slice(1);
+}
+
+/**
+ * Resolve the roster identity for a run: explicit opts win, then the
+ * PCORE_MEMBER_NAME / PCORE_TEAM_NAME / PCORE_MEMBER_ROLE env chain, else
+ * the ses_xxxx fallback derived from the session id.
+ * @returns {{member, memberDisplay, team, teamId, teamDisplay, claimKey, role}}
+ */
+function resolveRoster(opts, sessionId, workspaceSlug) {
+  const o = opts || {};
+  const sid = sessionId || resolveSessionId();
+  const slug = sanitizeRosterToken(workspaceSlug) || "root";
+  let member = sanitizeRosterToken(o.member) || sanitizeRosterToken(process.env.PCORE_MEMBER_NAME);
+  if (!member) {
+    const tail = (String(sid).replace(/[^a-zA-Z0-9]/g, "").toLowerCase().slice(-4) || "xxxx").padStart(4, "x");
+    member = `ses-${tail}`;
+  }
+  const team = sanitizeRosterToken(o.team) || sanitizeRosterToken(process.env.PCORE_TEAM_NAME) || null;
+  const role = sanitizeRosterToken(o.role) || sanitizeRosterToken(process.env.PCORE_MEMBER_ROLE) || "member";
+  const memberDisplay = `${capRosterToken(member) || "?"}@${slug}`;
+  const teamDisplay = team ? `${capRosterToken(team)}/${capRosterToken(member)}@${slug}` : memberDisplay;
+  const claimKey = [(team || "-"), member, slug, String(sid)].join("/");
+  return { member, memberDisplay, team, teamId: team, teamDisplay, claimKey, role };
+}
+
 /** Stable 12-hex task id: env override, else sha1(goal + startedAt). */
 function resolveTaskId(goal, startedAt) {
   if (process.env.PCORE_TASK_ID) return process.env.PCORE_TASK_ID;
@@ -169,6 +208,13 @@ function saveRun(run, worktreePath) {
     phase: run.phase,
     status: run.status,
     host: run.host || null,
+    member: run.member || null,
+    memberDisplay: run.memberDisplay || null,
+    team: run.team || null,
+    teamId: run.teamId || null,
+    teamDisplay: run.teamDisplay || null,
+    claimKey: run.claimKey || null,
+    role: run.role || null,
     startedAt: run.startedAt,
     lastHeartbeat: run.lastHeartbeat,
     lastUpdatedAt: new Date().toISOString(),
@@ -215,8 +261,19 @@ function beginRun(opts) {
     run.goal = opts.goal || run.goal;
     run.phase = opts.phase || run.phase;
     if (!run.host) run.host = detectHostFromEnv();
+    const roster = resolveRoster(opts, run.sessionId, run.workspaceSlug);
+    if (opts.member || opts.team || opts.role || !run.claimKey) {
+      run.member = roster.member;
+      run.memberDisplay = roster.memberDisplay;
+      run.team = roster.team;
+      run.teamId = roster.teamId;
+      run.teamDisplay = roster.teamDisplay;
+      run.claimKey = roster.claimKey;
+      run.role = roster.role;
+    }
     resumed = true;
   } else {
+    const roster = resolveRoster(opts, sessionId, ws.slug);
     run = {
       workspace: ws.root,
       workspaceSlug: ws.slug,
@@ -226,6 +283,13 @@ function beginRun(opts) {
       phase: opts.phase || "plan",
       status: "active",
       host: opts.host || detectHostFromEnv(),
+      member: roster.member,
+      memberDisplay: roster.memberDisplay,
+      team: roster.team,
+      teamId: roster.teamId,
+      teamDisplay: roster.teamDisplay,
+      claimKey: roster.claimKey,
+      role: roster.role,
       startedAt: existing ? existing.startedAt : startedAt,
       lastHeartbeat: startedAt,
       completedAt: null,
@@ -273,6 +337,8 @@ function listRuns(filters) {
   return Object.values(index.runs).filter((entry) => {
     if (wsSlug && entry.workspaceSlug !== wsSlug) return false;
     if (filters.status && entry.status !== filters.status) return false;
+    if (filters.member && (entry.member || null) !== filters.member) return false;
+    if (filters.team !== undefined && (entry.teamId || entry.team || null) !== (filters.team || null)) return false;
     return true;
   });
 }
@@ -370,6 +436,7 @@ module.exports = {
   resolveWorkspace,
   resolveSessionId,
   resolveTaskId,
+  resolveRoster,
   loadIndex,
   writeIndex,
   readRun,

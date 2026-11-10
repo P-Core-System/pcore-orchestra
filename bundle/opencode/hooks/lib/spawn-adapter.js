@@ -106,7 +106,8 @@ function normalizeResponse(success, result, error, artifacts) {
  * Derive spawn provenance for observability without touching payload
  * semantics. runId falls back to the worktree basename
  * (`.pcore/worktrees/<runId>/`); fromAgent/phase come from optional payload
- * conventions set by callers that know them.
+ * conventions set by callers that know them. Member/team/claimKey pass
+ * through additively so team-session routing stays observable.
  */
 function buildSpawnProvenance(agentId, payload, worktreePath, host) {
   const data = payload && typeof payload === "object" ? payload : {};
@@ -115,6 +116,9 @@ function buildSpawnProvenance(agentId, payload, worktreePath, host) {
     toAgent: typeof agentId === "string" ? agentId : null,
     fromAgent: typeof data.fromAgent === "string" && data.fromAgent ? data.fromAgent : null,
     phase: typeof data.phase === "string" && data.phase ? data.phase : null,
+    member: typeof data.member === "string" && data.member ? data.member : null,
+    team: typeof data.team === "string" && data.team ? data.team : null,
+    claimKey: typeof data.claimKey === "string" && data.claimKey ? data.claimKey : null,
     runId:
       typeof data.runId === "string" && data.runId ? data.runId : deriveRunIdFromWorktree(worktreePath),
     payloadKeys: Object.keys(data).sort(),
@@ -187,6 +191,21 @@ async function spawn(agentId, payload, worktreePath, host) {
     ...payload,
     worktreePath: worktreePath || null,
   };
+  // Team-session provenance passthrough: the spawned agent inherits the
+  // caller's member/team/role (--member assignment). Explicit payload fields
+  // win; the PCORE_MEMBER_NAME / PCORE_TEAM_NAME / PCORE_MEMBER_ROLE env
+  // chain fills the rest. Keys are added ONLY when a value exists, so
+  // payloads without team context stay byte-identical to before.
+  const envMember = typeof process.env.PCORE_MEMBER_NAME === "string" ? process.env.PCORE_MEMBER_NAME : "";
+  const envTeam = typeof process.env.PCORE_TEAM_NAME === "string" ? process.env.PCORE_TEAM_NAME : "";
+  const envRole = typeof process.env.PCORE_MEMBER_ROLE === "string" ? process.env.PCORE_MEMBER_ROLE : "";
+  if (payload.member != null) fullPayload.member = payload.member;
+  else if (envMember) fullPayload.member = envMember;
+  if (payload.team != null) fullPayload.team = payload.team;
+  else if (envTeam) fullPayload.team = envTeam;
+  if (payload.role != null) fullPayload.role = payload.role;
+  else if (envRole) fullPayload.role = envRole;
+  // claimKey passes through via the spread above when the caller sets it.
 
   try {
     const response = await dispatchSpawn(agentId, fullPayload, host);
@@ -327,4 +346,49 @@ module.exports = {
   SUPPORTED_HOSTS,
   PHASE_AGENTS,
   normalizeResponse,
+  buildSpawnProvenance,
+  deriveRunIdFromWorktree,
+  canDispatchInParallel,
 };
+
+/**
+ * Parallel-dispatch gate (invariant 32): two phases may run concurrently
+ * only when the agent registry proves independence (no shared files, gates
+ * or state keys) AND team-session WIP is safe: the same claim serializes,
+ * a shared worktreePath across different claims is a teammate worktree
+ * (serialize), and overlapping claimed scopes across claims serialize.
+ * @returns {{ok:boolean, reason:string}}
+ */
+function canDispatchInParallel(phaseA, phaseB, registry) {
+  const keyOf = (p) => (p && typeof p.claimKey === "string" && p.claimKey ? p.claimKey : null);
+  const ka = keyOf(phaseA);
+  const kb = keyOf(phaseB);
+  if (ka && kb && ka === kb) {
+    return { ok: false, reason: "same-claim" };
+  }
+  const wtOf = (p) => (p && typeof p.worktreePath === "string" && p.worktreePath ? p.worktreePath : null);
+  const wa = wtOf(phaseA);
+  const wb = wtOf(phaseB);
+  if (wa && wb && wa === wb && ka && kb && ka !== kb) {
+    return { ok: false, reason: "teammate-worktree" };
+  }
+  try {
+    const claims = require("./session-claims.js");
+    if (ka !== kb && claims.scopesOverlap(phaseA ? phaseA.scope : null, phaseB ? phaseB.scope : null)) {
+      return { ok: false, reason: "scope-conflict" };
+    }
+  } catch {
+    /* fail-open on the scope check — the registry gate below still applies */
+  }
+  let matrix = null;
+  try {
+    matrix = require("./orchestra-spawn-matrix.js");
+  } catch {
+    return { ok: false, reason: "no-registry" };
+  }
+  if (!matrix || typeof matrix.canRunInParallel !== "function") {
+    return { ok: false, reason: "no-registry" };
+  }
+  const ok = matrix.canRunInParallel(phaseA, phaseB, registry);
+  return { ok: Boolean(ok), reason: ok ? "independent" : "shared-resource" };
+}

@@ -104,6 +104,47 @@ function recordPhaseOutcome(state, outcome, subagentType, worktreePath) {
   return stored;
 }
 
+/**
+ * Record a team-session outcome (`session.claimed` / `session.heartbeat` /
+ * `session.released`) for a member claim. Fail-open: any shape or I/O
+ * problem yields null and never throws — the domain log must never break
+ * the host hook. Writes go through store.appendEvent only (invariant 19).
+ *
+ * @param {object|null} claim claim record (claimKey, member, team, ...)
+ * @param {string} action "claimed" | "heartbeat" | "released"
+ * @param {string|null} [worktreePath] optional worktree path for isolation
+ * @returns {object|null} the stored event, or null when skipped/failed
+ */
+function recordSessionOutcome(claim, action, worktreePath) {
+  const allowed = { claimed: "session.claimed", heartbeat: "session.heartbeat", released: "session.released" };
+  const type = allowed[action];
+  if (!type || !claim || typeof claim !== "object") return null;
+  if (typeof worktreePath === "object" && worktreePath !== null && !Array.isArray(worktreePath)) {
+    // tolerate (claim, { worktreePath }) call shape
+    worktreePath = worktreePath.worktreePath;
+  }
+  try {
+    const event = entities.createEvent({
+      type,
+      entityId: typeof claim.sessionId === "string" ? claim.sessionId : null,
+      payload: {
+        claimKey: claim.claimKey || null,
+        member: claim.member || null,
+        memberDisplay: claim.memberDisplay || null,
+        team: claim.team || null,
+        teamId: claim.teamId || claim.team || null,
+        teamDisplay: claim.teamDisplay || null,
+        role: claim.role || "member",
+        workspaceSlug: claim.workspaceSlug || null,
+        action,
+      },
+    });
+    return store.appendEvent(event, { worktreePath });
+  } catch {
+    return null;
+  }
+}
+
 module.exports = Object.assign(
   {
     constants,
@@ -114,6 +155,7 @@ module.exports = Object.assign(
     evidence,
     reviewQueue,
     recordPhaseOutcome,
+    recordSessionOutcome,
   },
   constants,
   entities,

@@ -25,7 +25,8 @@ CMD="${1:-}"
 # Clear option env that would leak a stale task id into fresh-tracking.
 unset PCORE_GOAL PCORE_PHASE PCORE_TASK_ID PCORE_SUMMARY PCORE_STATUS PCORE_WS \
       PCORE_STATUS_FILTER PCORE_SESSION PCORE_REASON PCORE_STALE_MIN PCORE_DELETE \
-      PCORE_REUSE PCORE_JSON 2>/dev/null || true
+      PCORE_REUSE PCORE_JSON PCORE_MEMBER_NAME PCORE_TEAM_NAME PCORE_MEMBER_ROLE \
+      PCORE_FILTER_MEMBER PCORE_FILTER_TEAM 2>/dev/null || true
 
 case "$CMD" in
   begin|save|heartbeat|list|who|resume|complete|fail|gc)
@@ -34,11 +35,11 @@ case "$CMD" in
     cat <<'EOF'
 Usage: bash scripts/conductor-state.sh <command> [flags]
 
-  begin --goal G [--phase P] [--task T] [--reuse]
+  begin --goal G [--phase P] [--task T] [--reuse] [--member M] [--team T] [--role R]
   save  [--phase P] [--task T] [--summary S] [--status S]
   heartbeat [--task T]
-  list  [--workspace W] [--status S]   (no --status = all runs)
-  who   [--workspace W]                (live runs: active/in_progress)
+  list  [--workspace W] [--status S] [--member M] [--team T]   (no --status = all runs)
+  who   [--workspace W] [--member M] [--team T]                (live runs: active/in_progress)
   resume [--session S] [--workspace W]
   complete [--task T] [--summary S]
   fail  --reason R [--task T]
@@ -72,6 +73,9 @@ while [ $# -gt 0 ]; do
     --session) PCORE_SESSION="${2:-}"; shift 2 ;;
     --reason) PCORE_REASON="${2:-}"; shift 2 ;;
     --stale-min) PCORE_STALE_MIN="${2:-}"; shift 2 ;;
+    --member) PCORE_MEMBER_NAME="${2:-}"; PCORE_FILTER_MEMBER="${PCORE_MEMBER_NAME}"; shift 2 ;;
+    --team) PCORE_TEAM_NAME="${2:-}"; PCORE_FILTER_TEAM="${PCORE_TEAM_NAME}"; shift 2 ;;
+    --role) PCORE_MEMBER_ROLE="${2:-}"; shift 2 ;;
     *)
       echo "conductor-state.sh: unknown flag: $1" >&2
       exit 1
@@ -82,7 +86,8 @@ done
 
 export PCORE_GOAL PCORE_PHASE PCORE_TASK_ID PCORE_SUMMARY PCORE_STATUS PCORE_WS \
        PCORE_STATUS_FILTER PCORE_SESSION PCORE_REASON PCORE_STALE_MIN PCORE_DELETE \
-       PCORE_REUSE PCORE_JSON
+       PCORE_REUSE PCORE_JSON PCORE_MEMBER_NAME PCORE_TEAM_NAME PCORE_MEMBER_ROLE \
+       PCORE_FILTER_MEMBER PCORE_FILTER_TEAM
 export PCORE_CMD="$CMD"
 
 NODE_PROGRAM=$(cat <<'NODEOF'
@@ -115,6 +120,24 @@ function currentRun() {
 
 function keyOf(r) { return [r.workspaceSlug, r.sessionId, r.taskId].join("/"); }
 
+function slugify(raw) {
+  return String(raw || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+function rosterFilters() {
+  const f = {};
+  if (env.PCORE_FILTER_MEMBER) f.member = slugify(env.PCORE_FILTER_MEMBER);
+  if (env.PCORE_FILTER_TEAM !== undefined && env.PCORE_FILTER_TEAM !== "") {
+    f.team = slugify(env.PCORE_FILTER_TEAM);
+  }
+  return f;
+}
+
+function whoText(r) {
+  const who = r.memberDisplay || r.sessionId;
+  return `${who} ${keyOf(r)} ${r.phase}`;
+}
+
 switch (env.PCORE_CMD) {
   case "begin": {
     const goal = env.PCORE_GOAL || "";
@@ -125,7 +148,8 @@ switch (env.PCORE_CMD) {
       if (live) taskId = live.taskId;
     }
     if (!taskId) taskId = c.resolveTaskId(goal, new Date().toISOString() + process.pid);
-    const { run, resumed } = c.beginRun({ goal, phase, workspace: env.PCORE_WS, taskId });
+    const { run, resumed } = c.beginRun({ goal, phase, workspace: env.PCORE_WS, taskId,
+      member: env.PCORE_MEMBER_NAME, team: env.PCORE_TEAM_NAME, role: env.PCORE_MEMBER_ROLE });
     if (env.PCORE_REUSE && resumed) {
       const key = run.phase || "plan";
       run.resumeAttempts[key] = (run.resumeAttempts[key] || 0) + 1;
@@ -151,13 +175,13 @@ switch (env.PCORE_CMD) {
     break;
   }
   case "list": {
-    const runs = c.listRuns({ workspace: env.PCORE_WS, status: env.PCORE_STATUS_FILTER || env.PCORE_STATUS });
+    const runs = c.listRuns(Object.assign({ workspace: env.PCORE_WS, status: env.PCORE_STATUS_FILTER || env.PCORE_STATUS }, rosterFilters()));
     out({ json: runs, text: "runs count: " + runs.length });
     break;
   }
   case "who": {
-    const runs = c.listLiveRuns({ workspace: env.PCORE_WS });
-    out({ json: runs, text: runs.map((r) => `${r.sessionId} ${keyOf(r)} ${r.phase}`).join("\n") || "no live runs" });
+    const runs = c.listRuns(Object.assign({ workspace: env.PCORE_WS, status: undefined }, rosterFilters())).filter((r) => r.status === "active" || r.status === "in_progress" || r.status === undefined);
+    out({ json: runs, text: runs.map(whoText).join("\n") || "no live runs" });
     break;
   }
   case "resume": {

@@ -462,6 +462,67 @@ function getAggregatedProjectState(projectState) {
   return aggregated;
 }
 
+/** Normalize an assignee token the way session-claims does (lowercase slug). */
+function slugToken(raw) {
+  if (raw === undefined || raw === null) return "";
+  return String(raw)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * Pure backlog projection for the HOD (orchestra head): groups backlog items
+ * + tasks per team and per member. Assignment is read from
+ * `item.assigned = { teamId, memberKey }` (HOD assignment) with fallback to
+ * the legacy flat `assignee` / `memberKey` / `teamId` / `team` fields.
+ * No I/O, no mutation — safe to call from any phase.
+ *
+ * @param {object} ps session project state (backlog + tasks arrays)
+ * @returns {{teams: object, byMember: object, unassigned: object[]}}
+ *   teams: { "<teamId>": { teamId, items: [] } }, byMember nests under each
+ *   team as { "<memberKey>": [] } plus a top-level byMember index; unassigned
+ *   holds items with neither team nor member.
+ */
+function backlogByMember(ps, opts) {
+  const o = opts || {};
+  const state = ps || {};
+  const items = [...(state.backlog || []), ...(state.tasks || [])];
+  const teams = {};
+  const byMember = {};
+  const unassigned = [];
+  const teamNameOf = (teamId) => {
+    if (o.teamNames && o.teamNames[teamId]) return o.teamNames[teamId];
+    if (!teamId || teamId === "solo") return "Solo";
+    return teamId.charAt(0).toUpperCase() + teamId.slice(1);
+  };
+  const ensureTeam = (teamId) => {
+    const gid = teamId || "solo";
+    if (!teams[gid]) teams[gid] = { teamId: gid, teamDisplay: teamNameOf(gid), items: [], byMember: {} };
+    return teams[gid];
+  };
+  for (const item of items) {
+    if (!item || typeof item !== "object") continue;
+    const assigned = item.assigned && typeof item.assigned === "object" ? item.assigned : {};
+    const teamId = slugToken(assigned.teamId || item.teamId || item.team) || null;
+    const memberKey = slugToken(assigned.memberKey || item.memberKey || item.assignee) || null;
+    if (!teamId && !memberKey) {
+      unassigned.push(item);
+      continue;
+    }
+    const group = ensureTeam(teamId || "solo");
+    group.items.push(item);
+    if (memberKey) {
+      if (!group.byMember[memberKey]) group.byMember[memberKey] = [];
+      group.byMember[memberKey].push(item);
+      if (!byMember[memberKey]) byMember[memberKey] = [];
+      byMember[memberKey].push(item);
+    }
+  }
+  return { teams, byMember, unassigned };
+}
+
 module.exports = {
   PROJECT_PATH,
   DEFAULT_SESSION_PROJECT,
@@ -488,5 +549,6 @@ module.exports = {
   generateProjectSummary,
   getSessionProjectState,
   getAggregatedProjectState,
+  backlogByMember,
   migrateToSessions,
 };

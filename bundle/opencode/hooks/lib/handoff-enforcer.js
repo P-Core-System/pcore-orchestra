@@ -41,6 +41,15 @@ const FORBIDDEN_ACTIONS_CLAUSE =
   "Forbidden actions: may not weaken/delete/skip a failing test, lower a threshold, or bypass a gate to make verify pass; report VERIFY_FAIL instead.";
 
 /**
+ * Completion contract — commit-discipline clause. Always emitted: after each
+ * ticket/member task the agent MUST git add+commit its claimed scope on its
+ * per-member branch/worktree before reporting, and the handoff must carry
+ * the commit SHA — never report done with uncommitted work.
+ */
+const COMMIT_DISCIPLINE_CLAUSE =
+  "Commit discipline: commit your scope before reporting — git add+commit your claimed scope on your per-member branch/worktree first, then report the commit SHA; never report done with uncommitted work, never stash drop/clean/reset --hard, never touch files outside your claimed scope or commit in a teammate worktree.";
+
+/**
  * Completion contract — human-gate clause, emitted ONLY when the run state
  * marks a phase as needing human approval. Derived defensively from
  * `state.last_outcome` / `state.memory`: any missing or unrecognized shape
@@ -93,7 +102,7 @@ function buildHumanGateLine(state) {
  * @returns {string[]} contract lines (1–2)
  */
 function buildCompletionContract(state, nextAgentId) {
-  const lines = [FORBIDDEN_ACTIONS_CLAUSE];
+  const lines = [FORBIDDEN_ACTIONS_CLAUSE, COMMIT_DISCIPLINE_CLAUSE];
   const humanGate = buildHumanGateLine(state);
   if (humanGate) lines.push(humanGate);
   return lines;
@@ -221,6 +230,7 @@ module.exports = {
   HANDOFF_RULES,
   ESCALATION_AFTER_FIX_CYCLES,
   FORBIDDEN_ACTIONS_CLAUSE,
+  COMMIT_DISCIPLINE_CLAUSE,
   buildPhaseHandoff,
   buildHandoffEnforcement,
   buildCompletionContract,
