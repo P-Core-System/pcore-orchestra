@@ -11,6 +11,7 @@
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -Project     # + project bridge (into CWD)
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -ProjectDir PATH  # project bridge into PATH
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -ForceProject # allow bridge into the clone itself
+#   powershell -ExecutionPolicy Bypass -File install.ps1 -Mcp         # + MCP server launcher (SDK into clone)
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -Studio      # install Studio dashboard
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -DryRun      # show what would be installed
 param(
@@ -23,6 +24,7 @@ param(
   [switch]$Project,
   [string]$ProjectDir,
   [switch]$ForceProject,
+  [switch]$Mcp,
   [switch]$SkipOpenCodeUpgrade,
   [switch]$Studio,
   [switch]$DryRun
@@ -70,6 +72,102 @@ Write-Host "====================================================================
 Write-Host ""
 
 ###############################################################################
+# MCP launcher (#16/#18) — installed as <host>\hooks\lib\mcp-server.js
+###############################################################################
+# Node resolves the bare specifier "@modelcontextprotocol/sdk/…" only by walking
+# up from the file's own directory, which from a host hooks\lib never reaches the
+# clone's node_modules — so a plain copy throws "Cannot find module" the first time
+# a hook calls .start(). Instead we drop a tiny launcher that boots the clone's real
+# server (SDK + siblings resolve from the clone). Mirrors install.sh install_mcp_launcher.
+function Install-McpLauncher {
+  param(
+    [Parameter(Mandatory)][string]$HostLib,
+    [Parameter(Mandatory)][string]$ServerRel
+  )
+
+  $serverSrc = Join-Path $Root $ServerRel
+  if (-not (Test-Path $serverSrc)) {
+    Write-Host "  WARN: $serverSrc missing - skipping MCP launcher"
+    return $true
+  }
+
+  # require.resolve probe (path passed via argv so no Windows backslashes leak into the
+  # JS source). Non-zero exit => SDK not resolvable.
+  $sdkProbe = "require.resolve('@modelcontextprotocol/sdk/server/index.js', { paths: [process.argv[1]] })"
+  $nmDir = Join-Path $Root 'node_modules'
+  & node -e $sdkProbe $nmDir 2>$null | Out-Null
+
+  # Ensure the SDK is present in the clone, surfacing npm failures (mirrors #16).
+  if ($LASTEXITCODE -ne 0) {
+    Write-Host "==> Installing @modelcontextprotocol/sdk in the clone ($Root)"
+    if (Get-Command npm -ErrorAction SilentlyContinue) {
+      Push-Location $Root
+      try {
+        $npmOut = & npm install --omit=dev 2>&1
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "  npm install reported a problem:"
+          foreach ($line in @($npmOut)) { Write-Host "    $line" }
+        }
+      } finally {
+        Pop-Location
+      }
+    } else {
+      Write-Host "  WARN: npm not on PATH - cannot auto-install the SDK (install Node.js/npm, then re-run)"
+    }
+  }
+  & node -e $sdkProbe $nmDir 2>$null | Out-Null
+  if ($LASTEXITCODE -ne 0) {
+    Write-Host "  ERROR: @modelcontextprotocol/sdk is not resolvable from $nmDir."
+    Write-Host "         The MCP server cannot start. Fix with: (cd $Root; npm install)"
+    return $false
+  }
+
+  if (-not (Test-Path $HostLib)) { New-Item -ItemType Directory -Force -Path $HostLib | Out-Null }
+  $launcher = Join-Path $HostLib "mcp-server.js"
+
+  # Generate the launcher via node so JSON-string escaping of the baked paths matches
+  # the install.sh body byte-for-byte (identical delegating shim).
+  $genJs = @'
+const fs = require('fs');
+const [root, serverRel, out] = process.argv.slice(2);
+const body = [
+  "// Installed by install.ps1 -Mcp (#18). Boots the Orchestra clone's real MCP server",
+  "// so '@modelcontextprotocol/sdk' resolves from the clone's node_modules. Re-run",
+  "// 'install.ps1 -Mcp' if you move the clone, or set PCORE_ORCHESTRA_REPO.",
+  "'use strict';",
+  "const path = require('path');",
+  "const fs = require('fs');",
+  "const ROOT = process.env.PCORE_ORCHESTRA_REPO || " + JSON.stringify(root) + ";",
+  "const sdk = path.join(ROOT, 'node_modules', '@modelcontextprotocol', 'sdk');",
+  "if (!fs.existsSync(sdk)) {",
+  "  console.error('[orchestra-mcp] @modelcontextprotocol/sdk missing at ' + sdk +",
+  "    ' — run: (cd ' + ROOT + ' && npm install)');",
+  "  process.exit(1);",
+  "}",
+  "module.exports = require(path.join(ROOT, " + JSON.stringify(serverRel) + "));",
+  ""
+].join("\n");
+fs.writeFileSync(out, body);
+'@
+  $genFile = Join-Path $env:TEMP "orchestra-mcp-launcher-gen.js"
+  Set-Content -Path $genFile -Value $genJs -Encoding UTF8
+  & node $genFile $Root $ServerRel $launcher
+  if ($LASTEXITCODE -ne 0) {
+    Write-Host "  ERROR: failed to write MCP launcher to $launcher"
+    return $false
+  }
+
+  # Boot-test the launcher the way a host hook does (require it, expect .start/.McpServer).
+  & node -e "const m=require(process.argv[1]); process.exit(typeof m.start==='function' && typeof m.McpServer==='function' ? 0 : 2)" $launcher 2>$null | Out-Null
+  if ($LASTEXITCODE -ne 0) {
+    Write-Host "  ERROR: launcher $launcher failed to boot the MCP server."
+    return $false
+  }
+  Write-Host "  MCP launcher: $launcher -> $serverSrc (SDK resolves)"
+  return $true
+}
+
+###############################################################################
 # Cursor installation
 ###############################################################################
 function Install-Cursor {
@@ -91,6 +189,12 @@ function Install-Cursor {
   $libDest = Join-Path $CursorDir "hooks\lib"
   if (Test-Path $libDest) { Remove-Item $libDest -Recurse -Force }
   Copy-Item (Join-Path $Bundle "hooks\lib") $libDest -Recurse -Force
+
+  # MCP server (if requested) — launcher resolves the SDK from the clone (#16/#18)
+  if ($Mcp) {
+    if (-not (Install-McpLauncher $libDest "bundle/hooks/lib/mcp-server.js")) { exit 1 }
+  }
+
   $stateDest = Join-Path $CursorDir "hooks\state\orchestra.json"
   if (-not (Test-Path $stateDest)) {
     # Fresh clones lack bundle\hooks\state\orchestra.json (gitignored runtime
@@ -270,6 +374,11 @@ function Install-OpenCode {
     if (Test-Path $src) {
       Copy-Item $src (Join-Path $libDest $libFile) -Force
     }
+  }
+
+  # MCP server (if requested) — launcher resolves the SDK from the clone (#16/#18)
+  if ($Mcp) {
+    if (-not (Install-McpLauncher $libDest "bundle/opencode/hooks/lib/mcp-server.js")) { exit 1 }
   }
 
   # State files
@@ -631,6 +740,7 @@ if ($DryRun) {
   if ($Claude) { Write-Host "  - Claude Code" }
   if ($Codex) { Write-Host "  - Codex CLI" }
   if ($Project) { Write-Host "  - Project bridge" }
+  if ($Mcp) { Write-Host "  - MCP server launcher (SDK into clone + hooks\lib shim)" }
   if ($Studio) { Write-Host "  - Studio dashboard" }
   exit 0
 }
@@ -704,6 +814,9 @@ if ($Codex) {
 if ($Cursor) {
   Write-Host "  Autonomy: Settings ? Agents ? Approvals ? Auto-review"
   Write-Host "            Docs: docs/autonomous-workflow.md"
+}
+if ($Mcp) {
+  Write-Host "  MCP server:  hooks\lib\mcp-server.js launcher -> $Root (SDK resolves from clone)"
 }
 if ($Studio) {
   Write-Host "  Studio:   $localBin\orchestra-studio.ps1 (starts on http://localhost:3110)"
