@@ -32,7 +32,7 @@
     "url": "https://github.com/P-Core-System/pcore-orchestra/issues"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.32.0"
+    "@modelcontextprotocol/sdk": "^1.32.2"
   },
   "engines": {
     "node": ">=18.0.0"

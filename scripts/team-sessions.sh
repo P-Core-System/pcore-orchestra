@@ -25,10 +25,12 @@ CMD="${1:-}"
 
 unset PCORE_MEMBER_NAME PCORE_TEAM_NAME PCORE_MEMBER_ROLE PCORE_WS \
       PCORE_CLAIM_KEY PCORE_SESSION_OVERRIDE PCORE_JSON PCORE_STALE_MIN \
-      PCORE_WORKTREE PCORE_SCOPE PCORE_FILES PCORE_DRY_RUN PCORE_WORKTREE_BASE 2>/dev/null || true
+      PCORE_WORKTREE PCORE_SCOPE PCORE_FILES PCORE_DRY_RUN PCORE_WORKTREE_BASE \
+      PCORE_KIND PCORE_TO PCORE_TOPIC PCORE_BODY PCORE_EMOJI PCORE_MSG_ID \
+      PCORE_TOPOLOGY PCORE_ALL PCORE_FREE_ONLY 2>/dev/null || true
 
 case "$CMD" in
-  claim|heartbeat|release|list|who|check|gc|dispatch)
+  claim|heartbeat|release|list|who|check|gc|dispatch|discuss|request)
     ;;
   -h|--help|help)
     cat <<'EOF'
@@ -42,11 +44,21 @@ Usage: bash scripts/team-sessions.sh <command> [flags]
   check     --member M [--team T] [--claim KEY] -- <files...>  WIP scope check (exit 1 on violation)
   gc                                                       prune stale claims
   dispatch  --team T [--member M,J...] [--session S] [--worktree-base D]
-            [--dry-run] [--json]                           fan out one session per member from backlog
+            [--dry-run] [--free-only] [--json]            fan out one session per member from backlog
+  discuss   post --member M [--team T] --kind K --body B [--to X] [--topic T]
+            list [--team T] [--kind K] [--topology 2way|star|group|all] [--member M] [--all]
+            react --id ID --emoji E --member M [--team T]
+            resolve --id ID --member M [--team T]        team discussion channel
+  request   --member M [--team T] [--session S] [--json] member pull: next backlog item when free
 
   --member takes a comma-separated filter for dispatch ("john,james");
   single member elsewhere. --dry-run plans with zero side effects.
   dispatch exits 0 (all claimed), 2 (some skipped on SCOPE_CONFLICT), 1 (error).
+  --free-only pushes to members with no live claim (leader push to idle slots).
+  discuss post claims/renews the author slot first (claim lifecycle); a
+  SCOPE_CONFLICT there is a SKIP (exit 2), like dispatch. --kind is one of
+  m2m|l2m|m2l|l2l|group. request exits 2 when the member is busy or the
+  backlog is empty, 0 with the granted item + claimKey/branch when free.
 
   --scope takes a comma-separated path list ("app-a/,lib-b/"); "*" claims
   the whole repo. Overlapping live scopes block a claim (scope conflict).
@@ -75,7 +87,16 @@ while [ $# -gt 0 ]; do
     --worktree) PCORE_WORKTREE="${2:-}"; shift 2 ;;
     --worktree-base) PCORE_WORKTREE_BASE="${2:-}"; shift 2 ;;
     --dry-run) PCORE_DRY_RUN=1; shift ;;
+    --free-only) PCORE_FREE_ONLY=1; shift ;;
+    --all) PCORE_ALL=1; shift ;;
     --scope) PCORE_SCOPE="${2:-}"; shift 2 ;;
+    --kind) PCORE_KIND="${2:-}"; shift 2 ;;
+    --to) PCORE_TO="${2:-}"; shift 2 ;;
+    --topic) PCORE_TOPIC="${2:-}"; shift 2 ;;
+    --body) PCORE_BODY="${2:-}"; shift 2 ;;
+    --emoji) PCORE_EMOJI="${2:-}"; shift 2 ;;
+    --id) PCORE_MSG_ID="${2:-}"; shift 2 ;;
+    --topology) PCORE_TOPOLOGY="${2:-}"; shift 2 ;;
     --) shift; while [ $# -gt 0 ]; do PCORE_FILES="${PCORE_FILES:+$PCORE_FILES
 }$1"; shift; done ;;
     --*) echo "team-sessions.sh: unknown flag: $1" >&2; exit 1 ;;
@@ -86,7 +107,9 @@ done
 
 export PCORE_MEMBER_NAME PCORE_TEAM_NAME PCORE_MEMBER_ROLE PCORE_WS \
        PCORE_CLAIM_KEY PCORE_SESSION_OVERRIDE PCORE_JSON PCORE_STALE_MIN \
-       PCORE_WORKTREE PCORE_SCOPE PCORE_FILES PCORE_DRY_RUN PCORE_WORKTREE_BASE
+       PCORE_WORKTREE PCORE_SCOPE PCORE_FILES PCORE_DRY_RUN PCORE_WORKTREE_BASE \
+       PCORE_KIND PCORE_TO PCORE_TOPIC PCORE_BODY PCORE_EMOJI PCORE_MSG_ID \
+       PCORE_TOPOLOGY PCORE_ALL PCORE_FREE_ONLY
 export PCORE_CMD="$CMD"
 
 NODE_PROGRAM=$(cat <<'NODEOF'
@@ -194,7 +217,7 @@ switch (env.PCORE_CMD) {
     const agg = pm.getAggregatedProjectState(fullState);
     const bb = pm.backlogByMember(agg);
     const memberFilter = String(env.PCORE_MEMBER_NAME || "").split(",").map((s) => s.trim()).filter(Boolean);
-    const plans = dispatch.planDispatch({
+    const planOpts = {
       teamId,
       teams: bb.teams,
       members: memberFilter,
@@ -202,10 +225,16 @@ switch (env.PCORE_CMD) {
       workspaceSlug,
       workspace: wsRoot,
       worktreeBase: env.PCORE_WORKTREE_BASE || null,
-    });
+    };
+    let plans = dispatch.planDispatch(planOpts);
+    const freeOnly = env.PCORE_FREE_ONLY === "1";
+    if (freeOnly) {
+      const liveClaims = claims.listClaims({ worktreePath: opts().worktreePath, staleMs: staleMs() });
+      plans = dispatch.filterFreePlans(plans, liveClaims);
+    }
     if (plans.length === 0) die(`dispatch: no members with backlog for team '${teamId}'`);
     if (env.PCORE_DRY_RUN === "1") {
-      out({ json: { dryRun: true, team: teamId, plans }, text: plans.map((p) => `would dispatch ${p.teamDisplay} [${p.itemCount} item(s)] scope=[${p.scope.join(",")}]`).join("\n") });
+      out({ json: { dryRun: true, team: teamId, freeOnly, plans }, text: plans.map((p) => `would dispatch ${p.teamDisplay} [${p.itemCount} item(s)] scope=[${p.scope.join(",")}]`).join("\n") });
       break;
     }
     const dispatched = [];
@@ -224,8 +253,120 @@ switch (env.PCORE_CMD) {
         throw err;
       }
     }
-    out({ json: { dryRun: false, team: teamId, dispatched, skipped }, text: dispatched.map((d) => `OK dispatch ${d.member} ${d.claimKey} ${d.branch}`).concat(skipped.map((s) => `SKIP ${s.member} ${s.reason}`)).join("\n") || "no members dispatched" });
+    out({ json: { dryRun: false, team: teamId, freeOnly, dispatched, skipped }, text: dispatched.map((d) => `OK dispatch ${d.member} ${d.claimKey} ${d.branch}`).concat(skipped.map((s) => `SKIP ${s.member} ${s.reason}`)).join("\n") || "no members dispatched" });
     if (skipped.length > 0) process.exitCode = 2;
+    break;
+  }
+  case "discuss": {
+    const discussion = require("DISCUSSION_PATH_PLACEHOLDER");
+    const sub = String(env.PCORE_FILES || "").split("\n").map((s) => s.trim()).filter(Boolean)[0] || "";
+    if (sub !== "post" && sub !== "list" && sub !== "react" && sub !== "resolve") die("discuss needs an action: post|list|react|resolve");
+    const recordDiscussion = (action, msg) => {
+      if (!domain || typeof domain.recordDiscussionOutcome !== "function" || !msg) return;
+      try {
+        domain.recordDiscussionOutcome(msg, action, opts().worktreePath);
+      } catch {
+        /* fail-open: domain log never breaks the CLI */
+      }
+    };
+    if (sub === "list") {
+      const filter = {
+        kind: env.PCORE_KIND || undefined,
+        topology: env.PCORE_TOPOLOGY || "all",
+        team: env.PCORE_TEAM_NAME || undefined,
+        member: env.PCORE_MEMBER_NAME && env.PCORE_MEMBER_NAME.indexOf(",") === -1 ? env.PCORE_MEMBER_NAME : undefined,
+        includeResolved: env.PCORE_ALL === "1" ? true : undefined,
+        worktreePath: opts().worktreePath,
+      };
+      const msgs = discussion.listMessages(filter, opts().worktreePath);
+      out({ json: { messages: msgs }, text: msgs.map((m) => `${m.resolvedAt ? "[resolved] " : ""}${m.id} [${m.kind}] ${m.from}${m.to ? " -> " + m.to : ""}${m.topic ? " #" + m.topic : ""}: ${m.body}`).join("\n") || "no messages" });
+      break;
+    }
+    if (sub === "react") {
+      const o = opts();
+      const author = claims.findClaim(o);
+      if (!author) die("no claim found for this member; claim first");
+      const id = env.PCORE_MSG_ID;
+      if (!id) die("discuss react needs --id <message-id>");
+      if (!env.PCORE_EMOJI) die("discuss react needs --emoji <emoji>");
+      const updated = discussion.reactMessage(id, { by: author.claimKey, emoji: env.PCORE_EMOJI }, o.worktreePath);
+      if (!updated) die(`no message found: ${id}`);
+      recordDiscussion("reaction", updated);
+      out({ json: updated, text: `OK react ${updated.id} ${env.PCORE_EMOJI} by ${author.claimKey}` });
+      break;
+    }
+    if (sub === "resolve") {
+      const o = opts();
+      const author = claims.findClaim(o);
+      if (!author) die("no claim found for this member; claim first");
+      const id = env.PCORE_MSG_ID;
+      if (!id) die("discuss resolve needs --id <message-id>");
+      const updated = discussion.resolveMessage(id, { by: author.claimKey }, o.worktreePath);
+      if (!updated) die(`no message found: ${id}`);
+      recordDiscussion("resolved", updated);
+      out({ json: updated, text: `OK resolve ${updated.id}` });
+      break;
+    }
+    // sub === "post": claim lifecycle first — renew the author slot so the
+    // message carries a live claim key; a SCOPE_CONFLICT is a SKIP (exit 2).
+    const o = opts();
+    if (!env.PCORE_SCOPE) {
+      const existing = claims.findClaim(o);
+      if (existing && Array.isArray(existing.scope)) o.scope = existing.scope;
+    }
+    let author;
+    try {
+      author = claims.claimSession(o);
+    } catch (err) {
+      if (err && err.code === "SCOPE_CONFLICT") {
+        out({ json: { skipped: true, reason: "SCOPE_CONFLICT", conflicts: err.conflicts || [] }, text: `SKIP post ${err.message}` });
+        process.exit(2);
+      }
+      throw err;
+    }
+    record("claimed", author);
+    const kind = env.PCORE_KIND || "m2m";
+    if (!discussion.isDiscussionKind(kind)) die(`discuss post needs --kind one of ${discussion.DISCUSSION_KINDS.join("|")}`);
+    if (!env.PCORE_BODY) die("discuss post needs --body <text>");
+    const msg = discussion.postMessage({
+      kind,
+      from: author.claimKey,
+      to: env.PCORE_TO || null,
+      team: claims.sanitizeName(o.team) || null,
+      topic: env.PCORE_TOPIC || null,
+      body: env.PCORE_BODY,
+    }, o.worktreePath);
+    recordDiscussion("posted", msg);
+    out({ json: msg, text: `OK post ${msg.id} [${msg.kind}] ${msg.from}` });
+    break;
+  }
+  case "request": {
+    const dispatch = require("DISPATCH_PATH_PLACEHOLDER");
+    const pm = require("PM_PATH_PLACEHOLDER");
+    const member = dispatch.sanitizeDispatchToken(env.PCORE_MEMBER_NAME);
+    if (!member) die("request needs --member <name>");
+    const teamId = dispatch.sanitizeDispatchToken(env.PCORE_TEAM_NAME) || "solo";
+    const sessionId = env.PCORE_SESSION_OVERRIDE || claims.resolveSessionId();
+    const wsRoot = env.PCORE_WS || env.PCORE_WORKSPACE_ROOT || process.cwd();
+    const nodePath = require("path");
+    const workspaceSlug = dispatch.sanitizeDispatchToken(nodePath.basename(String(wsRoot))) || "root";
+    const fullState = pm.loadProjectState(undefined, sessionId);
+    const agg = pm.getAggregatedProjectState(fullState);
+    const bb = pm.backlogByMember(agg);
+    const liveClaims = claims.listClaims({ worktreePath: opts().worktreePath, staleMs: staleMs() });
+    const grant = dispatch.requestWork({
+      member,
+      team: teamId,
+      teams: bb.teams,
+      liveClaims,
+      sessionId,
+      workspaceSlug,
+    });
+    if (!grant.granted) {
+      out({ json: grant, text: `SKIP request ${member}: ${grant.reason}` });
+      process.exit(2);
+    }
+    out({ json: grant, text: `OK request ${grant.member} item=${grant.item && grant.item.id} claim=${grant.claimKey} branch=${grant.branch}` });
     break;
   }
   case "check": {
@@ -256,9 +397,11 @@ NODEOF
 DOMAIN_LIB="${LIB_PATH%session-claims.js}domain/index.js"
 DISPATCH_LIB="${LIB_PATH%session-claims.js}team-dispatch.js"
 PM_LIB="${LIB_PATH%session-claims.js}project-manager.js"
+DISCUSSION_LIB="${LIB_PATH%session-claims.js}team-discussion.js"
 NODE_PROGRAM="${NODE_PROGRAM//LIB_PATH_PLACEHOLDER/"$LIB_PATH"}"
 NODE_PROGRAM="${NODE_PROGRAM//DOMAIN_PATH_PLACEHOLDER/"$DOMAIN_LIB"}"
 NODE_PROGRAM="${NODE_PROGRAM//DISPATCH_PATH_PLACEHOLDER/"$DISPATCH_LIB"}"
 NODE_PROGRAM="${NODE_PROGRAM//PM_PATH_PLACEHOLDER/"$PM_LIB"}"
+NODE_PROGRAM="${NODE_PROGRAM//DISCUSSION_PATH_PLACEHOLDER/"$DISCUSSION_LIB"}"
 
 node -e "$NODE_PROGRAM"

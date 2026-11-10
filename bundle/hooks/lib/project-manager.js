@@ -479,11 +479,17 @@ function slugToken(raw) {
  * the legacy flat `assignee` / `memberKey` / `teamId` / `team` fields.
  * No I/O, no mutation — safe to call from any phase.
  *
+ * Free-check (leader push): pass `opts.busyMembers` (array of member slugs
+ * or `"team/member"` pairs, e.g. live claim holders) to hold busy members'
+ * items out of the groups — they land in `busy` instead of `teams` /
+ * `byMember`, so the HOD pushes only where a slot is free. Without the
+ * option every assigned item groups as before, plus an empty `busy` list.
+ *
  * @param {object} ps session project state (backlog + tasks arrays)
- * @returns {{teams: object, byMember: object, unassigned: object[]}}
+ * @returns {{teams: object, byMember: object, unassigned: object[], busy: object[]}}
  *   teams: { "<teamId>": { teamId, items: [] } }, byMember nests under each
  *   team as { "<memberKey>": [] } plus a top-level byMember index; unassigned
- *   holds items with neither team nor member.
+ *   holds items with neither team nor member; busy holds busy-member items.
  */
 function backlogByMember(ps, opts) {
   const o = opts || {};
@@ -492,6 +498,20 @@ function backlogByMember(ps, opts) {
   const teams = {};
   const byMember = {};
   const unassigned = [];
+  const busy = [];
+  const busyPairs = new Set();
+  const busySlugs = new Set();
+  for (const entry of Array.isArray(o.busyMembers) ? o.busyMembers : []) {
+    if (typeof entry !== "string") continue;
+    const s = entry.trim().toLowerCase();
+    if (!s) continue;
+    if (s.indexOf("/") !== -1) {
+      const parts = s.split("/");
+      busyPairs.add(`${slugToken(parts[0])}/${slugToken(parts[1])}`);
+    } else {
+      busySlugs.add(slugToken(s));
+    }
+  }
   const teamNameOf = (teamId) => {
     if (o.teamNames && o.teamNames[teamId]) return o.teamNames[teamId];
     if (!teamId || teamId === "solo") return "Solo";
@@ -511,6 +531,14 @@ function backlogByMember(ps, opts) {
       unassigned.push(item);
       continue;
     }
+    const gid = teamId || "solo";
+    if (
+      (memberKey && busySlugs.has(memberKey)) ||
+      (memberKey && busyPairs.has(`${gid}/${memberKey}`))
+    ) {
+      busy.push(item);
+      continue;
+    }
     const group = ensureTeam(teamId || "solo");
     group.items.push(item);
     if (memberKey) {
@@ -520,7 +548,7 @@ function backlogByMember(ps, opts) {
       byMember[memberKey].push(item);
     }
   }
-  return { teams, byMember, unassigned };
+  return { teams, byMember, unassigned, busy };
 }
 
 module.exports = {

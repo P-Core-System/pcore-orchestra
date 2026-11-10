@@ -145,6 +145,47 @@ function recordSessionOutcome(claim, action, worktreePath) {
   }
 }
 
+/**
+ * Record a team-discussion outcome (`discussion.posted` /
+ * `discussion.resolved` / `discussion.reaction`) for a message. Fail-open:
+ * any shape or I/O problem yields null and never throws — the domain log
+ * must never break the host hook. Writes go through store.appendEvent only
+ * (invariant 19).
+ *
+ * @param {object|null} msg message record (id, kind, from, team, ...)
+ * @param {string} action "posted" | "resolved" | "reaction"
+ * @param {string|null} [worktreePath] optional worktree path for isolation
+ * @returns {object|null} the stored event, or null when skipped/failed
+ */
+function recordDiscussionOutcome(msg, action, worktreePath) {
+  const allowed = { posted: "discussion.posted", resolved: "discussion.resolved", reaction: "discussion.reaction" };
+  const type = allowed[action];
+  if (!type || !msg || typeof msg !== "object") return null;
+  if (typeof worktreePath === "object" && worktreePath !== null && !Array.isArray(worktreePath)) {
+    // tolerate (msg, { worktreePath }) call shape
+    worktreePath = worktreePath.worktreePath;
+  }
+  try {
+    const event = entities.createEvent({
+      type,
+      entityId: typeof msg.id === "string" ? msg.id : null,
+      payload: {
+        messageId: msg.id || null,
+        kind: msg.kind || null,
+        topology: msg.topology || null,
+        from: msg.from || null,
+        to: msg.to || null,
+        team: msg.team || null,
+        topic: msg.topic || null,
+        action,
+      },
+    });
+    return store.appendEvent(event, { worktreePath });
+  } catch {
+    return null;
+  }
+}
+
 module.exports = Object.assign(
   {
     constants,
@@ -156,6 +197,7 @@ module.exports = Object.assign(
     reviewQueue,
     recordPhaseOutcome,
     recordSessionOutcome,
+    recordDiscussionOutcome,
   },
   constants,
   entities,

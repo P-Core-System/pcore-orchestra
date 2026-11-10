@@ -195,6 +195,106 @@ function serializeDispatch(plans) {
   return JSON.stringify(Array.isArray(plans) ? plans : [], null, 2);
 }
 
+/**
+ * Free-check for the leader push (HOD fan-out to idle members only).
+ * A plan is busy when a live claim holds the same member + team slot
+ * (unteamed claims normalize to "solo", matching planDispatch team ids).
+ * Pure: the caller supplies already-pruned live claims.
+ * @returns {object[]} plans with no live claim (still sorted)
+ */
+function filterFreePlans(plans, liveClaims) {
+  const list = Array.isArray(plans) ? plans : [];
+  const claims = Array.isArray(liveClaims) ? liveClaims : [];
+  return list.filter((p) => {
+    if (!p || typeof p !== "object") return false;
+    return !claims.some(
+      (c) =>
+        c &&
+        typeof c === "object" &&
+        sanitizeDispatchToken(c.member) === p.member &&
+        (sanitizeDispatchToken(c.teamId || c.team) || "solo") === p.team
+    );
+  });
+}
+
+/**
+ * Leader push: planDispatch restricted to members with no live claim.
+ * Takes the same opts as planDispatch plus `liveClaims` (array of claim
+ * records from session-claims.listClaims). Busy members are skipped, never
+ * claimed over — the HOD pushes work only where a slot is free.
+ */
+function planLeaderPush(opts) {
+  const o = opts || {};
+  return filterFreePlans(planDispatch(o), o.liveClaims);
+}
+
+/**
+ * Member pull (request-when-free): the next backlog item for one member,
+ * granted only when that member holds no live claim. The grant references
+ * the claimKey + branch the member must claim before starting (commit
+ * discipline, invariant 26) — it never claims on their behalf.
+ *
+ * @param {object} opts { member, team|teamId, teams, liveClaims?,
+ *   sessionId?, workspaceSlug? }
+ * @returns {{granted:boolean, reason:string, member, team, claimKey, branch,
+ *   itemCount:number, item:object|null}}
+ */
+function requestWork(opts) {
+  const o = opts || {};
+  const member = sanitizeDispatchToken(o.member);
+  const team = sanitizeDispatchToken(o.teamId || o.team) || "solo";
+  const sessionId =
+    typeof o.sessionId === "string" && o.sessionId ? o.sessionId : "dispatch";
+  const workspaceSlug = sanitizeDispatchToken(o.workspaceSlug) || "root";
+  const claimKey = [team, member, workspaceSlug, String(sessionId)].join("/");
+  const branch = dispatchBranch({ team, member });
+  const base = { member, team, claimKey, branch };
+  if (!member) {
+    return Object.assign({}, base, {
+      granted: false,
+      reason: "unknown-member",
+      itemCount: 0,
+      item: null,
+    });
+  }
+  const liveClaims = Array.isArray(o.liveClaims) ? o.liveClaims : [];
+  const busy = liveClaims.some(
+    (c) =>
+      c &&
+      typeof c === "object" &&
+      sanitizeDispatchToken(c.member) === member &&
+      (sanitizeDispatchToken(c.teamId || c.team) || "solo") === team
+  );
+  if (busy) {
+    return Object.assign({}, base, {
+      granted: false,
+      reason: "busy",
+      itemCount: 0,
+      item: null,
+    });
+  }
+  const teams = (o.teams && typeof o.teams === "object" ? o.teams : {}) || {};
+  const group = teams[team];
+  const items =
+    group && group.byMember && Array.isArray(group.byMember[member])
+      ? group.byMember[member]
+      : [];
+  if (items.length === 0) {
+    return Object.assign({}, base, {
+      granted: false,
+      reason: "empty",
+      itemCount: 0,
+      item: null,
+    });
+  }
+  return Object.assign({}, base, {
+    granted: true,
+    reason: "free",
+    itemCount: items.length,
+    item: items[0],
+  });
+}
+
 module.exports = {
   DISPATCH_EXITS,
   sanitizeDispatchToken,
@@ -205,4 +305,7 @@ module.exports = {
   shouldSkipOnConflict,
   buildDispatchPayload,
   serializeDispatch,
+  filterFreePlans,
+  planLeaderPush,
+  requestWork,
 };

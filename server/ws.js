@@ -66,6 +66,11 @@ function runIdForSession(snapshot, sessionId) {
 /**
  * Events between two snapshots: new domain events (index slice) + run-level
  * phase/status transitions.
+ *
+ * Discussion events (`discussion.posted` / `discussion.resolved` /
+ * `discussion.reaction`) replay 1:1 — the board renders them as team
+ * chatter, never as gates. `runId` stays null: discussion threads are
+ * keyed by message id + team, not by run.
  * @returns {object[]} spec-shaped WS events
  */
 function diffSnapshots(prev, next, nowIso) {
@@ -105,6 +110,25 @@ function diffSnapshots(prev, next, nowIso) {
             reason: payload.reason || null,
           },
         });
+      } else if (
+        event.type === "discussion.posted" ||
+        event.type === "discussion.resolved" ||
+        event.type === "discussion.reaction"
+      ) {
+        out.push({
+          type: event.type,
+          runId: null,
+          at: stamp,
+          data: {
+            messageId: payload.messageId || event.entityId || null,
+            kind: payload.kind || null,
+            topology: payload.topology || null,
+            from: payload.from || null,
+            to: payload.to || null,
+            team: payload.team || null,
+            topic: payload.topic || null,
+          },
+        });
       }
     }
   }
@@ -128,6 +152,63 @@ function diffSnapshots(prev, next, nowIso) {
   }
 
   return out;
+}
+
+/**
+ * Per-connection filter matrix for `/api/ws`.
+ *
+ * Query params: `type` (repeatable or comma-separated WS event type) and
+ * `team` (repeatable or comma-separated team id, matched against the
+ * discussion payload's `team`). Absent/empty params mean no filtering —
+ * the Studio loopback story is unchanged: a plain connection subscribes
+ * to everything, auth stays binding-loopback only, mutations stay
+ * unsupported.
+ */
+const WS_EVENT_TYPES = Object.freeze([
+  "phase.started",
+  "phase.completed",
+  "gate.passed",
+  "gate.failed",
+  "run.completed",
+  "discussion.posted",
+  "discussion.resolved",
+  "discussion.reaction",
+]);
+
+/** Parse a query string (leading `?` optional) into `{ types, teams }`. */
+function parseWsFilter(search) {
+  const params = new URLSearchParams(
+    typeof search === "string" && search.charAt(0) === "?" ? search.slice(1) : search || ""
+  );
+  const split = (key) => {
+    const out = [];
+    for (const raw of params.getAll(key)) {
+      for (const part of String(raw).split(",")) {
+        const s = part.trim().toLowerCase();
+        if (s && out.indexOf(s) === -1) out.push(s);
+      }
+    }
+    return out;
+  };
+  return { types: split("type"), teams: split("team") };
+}
+
+/**
+ * Pure filter predicate: a null/empty filter matches everything.
+ * Unknown types never match when a type allowlist is present.
+ */
+function matchWsEvent(event, filter) {
+  if (!event || typeof event !== "object") return false;
+  const f = filter && typeof filter === "object" ? filter : {};
+  const types = Array.isArray(f.types) ? f.types : [];
+  const teams = Array.isArray(f.teams) ? f.teams : [];
+  if (types.length > 0 && types.indexOf(String(event.type).toLowerCase()) === -1) return false;
+  if (teams.length > 0) {
+    const team =
+      event.data && typeof event.data.team === "string" ? event.data.team.toLowerCase() : null;
+    if (!team || teams.indexOf(team) === -1) return false;
+  }
+  return true;
 }
 
 /** Watch targets: every directory down to depth 3 plus its *.json files. */
@@ -159,6 +240,7 @@ function attachWs(httpServer, options) {
   const debounceMs = Number.isFinite(opts.debounceMs) ? opts.debounceMs : DEBOUNCE_MS;
   const wss = new WebSocketServer({ server: httpServer, path: "/api/ws" });
   const snapshots = new Map();
+  const filters = new Map();
   const watchers = new Set();
   let timer = null;
   let closed = false;
@@ -224,8 +306,10 @@ function attachWs(httpServer, options) {
       } catch {
         events = [];
       }
+      const filter = filters.get(socket) || null;
       for (const event of events) {
         if (socket.readyState !== 1) continue;
+        if (!matchWsEvent(event, filter)) continue;
         try {
           socket.send(JSON.stringify(event));
         } catch {
@@ -237,14 +321,26 @@ function attachWs(httpServer, options) {
     arm();
   }
 
-  wss.on("connection", (socket) => {
+  wss.on("connection", (socket, req) => {
+    let filter = null;
+    try {
+      const rawUrl = (req && typeof req.url === "string" && req.url) || "/api/ws";
+      filter = parseWsFilter(rawUrl.indexOf("?") === -1 ? "" : rawUrl.slice(rawUrl.indexOf("?") + 1));
+    } catch {
+      filter = null;
+    }
+    filters.set(socket, filter);
     try {
       snapshots.set(socket, stateSnapshot(stateDir));
     } catch {
       snapshots.set(socket, { events: [], runs: {} });
     }
-    socket.on("close", () => snapshots.delete(socket));
-    socket.on("error", () => snapshots.delete(socket));
+    const drop = () => {
+      snapshots.delete(socket);
+      filters.delete(socket);
+    };
+    socket.on("close", drop);
+    socket.on("error", drop);
   });
 
   arm();
@@ -271,8 +367,9 @@ function attachWs(httpServer, options) {
         /* already closed */
       }
       snapshots.clear();
+      filters.clear();
     },
   };
 }
 
-module.exports = { attachWs, stateSnapshot, diffSnapshots, DEBOUNCE_MS, MAX_WATCH_DEPTH };
+module.exports = { attachWs, stateSnapshot, diffSnapshots, parseWsFilter, matchWsEvent, WS_EVENT_TYPES, DEBOUNCE_MS, MAX_WATCH_DEPTH };

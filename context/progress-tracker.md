@@ -11,6 +11,15 @@ Update this file after every meaningful implementation change.
 
 - Verify token usage per phase is under budget
 
+## 2026-11-10 — Wave2: team discussion + leader-push/member-pull + CI upgrades
+
+- NEW `bundle/hooks/lib/team-discussion.js` (+ byte-identical OpenCode mirror): directional kinds m2m/l2m/m2l/l2l/group, topology filter 2way/star/group (`topologyOf`/`matchDiscussionFilter`), claim-key authorship; JSONL store `<state>/team-discussion.jsonl` (worktree-partitioned per inv 30/31), ring-capped at `DISCUSSION_CAP` 500 with `pruneDiscussion`; `post`/`list`/`resolve`/`react` via safe-write locks. Key files: `bundle/hooks/lib/team-discussion.js`, `scripts/test-team-discussion.js` (65 checks green).
+  Impact: leader/member pairing has a persistent, attributable channel; Studio replays it live.
+- Domain constants +3 event types (`discussion.posted`/`resolved`/`reaction`) + `recordDiscussionOutcome` fail-open (invariant 19); `server/ws.js` replays them 1:1 at `/api/ws` with `?type=`/`?team=` filter matrix (`parseWsFilter`/`matchWsEvent`, default subscribes all — Studio loopback unchanged).
+- `scripts/team-sessions.sh`: `discuss post|list|react|resolve --json` (post renews author slot, SCOPE_CONFLICT → SKIP exit 2), `dispatch --free-only` (leader push to idle slots), `request --member M` (member pull: grants next backlog item + claimKey/branch when free, SKIP exit 2 when busy/empty). Lib: `backlogByMember` `busyMembers` free-check (+`busy` list), `team-dispatch.js` `filterFreePlans`/`planLeaderPush`/`requestWork`.
+- Upgrades: CI Node 20/24→22/26, `actions/checkout` + `setup-node` v4→v7 (v7 tags verified live); `@modelcontextprotocol/sdk` ^1.32.0→^1.32.2, `express` ^5.3.0, `ws` ^8.22.2 (latest stable per npm registry; lockfiles refreshed). New CI jobs: `supply-chain` (cyclonedx SBOM root+server, license allowlist, `npm audit --audit-level=high`), `hook-latency` (health hook <30s), `token-gate` (budget-table contract). CI wires `test-resume-collision`/`test-plan-artifact`/`test-baseline-adjudication`/`test-team-discussion`; `context/code-standards.md` self-check list synced (team/collision/artifact/adjudication/agent-sync/claude/codex + shell suites).
+  Impact: toolchain current, supply-chain + latency + token budgets gated on every PR.
+
 ## Open Questions
 
 - None

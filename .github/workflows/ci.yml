@@ -15,10 +15,10 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: "20"
+          node-version: "22"
       - run: |
           shopt -s globstar
           for f in scripts/*.js scripts/lib/*.js bundle/hooks/**/*.js bundle/opencode/hooks/**/*.js bundle/opencode/plugins/*.js templates/**/*.js server/*.js; do
@@ -34,12 +34,12 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          # Node 24: test-studio-ui imports pure .ts modules via native
+          # Node 26: test-studio-ui imports pure .ts modules via native
           # type stripping (Node >= 23)
-          node-version: "24"
+          node-version: "26"
           cache: npm
           cache-dependency-path: |
             package-lock.json
@@ -107,6 +107,10 @@ jobs:
           node scripts/test-review-queue-producer.js
           node scripts/test-team-dispatch.js
           node scripts/test-team-sessions.js
+          node scripts/test-team-discussion.js
+          node scripts/test-resume-collision.js
+          node scripts/test-plan-artifact.js
+          node scripts/test-baseline-adjudication.js
           node scripts/test-agent-sync.js
 
       # Qoder host: settings merge, agent conversion drift
@@ -126,6 +130,90 @@ jobs:
           node scripts/sync-claude-agents.js --check
           node scripts/sync-codex-agents.js --check
 
+  supply-chain:
+    name: Supply chain (SBOM + license + audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix server
+      - name: SBOM (cyclonedx, root + server)
+        run: |
+          set -e
+          npm sbom --sbom-format cyclonedx > sbom.cdx.json
+          npm sbom --prefix server --sbom-format cyclonedx > server/sbom.cdx.json
+          node -e 'for (const f of ["sbom.cdx.json", "server/sbom.cdx.json"]) { const d = require("./" + f); if (!d || !Array.isArray(d.components) || d.components.length === 0) throw new Error("empty SBOM: " + f); console.log("SBOM OK " + f + " components=" + d.components.length); }'
+      - name: License allowlist (root + server node_modules)
+        run: |
+          set -e
+          node -e '
+            const fs = require("node:fs"), path = require("node:path");
+            const allow = new Set(["MIT", "ISC", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "CC0-1.0", "CC-BY-3.0", "CC-BY-4.0", "Unlicense", "0BSD", "Python-2.0", "MPL-2.0"]);
+            const bad = [];
+            for (const root of ["node_modules", "server/node_modules"]) {
+              if (!fs.existsSync(root)) continue;
+              for (const name of fs.readdirSync(root)) {
+                if (name.startsWith(".")) continue;
+                const dirs = name.startsWith("@")
+                  ? fs.readdirSync(path.join(root, name)).map((s) => path.join(root, name, s))
+                  : [path.join(root, name)];
+                for (const d of dirs) {
+                  try {
+                    const pkg = JSON.parse(fs.readFileSync(path.join(d, "package.json"), "utf8"));
+                    const lic = typeof pkg.license === "string" ? pkg.license : (pkg.license && pkg.license.type) || "UNKNOWN";
+                    if (!allow.has(lic)) bad.push(d + "@" + lic);
+                  } catch { /* ignore unreadable entries */ }
+                }
+              }
+            }
+            if (bad.length > 0) { console.error("disallowed licenses:\n" + bad.join("\n")); process.exit(1); }
+            console.log("license allowlist OK");'
+      - name: Audit (high+, root + server)
+        run: |
+          set -e
+          npm audit --audit-level=high
+          npm audit --prefix server --audit-level=high
+
+  hook-latency:
+    name: Hook latency budget
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: Single-shot health hook under 30s
+        run: |
+          node -e 'const t = Date.now(); require("child_process").execSync("node bundle/hooks/orchestra-health.js", { stdio: "inherit", timeout: 60000 }); const ms = Date.now() - t; console.log("hook-latency ms=" + ms); if (ms > 30000) { console.error("hook latency budget exceeded"); process.exit(1); }'
+
+  token-gate:
+    name: Token budget gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: Budget table contract (positive, bounded by cycle)
+        run: |
+          node -e '
+            const t = require("./bundle/hooks/lib/token-tracker.js");
+            if (!Number.isFinite(t.CYCLE_BUDGET) || t.CYCLE_BUDGET <= 0) throw new Error("bad CYCLE_BUDGET");
+            const keys = Object.keys(t.AGENT_BUDGETS || {});
+            if (keys.length === 0) throw new Error("empty AGENT_BUDGETS");
+            for (const k of keys) {
+              const b = t.AGENT_BUDGETS[k];
+              if (!Number.isFinite(b) || b <= 0 || b > t.CYCLE_BUDGET) throw new Error("bad budget " + k + "=" + b);
+            }
+            console.log("token-gate OK agents=" + keys.length + " cycle=" + t.CYCLE_BUDGET);'
+
   installer-smoke:
     name: Installer smoke (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -134,10 +222,10 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: "20"
+          node-version: "22"
       # Dry-run exercises preflight + arg parsing with no side effects / no network.
       - name: Preflight + dry-run
         run: bash install.sh --all --dry-run
