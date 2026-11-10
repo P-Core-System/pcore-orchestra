@@ -104,6 +104,16 @@ names the box, authed whether production auth was carried, realRun that a
 real command executed, not a fixture replay). A green fixture suite plus an
 unproven deploy story is still VERIFY_FAIL on the live-proof row.
 
+## Environment-divergence checklist
+
+When a check passes locally but fails in CI/on-box (or the reverse), record
+the environment delta before adjudicating: node version, dependency tree,
+env vars and secret presence (names only, never values), network
+reachability, and filesystem paths. A failure explained entirely by a
+recorded env delta is an environment gap, not a code regression — fix the
+environment or pin the dependency, and note the delta under Gaps. Never
+"fix" it by weakening the check.
+
 ## Fix-cycle escalation
 
 When the handoff carries an `Escalation` line (2+ fix cycles), do not repeat

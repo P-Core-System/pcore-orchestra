@@ -85,3 +85,11 @@ Update this file after every meaningful implementation change.
 - `context/architecture.md` invariant 39.
   Key files: `bundle/hooks/lib/evidence-runner.js` (+ mirror), `bundle/agents/orchestra-verifier.md` (+ mirrors), `context/architecture.md`.
   Impact: the "fixture-proven, prod-broken" class (e.g. an ops script 401ing live for a missing key while fixtures stay green) can no longer pass verification without a real run.
+
+## 2026-11-11 — environment-divergence checklist (record delta, never weaken)
+- `bundle/agents/orchestra-verifier.md` (+ OpenCode/Qoder mirrors via sync): NEW `## Environment-divergence checklist` — a local-pass/CI-fail split records the env delta (runtime, tree, env/secret names only, network, paths) under Gaps first; env-explained failures are environment gaps, never fixed by weakening the check.
+- `templates/context/ai-workflow-rules.md`: NEW `## Environment Divergence` template block (bracketed placeholders, names-only secret rule) for target projects.
+- `scripts/test-evidence-runner.js`: additive test case pins the verifier contract on all three hosts (baseline + live-proof + env-divergence sections) and the template block.
+- `context/architecture.md` invariant 40.
+  Key files: `bundle/agents/orchestra-verifier.md` (+ mirrors), `templates/context/ai-workflow-rules.md`, `scripts/test-evidence-runner.js`, `context/architecture.md`.
+  Impact: "works on my machine" splits get a recorded delta instead of a weakened gate — the next debug starts from evidence, not amnesia.

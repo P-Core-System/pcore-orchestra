@@ -100,6 +100,21 @@ changes — **mandatory, not optional**:
 3. `progress-tracker.md` reflects the completed work
 4. `npm run build` passes
 
+## Environment Divergence
+
+When a check passes in one environment but fails in another
+(e.g. local vs CI vs on-box), record the delta before adjudicating:
+
+- [runtime version — e.g. `node --version` here vs there]
+- [dependency tree — lockfile hash here vs there]
+- [env vars and secret presence — names only, never values]
+- [network reachability — what the failing step must reach]
+- [filesystem paths — what the failing step must read/write]
+
+A failure explained entirely by a recorded delta is an environment gap,
+not a code regression — fix the environment or pin the dependency.
+Never "fix" it by weakening the check.
+
 ## Concurrent Session Guard (session-claims)
 
 Other AI sessions may be editing the same repo at the same time. Before
