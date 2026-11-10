@@ -664,6 +664,36 @@ function requiredGatesForMode(mode) {
   return mode === "enterprise" ? QUALITY_GATES : CORE_REQUIRED_GATES;
 }
 
+/**
+ * Live-proof record: evidence that a behavior was proven by a REAL run
+ * against a LIVE target — not fixtures, not prose.
+ *
+ * A fixture-only proof of an ops script whose production path is
+ * authenticated HTTP is insufficient: the prod failure mode (auth, perms,
+ * dirs, network) lives outside the fixture. The record pins the three
+ * facts a reviewer needs: `target` (which box/endpoint was hit), `authed`
+ * (whether the run carried production auth), `realRun` (a real command
+ * executed on the target, not a fixture replay). Pure, no I/O — the caller
+ * persists it via the artifact dir (`plan-artifact.js`).
+ *
+ * @param {object} [proof] `{target, authed, realRun, note}`
+ */
+function liveProofRecord(proof) {
+  const o = proof && typeof proof === "object" ? proof : {};
+  const target = String(o.target || "");
+  const authed = o.authed === true;
+  const realRun = o.realRun === true;
+  return {
+    type: "live-proof",
+    target,
+    authed,
+    realRun,
+    note: String(o.note || ""),
+    at: new Date().toISOString(),
+    ok: target.length > 0 && realRun,
+  };
+}
+
 /** Baseline file name for recorded gate verdicts. */
 const BASELINE_FILENAME = "baseline.json";
 
@@ -813,4 +843,5 @@ module.exports = {
   BASELINE_FILENAME,
   recordBaseline,
   adjudicateVsBaseline,
+  liveProofRecord,
 };

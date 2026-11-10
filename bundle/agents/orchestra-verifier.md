@@ -93,6 +93,16 @@ report, never silently drop), `new` = regression or unknown. Classification
 never flips a verdict: a failing check is still FAIL even when foreign — it
 needs an owner disposition, not an auto-pass.
 
+## Live-proof bar
+
+For ops scripts whose production path is authenticated HTTP (or any live
+target), a fixture-only proof is insufficient: re-run the script for real on
+the target box and show both the failure path and the fixed path
+(`evidence-runner.js` `liveProofRecord{target, authed, realRun}` — target
+names the box, authed whether production auth was carried, realRun that a
+real command executed, not a fixture replay). A green fixture suite plus an
+unproven deploy story is still VERIFY_FAIL on the live-proof row.
+
 ## Fix-cycle escalation
 
 When the handoff carries an `Escalation` line (2+ fix cycles), do not repeat

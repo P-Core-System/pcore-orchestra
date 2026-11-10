@@ -78,3 +78,10 @@ Update this file after every meaningful implementation change.
 - `bundle/agents/orchestra-verifier.md` + `orchestra-reviewer.md` (+ OpenCode/Qoder mirrors via sync): NEW `## Baseline adjudication` sections — verifier classifies every failure, reviewer confirms new addressed + foreign cited with owner disposition.
   Key files: `bundle/hooks/lib/evidence-runner.js` (+ mirror), `scripts/test-baseline-adjudication.js`, `bundle/agents/orchestra-{verifier,reviewer}.md` (+ mirrors).
   Impact: a red suite now answers "did I break this or was it already broken" from evidence instead of memory — foreign reds stay reported with a baseline cite, never silently dropped.
+
+## 2026-11-11 — live-proof records outrank fixtures
+- `bundle/hooks/lib/evidence-runner.js` (+ byte-identical `bundle/opencode/hooks/lib/evidence-runner.js` mirror): NEW pure `liveProofRecord({target, authed, realRun, note})` → `{type:"live-proof", ..., ok}` (ok only when a real command ran against a named target); no I/O, persisted by the caller via the artifact dir.
+- `bundle/agents/orchestra-verifier.md` (+ OpenCode/Qoder mirrors via sync): NEW `## Live-proof bar` — ops scripts with an authenticated-HTTP prod path need a real target-box run showing failure + fixed paths; fixtures alone = VERIFY_FAIL on that row.
+- `context/architecture.md` invariant 39.
+  Key files: `bundle/hooks/lib/evidence-runner.js` (+ mirror), `bundle/agents/orchestra-verifier.md` (+ mirrors), `context/architecture.md`.
+  Impact: the "fixture-proven, prod-broken" class (e.g. an ops script 401ing live for a missing key while fixtures stay green) can no longer pass verification without a real run.
