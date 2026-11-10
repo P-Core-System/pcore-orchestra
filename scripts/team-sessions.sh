@@ -116,6 +116,7 @@ NODE_PROGRAM=$(cat <<'NODEOF'
 "use strict";
 const claims = require("LIB_PATH_PLACEHOLDER");
 const domain = (() => { try { return require("DOMAIN_PATH_PLACEHOLDER"); } catch { return null; } })();
+const wakeLib = (() => { try { return require("WAKE_PATH_PLACEHOLDER"); } catch { return null; } })();
 const env = process.env;
 
 function out(obj) {
@@ -151,6 +152,26 @@ function record(action, claim) {
     domain.recordSessionOutcome(claim, action, claim && opts().worktreePath);
   } catch {
     /* fail-open: domain log never breaks the CLI */
+  }
+}
+
+function wakeForMentions(msg) {
+  if (!wakeLib || !msg) return;
+  try {
+    wakeLib.triggerWakesForDiscussion(msg, { workspace: env.PCORE_WS || env.PCORE_WORKSPACE_ROOT || process.cwd(), worktreePath: opts().worktreePath });
+  } catch {
+    /* fail-open: the wake channel never breaks the discuss post */
+  }
+}
+
+function wakeForAssign(member, team) {
+  if (!wakeLib || !member) return;
+  try {
+    const from = claims.findClaim(opts());
+    if (!from) return;
+    wakeLib.triggerWakeForGrant({ granted: true, member, team }, { from: from.claimKey, workspace: from.workspace || env.PCORE_WS || process.cwd(), worktreePath: opts().worktreePath });
+  } catch {
+    /* fail-open: the wake channel never breaks the dispatch */
   }
 }
 
@@ -248,6 +269,7 @@ switch (env.PCORE_CMD) {
         }
         const payload = dispatch.buildDispatchPayload(plan, {});
         dispatched.push({ member: plan.member, claimKey: claim.claimKey, branch: claim.branch || plan.branch, worktreePath: plan.worktreePath, scope: plan.scope, itemCount: plan.itemCount, payload });
+        wakeForAssign(plan.member, plan.team);
       } catch (err) {
         if (dispatch.shouldSkipOnConflict(err)) { skipped.push({ member: plan.member, reason: "SCOPE_CONFLICT" }); continue; }
         throw err;
@@ -337,6 +359,7 @@ switch (env.PCORE_CMD) {
       body: env.PCORE_BODY,
     }, o.worktreePath);
     recordDiscussion("posted", msg);
+    wakeForMentions(msg);
     out({ json: msg, text: `OK post ${msg.id} [${msg.kind}] ${msg.from}` });
     break;
   }
@@ -398,10 +421,12 @@ DOMAIN_LIB="${LIB_PATH%session-claims.js}domain/index.js"
 DISPATCH_LIB="${LIB_PATH%session-claims.js}team-dispatch.js"
 PM_LIB="${LIB_PATH%session-claims.js}project-manager.js"
 DISCUSSION_LIB="${LIB_PATH%session-claims.js}team-discussion.js"
+WAKE_LIB="${LIB_PATH%session-claims.js}session-wake.js"
 NODE_PROGRAM="${NODE_PROGRAM//LIB_PATH_PLACEHOLDER/"$LIB_PATH"}"
 NODE_PROGRAM="${NODE_PROGRAM//DOMAIN_PATH_PLACEHOLDER/"$DOMAIN_LIB"}"
 NODE_PROGRAM="${NODE_PROGRAM//DISPATCH_PATH_PLACEHOLDER/"$DISPATCH_LIB"}"
 NODE_PROGRAM="${NODE_PROGRAM//PM_PATH_PLACEHOLDER/"$PM_LIB"}"
 NODE_PROGRAM="${NODE_PROGRAM//DISCUSSION_PATH_PLACEHOLDER/"$DISCUSSION_LIB"}"
+NODE_PROGRAM="${NODE_PROGRAM//WAKE_PATH_PLACEHOLDER/"$WAKE_LIB"}"
 
 node -e "$NODE_PROGRAM"

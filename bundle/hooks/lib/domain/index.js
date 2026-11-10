@@ -101,6 +101,18 @@ function recordPhaseOutcome(state, outcome, subagentType, worktreePath) {
       /* fail-open — queue projection still opens on the block outcome */
     }
   }
+
+  // Wave3 teammate nudge: a block/escalate outcome wakes the team's
+  // leader/HOD slot (fail-open, lazy to avoid a require cycle with
+  // session-wake.js which reads this barrel for its domain emits).
+  try {
+    const wake = require("../session-wake.js");
+    if (wake && typeof wake.wakeForPhaseOutcome === "function") {
+      wake.wakeForPhaseOutcome(s, o, worktreePath);
+    }
+  } catch {
+    /* fail-open — the wake channel must never break the outcome log */
+  }
   return stored;
 }
 
@@ -186,6 +198,51 @@ function recordDiscussionOutcome(msg, action, worktreePath) {
   }
 }
 
+/**
+ * Record a session-wake outcome (`wake.requested` / `wake.delivered` /
+ * `wake.denied` / `wake.throttled`) for a wake request. Fail-open: any
+ * shape or I/O problem yields null and never throws — the domain log must
+ * never break the host hook or the wake store. Writes go through
+ * store.appendEvent only (invariant 19).
+ *
+ * @param {object|null} wake wake record (id, from, to, team, ...) or a
+ *   minimal audit stub {id, from, to, team, reason} for denied requests
+ *   that stored nothing
+ * @param {string} action "requested" | "delivered" | "denied" | "throttled"
+ * @param {string|null} [worktreePath] optional worktree path for isolation
+ * @returns {object|null} the stored event, or null when skipped/failed
+ */
+function recordWakeOutcome(wake, action, worktreePath) {
+  const allowed = { requested: "wake.requested", delivered: "wake.delivered", denied: "wake.denied", throttled: "wake.throttled" };
+  const type = allowed[action];
+  if (!type || !wake || typeof wake !== "object") return null;
+  if (typeof worktreePath === "object" && worktreePath !== null && !Array.isArray(worktreePath)) {
+    // tolerate (wake, { worktreePath }) call shape
+    worktreePath = worktreePath.worktreePath;
+  }
+  try {
+    const event = entities.createEvent({
+      type,
+      entityId: typeof wake.id === "string" ? wake.id : null,
+      payload: {
+        wakeId: typeof wake.id === "string" ? wake.id : null,
+        from: wake.from || null,
+        to: wake.to || null,
+        team: wake.team || null,
+        topic: wake.topic || null,
+        threadId: wake.threadId || null,
+        messageId: wake.messageId || null,
+        topology: wake.topology || null,
+        reason: wake.reason || null,
+        action,
+      },
+    });
+    return store.appendEvent(event, { worktreePath });
+  } catch {
+    return null;
+  }
+}
+
 module.exports = Object.assign(
   {
     constants,
@@ -198,6 +255,7 @@ module.exports = Object.assign(
     recordPhaseOutcome,
     recordSessionOutcome,
     recordDiscussionOutcome,
+    recordWakeOutcome,
   },
   constants,
   entities,
