@@ -2,12 +2,16 @@
 
 ## Supported Versions
 
-Orchestra is a developer tool installed globally on your machine. Security fixes are applied to
-`main` and distributed through the repository (no tagged releases yet).
+Orchestra is a developer tool installed globally on your machine. Security fixes are
+released as tagged versions; the current supported release is **3.9.1** (`v3.9.1`).
+Install from the stable tag (`git clone --branch v3.9.1 --depth 1 ...`) to stay on a
+supported version; `main` carries the latest (unstable) development state.
 
 | Version | Supported |
 |---------|-----------|
-| latest (main) | ✅ |
+| 3.9.1 (v3.9.1) | ✅ |
+| latest (main) | ✅ (development — track at your own risk) |
+| < 3.9.1 | ❌ (upgrade to 3.9.1) |
 
 ## Reporting a Vulnerability
 
