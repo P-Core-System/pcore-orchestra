@@ -75,7 +75,9 @@ Usage: bash scripts/team-sessions.sh <command> [flags]
   single member elsewhere. --dry-run plans with zero side effects.
   Re-claims renew the member's live slot in place (same claimKey, renewed);
   --new-slot hatches a parallel slot instead (claim, dispatch, supervise,
-  discuss post).
+  discuss post). A renew preserves holder identity (sessionId/workspace
+  kept, heartbeat refreshed); an explicit --session differing from the
+  live slot's holder session mints a fresh slot instead of rewriting it.
   dispatch exits 0 (all claimed), 2 (some skipped on SCOPE_CONFLICT), 1 (error).
   wake request/ack exits 2 on deny (cross-scope, no live claim, throttled,
   wrong acker); learning approve exits 2 without a human decision+by.

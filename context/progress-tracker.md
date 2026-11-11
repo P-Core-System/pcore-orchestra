@@ -11,6 +11,14 @@ Update this file after every meaningful implementation change.
 
 - Verify token usage per phase is under budget
 
+## 2026-11-12 — renew preserves holder identity, explicit session mints fresh
+
+- `bundle/hooks/lib/session-claims.js` (+ byte-identical OpenCode mirror): `claimSession` reuse path preserves holder identity — claimKey/member/team/sessionId/workspace/workspaceSlug kept from the live slot; only heartbeatAt/updatedAt always move, scope/role/branch/host move when explicitly provided (implicit renew without `--role` no longer demotes a leader to `member`). An EXPLICIT `o.sessionId` differing from the holder session mints a fresh session-scoped slot (never rewrites); implicit (resolved) sessions renew in place; explicit-equal renews in place; stale/`newSlot` behavior unchanged. `heartbeatClaim` audited touch-only (docstring now states it). `session-wake.js` (+ mirror): `ackWake` is claimKey-equality-first (exact holder hits outright, same-member sibling fallback preserved, non-target still `WAKE_DENIED`).
+- Pins: `test-slot-reuse.js` (40 checks: cross-session implicit renew keeps `ses-a` identity + `renewed:true`, second renew idempotent, same-explicit renews, different-explicit mints `ses-b`, CLI same/different/implicit `--session`, post same/different session); `test-team-sessions.js` (+3: same-session renew flag, explicit-different mints fresh, holder slot untouched); `test-session-wake.js` (+2: sibling same-member fallback ack). Suites green: slot-reuse, team-sessions, session-wake, team-discussion, team-roundtrip, team-dispatch, team-hod, evidence-runner, mirror-sync.
+- `scripts/team-sessions.sh` help text notes the explicit-`--session` mint-fresh rule.
+  Key files: `bundle/hooks/lib/{session-claims,session-wake}.js` (+ mirrors), `scripts/test-{slot-reuse,team-sessions,session-wake}.js`, `scripts/team-sessions.sh`, `context/{architecture,progress-tracker}.md`.
+  Impact: a member's slot is stable across sessions — re-claims/heartbeats/discuss-posts renew the holder's identity instead of migrating it; explicit `--session` is the deliberate pin for a new key.
+
 ## 2026-11-11 — member-filtered discuss list shows same-team star legs
 
 - `bundle/hooks/lib/team-discussion.js` (+ byte-identical OpenCode mirror): `matchDiscussionFilter` member clause — same-team `m2l`/`l2m` (sanitized `filter.team == msg.team`, both non-empty) matches any member-filtered list; `group` branch, `m2m`/`l2l` author/to privacy, and kind/topology/topic/resolved order unchanged; docstring updated.

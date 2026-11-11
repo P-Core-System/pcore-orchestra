@@ -270,6 +270,13 @@ try {
   check("disjoint scope claim allowed", !!disjoint && disjoint.member === "bob");
   const renewed = claims.claimSession({ member: "Amy", team: "Team-Alpha", scope: "app-a/", sessionId: "sess-amy-1", workspace: "/tmp/wsA" });
   check("same-claim renew with same scope allowed", renewed.claimKey === scopeA.claimKey);
+  check("same-session renew marked renewed", renewed.renewed === true);
+  const amyFresh = claims.claimSession({ member: "Amy", team: "Team-Alpha", scope: "app-amy2/", sessionId: "sess-amy-2", workspace: "/tmp/wsA" });
+  check("explicit different session mints fresh (never rewrites)",
+    amyFresh.claimKey !== scopeA.claimKey && amyFresh.renewed === false && amyFresh.claimKey === "team-alpha/amy/wsa/sess-amy-2",
+    amyFresh.claimKey);
+  check("holder slot untouched by explicit mint",
+    claims.getClaim(scopeA.claimKey).sessionId === "sess-amy-1");
   let starBlocked = null;
   try {
     claims.claimSession({ member: "Zed", team: "Team-Beta", scope: "*", sessionId: "sess-zed-1", workspace: "/tmp/wsA" });

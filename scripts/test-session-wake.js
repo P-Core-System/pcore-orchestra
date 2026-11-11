@@ -189,6 +189,17 @@ try {
   const ackTarget = wake.ackWake(first.id, { by: rb.claimKey });
   check("target acks", ackTarget.ok === true && ackTarget.wake.status === "acked" && !!ackTarget.wake.ackedAt, JSON.stringify(ackTarget));
   check("unknown wake id", wake.ackWake("w_missing", { by: rb.claimKey }).ok === false);
+  // Holder-first: a sibling slot of the same member still acks via the
+  // same-member fallback (exact claimKey hit is the common path above).
+  const rbSibling = claims.claimSession({ member: "ben", team: "beta", workspace: wsR, sessionId: "s-b-sib", newSlot: true });
+  check("sibling slot hatched", rbSibling.claimKey !== rb.claimKey && rbSibling.renewed === false, rbSibling.claimKey);
+  const secondWake = wake.listWakes({}).find((w) => w.status !== "acked");
+  if (secondWake) {
+    const ackSibling = wake.ackWake(secondWake.id, { by: rbSibling.claimKey });
+    check("sibling same-member slot acks (fallback)", ackSibling.ok === true, JSON.stringify(ackSibling));
+  } else {
+    check("sibling same-member slot acks (fallback)", false, "no delivered wake left");
+  }
   check("acked hidden by default", wake.listWakes({}).every((w) => w.status !== "acked"));
   check("acked visible with includeAcked", wake.listWakes({ includeAcked: true }).some((w) => w.id === first.id));
   check("member filter", wake.listWakes({ member: "ben" }).length >= 1 && wake.listWakes({ member: "sara" }).length === 0);

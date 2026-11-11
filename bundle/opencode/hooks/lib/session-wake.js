@@ -517,8 +517,12 @@ function ackWake(id, opts, worktreePath) {
         return;
       }
       const wake = current[idx];
-      if (memberOfClaimKey(wake.to) !== sanitizeWakeToken(acker.member) &&
-          sanitizeWakeToken(wake.toMember) !== sanitizeWakeToken(acker.member)) {
+      // Holder-first: the exact target slot acks outright. Otherwise the
+      // same-member fallback still acks (a renewed slot keeps its key, so
+      // the exact hit is the common path; the fallback covers siblings).
+      if (acker.claimKey !== wake.to &&
+        memberOfClaimKey(wake.to) !== sanitizeWakeToken(acker.member) &&
+        sanitizeWakeToken(wake.toMember) !== sanitizeWakeToken(acker.member)) {
         return;
       }
       const now = new Date().toISOString();
