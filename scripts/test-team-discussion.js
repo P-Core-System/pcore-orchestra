@@ -117,6 +117,21 @@ try {
     !discussion.matchDiscussionFilter(m("group"), { member: "sara", team: "team-beta" }));
   check("m2m still needs author-or-to on member filter",
     !discussion.matchDiscussionFilter(m("m2m"), { member: "sara", team: "team-alpha" }));
+  check("member filter shows same-team star legs + group (HOD view)",
+    discussion.matchDiscussionFilter(m("m2l", { from: "team-alpha/alice/wsa/s1", to: "team-alpha/hod/wsa/s0" }), { member: "hod", team: "team-alpha" }) &&
+    discussion.matchDiscussionFilter(m("l2m", { from: "team-alpha/hod/wsa/s0", to: "team-alpha/alice/wsa/s1" }), { member: "hod", team: "team-alpha" }) &&
+    discussion.matchDiscussionFilter(m("group"), { member: "hod", team: "team-alpha" }));
+  check("member filter hides unrelated pairwise m2m (Alice hides Bob-Carol)",
+    !discussion.matchDiscussionFilter(m("m2m", { from: "team-alpha/bob/wsa/s1", to: "carol" }), { member: "alice", team: "team-alpha" }) &&
+    !discussion.matchDiscussionFilter(m("l2l", { from: "team-alpha/bob/wsa/s1", to: "team-alpha/carol/wsa/s2" }), { member: "alice", team: "team-alpha" }) &&
+    discussion.matchDiscussionFilter(m("m2l", { from: "team-alpha/bob/wsa/s1", to: "team-alpha/hod/wsa/s0" }), { member: "alice", team: "team-alpha" }));
+  check("member filter hides other-team star legs",
+    !discussion.matchDiscussionFilter(m("m2l", { from: "team-beta/bob/wsb/s1", to: "team-beta/hod/wsb/s0", team: "team-beta" }), { member: "hod", team: "team-alpha" }) &&
+    !discussion.matchDiscussionFilter(m("l2m", { from: "team-beta/hod/wsb/s0", to: "team-beta/bob/wsb/s1", team: "team-beta" }), { member: "hod", team: "team-alpha" }));
+  check("member filter without team never leaks star legs",
+    !discussion.matchDiscussionFilter(m("m2l", { from: "team-alpha/bob/wsa/s1", to: "team-alpha/hod/wsa/s0" }), { member: "alice" }) &&
+    !discussion.matchDiscussionFilter(m("l2m", { from: "team-alpha/hod/wsa/s0", to: "team-alpha/bob/wsa/s1" }), { member: "alice" }) &&
+    discussion.matchDiscussionFilter(m("m2m", { from: "team-alpha/alice/wsa/s1", to: "carol" }), { member: "alice" }));
   check("topic substring + resolved hidden by default",
     discussion.matchDiscussionFilter(m("m2m", { topic: "deploy-blocker" }), { topic: "deploy" }) &&
     !discussion.matchDiscussionFilter(m("m2m", { resolvedAt: "2026-01-01T00:00:00.000Z" }), {}) &&

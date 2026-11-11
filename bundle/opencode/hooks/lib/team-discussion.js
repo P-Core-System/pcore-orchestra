@@ -120,11 +120,16 @@ function topologyOf(kind) {
 /**
  * Pure filter predicate for one message. All fields optional:
  * kind/kinds, topology (2way|star|group|all), team, member (matches author
- * member slug or `to` — member name or claim key, both directions), topic
+ * member slug or `to` — member name or claim key, both directions — plus any
+ * same-team m2l/l2m star leg and any same-team `group` broadcast), topic
  * (substring), includeResolved (default hides resolved). A `group`
  * broadcast addresses the whole team, not a member slot: it matches a
  * member-filtered list when the team matches (or no team is filtered).
- * Never throws; a null message never matches.
+ * Same-team star legs (m2l/l2m) are leader-centered, not pairwise-private:
+ * they match any member-filtered list whose sanitized team equals the
+ * message team (both non-empty). m2m/l2l stay pairwise-private (author/to
+ * only), and a member filter without a team never leaks another team's
+ * star legs. Never throws; a null message never matches.
  */
 function matchDiscussionFilter(msg, filter) {
   if (!msg || typeof msg !== "object") return false;
@@ -138,6 +143,10 @@ function matchDiscussionFilter(msg, filter) {
     if (msg.kind === "group") {
       if (typeof f.team === "string" && f.team &&
           sanitizeDiscussionToken(f.team) !== sanitizeDiscussionToken(msg.team)) return false;
+    } else if ((msg.kind === "m2l" || msg.kind === "l2m") &&
+        typeof f.team === "string" && f.team && msg.team &&
+        sanitizeDiscussionToken(f.team) === sanitizeDiscussionToken(msg.team)) {
+      // same-team star leg: visible to any member-filtered list of that team
     } else {
       const want = sanitizeDiscussionToken(f.member);
       const authorMember = String(msg.from || "").split("/")[1] || "";

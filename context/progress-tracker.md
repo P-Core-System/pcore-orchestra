@@ -11,6 +11,13 @@ Update this file after every meaningful implementation change.
 
 - Verify token usage per phase is under budget
 
+## 2026-11-11 — member-filtered discuss list shows same-team star legs
+
+- `bundle/hooks/lib/team-discussion.js` (+ byte-identical OpenCode mirror): `matchDiscussionFilter` member clause — same-team `m2l`/`l2m` (sanitized `filter.team == msg.team`, both non-empty) matches any member-filtered list; `group` branch, `m2m`/`l2l` author/to privacy, and kind/topology/topic/resolved order unchanged; docstring updated.
+- `scripts/test-team-discussion.js`: +4 pins (HOD sees same-team `m2l`/`l2m` + `group`; Alice hides Bob-Carol `m2m`/`l2l`; other-team star hidden; no-team filter never leaks star legs) — suite green, `test-mirror-sync.js` + `test-team-roundtrip.js` + `test-session-wake.js` green.
+  Key files: `bundle/hooks/lib/team-discussion.js` (+ mirror), `scripts/test-team-discussion.js`, `context/{architecture,progress-tracker}.md`.
+  Impact: a member-filtered `discuss list --member M --team T` shows the team's star push/pull legs and broadcasts without exposing pairwise `m2m`/`l2l` or leaking across teams.
+
 ## 2026-11-11 — slot reuse on re-claim (findLiveSlot, --new-slot hatch)
 
 - `bundle/hooks/lib/session-claims.js` (+ byte-identical OpenCode mirror): NEW `findLiveSlot` (live slot by member+team+slug, any session; skips stale candidates so a stale-first roster still finds the live slot); `claimSession` renews the live slot in place by default (same claimKey, `renewed: true`, heartbeat/scope/session/role/branch refreshed, scope-less renew keeps prior scope, self-exclusion on the renewed key); `{ newSlot: true }` hatches a parallel session-scoped slot; stale slots mint fresh. Scope guard intact (foreign overlap still `SCOPE_CONFLICT`).
