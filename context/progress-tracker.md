@@ -11,6 +11,13 @@ Update this file after every meaningful implementation change.
 
 - Verify token usage per phase is under budget
 
+## 2026-11-11 — layer diagram docs (WI-0, docs only)
+
+- NEW `docs/layer-diagram.md`: Mermaid layer graph (presentation → server → business → persistence), per-subsystem Mark Richards patterns, trade-offs, allowed-import table, violation examples.
+- `context/architecture.md`: "Harness > Scaffold > Loop" prose replaced with link-out pointer to `docs/layer-diagram.md`; 61275 → 61006 bytes (−269, net ≤ 0 vs baseline).
+  Key files: `docs/layer-diagram.md`, `context/architecture.md`, `context/progress-tracker.md`.
+  Impact: layered view lives in one docs page; architecture.md shrinks; no code/CI/tests touched.
+
 ## 2026-11-12 — renew preserves holder identity, explicit session mints fresh
 
 - `bundle/hooks/lib/session-claims.js` (+ byte-identical OpenCode mirror): `claimSession` reuse path preserves holder identity — claimKey/member/team/sessionId/workspace/workspaceSlug kept from the live slot; only heartbeatAt/updatedAt always move, scope/role/branch/host move when explicitly provided (implicit renew without `--role` no longer demotes a leader to `member`). An EXPLICIT `o.sessionId` differing from the holder session mints a fresh session-scoped slot (never rewrites); implicit (resolved) sessions renew in place; explicit-equal renews in place; stale/`newSlot` behavior unchanged. `heartbeatClaim` audited touch-only (docstring now states it). `session-wake.js` (+ mirror): `ackWake` is claimKey-equality-first (exact holder hits outright, same-member sibling fallback preserved, non-target still `WAKE_DENIED`).

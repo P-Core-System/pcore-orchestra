@@ -182,13 +182,8 @@ State fields: `loopMode` (`core` | `enterprise`), canonical `currentPhase` (lega
 
 ## Agent Architecture: Harness > Scaffold > Loop
 
-P-Core Orchestra implements a three-layer agent architecture:
-
-- **Loop:** Adaptive phase chain (core 4-phase default; enterprise 32-phase opt-in)
-- **Scaffold:** Agent prompts (core orchestra-* + enterprise specialists), context injection, ambient policy
-- **Harness:** Hook scripts, state management, quality gates, error handling
-
-The harness calls the scaffold, which defines the loop behavior.
+Layered view: `docs/layer-diagram.md` (graph, patterns, trade-offs, import rules).
+Harness calls scaffold; scaffold defines loop.
 
 ## Enterprise Quality Gates
 
