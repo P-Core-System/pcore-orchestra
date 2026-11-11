@@ -11,6 +11,10 @@
 #   #22 — install.ps1 resolves the -Project bridge target from -ProjectDir/CWD and
 #         REFUSES to write into the orchestra clone itself unless -ForceProject,
 #         mirroring install.sh _project_target()/--force-project.
+#   #18 — install.ps1 has a -Mcp switch that installs the MCP server the same way
+#         install.sh --mcp does: ensure @modelcontextprotocol/sdk in the clone
+#         (surfacing npm failures), then drop a delegating hooks\lib\mcp-server.js
+#         launcher for each host and boot-test it, mirroring install_mcp_launcher.
 set -uo pipefail
 
 GREEN='\033[0;32m'; RED='\033[0;31m'; NC='\033[0m'
@@ -31,7 +35,7 @@ has()  { grep -qF -- "$2" "$1"; }
 # lacks <file> <fixed-string> — literal substring absent
 lacks(){ ! grep -qF -- "$2" "$1"; }
 
-echo "=== install.ps1 parity test (#17 Qoder references, #22 project target) ==="
+echo "=== install.ps1 parity test (#17 Qoder references, #22 project target, #18 -Mcp launcher) ==="
 
 # ---------------------------------------------------------------------------
 # #17 — Qoder agents/references stripped after copy
@@ -113,6 +117,70 @@ for tok in '_project_target()' '--project-dir' '--force-project' 'REFUSING: --pr
   has "$SH" "$tok" \
     && ok "#22 sh: install.sh contains '$tok' (parity anchor)" \
     || bad "#22 sh: install.sh missing '$tok'"
+done
+
+# ---------------------------------------------------------------------------
+# #18 — -Mcp launcher (SDK into clone + hooks\lib delegating shim)
+# ---------------------------------------------------------------------------
+has "$PS1" '[switch]$Mcp,' \
+  && ok "#18 ps1: -Mcp switch declared" \
+  || bad "#18 ps1: -Mcp switch missing"
+
+has "$PS1" 'function Install-McpLauncher' \
+  && ok "#18 ps1: Install-McpLauncher helper defined" \
+  || bad "#18 ps1: Install-McpLauncher helper missing"
+
+has "$PS1" 'install.ps1 -Mcp' \
+  && ok "#18 ps1: usage header documents -Mcp" \
+  || bad "#18 ps1: -Mcp not documented in usage"
+
+# The helper must mirror install.sh's three behaviors: require.resolve probe,
+# surfaced npm install, and a delegating launcher written to hooks\lib\mcp-server.js.
+mcp_fn="$(awk '/^function Install-McpLauncher/{f=1} f{print} f&&/^}$/{exit}' "$PS1")"
+
+printf '%s' "$mcp_fn" | grep -qF "@modelcontextprotocol/sdk/server/index.js" \
+  && ok "#18 ps1: probes SDK via require.resolve(server/index.js)" \
+  || bad "#18 ps1: missing SDK require.resolve probe"
+
+printf '%s' "$mcp_fn" | grep -qF 'npm install --omit=dev' \
+  && ok "#18 ps1: runs npm install --omit=dev in the clone" \
+  || bad "#18 ps1: does not run npm install --omit=dev"
+
+printf '%s' "$mcp_fn" | grep -qF 'npm install reported a problem' \
+  && ok "#18 ps1: surfaces npm failures (not swallowed)" \
+  || bad "#18 ps1: npm failures are swallowed"
+
+printf '%s' "$mcp_fn" | grep -qF "mcp-server.js" \
+  && ok "#18 ps1: writes launcher to mcp-server.js" \
+  || bad "#18 ps1: launcher target missing"
+
+printf '%s' "$mcp_fn" | grep -qF 'process.env.PCORE_ORCHESTRA_REPO' \
+  && ok "#18 ps1: baked launcher honors PCORE_ORCHESTRA_REPO override" \
+  || bad "#18 ps1: launcher missing PCORE_ORCHESTRA_REPO override"
+
+printf '%s' "$mcp_fn" | grep -qF "typeof m.start==='function'" \
+  && printf '%s' "$mcp_fn" | grep -qF "typeof m.McpServer==='function'" \
+  && ok "#18 ps1: boot-tests the launcher (.start + .McpServer)" \
+  || bad "#18 ps1: launcher is not boot-tested"
+
+# Both Cursor and OpenCode call sites must request their own server path, gated on -Mcp.
+cursor_fn="$(awk '/^function Install-Cursor/{f=1} f{print} f&&/^}$/{exit}' "$PS1")"
+printf '%s' "$cursor_fn" | grep -qF 'if ($Mcp) {' \
+  && printf '%s' "$cursor_fn" | grep -qF 'Install-McpLauncher $libDest "bundle/hooks/lib/mcp-server.js"' \
+  && ok "#18 ps1: Install-Cursor installs launcher (bundle/hooks/lib) under -Mcp" \
+  || bad "#18 ps1: Install-Cursor does not install the MCP launcher"
+
+opencode_fn="$(awk '/^function Install-OpenCode/{f=1} f{print} f&&/^}$/{exit}' "$PS1")"
+printf '%s' "$opencode_fn" | grep -qF 'if ($Mcp) {' \
+  && printf '%s' "$opencode_fn" | grep -qF 'Install-McpLauncher $libDest "bundle/opencode/hooks/lib/mcp-server.js"' \
+  && ok "#18 ps1: Install-OpenCode installs launcher (opencode mirror) under -Mcp" \
+  || bad "#18 ps1: Install-OpenCode does not install the MCP launcher"
+
+# install.sh keeps the mirrored behavior
+for tok in 'install_mcp_launcher()' '--mcp' 'INSTALL_MCP' '@modelcontextprotocol/sdk/server/index.js' 'npm install --omit=dev'; do
+  has "$SH" "$tok" \
+    && ok "#18 sh: install.sh contains '$tok' (parity anchor)" \
+    || bad "#18 sh: install.sh missing '$tok'"
 done
 
 echo ""

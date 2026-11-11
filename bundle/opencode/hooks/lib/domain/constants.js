@@ -70,6 +70,17 @@ const DOMAIN_EVENT_TYPES = Object.freeze([
   "phase.outcome",
   "review.requested",
   "review.resolved",
+  "session.claimed",
+  "session.heartbeat",
+  "session.released",
+  "session.learned",
+  "discussion.posted",
+  "discussion.resolved",
+  "discussion.reaction",
+  "wake.requested",
+  "wake.delivered",
+  "wake.denied",
+  "wake.throttled",
 ]);
 
 /** Ring cap for the domain-events file: oldest events are trimmed first. */

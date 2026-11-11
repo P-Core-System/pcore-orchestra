@@ -89,6 +89,35 @@ carries the command that ran and a one-line result (`file:line — message`).
 
 A SKIPPED check counts toward VERIFY_FAIL unless the plan explicitly allows it.
 
+## Baseline adjudication
+
+When a baseline exists (`evidence-runner.js` `recordBaseline`, e.g. from the
+last green run), classify every failing check with `adjudicateVsBaseline`:
+`foreign` = also failing at baseline (pre-existing — cite the baseline, still
+report, never silently drop), `new` = regression or unknown. Classification
+never flips a verdict: a failing check is still FAIL even when foreign — it
+needs an owner disposition, not an auto-pass.
+
+## Live-proof bar
+
+For ops scripts whose production path is authenticated HTTP (or any live
+target), a fixture-only proof is insufficient: re-run the script for real on
+the target box and show both the failure path and the fixed path
+(`evidence-runner.js` `liveProofRecord{target, authed, realRun}` — target
+names the box, authed whether production auth was carried, realRun that a
+real command executed, not a fixture replay). A green fixture suite plus an
+unproven deploy story is still VERIFY_FAIL on the live-proof row.
+
+## Environment-divergence checklist
+
+When a check passes locally but fails in CI/on-box (or the reverse), record
+the environment delta before adjudicating: node version, dependency tree,
+env vars and secret presence (names only, never values), network
+reachability, and filesystem paths. A failure explained entirely by a
+recorded env delta is an environment gap, not a code regression — fix the
+environment or pin the dependency, and note the delta under Gaps. Never
+"fix" it by weakening the check.
+
 ## Fix-cycle escalation
 
 When the handoff carries an `Escalation` line (2+ fix cycles), do not repeat

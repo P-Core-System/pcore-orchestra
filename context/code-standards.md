@@ -76,19 +76,37 @@ node scripts/test-memory-hybrid.js
 node scripts/test-memory-patterns.js
 node scripts/test-handoff-enforcer.js
 node scripts/test-review-queue-producer.js
+node scripts/test-team-dispatch.js
+node scripts/test-team-sessions.js
+node scripts/test-team-discussion.js
+node scripts/test-session-wake.js
+node scripts/test-learning-loop.js
+node scripts/test-resume-collision.js
+node scripts/test-plan-artifact.js
+node scripts/test-baseline-adjudication.js
+node scripts/test-agent-sync.js
 node scripts/test-merge-qoder-settings.js
 node scripts/test-qoder-sync.js
 node scripts/sync-qoder-agents.js --check
+node scripts/test-claude-sync.js
+node scripts/test-codex-sync.js
+node scripts/sync-claude-agents.js --check
+node scripts/sync-codex-agents.js --check
+bash scripts/test-ensure-opencode-latest.sh
+bash scripts/test-mcp-installed-launcher.sh
+bash scripts/test-health-agents.sh
 node scripts/gen-agent-registry.js --check
 node scripts/scan-secrets.js --dir . --fail-on=high
 ```
 
 All must exit 0. `.github/workflows/ci.yml` runs the same list on every PR minus
 `test-agent-capabilities.js` (a local gate; its installed-tree check skips on a
-clean runner); `node scripts/test-e2e-suite.js` runs every suite with a PASS/FAIL
+clean runner) plus the `supply-chain` (SBOM + license allowlist + audit),
+`hook-latency` (single-shot health hook under 30s), and `token-gate`
+(budget-table contract) jobs; `node scripts/test-e2e-suite.js` runs every suite with a PASS/FAIL
 summary (the secret scan is a required CI step — see invariant 24). `test-studio-ui.js`
 imports pure `.ts` modules via native type stripping and needs Node >= 23
-(CI uses Node 24).
+(CI uses Node 26).
 
 ## Agent markdown
 

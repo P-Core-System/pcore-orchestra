@@ -4,6 +4,7 @@ const { spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 const { QUALITY_GATES } = require("./constants.js");
+const { atomicWrite } = require("./safe-write.js");
 const { EXCERPT_MAX, DETAILS_MAX, buildEvidenceRecord, clampDetails } = require("./evidence-record.js");
 
 const CORE_REQUIRED_GATES = [
@@ -663,6 +664,96 @@ function requiredGatesForMode(mode) {
   return mode === "enterprise" ? QUALITY_GATES : CORE_REQUIRED_GATES;
 }
 
+/**
+ * Live-proof record: evidence that a behavior was proven by a REAL run
+ * against a LIVE target — not fixtures, not prose.
+ *
+ * A fixture-only proof of an ops script whose production path is
+ * authenticated HTTP is insufficient: the prod failure mode (auth, perms,
+ * dirs, network) lives outside the fixture. The record pins the three
+ * facts a reviewer needs: `target` (which box/endpoint was hit), `authed`
+ * (whether the run carried production auth), `realRun` (a real command
+ * executed on the target, not a fixture replay). Pure, no I/O — the caller
+ * persists it via the artifact dir (`plan-artifact.js`).
+ *
+ * @param {object} [proof] `{target, authed, realRun, note}`
+ */
+function liveProofRecord(proof) {
+  const o = proof && typeof proof === "object" ? proof : {};
+  const target = String(o.target || "");
+  const authed = o.authed === true;
+  const realRun = o.realRun === true;
+  return {
+    type: "live-proof",
+    target,
+    authed,
+    realRun,
+    note: String(o.note || ""),
+    at: new Date().toISOString(),
+    ok: target.length > 0 && realRun,
+  };
+}
+
+/** Baseline file name for recorded gate verdicts. */
+const BASELINE_FILENAME = "baseline.json";
+
+/**
+ * Record a gate-verdict baseline for later adjudication.
+ *
+ * Snapshots `{gate -> {ok}}` from evidence verdicts to `opts.dir`
+ * (explicit — the caller resolves durability via `plan-artifact.js`
+ * `resolveArtifactDir()`), written with safe-write `atomicWrite`
+ * (invariant 15). Pure verdicts only: no stdout excerpts are persisted.
+ *
+ * @param {object[]} results evidence verdicts (`{gate, ok}`)
+ * @param {object} [opts] `{dir, name}` (defaults: cwd, `baseline.json`)
+ * @returns {{path:string, count:number, at:string}}
+ */
+function recordBaseline(results, opts) {
+  const o = opts && typeof opts === "object" ? opts : {};
+  const dir = o.dir || process.cwd();
+  const name = String(o.name || BASELINE_FILENAME)
+    .split(/[\\/]/)
+    .pop()
+    .replace(/[^a-zA-Z0-9._-]/g, "-") || BASELINE_FILENAME;
+  const gates = {};
+  for (const r of results || []) {
+    if (r && typeof r.gate === "string") gates[r.gate] = { ok: !!r.ok };
+  }
+  const baseline = { version: 1, at: new Date().toISOString(), gates };
+  const file = path.join(path.resolve(String(dir)), name);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  atomicWrite(file, JSON.stringify(baseline, null, 2));
+  return { path: file, count: Object.keys(gates).length, at: baseline.at };
+}
+
+/**
+ * Adjudicate current failures against a recorded baseline (pure, no I/O).
+ *
+ * Every FAILING gate is classified: `foreign` when it also failed in the
+ * baseline (pre-existing — cite the baseline, still report, never silently
+ * drop), `new` when it passed or is absent there. Passing gates are never
+ * listed. A missing/empty baseline makes every failure `new`.
+ *
+ * Classification only: it never flips a verdict and never skips a gate —
+ * the completion contract (no weakening/skipping failing checks) still binds.
+ *
+ * @param {object[]} current evidence verdicts (`{gate, ok}`)
+ * @param {object} [baseline] `{gates: {name: {ok}}}` from `recordBaseline`
+ * @returns {{new:string[], foreign:string[]}}
+ */
+function adjudicateVsBaseline(current, baseline) {
+  const base = (baseline && baseline.gates) || {};
+  const adjudicated = { new: [], foreign: [] };
+  for (const r of current || []) {
+    if (!r || r.ok || typeof r.gate !== "string") continue;
+    const wasFailing = !!(base[r.gate] && base[r.gate].ok === false);
+    if (wasFailing) adjudicated.foreign.push(r.gate);
+    else adjudicated.new.push(r.gate);
+  }
+  return adjudicated;
+}
+
 function applyEvidenceToGates(state, passGate, failGate, skipGate, options) {
   const opts = options || {};
   const { results, report } = runEvidenceChecks(state, opts);
@@ -749,4 +840,8 @@ module.exports = {
   recordRunDiffBase,
   resolveDocsBase,
   detectWorkspaceRoot,
+  BASELINE_FILENAME,
+  recordBaseline,
+  adjudicateVsBaseline,
+  liveProofRecord,
 };

@@ -763,6 +763,21 @@ test("hook boundary: the domain log receives the documented shape, details clamp
   }
 });
 
+test("verifier contract: baseline, live-proof, and env-divergence sections ship on every host", () => {
+  for (const vault of ["bundle/agents", "bundle/opencode/agents", "bundle/qoder/agents"]) {
+    const file = path.join(ROOT, vault, "orchestra-verifier.md");
+    const text = fs.readFileSync(file, "utf8");
+    assert.ok(text.includes("## Baseline adjudication"), `${vault} verifier lacks baseline section`);
+    assert.ok(text.includes("adjudicateVsBaseline"), `${vault} verifier lacks adjudicateVsBaseline pin`);
+    assert.ok(text.includes("## Live-proof bar"), `${vault} verifier lacks live-proof bar`);
+    assert.ok(text.includes("liveProofRecord"), `${vault} verifier lacks liveProofRecord pin`);
+    assert.ok(text.includes("## Environment-divergence checklist"), `${vault} verifier lacks env-divergence checklist`);
+  }
+  const template = fs.readFileSync(path.join(ROOT, "templates/context/ai-workflow-rules.md"), "utf8");
+  assert.ok(template.includes("## Environment Divergence"), "template lacks env-divergence block");
+  assert.ok(template.includes("names only, never values"), "template must forbid secret values");
+});
+
 if (failures > 0) {
   process.exit(1);
 } else {

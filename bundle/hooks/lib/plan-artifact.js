@@ -1,6 +1,7 @@
 "use strict";
 
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 const { saveState } = require("./state-manager.js");
 const { atomicWrite, resolveStateDir } = require("./safe-write.js");
@@ -8,6 +9,9 @@ const { atomicWrite, resolveStateDir } = require("./safe-write.js");
 const PLAN_DIR = ".cursor";
 const PLAN_FILENAME = "orchestra-plan.md";
 const PLANS_STATE_DIR = path.join(__dirname, "..", "state", "plans");
+
+/** Durable in-workspace artifact subdir (first choice, never /tmp). */
+const ARTIFACT_SUBDIR = path.join("data", "conductor");
 
 function detectWorkspaceRoot(state) {
   if (state?.project?.identityFile) {
@@ -22,6 +26,74 @@ function workspacePlanPath(root) {
 
 function globalPlanPath(runId) {
   return path.join(resolveStateDir(PLANS_STATE_DIR), `${runId}.md`);
+}
+
+/**
+ * True when `p` resolves inside the OS temp dir — artifact candidates there
+ * are rejected (a /tmp wipe must never take conductor artifacts with it).
+ */
+function isTmpPath(p) {
+  try {
+    const tmp = path.resolve(os.tmpdir());
+    const cand = path.resolve(String(p));
+    return cand === tmp || cand.startsWith(tmp + path.sep);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Resolve the durable directory for conductor artifacts (plans, baselines,
+ * live-proof records). Precedence: `<workspace>/data/conductor` (durable,
+ * survives /tmp wipes) > `PCORE_ARTIFACT_DIR` > the global state plans dir.
+ * A candidate under the OS temp dir is never returned. The winning dir is
+ * created (mkdir -p); an unwritable candidate falls through to the next.
+ * @returns {{dir:string, via:"workspace-data"|"env"|"global-state"}}
+ */
+function resolveArtifactDir(opts) {
+  const o = opts && typeof opts === "object" ? opts : {};
+  const candidates = [];
+  try {
+    const root = o.workspaceRoot || detectWorkspaceRoot(o.state);
+    if (root) candidates.push({ dir: path.join(String(root), ARTIFACT_SUBDIR), via: "workspace-data" });
+  } catch {
+    /* fall through to env/global */
+  }
+  if (process.env.PCORE_ARTIFACT_DIR) {
+    candidates.push({ dir: process.env.PCORE_ARTIFACT_DIR, via: "env" });
+  }
+  for (const c of candidates) {
+    try {
+      if (!c.dir || isTmpPath(c.dir)) continue;
+      fs.mkdirSync(c.dir, { recursive: true });
+      return c;
+    } catch {
+      /* unwritable — try the next candidate */
+    }
+  }
+  const fallback = resolveStateDir(PLANS_STATE_DIR);
+  try {
+    fs.mkdirSync(fallback, { recursive: true });
+  } catch {
+    /* fail-open: caller handles an unwritable dir */
+  }
+  return { dir: fallback, via: "global-state" };
+}
+
+/**
+ * Safe-write an artifact (`atomicWrite`, invariant 15). `name` is confined
+ * to `dir` (basename + character whitelist, no traversal).
+ * @returns {string} absolute path of the written artifact
+ */
+function writeArtifact(dir, name, content) {
+  const safe = String(name || "artifact.md")
+    .split(/[\\/]/)
+    .pop()
+    .replace(/[^a-zA-Z0-9._-]/g, "-")
+    .replace(/^-+|-+$/g, "") || "artifact.md";
+  const target = path.join(path.resolve(String(dir)), safe);
+  atomicWrite(target, String(content === undefined || content === null ? "" : content));
+  return target;
 }
 
 function extractSubagentOutput(input) {
@@ -138,6 +210,7 @@ function buildPlanHandoffLine(state, nextAgentId) {
 module.exports = {
   PLAN_DIR,
   PLAN_FILENAME,
+  ARTIFACT_SUBDIR,
   detectWorkspaceRoot,
   workspacePlanPath,
   extractSubagentOutput,
@@ -146,4 +219,7 @@ module.exports = {
   savePlanArtifact,
   loadPlanArtifact,
   buildPlanHandoffLine,
+  isTmpPath,
+  resolveArtifactDir,
+  writeArtifact,
 };

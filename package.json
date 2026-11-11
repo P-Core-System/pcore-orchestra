@@ -1,6 +1,6 @@
 {
   "name": "pcore-orchestra",
-  "version": "3.9.1",
+  "version": "3.10.0",
   "description": "Multi-agent orchestra for Cursor, OpenCode CLI, Qoder CLI, Claude Code, and Codex CLI",
   "main": "bundle/hooks/orchestra-prompt.js",
   "scripts": {
@@ -32,7 +32,7 @@
     "url": "https://github.com/P-Core-System/pcore-orchestra/issues"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.32.0"
+    "@modelcontextprotocol/sdk": "^1.32.2"
   },
   "engines": {
     "node": ">=18.0.0"

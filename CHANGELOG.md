@@ -12,7 +12,21 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [3.10.0] - 2026-11-10
+
 ### Added
+- **Team loop (Wave2/Wave3) + loop guardrails.** Named team sessions with HOD
+  assignment (`backlogByMember`), `dispatch --team` fan-out, directional
+  discussion threads (`team-discussion.js`, leader-push/member-pull), teammate
+  wake nudges with scope/rate guards (`session-wake.js`), human-gated learning
+  distillation (`distill-learnings.js`), and Studio live replay of
+  `discussion.*`/`wake.*`; plus one-run-one-holder resume-collision guard,
+  durable conductor artifact dir (`data/conductor/`, never `/tmp`), baseline
+  adjudication (new-vs-foreign), live-proof bar, and environment-divergence
+  checklist. Covered by `test-team-discussion.js` (59 checks),
+  `test-session-wake.js` (65 checks), `test-learning-loop.js`,
+  `test-resume-collision.js`, `test-plan-artifact.js`,
+  `test-baseline-adjudication.js`, all wired into CI (invariants 30–41).
 - **MCP knowledge hub — SQLite store, chat threads, project pairing, and master prompts.** The orchestra MCP server is now a two-way knowledge hub a remote connector (ChatGPT/Gemini) and a local CLI/IDE can both use, scoped per project:
   - **`bundle/hooks/lib/knowledge-store.js`** (mirrored) replaces the unbounded, lock-free `knowledge-inbox.json` with a `node:sqlite` database at `~/.pcore/state/knowledge.db`, every row partitioned by `project.slug`, with indexed `status`/`ts` and tables for `knowledge`, `chat_threads`, `chat_messages`, and `pairs`. It degrades gracefully to the JSON inbox on a Node without `node:sqlite`, and imports any pre-existing `knowledge-inbox.json` once into the table.
   - **New MCP tools**: `review_knowledge` (the missing human-review gate — promote `pending`→`approved`/`rejected`/`applied` without ever writing docs/context), plus the chat/pairing surface `start_thread`, `post_message`, `get_thread` (resume by thread id *or* by an external conversation binding), `list_threads`, `pair_thread`, `list_pairs`.
@@ -93,6 +107,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Ambient Cursor hooks chain (plan → implement → verify → review), OpenCode conductor + ambient plugin, memory (short/long-term, hybrid recall via `node:sqlite` FTS5), token budgets, greenfield scaffolding, project bridges, Windows installer (`install.ps1`)
 
 [Unreleased]: https://github.com/P-Core-System/pcore-orchestra/commits/main
+[3.10.0]: https://github.com/P-Core-System/pcore-orchestra/releases/tag/v3.10.0
 [3.9.0]: https://github.com/P-Core-System/pcore-orchestra/releases/tag/v3.9.0
 [3.8.0]: https://github.com/P-Core-System/pcore-orchestra/releases/tag/v3.8.0
 [3.7.0]: https://github.com/P-Core-System/pcore-orchestra/commits/main

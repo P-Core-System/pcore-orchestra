@@ -27,6 +27,9 @@ const { DEFAULT_STALL_THRESHOLD_MS } = require("./constants.js");
 const INDEX_VERSION = 1;
 const INDEX_NAME = "index.json";
 
+/** Guard refusal code when a live run is held by another holder. */
+const RESUME_COLLISION = "RESUME_COLLISION";
+
 /** Base directory for the registry + per-run files. */
 function getConductorBaseDir(worktreePath) {
   if (process.env.PCORE_CONDUCTOR_STATE_DIR) return process.env.PCORE_CONDUCTOR_STATE_DIR;
@@ -57,6 +60,45 @@ function resolveWorkspace(cwd) {
 /** Session id delegates to the shared state-manager chain. */
 function resolveSessionId() {
   return getSessionId();
+}
+
+/** Local slug sanitizer (mirrors session-claims.js; kept inline so this
+ *  module never requires session-claims and no require cycle can form). */
+function sanitizeRosterToken(raw) {
+  if (raw === undefined || raw === null) return "";
+  return String(raw)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function capRosterToken(slug) {
+  if (!slug) return "";
+  return slug.charAt(0).toUpperCase() + slug.slice(1);
+}
+
+/**
+ * Resolve the roster identity for a run: explicit opts win, then the
+ * PCORE_MEMBER_NAME / PCORE_TEAM_NAME / PCORE_MEMBER_ROLE env chain, else
+ * the ses_xxxx fallback derived from the session id.
+ * @returns {{member, memberDisplay, team, teamId, teamDisplay, claimKey, role}}
+ */
+function resolveRoster(opts, sessionId, workspaceSlug) {
+  const o = opts || {};
+  const sid = sessionId || resolveSessionId();
+  const slug = sanitizeRosterToken(workspaceSlug) || "root";
+  let member = sanitizeRosterToken(o.member) || sanitizeRosterToken(process.env.PCORE_MEMBER_NAME);
+  if (!member) {
+    const tail = (String(sid).replace(/[^a-zA-Z0-9]/g, "").toLowerCase().slice(-4) || "xxxx").padStart(4, "x");
+    member = `ses-${tail}`;
+  }
+  const team = sanitizeRosterToken(o.team) || sanitizeRosterToken(process.env.PCORE_TEAM_NAME) || null;
+  const role = sanitizeRosterToken(o.role) || sanitizeRosterToken(process.env.PCORE_MEMBER_ROLE) || "member";
+  const memberDisplay = `${capRosterToken(member) || "?"}@${slug}`;
+  const teamDisplay = team ? `${capRosterToken(team)}/${capRosterToken(member)}@${slug}` : memberDisplay;
+  const claimKey = [(team || "-"), member, slug, String(sid)].join("/");
+  return { member, memberDisplay, team, teamId: team, teamDisplay, claimKey, role };
 }
 
 /** Stable 12-hex task id: env override, else sha1(goal + startedAt). */
@@ -169,6 +211,13 @@ function saveRun(run, worktreePath) {
     phase: run.phase,
     status: run.status,
     host: run.host || null,
+    member: run.member || null,
+    memberDisplay: run.memberDisplay || null,
+    team: run.team || null,
+    teamId: run.teamId || null,
+    teamDisplay: run.teamDisplay || null,
+    claimKey: run.claimKey || null,
+    role: run.role || null,
     startedAt: run.startedAt,
     lastHeartbeat: run.lastHeartbeat,
     lastUpdatedAt: new Date().toISOString(),
@@ -194,8 +243,23 @@ function migrateLegacy() {
 }
 
 /**
+ * Holder string identifying who owns a live run (claimKey preferred).
+ * @returns {string|null} null when the run carries no holder identity
+ */
+function holderOf(run) {
+  if (!run || typeof run !== "object") return null;
+  return run.claimKey || run.memberDisplay || run.sessionId || null;
+}
+
+/**
  * Begin (or resume) a run. Idempotent: an existing live run on the same key is
  * resumed and preserves its startedAt. Returns `{ run, resumed }`.
+ *
+ * Additive collision guard (fail-open): when `opts.expectedClaimKey` is set
+ * and a live run on the same key is held by a DIFFERENT holder, the call
+ * refuses with `{ ok: false, code: RESUME_COLLISION, holder }` and writes
+ * nothing — a second session never silently resumes another holder's run.
+ * Legacy runs with no holder identity resume as before (fail-open).
  * @param {object} opts - options including optional worktreePath
  */
 function beginRun(opts) {
@@ -211,12 +275,29 @@ function beginRun(opts) {
   let run;
   let resumed = false;
   if (existing && existing.status === "active") {
+    if (opts.expectedClaimKey) {
+      const holder = holderOf(existing);
+      if (holder && holder !== opts.expectedClaimKey) {
+        return { ok: false, code: RESUME_COLLISION, holder };
+      }
+    }
     run = existing;
     run.goal = opts.goal || run.goal;
     run.phase = opts.phase || run.phase;
     if (!run.host) run.host = detectHostFromEnv();
+    const roster = resolveRoster(opts, run.sessionId, run.workspaceSlug);
+    if (opts.member || opts.team || opts.role || !run.claimKey) {
+      run.member = roster.member;
+      run.memberDisplay = roster.memberDisplay;
+      run.team = roster.team;
+      run.teamId = roster.teamId;
+      run.teamDisplay = roster.teamDisplay;
+      run.claimKey = roster.claimKey;
+      run.role = roster.role;
+    }
     resumed = true;
   } else {
+    const roster = resolveRoster(opts, sessionId, ws.slug);
     run = {
       workspace: ws.root,
       workspaceSlug: ws.slug,
@@ -226,6 +307,13 @@ function beginRun(opts) {
       phase: opts.phase || "plan",
       status: "active",
       host: opts.host || detectHostFromEnv(),
+      member: roster.member,
+      memberDisplay: roster.memberDisplay,
+      team: roster.team,
+      teamId: roster.teamId,
+      teamDisplay: roster.teamDisplay,
+      claimKey: roster.claimKey,
+      role: roster.role,
       startedAt: existing ? existing.startedAt : startedAt,
       lastHeartbeat: startedAt,
       completedAt: null,
@@ -239,7 +327,35 @@ function beginRun(opts) {
   }
   run.lastHeartbeat = new Date().toISOString();
   saveRun(run, worktreePath);
-  return { run, resumed };
+  return { ok: true, run, resumed };
+}
+
+/**
+ * Guarded resume: refuse to take over another holder's live run.
+ *
+ * Resolves the caller's holder identity (explicit `opts.expectedClaimKey`,
+ * else the roster claimKey for this session) and delegates to `beginRun`
+ * with the guard armed. A second session resuming someone else's live run
+ * gets `{ ok: false, code: RESUME_COLLISION, holder }` instead of silently
+ * sharing the worktree — parallel resumes are parallel writers.
+ * Fail-open: any guard error falls back to a plain `beginRun`.
+ * @param {object} [opts] - same options as `beginRun`
+ */
+function resumeRun(opts) {
+  const o = opts && typeof opts === "object" ? { ...opts } : {};
+  try {
+    if (!o.expectedClaimKey) {
+      const ws = resolveWorkspace(o.workspace);
+      const sid = o.sessionId || resolveSessionId();
+      o.expectedClaimKey = resolveRoster(o, sid, ws.slug).claimKey;
+    }
+    const begun = beginRun(o);
+    if (begun && begun.code === RESUME_COLLISION) return begun;
+    return { ok: true, run: begun.run, resumed: begun.resumed };
+  } catch (err) {
+    const begun = beginRun(opts && typeof opts === "object" ? opts : {});
+    return { ok: true, run: begun.run, resumed: begun.resumed, failOpen: true };
+  }
 }
 
 /** Touches the run heartbeat and persists. */
@@ -273,6 +389,8 @@ function listRuns(filters) {
   return Object.values(index.runs).filter((entry) => {
     if (wsSlug && entry.workspaceSlug !== wsSlug) return false;
     if (filters.status && entry.status !== filters.status) return false;
+    if (filters.member && (entry.member || null) !== filters.member) return false;
+    if (filters.team !== undefined && (entry.teamId || entry.team || null) !== (filters.team || null)) return false;
     return true;
   });
 }
@@ -370,11 +488,15 @@ module.exports = {
   resolveWorkspace,
   resolveSessionId,
   resolveTaskId,
+  resolveRoster,
   loadIndex,
   writeIndex,
   readRun,
   saveRun,
   beginRun,
+  resumeRun,
+  holderOf,
+  RESUME_COLLISION,
   heartbeat,
   listRuns,
   listLiveRuns,

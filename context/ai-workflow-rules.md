@@ -26,6 +26,7 @@ Build this project incrementally using spec-driven workflow aligned with the **S
 - Work on one concern per change: hooks, agents, install, or init-context — not all at once unless tightly coupled.
 - Prefer small verifiable increments (health check passes after each hook change).
 - Do not combine unrelated project bridges with agent prompt rewrites in one commit.
+- **Conductor artifacts are durable, never /tmp**: plan/baseline/proof artifacts resolve via `plan-artifact.js` `resolveArtifactDir()` — `<workspace>/data/conductor` first, then `PCORE_ARTIFACT_DIR`, then the global state plans dir; a path under the OS temp dir is never returned (a `/tmp` wipe must not take conductor evidence with it).
 
 ## Repo-type scoping (single-repo vs monorepo)
 

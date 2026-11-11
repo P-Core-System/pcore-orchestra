@@ -101,7 +101,157 @@ function recordPhaseOutcome(state, outcome, subagentType, worktreePath) {
       /* fail-open — queue projection still opens on the block outcome */
     }
   }
+
+  // Wave3 teammate nudge: a block/escalate outcome wakes the team's
+  // leader/HOD slot (fail-open, lazy to avoid a require cycle with
+  // session-wake.js which reads this barrel for its domain emits).
+  try {
+    const wake = require("../session-wake.js");
+    if (wake && typeof wake.wakeForPhaseOutcome === "function") {
+      wake.wakeForPhaseOutcome(s, o, worktreePath);
+    }
+  } catch {
+    /* fail-open — the wake channel must never break the outcome log */
+  }
   return stored;
+}
+
+/**
+ * Record a team-session outcome (`session.claimed` / `session.heartbeat` /
+ * `session.released` / `session.learned`) for a member claim. Fail-open: any
+ * shape or I/O problem yields null and never throws — the domain log must
+ * never break the host hook. Writes go through store.appendEvent only
+ * (invariant 19).
+ *
+ * The optional `extra` param is additive learning context
+ * (`{outcome, lessons, threadRef}`, used by the `learned` action via
+ * `recordLearning` in distill-learnings.js); older callers pass nothing
+ * and their payloads are unchanged apart from three null fields.
+ *
+ * @param {object|null} claim claim record (claimKey, member, team, ...)
+ * @param {string} action "claimed" | "heartbeat" | "released" | "learned"
+ * @param {string|null} [worktreePath] optional worktree path for isolation
+ * @param {object|null} [extra] additive {outcome, lessons, threadRef}
+ * @returns {object|null} the stored event, or null when skipped/failed
+ */
+function recordSessionOutcome(claim, action, worktreePath, extra) {
+  const allowed = { claimed: "session.claimed", heartbeat: "session.heartbeat", released: "session.released", learned: "session.learned" };
+  const type = allowed[action];
+  if (!type || !claim || typeof claim !== "object") return null;
+  if (typeof worktreePath === "object" && worktreePath !== null && !Array.isArray(worktreePath)) {
+    // tolerate (claim, { worktreePath }) call shape
+    worktreePath = worktreePath.worktreePath;
+  }
+  const ex = extra && typeof extra === "object" ? extra : {};
+  try {
+    const event = entities.createEvent({
+      type,
+      entityId: typeof claim.sessionId === "string" ? claim.sessionId : null,
+      payload: {
+        claimKey: claim.claimKey || null,
+        member: claim.member || null,
+        memberDisplay: claim.memberDisplay || null,
+        team: claim.team || null,
+        teamId: claim.teamId || claim.team || null,
+        teamDisplay: claim.teamDisplay || null,
+        role: claim.role || "member",
+        workspaceSlug: claim.workspaceSlug || null,
+        action,
+        outcome: typeof ex.outcome === "string" ? ex.outcome : null,
+        lessons: typeof ex.lessons === "string" ? ex.lessons : null,
+        threadRef: typeof ex.threadRef === "string" ? ex.threadRef : null,
+      },
+    });
+    return store.appendEvent(event, { worktreePath });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Record a team-discussion outcome (`discussion.posted` /
+ * `discussion.resolved` / `discussion.reaction`) for a message. Fail-open:
+ * any shape or I/O problem yields null and never throws — the domain log
+ * must never break the host hook. Writes go through store.appendEvent only
+ * (invariant 19).
+ *
+ * @param {object|null} msg message record (id, kind, from, team, ...)
+ * @param {string} action "posted" | "resolved" | "reaction"
+ * @param {string|null} [worktreePath] optional worktree path for isolation
+ * @returns {object|null} the stored event, or null when skipped/failed
+ */
+function recordDiscussionOutcome(msg, action, worktreePath) {
+  const allowed = { posted: "discussion.posted", resolved: "discussion.resolved", reaction: "discussion.reaction" };
+  const type = allowed[action];
+  if (!type || !msg || typeof msg !== "object") return null;
+  if (typeof worktreePath === "object" && worktreePath !== null && !Array.isArray(worktreePath)) {
+    // tolerate (msg, { worktreePath }) call shape
+    worktreePath = worktreePath.worktreePath;
+  }
+  try {
+    const event = entities.createEvent({
+      type,
+      entityId: typeof msg.id === "string" ? msg.id : null,
+      payload: {
+        messageId: msg.id || null,
+        kind: msg.kind || null,
+        topology: msg.topology || null,
+        from: msg.from || null,
+        to: msg.to || null,
+        team: msg.team || null,
+        topic: msg.topic || null,
+        action,
+      },
+    });
+    return store.appendEvent(event, { worktreePath });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Record a session-wake outcome (`wake.requested` / `wake.delivered` /
+ * `wake.denied` / `wake.throttled`) for a wake request. Fail-open: any
+ * shape or I/O problem yields null and never throws — the domain log must
+ * never break the host hook or the wake store. Writes go through
+ * store.appendEvent only (invariant 19).
+ *
+ * @param {object|null} wake wake record (id, from, to, team, ...) or a
+ *   minimal audit stub {id, from, to, team, reason} for denied requests
+ *   that stored nothing
+ * @param {string} action "requested" | "delivered" | "denied" | "throttled"
+ * @param {string|null} [worktreePath] optional worktree path for isolation
+ * @returns {object|null} the stored event, or null when skipped/failed
+ */
+function recordWakeOutcome(wake, action, worktreePath) {
+  const allowed = { requested: "wake.requested", delivered: "wake.delivered", denied: "wake.denied", throttled: "wake.throttled" };
+  const type = allowed[action];
+  if (!type || !wake || typeof wake !== "object") return null;
+  if (typeof worktreePath === "object" && worktreePath !== null && !Array.isArray(worktreePath)) {
+    // tolerate (wake, { worktreePath }) call shape
+    worktreePath = worktreePath.worktreePath;
+  }
+  try {
+    const event = entities.createEvent({
+      type,
+      entityId: typeof wake.id === "string" ? wake.id : null,
+      payload: {
+        wakeId: typeof wake.id === "string" ? wake.id : null,
+        from: wake.from || null,
+        to: wake.to || null,
+        team: wake.team || null,
+        topic: wake.topic || null,
+        threadId: wake.threadId || null,
+        messageId: wake.messageId || null,
+        topology: wake.topology || null,
+        reason: wake.reason || null,
+        action,
+      },
+    });
+    return store.appendEvent(event, { worktreePath });
+  } catch {
+    return null;
+  }
 }
 
 module.exports = Object.assign(
@@ -114,6 +264,9 @@ module.exports = Object.assign(
     evidence,
     reviewQueue,
     recordPhaseOutcome,
+    recordSessionOutcome,
+    recordDiscussionOutcome,
+    recordWakeOutcome,
   },
   constants,
   entities,

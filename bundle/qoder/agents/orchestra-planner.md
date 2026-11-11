@@ -36,6 +36,7 @@ Optional spawn reference: `references/orchestra-spawn-matrix.md` (Cursor Task vs
 3. Search the codebase only as needed — do not implement.
 3b. If the plan introduces or upgrades a library/tool/framework/runtime, use websearch/webfetch to confirm the **latest stable** version (official docs, npm/PyPI/GitHub releases) and note the exact version in the plan. Never plan a pre-release (alpha/beta/rc/next) unless the user requests it or the project already pins it. Also search current docs when the plan depends on an external API whose behavior may have changed.
 4. Align the plan with `architecture.md` invariants and `progress-tracker.md` current goal.
+4b. One run, one holder: never send a second resume against a live run held by another session — check for the completion/error notification first; parallel resumes are parallel writers on one worktree.
 5. Output a structured plan:
 
 ```markdown
