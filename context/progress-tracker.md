@@ -11,6 +11,14 @@ Update this file after every meaningful implementation change.
 
 - Verify token usage per phase is under budget
 
+## 2026-11-11 — slot reuse on re-claim (findLiveSlot, --new-slot hatch)
+
+- `bundle/hooks/lib/session-claims.js` (+ byte-identical OpenCode mirror): NEW `findLiveSlot` (live slot by member+team+slug, any session; skips stale candidates so a stale-first roster still finds the live slot); `claimSession` renews the live slot in place by default (same claimKey, `renewed: true`, heartbeat/scope/session/role/branch refreshed, scope-less renew keeps prior scope, self-exclusion on the renewed key); `{ newSlot: true }` hatches a parallel session-scoped slot; stale slots mint fresh. Scope guard intact (foreign overlap still `SCOPE_CONFLICT`).
+- `scripts/team-sessions.sh`: NEW `--new-slot` hatch (claim/dispatch/supervise/discuss-post; dispatch/supervise/request default to reuse); help text documents renew-by-default.
+- NEW `scripts/test-slot-reuse.js` (25 checks: renew same key/count1/renewed, scope refresh + scope-less keep, hatch count2, stale fresh, findLiveSlot session-ignore/unknown-null, SCOPE_CONFLICT + self-overlap pass, CLI claim reuse/renewed/--new-slot, discuss-post author reuse) wired into CI orchestration suite + `context/code-standards.md` self-check list.
+  Key files: `bundle/hooks/lib/session-claims.js` (+ mirror), `scripts/team-sessions.sh`, `scripts/test-slot-reuse.js`, `.github/workflows/ci.yml`, `context/{architecture,code-standards,progress-tracker}.md`.
+  Impact: one member holds one live slot per team/workspace across sessions — re-claims, dispatch re-runs, and discuss posts renew instead of fragmenting the roster; `--new-slot` covers the parallel-slot escape hatch.
+
 ## 2026-11-11 — HOD autonomous loop + R&D (supervise/queue/done, research, whitepapers, UX)
 
 - NEW `bundle/hooks/lib/team-supervisor.js` (+ mirror): pure `sweep({backlog, claims, requests})` (FIFO requests first, HOD-push remainder, busy never assigned), `nextAction` (work/idle/release), `memberBranch`/`memberClaimKey`/`memberWorktree` (/tmp rejected, inv 38); `team-requests.js` FIFO durable `team-requests.json` (shared 30/31 carve-out, `enqueue`/`grant`/`list`); `team-done.js` SHA reports (`team-done.json` shared carve-out, `DONE_BAD_SHA` refusal); `team-research.js` `scoreOption`/`pickBest` (25/20/20/15/10/10, missing=0, deterministic).

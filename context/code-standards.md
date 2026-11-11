@@ -78,6 +78,7 @@ node scripts/test-handoff-enforcer.js
 node scripts/test-review-queue-producer.js
 node scripts/test-team-dispatch.js
 node scripts/test-team-sessions.js
+node scripts/test-slot-reuse.js
 node scripts/test-team-discussion.js
 node scripts/test-session-wake.js
 node scripts/test-team-roundtrip.js

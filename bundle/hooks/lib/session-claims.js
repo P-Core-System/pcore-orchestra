@@ -201,12 +201,47 @@ function readAll(worktreePath) {
 }
 
 /**
+ * Find a member's LIVE (non-stale) slot by identity — member + team +
+ * workspace slug, any session. A re-claim from a new session renews this
+ * slot in place instead of minting a parallel key, so one member holds one
+ * live slot per team/workspace. Stale slots read as absent (a stale slot
+ * mints fresh); pass { includeStale: true } to see the stale slot itself.
+ * @returns {object|null} the live claim record, or null
+ */
+function findLiveSlot(opts) {
+  const o = opts || {};
+  const sessionId = o.sessionId || resolveSessionId();
+  const member = sanitizeName(o.member) || resolveMemberName(o.member, sessionId);
+  const team = resolveTeamName(o.team);
+  const ws = resolveSlug(o.workspace);
+  const workspaceSlug = sanitizeName(o.workspaceSlug) || ws.slug;
+  const now = Date.now();
+  const thresh = Number.isFinite(o.staleMs) ? o.staleMs : STALE_MS;
+  const all = Object.values(readAll(o.worktreePath));
+  for (const c of all) {
+    if (!c || typeof c !== "object") continue;
+    if (sanitizeName(c.member) !== member) continue;
+    if (sanitizeName(c.teamId || c.team) !== team) continue;
+    if (sanitizeName(c.workspaceSlug) !== workspaceSlug) continue;
+    if (!o.includeStale && isStaleClaim(c, now, thresh)) continue;
+    return c;
+  }
+  return null;
+}
+
+/**
  * Claim (or renew) a member slot. Upserts under an advisory lock.
+ * Slot reuse (default): when the member already holds a LIVE slot for the
+ * same team/workspace, the claim renews that slot in place — heartbeat +
+ * scope + session refreshed under the SAME claimKey — and returns it with
+ * `renewed: true`. Pass `{ newSlot: true }` (CLI `--new-slot`) to hatch a
+ * parallel slot under a fresh session-scoped key instead. A stale slot
+ * never renews: it reads as absent and the claim mints fresh.
  * Scope (`--scope`, string or array) declares the files this member will
  * touch: a claim whose scope overlaps another LIVE member's scope conflicts
- * and is blocked unless `allowOverlap` is set — renewing the same claimKey
- * never conflicts with itself. Throws an Error with `code:
- * "SCOPE_CONFLICT"` and a `conflicts` array when blocked.
+ * and is blocked unless `allowOverlap` is set — renewing a slot never
+ * conflicts with itself (self-exclusion on the renewed key). Throws an
+ * Error with `code: "SCOPE_CONFLICT"` and a `conflicts` array when blocked.
  */
 function claimSession(opts) {
   const o = opts || {};
@@ -219,9 +254,21 @@ function claimSession(opts) {
   const workspaceSlug = sanitizeName(o.workspaceSlug) || ws.slug;
   const key = claimKey({ team, member, workspaceSlug, sessionId });
   const shown = displayFor({ team, member, workspaceSlug });
+  const reuse = o.newSlot
+    ? null
+    : findLiveSlot({
+      member,
+      team,
+      workspaceSlug,
+      workspace: o.workspace,
+      sessionId,
+      worktreePath: o.worktreePath,
+      staleMs: o.staleMs,
+    });
+  const activeKey = reuse ? reuse.claimKey : key;
   const conflicts = findScopeConflicts({
     scope,
-    excludeKey: key,
+    excludeKey: activeKey,
     worktreePath: o.worktreePath,
     staleMs: o.staleMs,
   });
@@ -241,11 +288,13 @@ function claimSession(opts) {
     file,
     () => {
       const current = readAll(o.worktreePath);
-      const prev = current[key];
+      const prev = current[activeKey];
       // Re-check under the lock: a concurrent claim may have landed first.
+      // Self-exclusion rides on the renewed key, so a slot renew never
+      // conflicts with its own scope.
       if (!o.allowOverlap && scope.length > 0) {
         const raced = Object.values(current).filter(
-          (c) => c && c.claimKey !== key && !isStaleClaim(c, Date.now(), o.staleMs) && scopesOverlap(c.scope, scope)
+          (c) => c && c.claimKey !== activeKey && !isStaleClaim(c, Date.now(), o.staleMs) && scopesOverlap(c.scope, scope)
         );
         if (raced.length > 0) {
           const err = new Error(
@@ -257,24 +306,25 @@ function claimSession(opts) {
         }
       }
       stored = {
-        claimKey: key,
+        claimKey: activeKey,
         member,
         memberDisplay: shown.display,
         team: team || null,
         teamId: team || null,
         teamDisplay: shown.teamDisplay,
         role,
-        scope,
-        branch: typeof o.branch === "string" && o.branch ? o.branch : memberBranch({ team, member }),
+        scope: o.scope === undefined && prev && Array.isArray(prev.scope) ? prev.scope : scope,
+        branch: typeof o.branch === "string" && o.branch ? o.branch : (prev && prev.branch) || memberBranch({ team, member }),
         sessionId,
-        workspace: o.workspace || ws.root,
+        workspace: o.workspace || (prev && prev.workspace) || ws.root,
         workspaceSlug,
-        host: o.host || null,
+        host: o.host || (prev && prev.host) || null,
         createdAt: (prev && prev.createdAt) || now,
         updatedAt: now,
         heartbeatAt: now,
+        renewed: Boolean(reuse),
       };
-      current[key] = stored;
+      current[activeKey] = stored;
       writeJson(file, current);
     },
     { waitMs: o.waitMs }
@@ -557,6 +607,7 @@ module.exports = {
   displayFor,
   isStaleClaim,
   claimSession,
+  findLiveSlot,
   heartbeatClaim,
   releaseClaim,
   getClaim,

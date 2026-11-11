@@ -27,7 +27,7 @@ unset PCORE_MEMBER_NAME PCORE_TEAM_NAME PCORE_MEMBER_ROLE PCORE_WS \
       PCORE_CLAIM_KEY PCORE_SESSION_OVERRIDE PCORE_JSON PCORE_STALE_MIN \
       PCORE_WORKTREE PCORE_SCOPE PCORE_FILES PCORE_DRY_RUN PCORE_WORKTREE_BASE \
       PCORE_KIND PCORE_TO PCORE_TOPIC PCORE_BODY PCORE_EMOJI PCORE_MSG_ID \
-      PCORE_TOPOLOGY PCORE_ALL PCORE_FREE_ONLY PCORE_REASON PCORE_THREAD \
+      PCORE_TOPOLOGY PCORE_ALL PCORE_FREE_ONLY PCORE_NEW_SLOT PCORE_REASON PCORE_THREAD \
       PCORE_MESSAGE PCORE_DECISION PCORE_BY PCORE_OUTCOME PCORE_LESSONS 2>/dev/null || true
 
 case "$CMD" in
@@ -38,6 +38,7 @@ case "$CMD" in
 Usage: bash scripts/team-sessions.sh <command> [flags]
 
   claim     --member M [--team T] [--role R] [--scope S] [--workspace W]   claim/renew slot
+          [--new-slot] hatches a parallel slot instead of renewing the live one
   heartbeat --member M [--team T] [--workspace W]              touch heartbeat
   release   --member M [--team T] [--workspace W]               drop claim
   list      [--team T]                                         live claims (grouped)
@@ -72,6 +73,9 @@ Usage: bash scripts/team-sessions.sh <command> [flags]
 
   --member takes a comma-separated filter for dispatch ("john,james");
   single member elsewhere. --dry-run plans with zero side effects.
+  Re-claims renew the member's live slot in place (same claimKey, renewed);
+  --new-slot hatches a parallel slot instead (claim, dispatch, supervise,
+  discuss post).
   dispatch exits 0 (all claimed), 2 (some skipped on SCOPE_CONFLICT), 1 (error).
   wake request/ack exits 2 on deny (cross-scope, no live claim, throttled,
   wrong acker); learning approve exits 2 without a human decision+by.
@@ -109,6 +113,7 @@ while [ $# -gt 0 ]; do
     --worktree-base) PCORE_WORKTREE_BASE="${2:-}"; shift 2 ;;
     --dry-run) PCORE_DRY_RUN=1; shift ;;
     --free-only) PCORE_FREE_ONLY=1; shift ;;
+    --new-slot) PCORE_NEW_SLOT=1; shift ;;
     --all) PCORE_ALL=1; shift ;;
     --scope) PCORE_SCOPE="${2:-}"; shift 2 ;;
     --kind) PCORE_KIND="${2:-}"; shift 2 ;;
@@ -140,7 +145,7 @@ export PCORE_MEMBER_NAME PCORE_TEAM_NAME PCORE_MEMBER_ROLE PCORE_WS \
        PCORE_CLAIM_KEY PCORE_SESSION_OVERRIDE PCORE_JSON PCORE_STALE_MIN \
        PCORE_WORKTREE PCORE_SCOPE PCORE_FILES PCORE_DRY_RUN PCORE_WORKTREE_BASE \
        PCORE_KIND PCORE_TO PCORE_TOPIC PCORE_BODY PCORE_EMOJI PCORE_MSG_ID \
-       PCORE_TOPOLOGY PCORE_ALL PCORE_FREE_ONLY PCORE_REASON PCORE_THREAD \
+       PCORE_TOPOLOGY PCORE_ALL PCORE_FREE_ONLY PCORE_NEW_SLOT PCORE_REASON PCORE_THREAD \
        PCORE_MESSAGE PCORE_DECISION PCORE_BY PCORE_OUTCOME PCORE_LESSONS \
        PCORE_SHA PCORE_SUMMARY PCORE_BRANCH
 export PCORE_CMD="$CMD"
@@ -176,6 +181,7 @@ function opts() {
     claimKey: env.PCORE_CLAIM_KEY || undefined,
     scope: env.PCORE_SCOPE || undefined,
     worktreePath: env.PCORE_WORKTREE || undefined,
+    newSlot: env.PCORE_NEW_SLOT === "1" ? true : undefined,
   };
 }
 
@@ -300,7 +306,7 @@ switch (env.PCORE_CMD) {
     const skipped = [];
     for (const plan of plans) {
       try {
-        const claim = claims.claimSession({ member: plan.member, team: plan.team, scope: plan.scope, sessionId: plan.sessionId, workspace: wsRoot, workspaceSlug: plan.workspaceSlug });
+        const claim = claims.claimSession({ member: plan.member, team: plan.team, scope: plan.scope, sessionId: plan.sessionId, workspace: wsRoot, workspaceSlug: plan.workspaceSlug, newSlot: env.PCORE_NEW_SLOT === "1" ? true : undefined });
         record("claimed", claim);
         if (plan.worktreePath) {
           try { nodeFs.mkdirSync(nodePath.join(plan.worktreePath, ".pcore", "state"), { recursive: true }); } catch { /* best effort */ }
@@ -577,7 +583,7 @@ switch (env.PCORE_CMD) {
       const scope = dispatch.scopeForItems([a.item]);
       const worktreePath = supervisorLib.memberWorktree(worktreeBase, a.team, a.member);
       try {
-        const claim = claims.claimSession({ member: a.member, team: a.team, sessionId, workspace: wsRoot, scope: scope.length ? scope.join(",") : undefined });
+        const claim = claims.claimSession({ member: a.member, team: a.team, sessionId, workspace: wsRoot, scope: scope.length ? scope.join(",") : undefined, newSlot: env.PCORE_NEW_SLOT === "1" ? true : undefined });
         try { nodeFs.mkdirSync(nodePath.join(worktreePath, ".pcore", "state"), { recursive: true }); } catch { /* best effort */ }
         if (a.via === "request" && a.requestId && queueLib) {
           try { queueLib.grant(sharedDir, a.member); } catch { /* best effort */ }
