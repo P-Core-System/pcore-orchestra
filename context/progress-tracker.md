@@ -11,6 +11,14 @@ Update this file after every meaningful implementation change.
 
 - Verify token usage per phase is under budget
 
+## 2026-11-12 — install-HEAD verification + team-supervisor-hod capability sync
+
+- Verified install at HEAD (`b055b25`): health exit 0 (162/162 agents, all hooks/lib OK), `gen-agent-registry.js --check` OK (27 hook agents, 162 files), `test-mirror-sync.js` PASS (75 hook files, all lib byte-identical), installed `~/.cursor/hooks/lib` matches bundle (diff clean), worktree clean.
+- `0d77aea` chore(agents): synced WebFetch/WebSearch capabilities onto `team-supervisor-hod` across bundle + claude/qoder mirrors; `bundle/agent-registry.json` regenerated (capability allowlist only, no coverage change).
+- Re-verify after sync: health/registry/mirror/installed-match all green, `git status --porcelain` empty.
+  Key files: `bundle/agents/04-planning/team-supervisor-hod.md`, `bundle/agent-registry.json` (+ claude/qoder mirrors), `context/progress-tracker.md`.
+  Impact: HOD agent can use WebFetch/WebSearch per its researcher-adjacent duties; install-HEAD proven green end to end with a clean tree.
+
 ## 2026-11-11 — layer diagram docs (WI-0, docs only)
 
 - NEW `docs/layer-diagram.md`: Mermaid layer graph (presentation → server → business → persistence), per-subsystem Mark Richards patterns, trade-offs, allowed-import table, violation examples.
