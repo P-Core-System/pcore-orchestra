@@ -116,6 +116,9 @@ jobs:
           node scripts/test-resume-collision.js
           node scripts/test-plan-artifact.js
           node scripts/test-baseline-adjudication.js
+          node scripts/test-context-preservation.js
+          node scripts/test-trigger-scheduler.js
+          node scripts/test-injection-order.js
           node scripts/test-agent-sync.js
 
       # Qoder host: settings merge, agent conversion drift

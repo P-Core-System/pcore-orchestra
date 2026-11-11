@@ -87,6 +87,9 @@ node scripts/test-team-hod.js
 node scripts/test-resume-collision.js
 node scripts/test-plan-artifact.js
 node scripts/test-baseline-adjudication.js
+node scripts/test-context-preservation.js
+node scripts/test-trigger-scheduler.js
+node scripts/test-injection-order.js
 node scripts/test-agent-sync.js
 node scripts/test-merge-qoder-settings.js
 node scripts/test-qoder-sync.js
