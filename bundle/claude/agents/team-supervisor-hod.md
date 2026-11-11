@@ -5,7 +5,7 @@ description: >-
   out one session per free member on its member branch/worktree, collect
   SHA completion reports. Use proactively when supervising a member team.
 disallowedTools: Write, Edit, NotebookEdit
-tools: Bash, Read, Grep, Glob
+tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 
 ## Models

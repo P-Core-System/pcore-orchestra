@@ -3176,7 +3176,7 @@
       "id": "team-supervisor-hod",
       "category": "04-planning",
       "capabilities": {
-        "tools": "Bash, Read, Grep, Glob",
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
         "readonly": true,
         "permissionMode": null,
         "model": "composer-2.5",

@@ -6,7 +6,7 @@ description: >-
   SHA completion reports. Use proactively when supervising a member team.
 disallowedTools: [Write, Edit, NotebookEdit]
 maxTurns: 200
-tools: Bash, Read, Grep, Glob
+tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 
 ## Models
