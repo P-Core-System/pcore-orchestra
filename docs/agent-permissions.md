@@ -22,14 +22,14 @@ not interchangeable:
 
 ### Why V1 frontmatter is the standard
 
-All 160 agents carry a `name:` field. In OpenCode `v2.0.29`, **V2 permissions arrays
+All 162 agents carry a `name:` field. In OpenCode `v2.0.29`, **V2 permissions arrays
 are honored ONLY when `name:` is absent** — because every agent has `name:`, every V2
 array in agent frontmatter is silently dropped. V1 `permission:` objects in frontmatter
 are the only reliable per-agent declaration.
 
 The `tools:` key is **deprecated since v1.1.1**; its aliases weaken deny precision
 (`write` → `edit`), so `tools:` is not used anywhere in the agent tree (0 occurrences
-across all 160+160 agent `.md` files).
+across all 162+162 agent `.md` files).
 
 **Takeaway:** per-agent permission behavior goes in V1 `permission:` frontmatter;
 global/broad policy goes in V2 `permissions[]` in `autonomy.json` (native config V2).
@@ -46,7 +46,7 @@ bare names. Allowlist entries are namespaced globs such as `05-implementation/*`
 
 In the RC1 conductor config, bare-name globs (e.g. `backend-engineer`, `security-engineer`)
 matched **0/42** specialists — OpenCode resolves agent IDs as `dir/name`, so bare names
-never resolved. Switching to namespaced globs (`dir/*`) achieved **160/160** coverage.
+never resolved. Switching to namespaced globs (`dir/*`) achieved **162/162** coverage.
 Any new agent added to `bundle/opencode/agents/` must therefore be added to the conductor
 allowlist under its `dir/*` namespace (regenerated from `bundle/agent-registry.json` by
 `scripts/gen-agent-registry.js` between BEGIN/END markers — additive only).
@@ -79,8 +79,8 @@ per-agent form; do not migrate agent frontmatter to V2 arrays.
 
 | RC | Change | What it fixed |
 |----|--------|---------------|
-| **RC1** | ID-namespaced conductor allowlist (bare names → `dir/*` globs) | `permission.task` allowlist matched 0/42 specialists; namespaced globs achieve 160/160 |
-| **RC2** | Frontmatter syntax standardization (V1 `permission:`; `tools:` dropped; V2 arrays only in config) | V2 arrays silently dropped on all 160 `name:`-carrying agents; V1 frontmatter is the reliable form |
+| **RC1** | ID-namespaced conductor allowlist (bare names → `dir/*` globs) | `permission.task` allowlist matched 0/42 specialists; namespaced globs achieve 162/162 |
+| **RC2** | Frontmatter syntax standardization (V1 `permission:`; `tools:` dropped; V2 arrays only in config) | V2 arrays silently dropped on all 162 `name:`-carrying agents; V1 frontmatter is the reliable form |
 | **RC3** | Deny-first root strip: `"*": deny` first rule, keep `read*` allow + `shell* allow` | Prevents prompt loops (builtin bash default is ask; stripping read/shell causes re-prompt loops) |
 | **RC4** | Default-export plugin `{id, setup}` via `ctx.session.hook("context")` + SystemPart; `install.sh`/`install.ps1` MUST copy `bundle/opencode/plugins/` | Orchestra-ambient plugin now ships and registers on install |
 | **RC5** | Observability log fail-open: input/spawn/permission events; byte-identical hooks/lib mirrors | `harness-observability.js` logs `input.received`, `input.classified`, `spawn.attempted`, `spawn.result`, `permission.denied` to `harness-observability.json` (ring-capped, fail-open, PCORE_STATE_DIR-aware) |
@@ -131,7 +131,7 @@ Cross-platform mapping of the same source `readonly:` flag:
 | OpenCode (bundle/opencode) | `permission: { edit: allow, bash: allow }` | `edit: deny, bash: allow` |
 | Registry v2 | `capabilities.permissionMode: "acceptEdits"` | `capabilities.permissionMode: null` |
 
-Current split: **53 writable / 105 readonly / 2 conductors** (160 agents).
+Current split: **53 writable / 107 readonly / 2 conductors** (162 agents).
 
 Caveats:
 - Agent definitions are read at **session start** — after any regenerate + reinstall,

@@ -38,7 +38,7 @@ This section is designed to be read directly by AI agents (Cursor, OpenCode CLI,
 │   ├── hooks/            # 11 hook entry points + lib/ (44 flat modules + 8-module domain/)
 │   ├── opencode/         # OpenCode mirror: hooks/ (byte-identical lib), agents/, skills/, config
 │   ├── qoder/agents/     # Qoder agent markdown, generated from the Cursor agents
-│   ├── agents/           # 160 agent definitions in 37 category dirs + references/
+│   ├── agents/           # 162 agent definitions in 37 category dirs + references/
 │   ├── skills/           # Vendored + orchestra skills (Cursor)
 │   ├── skills-cursor/    # Cursor built-in skill mirrors
 │   ├── rules/            # Always-on .mdc rules
@@ -401,7 +401,7 @@ pcore-orchestra/
 │   │   ├── evidence-runner.js     # Build/test/lint/security gates
 │   │   ├── phase-commit-gate.js   # Commit-before-next-phase gate
 │   │   └── ...                    # 35 more flat modules + domain/ (see Lib Modules above)
-│   ├── agents/                    # 🎭 160 agent definitions + references/ (37 category dirs)
+│   ├── agents/                    # 🎭 162 agent definitions + references/ (37 category dirs)
 │   ├── qoder/agents/              # Qoder mirrors (generated)
 │   ├── skills/                    # Cursor skills
 │   ├── skills-cursor/             # Cursor built-in skills
@@ -594,7 +594,7 @@ node bundle/hooks/orchestra-health.js
 | Installers | 1,159 lines (bash + PowerShell) | `install.sh` (611), `install.ps1` (548) |
 | Scripts | 57 JS (52 top-level + 5 `lib/`) + 17 shell | Automation, suites, service managers, watcher, MCP knowledge server |
 | Templates | 42 files | Six-file context blanks, specs, AGENTS, 29 architecture templates |
-| Agents | 160 agent files, 27 hook agents | Generated SSOT: `bundle/agent-registry.json` |
+| Agents | 162 agent files, 27 hook agents | Generated SSOT: `bundle/agent-registry.json` |
 
 ## Dependencies
 
