@@ -69,12 +69,12 @@
   },
   "counts": {
     "hookAgents": 27,
-    "agentFiles": 160,
-    "cursorAgents": 160,
-    "opencodeAgents": 160
+    "agentFiles": 162,
+    "cursorAgents": 162,
+    "opencodeAgents": 162
   },
   "opencodeNamespaced": {
-    "count": 155,
+    "count": 157,
     "globs": [
       "00-business/business-strategist*",
       "00-business/compliance-officer*",
@@ -86,6 +86,7 @@
       "00-domain/healthcare-specialist*",
       "00-domain/industry-analyst*",
       "00-domain/regulatory-specialist*",
+      "00-domain/team-researcher*",
       "00-policy/data-governance-officer*",
       "00-policy/license-manager*",
       "00-policy/policy-maker*",
@@ -108,6 +109,7 @@
       "03-architecture/tech-lead*",
       "04-planning/project-manager*",
       "04-planning/scrum-master*",
+      "04-planning/team-supervisor-hod*",
       "05-implementation/backend-engineer*",
       "05-implementation/database-engineer*",
       "05-implementation/frontend-engineer*",
@@ -374,6 +376,8 @@
     "syllable-analyst",
     "syntactic-engineer",
     "synthetic-data-generator",
+    "team-researcher",
+    "team-supervisor-hod",
     "tech-lead",
     "technical-debt-tracker",
     "technical-writer",
@@ -3145,6 +3149,40 @@
         "effort": null
       },
       "description": "Enterprise SDLC Phase 5,11 — Synthetic data generation, data augmentation, GAN-based generation, LLM-based generation, privacy-preserving synthesis, data imbalance correction. Use proactively when this specialist's phase is active.",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "team-researcher",
+      "category": "00-domain",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "permissionMode": null,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "R&D option research — official sources only, latest stable versions, scored with team-research.js, whitepaper output human-gated. Use proactively when a technology or vendor choice needs evidence.",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "team-supervisor-hod",
+      "category": "04-planning",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob",
+        "readonly": true,
+        "permissionMode": null,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "HOD autonomous loop — sweep backlog + FIFO requests + live claims, fan out one session per free member on its member branch/worktree, collect SHA completion reports. Use proactively when supervising a member team.",
       "independence": {
         "files": [],
         "gates": [],

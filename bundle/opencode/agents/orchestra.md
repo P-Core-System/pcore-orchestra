@@ -325,6 +325,10 @@ permission:
     "14-research/innovation-lead*": allow
     "14-research/research-scientist*": allow
     "14-research/technology-scout*": allow
+    "team-researcher*": allow
+    "team-supervisor-hod*": allow
+    "00-domain/team-researcher*": allow
+    "04-planning/team-supervisor-hod*": allow
     # END GENERATED: task allowlist
   bash: allow
   edit: deny

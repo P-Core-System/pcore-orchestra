@@ -11,6 +11,17 @@ Update this file after every meaningful implementation change.
 
 - Verify token usage per phase is under budget
 
+## 2026-11-11 — HOD autonomous loop + R&D (supervise/queue/done, research, whitepapers, UX)
+
+- NEW `bundle/hooks/lib/team-supervisor.js` (+ mirror): pure `sweep({backlog, claims, requests})` (FIFO requests first, HOD-push remainder, busy never assigned), `nextAction` (work/idle/release), `memberBranch`/`memberClaimKey`/`memberWorktree` (/tmp rejected, inv 38); `team-requests.js` FIFO durable `team-requests.json` (shared 30/31 carve-out, `enqueue`/`grant`/`list`); `team-done.js` SHA reports (`team-done.json` shared carve-out, `DONE_BAD_SHA` refusal); `team-research.js` `scoreOption`/`pickBest` (25/20/20/15/10/10, missing=0, deterministic).
+- `scripts/team-sessions.sh`: `supervise --team T [--dry-run]` (sweep → claim + per-member `.pcore/state` worktree + payload, SCOPE_CONFLICT skips), `queue enqueue|list|grant`, `done report|list` — all `--json`, fail-open, proven live on a temp `PCORE_STATE_DIR`.
+- `spawn-adapter.js` (+ mirror, additive): `spawnBackground` (detached handle, async errors observed never thrown) + `teamParallelWaves` greedy packing over `canDispatchInParallel` (same-claim/teammate-worktree/scope-conflict serialize, inv 32).
+- Agents: `team-supervisor-hod.md` (04-planning, readonly) + `team-researcher.md` (00-domain, readonly, official-sources/latest-stable); registry regen 160 → 162 files (`gen-agent-registry.js --check` OK); qoder/opencode/claude/codex syncs re-run (8 stale claude/codex core mirrors caught up — pre-existing drift from 4889560/8f66c01/a56f832/2ff878e, fixes red CI `--check` lines).
+- R&D: `templates/whitepaper.md` (pending → approved per order, never auto-applies) + `docs/whitepapers/README.md` gate doc; `docs/ux-tokens-patterns.md` (DTCG 3-tier first, patterns gap-fill only against the skill/template inventory).
+- Tests: NEW `scripts/test-team-hod.js` (33 checks) wired into CI orchestration suite + `context/code-standards.md` self-check list; `test-mirror-sync.js` + `test-spawn-adapter.js` + `test-team-dispatch/sessions` green.
+  Key files: `bundle/hooks/lib/team-{supervisor,requests,done,research}.js` (+ mirrors), `bundle/hooks/lib/spawn-adapter.js` (+ mirror), `scripts/team-sessions.sh`, `bundle/agents/{04-planning/team-supervisor-hod,00-domain/team-researcher}.md` (+ 4-host mirrors), `templates/whitepaper.md`, `docs/{whitepapers/README,ux-tokens-patterns}.md`, `scripts/test-team-hod.js`, `.github/workflows/ci.yml`, `context/{architecture,code-standards,progress-tracker}.md`.
+  Impact: HOD can run the full assign → nudge → collect loop from the CLI with SHA-verified completions; researchers score options deterministically and write human-gated whitepapers; no scope beyond the team loop.
+
 ## 2026-11-11 — fix A<->B session replies invisible (shared team state)
 
 - PRIMARY: A m2m->B, B lists sees, B replies, A sees both; same group — all with no --worktree on a shared PCORE_STATE_DIR, proven by NEW `scripts/test-team-roundtrip.js` (18 checks, real `team-sessions.sh` CLI with two SESSION_IDs SES_A/SES_B).

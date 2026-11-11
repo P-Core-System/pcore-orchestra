@@ -31,7 +31,7 @@ unset PCORE_MEMBER_NAME PCORE_TEAM_NAME PCORE_MEMBER_ROLE PCORE_WS \
       PCORE_MESSAGE PCORE_DECISION PCORE_BY PCORE_OUTCOME PCORE_LESSONS 2>/dev/null || true
 
 case "$CMD" in
-  claim|heartbeat|release|list|who|check|gc|dispatch|discuss|request|wake|learning)
+  claim|heartbeat|release|list|who|check|gc|dispatch|discuss|request|wake|learning|supervise|queue|done)
     ;;
   -h|--help|help)
     cat <<'EOF'
@@ -51,6 +51,15 @@ Usage: bash scripts/team-sessions.sh <command> [flags]
             react --id ID --emoji E --member M [--team T]
             resolve --id ID --member M [--team T]        team discussion channel
   request   --member M [--team T] [--session S] [--json] member pull: next backlog item when free
+  supervise --team T [--member M,J...] [--session S] [--worktree-base D]
+            [--dry-run] [--json]                 HOD autonomous sweep: grant FIFO
+            requests first, push backlog to free members (claims + worktrees)
+  queue     enqueue --member M [--team T] --topic T [--json]  request work (FIFO durable)
+            list [--team T] [--all] [--json]     pending requests (FIFO)
+            grant --member M [--json]            grant oldest pending request
+  done      report --member M [--team T] --sha SHA [--branch B] [--summary S]
+                                                 report completion w/ commit SHA
+            list [--team T] [--json]             latest report per member
   wake      request --member M --to N [--team T] [--reason R] [--topic T]
             [--thread REF] [--message ID] [--topology X] [--json]  teammate nudge
             list [--member M] [--team T] [--topic T] [--thread REF] [--all] [--json]
@@ -116,6 +125,9 @@ while [ $# -gt 0 ]; do
     --by) PCORE_BY="${2:-}"; shift 2 ;;
     --outcome) PCORE_OUTCOME="${2:-}"; shift 2 ;;
     --lessons) PCORE_LESSONS="${2:-}"; shift 2 ;;
+    --sha) PCORE_SHA="${2:-}"; shift 2 ;;
+    --summary) PCORE_SUMMARY="${2:-}"; shift 2 ;;
+    --branch) PCORE_BRANCH="${2:-}"; shift 2 ;;
     --) shift; while [ $# -gt 0 ]; do PCORE_FILES="${PCORE_FILES:+$PCORE_FILES
 }$1"; shift; done ;;
     --*) echo "team-sessions.sh: unknown flag: $1" >&2; exit 1 ;;
@@ -129,7 +141,8 @@ export PCORE_MEMBER_NAME PCORE_TEAM_NAME PCORE_MEMBER_ROLE PCORE_WS \
        PCORE_WORKTREE PCORE_SCOPE PCORE_FILES PCORE_DRY_RUN PCORE_WORKTREE_BASE \
        PCORE_KIND PCORE_TO PCORE_TOPIC PCORE_BODY PCORE_EMOJI PCORE_MSG_ID \
        PCORE_TOPOLOGY PCORE_ALL PCORE_FREE_ONLY PCORE_REASON PCORE_THREAD \
-       PCORE_MESSAGE PCORE_DECISION PCORE_BY PCORE_OUTCOME PCORE_LESSONS
+       PCORE_MESSAGE PCORE_DECISION PCORE_BY PCORE_OUTCOME PCORE_LESSONS \
+       PCORE_SHA PCORE_SUMMARY PCORE_BRANCH
 export PCORE_CMD="$CMD"
 
 NODE_PROGRAM=$(cat <<'NODEOF'
@@ -139,6 +152,9 @@ const domain = (() => { try { return require("DOMAIN_PATH_PLACEHOLDER"); } catch
 const wakeLib = (() => { try { return require("WAKE_PATH_PLACEHOLDER"); } catch { return null; } })();
 const learnLib = (() => { try { return require("LEARN_PATH_PLACEHOLDER"); } catch { return null; } })();
 const artifactLib = (() => { try { return require("ARTIFACT_PATH_PLACEHOLDER"); } catch { return null; } })();
+const supervisorLib = (() => { try { return require("SUPERVISOR_PATH_PLACEHOLDER"); } catch { return null; } })();
+const queueLib = (() => { try { return require("QUEUE_PATH_PLACEHOLDER"); } catch { return null; } })();
+const doneLib = (() => { try { return require("DONE_PATH_PLACEHOLDER"); } catch { return null; } })();
 const env = process.env;
 
 function out(obj) {
@@ -525,6 +541,115 @@ switch (env.PCORE_CMD) {
     out({ json: res.candidate, text: `OK approve ${res.candidate.id} -> ${res.candidate.status} by ${res.candidate.decidedBy}` });
     break;
   }
+  case "supervise": {
+    if (!supervisorLib || !queueLib) die("supervise channel unavailable");
+    const dispatch = require("DISPATCH_PATH_PLACEHOLDER");
+    const pm = require("PM_PATH_PLACEHOLDER");
+    const nodePath = require("path");
+    const nodeFs = require("fs");
+    const teamId = dispatch.sanitizeDispatchToken(env.PCORE_TEAM_NAME) || "solo";
+    const sessionId = env.PCORE_SESSION_OVERRIDE || claims.resolveSessionId();
+    const wsRoot = env.PCORE_WS || env.PCORE_WORKSPACE_ROOT || process.cwd();
+    const workspaceSlug = dispatch.sanitizeDispatchToken(nodePath.basename(String(wsRoot))) || "root";
+    const sharedDir = claims.claimsDir(undefined);
+    const fullState = pm.loadProjectState(undefined, sessionId);
+    const bb = pm.backlogByMember(pm.getAggregatedProjectState(fullState));
+    const backlog = {};
+    for (const [m, items] of Object.entries(bb.byMember || {})) {
+      backlog[m] = { team: teamId, items: Array.isArray(items) ? items : [] };
+    }
+    const liveClaims = claims.listClaims({ staleMs: staleMs() });
+    const pending = queueLib.list(sharedDir, {});
+    const memberFilter = (env.PCORE_MEMBER_NAME || "").split(",").map((s) => s.trim()).filter(Boolean);
+    const plan = supervisorLib.sweep({
+      backlog, claims: liveClaims, requests: pending,
+      opts: { team: teamId, sessionId, workspaceSlug, members: memberFilter },
+    });
+    const dryRun = env.PCORE_DRY_RUN === "1";
+    if (dryRun) {
+      out({ json: { dryRun: true, team: teamId, assignments: plan.assignments, granted: plan.grantedRequestIds }, text: plan.assignments.map((a) => `would supervise ${a.team}/${a.member} via=${a.via} branch=${a.branch}`).join("\n") || "no assignments" });
+      break;
+    }
+    const worktreeBase = env.PCORE_WORKTREE_BASE || nodePath.join(String(wsRoot), ".pcore", "worktrees");
+    const dispatched = [];
+    const skipped = [];
+    for (const a of plan.assignments) {
+      const scope = dispatch.scopeForItems([a.item]);
+      const worktreePath = supervisorLib.memberWorktree(worktreeBase, a.team, a.member);
+      try {
+        const claim = claims.claimSession({ member: a.member, team: a.team, sessionId, workspace: wsRoot, scope: scope.length ? scope.join(",") : undefined });
+        try { nodeFs.mkdirSync(nodePath.join(worktreePath, ".pcore", "state"), { recursive: true }); } catch { /* best effort */ }
+        if (a.via === "request" && a.requestId && queueLib) {
+          try { queueLib.grant(sharedDir, a.member); } catch { /* best effort */ }
+        }
+        try { wakeForAssign(a.member, a.team); } catch { /* fail-open */ }
+        const payload = dispatch.buildDispatchPayload(
+          { member: a.member, team: a.team, teamDisplay: a.team, scope, branch: a.branch, itemCount: 1, worktreePath },
+          { claimKey: claim.claimKey, branch: claim.branch || a.branch });
+        dispatched.push({ member: a.member, claimKey: claim.claimKey, branch: claim.branch || a.branch, via: a.via, worktreePath, payload });
+      } catch (err) {
+        if (dispatch.shouldSkipOnConflict(err)) { skipped.push({ member: a.member, reason: "SCOPE_CONFLICT" }); continue; }
+        throw err;
+      }
+    }
+    out({ json: { dryRun: false, team: teamId, dispatched, skipped }, text: dispatched.map((d) => `OK supervise ${d.member} ${d.claimKey} ${d.branch} via=${d.via}`).concat(skipped.map((s) => `SKIP ${s.member} ${s.reason}`)).join("\n") || "no members supervised" });
+    break;
+  }
+  case "queue": {
+    if (!queueLib) die("queue channel unavailable");
+    const sub = String(env.PCORE_FILES || "").split("\n").map((s) => s.trim()).filter(Boolean)[0] || "";
+    if (sub !== "enqueue" && sub !== "list" && sub !== "grant") die("queue needs an action: enqueue|list|grant");
+    const sharedDir = claims.claimsDir(undefined);
+    if (sub === "enqueue") {
+      const member = String(env.PCORE_MEMBER_NAME || "").split(",")[0].trim();
+      if (!member) die("queue enqueue needs --member <name>");
+      if (!env.PCORE_TOPIC) die("queue enqueue needs --topic <text>");
+      const row = queueLib.enqueue(sharedDir, { member, team: env.PCORE_TEAM_NAME || "solo", topic: env.PCORE_TOPIC });
+      out({ json: row, text: `OK queue ${row.id} ${row.team}/${row.member}: ${row.topic}` });
+      break;
+    }
+    if (sub === "list") {
+      const rows = queueLib.list(sharedDir, { all: env.PCORE_ALL === "1" });
+      const teamF = String(env.PCORE_TEAM_NAME || "");
+      const shown = teamF ? rows.filter((r) => String(r.team || "") === teamF) : rows;
+      out({ json: { requests: shown }, text: shown.map((r) => `${r.id} [${r.status}] ${r.team}/${r.member}: ${r.topic}`).join("\n") || "no requests" });
+      break;
+    }
+    // sub === "grant"
+    const member = String(env.PCORE_MEMBER_NAME || "").split(",")[0].trim();
+    if (!member) die("queue grant needs --member <name>");
+    const granted = queueLib.grant(sharedDir, member);
+    if (!granted) {
+      out({ json: { granted: false, member }, text: `SKIP queue grant ${member}: empty` });
+      process.exit(2);
+      break;
+    }
+    out({ json: granted, text: `OK queue grant ${granted.id} -> ${granted.member}` });
+    break;
+  }
+  case "done": {
+    if (!doneLib) die("done channel unavailable");
+    const sub = String(env.PCORE_FILES || "").split("\n").map((s) => s.trim()).filter(Boolean)[0] || "";
+    if (sub !== "report" && sub !== "list") die("done needs an action: report|list");
+    const sharedDir = claims.claimsDir(undefined);
+    if (sub === "report") {
+      const member = String(env.PCORE_MEMBER_NAME || "").split(",")[0].trim();
+      if (!member) die("done report needs --member <name>");
+      const res = doneLib.report(sharedDir, { member, team: env.PCORE_TEAM_NAME || "solo", sha: env.PCORE_SHA || "", branch: env.PCORE_BRANCH || "", summary: env.PCORE_SUMMARY || "" });
+      if (!res.ok) {
+        out({ json: res, text: `DENIED done report ${res.code}` });
+        process.exitCode = 2;
+        break;
+      }
+      out({ json: res.report, text: `OK done ${res.report.member}@${res.report.sha} (${res.report.branch || "no-branch"})` });
+      break;
+    }
+    const latest = doneLib.latestByMember(sharedDir);
+    const teamF = String(env.PCORE_TEAM_NAME || "");
+    const rows = Object.values(latest).filter((r) => !teamF || String(r.team || "") === teamF);
+    out({ json: { reports: rows }, text: rows.map((r) => `${r.member} ${r.sha} ${r.branch} ${r.summary}`).join("\n") || "no reports" });
+    break;
+  }
   case "check": {
     const o = opts();
     const claim = claims.findClaim(o);
@@ -557,6 +682,9 @@ DISCUSSION_LIB="${LIB_PATH%session-claims.js}team-discussion.js"
 WAKE_LIB="${LIB_PATH%session-claims.js}session-wake.js"
 LEARN_LIB="${LIB_PATH%session-claims.js}distill-learnings.js"
 ARTIFACT_LIB="${LIB_PATH%session-claims.js}plan-artifact.js"
+SUPERVISOR_LIB="${LIB_PATH%session-claims.js}team-supervisor.js"
+QUEUE_LIB="${LIB_PATH%session-claims.js}team-requests.js"
+DONE_LIB="${LIB_PATH%session-claims.js}team-done.js"
 NODE_PROGRAM="${NODE_PROGRAM//LIB_PATH_PLACEHOLDER/"$LIB_PATH"}"
 NODE_PROGRAM="${NODE_PROGRAM//DOMAIN_PATH_PLACEHOLDER/"$DOMAIN_LIB"}"
 NODE_PROGRAM="${NODE_PROGRAM//DISPATCH_PATH_PLACEHOLDER/"$DISPATCH_LIB"}"
@@ -565,5 +693,8 @@ NODE_PROGRAM="${NODE_PROGRAM//DISCUSSION_PATH_PLACEHOLDER/"$DISCUSSION_LIB"}"
 NODE_PROGRAM="${NODE_PROGRAM//WAKE_PATH_PLACEHOLDER/"$WAKE_LIB"}"
 NODE_PROGRAM="${NODE_PROGRAM//LEARN_PATH_PLACEHOLDER/"$LEARN_LIB"}"
 NODE_PROGRAM="${NODE_PROGRAM//ARTIFACT_PATH_PLACEHOLDER/"$ARTIFACT_LIB"}"
+NODE_PROGRAM="${NODE_PROGRAM//SUPERVISOR_PATH_PLACEHOLDER/"$SUPERVISOR_LIB"}"
+NODE_PROGRAM="${NODE_PROGRAM//QUEUE_PATH_PLACEHOLDER/"$QUEUE_LIB"}"
+NODE_PROGRAM="${NODE_PROGRAM//DONE_PATH_PLACEHOLDER/"$DONE_LIB"}"
 
 node -e "$NODE_PROGRAM"
