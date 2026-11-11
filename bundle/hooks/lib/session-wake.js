@@ -10,10 +10,10 @@
  * (`threadId` / `messageId` / `topic` / `topology`) without mutating the
  * discussion store — the wake is a pointer, the thread stays the record.
  *
- * Scope rule (fail-closed on scope, fail-open on plumbing): a wake is
- * requested only when both slots live in the SAME workspace AND the SAME
- * project (project slug read from each claim's workspace root
- * `project.yaml`, fail-open when unreadable). Anything else returns
+ * Scope rule: a wake is requested only between two live slots of the SAME
+ * team (fail-closed on team, fail-open on plumbing). Same-team slots pair
+ * across workspaces and projects — the shared state dir is the trust root,
+ * so one team's sessions always see each other. A team mismatch returns
  * `{ok:false, code:"WAKE_CROSS_SCOPE"}`, stores nothing, and appends a
  * `wake.denied` domain audit — no delivery, never a throw.
  *
@@ -23,9 +23,12 @@
  * same-box file state, so a passed request is stored `delivered` at once
  * (`wake.requested` + `wake.delivered` domain events, fail-open).
  *
- * Storage: `<state>/team-wakes.jsonl` (or
- * `<worktree>/.pcore/state/team-wakes.jsonl` when worktreePath is given —
- * invariants 30/31), one JSON object per line, ring-capped at WAKE_CAP
+ * Storage: `<state>/team-wakes.jsonl` — always the shared team dir
+ * (carve-out from invariants 30/31: nudges need one shared inbox across
+ * sessions; conductor runs and domain events stay partitioned).
+ * `worktreePath` is accepted for legacy import only: a pre-unify
+ * `<worktree>/.pcore/state/team-wakes.jsonl` is merged into reads
+ * (shared wins on id conflict), writes always go shared.
  * lines (oldest trimmed first). Every write goes through safe-write.js
  * (withLock + atomicWrite) — never raw fs writes on shared state
  * (invariant 15). Bad lines read as skipped, never fatal.
@@ -72,16 +75,26 @@ function defaultStateDir() {
   return path.join(os.homedir(), ".config", "opencode", "hooks", "state");
 }
 
-/** Resolved state dir: PCORE_STATE_DIR wins, never inside the bundle. */
+/** Resolved state dir: always the shared team dir (worktreePath is legacy-import only). */
 function wakesDir(worktreePath) {
-  if (worktreePath && typeof worktreePath === "string" && worktreePath.length > 0) {
-    return path.join(worktreePath, ".pcore", "state");
-  }
+  void worktreePath;
   return resolveStateDir(defaultStateDir());
 }
 
 function wakesFile(worktreePath) {
   return path.join(wakesDir(worktreePath), WAKES_FILE);
+}
+
+/**
+ * Legacy worktree-partitioned wakes file (pre-unify layout). Read for
+ * import only — writes never target it.
+ * @returns {string|null} legacy file path, or null without a worktree
+ */
+function legacyWakesFile(worktreePath) {
+  if (worktreePath && typeof worktreePath === "string" && worktreePath.length > 0) {
+    return path.join(worktreePath, ".pcore", "state", WAKES_FILE);
+  }
+  return null;
 }
 
 function ensureWakesDir(file) {
@@ -186,24 +199,53 @@ function buildWake(input) {
   };
 }
 
-/** Read all wakes (tolerant: bad lines skipped); corrupt/missing -> []. */
-function readAll(worktreePath) {
-  const file = wakesFile(worktreePath);
+/** Parse one JSONL line; null when blank/torn/non-wake. Never throws. */
+function parseWakeLine(line) {
+  const s = String(line).trim();
+  if (!s) return null;
+  try {
+    const w = JSON.parse(s);
+    if (w && typeof w === "object" && typeof w.id === "string") return w;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/** Read raw lines of a wakes file; missing/unreadable -> []. */
+function readWakeLines(file) {
   let raw = "";
   try {
     raw = fs.readFileSync(file, "utf8");
   } catch {
     return [];
   }
+  return String(raw).split("\n");
+}
+
+/**
+ * Read all wakes (tolerant: bad lines skipped); corrupt/missing -> [].
+ * With worktreePath, a legacy worktree-partitioned file is merged in
+ * (shared wins on id conflict) so pre-unify nudges stay visible.
+ */
+function readAll(worktreePath) {
+  const seen = new Set();
   const out = [];
-  for (const line of String(raw).split("\n")) {
-    const s = line.trim();
-    if (!s) continue;
-    try {
-      const wake = JSON.parse(s);
-      if (wake && typeof wake === "object" && typeof wake.id === "string") out.push(wake);
-    } catch {
-      /* skip bad lines — a torn write must never break the read path */
+  const push = (w) => {
+    if (w && !seen.has(w.id)) {
+      seen.add(w.id);
+      out.push(w);
+    }
+  };
+  for (const line of readWakeLines(wakesFile(worktreePath))) {
+    const w = parseWakeLine(line);
+    if (w) push(w);
+  }
+  const legacy = legacyWakesFile(worktreePath);
+  if (legacy) {
+    for (const line of readWakeLines(legacy)) {
+      const w = parseWakeLine(line);
+      if (w) push(w);
     }
   }
   return out;
@@ -281,7 +323,7 @@ function resolveLiveClaim(ref, worktreePath, staleMs) {
 /**
  * Request a wake from one live slot to another.
  *
- * Same-workspace + same-project only: a mismatch returns
+ * Same team only: a team mismatch returns
  * `{ok:false, code:WAKE_CROSS_SCOPE}` with a `wake.denied` audit and no
  * delivery. Missing/stale slots return `{ok:false, code:WAKE_NO_CLAIM}`.
  * Past WAKE_RATE_MAX requests/hour from the same author returns
@@ -324,15 +366,20 @@ function requestWake(opts) {
     return { ok: false, code: WAKE_NO_CLAIM, detail: "to" };
   }
 
-  // Scope guard: same workspace slug on both slots, and same project slug
-  // when both workspace roots resolve one.
+  // Scope guard: same-team slots pair across workspaces and projects —
+  // the shared state dir is the trust root (WI-1 unify). A team mismatch
+  // stays fail-closed (WAKE_CROSS_SCOPE); unteamed (solo) slots pair only
+  // in the same workspace, as before.
   const fromWs = fromClaim.workspaceSlug || null;
   const toWs = toClaim.workspaceSlug || null;
   const fromProj = resolveProjectSlug(fromClaim.workspace) || (typeof o.projectSlug === "string" ? o.projectSlug : null);
   const toProj = resolveProjectSlug(toClaim.workspace) || null;
+  const fromTeam = sanitizeWakeToken(fromClaim.teamId || fromClaim.team);
+  const toTeam = sanitizeWakeToken(toClaim.teamId || toClaim.team);
+  const sameTeam = !!fromTeam && fromTeam === toTeam;
   const crossWorkspace = !!fromWs && !!toWs && fromWs !== toWs;
   const crossProject = !!fromProj && !!toProj && fromProj !== toProj;
-  if (crossWorkspace || crossProject) {
+  if ((crossWorkspace || crossProject) && !sameTeam) {
     emitWakeOutcome({
       id: null, from: fromClaim.claimKey, to: toClaim.claimKey,
       team: toClaim.teamId || toClaim.team || null, reason: WAKE_CROSS_SCOPE,
@@ -642,6 +689,7 @@ module.exports = {
   defaultStateDir,
   wakesDir,
   wakesFile,
+  legacyWakesFile,
   sanitizeWakeToken,
   memberOfClaimKey,
   teamOfClaimKey,

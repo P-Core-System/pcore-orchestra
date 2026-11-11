@@ -8,7 +8,8 @@
  *  2. ses_xxxx fallback when no member is given
  *  3. 30-min stale: live list hides stale, includeStale annotates, gc prunes
  *  4. 4-member team + 5th join + groupByTeam roster
- *  5. PCORE_STATE_DIR unify + worktree isolation
+ *  5. PCORE_STATE_DIR unify: shared roster (no worktree partition) +
+ *     legacy worktree import (shared wins)
  *  6. conductor-state roster fields (begin/save/who/list + member/team filters)
  *  7. domain: session.claimed/heartbeat/released additive, store-only,
  *     recordSessionOutcome fail-open
@@ -112,15 +113,25 @@ try {
   check("solo group holds the fallback claim",
     !!groups.solo && groups.solo.members.some((m) => m.member === "ses-zz99"));
 
-  // ---- 5. PCORE_STATE_DIR unify + worktree isolation ----
+  // ---- 5. PCORE_STATE_DIR unify + legacy worktree import ----
   check("claims file lives under PCORE_STATE_DIR", file.startsWith(stateDir), file);
   const wtClaim = claims.claimSession({ member: "John", team, sessionId: "sess-john-1", workspace: "/tmp/wsA", worktreePath: worktree });
   check("worktree claim recorded", wtClaim.claimKey === johnA.claimKey, wtClaim.claimKey);
-  const wtFile = claims.claimsFile(worktree);
-  check("worktree state isolated to .pcore/state", wtFile.startsWith(worktree) && fs.existsSync(wtFile), wtFile);
-  check("global roster untouched by worktree claim", claims.getClaim(johnA.claimKey, undefined) !== null);
+  check("claims file stays shared (no worktree partition)",
+    claims.claimsFile(worktree) === file, claims.claimsFile(worktree));
+  check("worktree write lands in shared roster", claims.getClaim(johnA.claimKey, worktree) !== null);
   const wtList = claims.listClaims({ worktreePath: worktree });
-  check("worktree list only has worktree claim", wtList.length === 1 && wtList[0].claimKey === johnA.claimKey, JSON.stringify(wtList.map((c) => c.claimKey)));
+  check("worktree list reads shared roster", wtList.some((c) => c.claimKey === johnA.claimKey), JSON.stringify(wtList.map((c) => c.claimKey)));
+  const legacyFile = claims.legacyClaimsFile(worktree);
+  check("legacy path under worktree .pcore/state",
+    legacyFile === path.join(worktree, ".pcore", "state", "team-sessions.json"), legacyFile);
+  const legacyOnly = { claimKey: "team-alpha/legacy/wsa/sess-legacy", member: "legacy", memberDisplay: "Legacy@wsa", team: "team-alpha", teamId: "team-alpha", teamDisplay: "Team-alpha/Legacy@wsa", role: "member", scope: [], sessionId: "sess-legacy", workspace: "/tmp/wsA", workspaceSlug: "wsa", heartbeatAt: new Date().toISOString(), updatedAt: new Date().toISOString(), createdAt: new Date().toISOString() };
+  const shadowed = Object.assign({}, legacyOnly, { claimKey: johnA.claimKey, memberDisplay: "SHADOWED@wsa" });
+  fs.mkdirSync(path.dirname(legacyFile), { recursive: true });
+  fs.writeFileSync(legacyFile, JSON.stringify({ [legacyOnly.claimKey]: legacyOnly, [shadowed.claimKey]: shadowed }, null, 2));
+  check("legacy-only claim merges into reads", claims.getClaim(legacyOnly.claimKey, worktree) !== null);
+  check("shared wins on legacy key conflict",
+    claims.getClaim(johnA.claimKey, worktree).memberDisplay === johnA.memberDisplay);
 
   // ---- 6. conductor-state roster fields ----
   const begun = conductor.beginRun({ goal: "team goal", phase: "plan", sessionId: "sess-john-1", workspace: "/tmp/wsA", member: "John", team, role: "hod" });
@@ -206,6 +217,16 @@ try {
     JSON.stringify(claimed));
   const listed = JSON.parse(runCli(`bash scripts/team-sessions.sh list --json`, cliEnv));
   check("CLI list --json groups by team", !!listed.groups && !!listed.groups["team-alpha"], Object.keys(listed.groups || {}).join(","));
+  const staleCliKey = claims.claimSession({ member: "StaleCli2", team: "Team-Alpha", sessionId: "sess-stale-cli2", workspace: "/tmp/wsA" }).claimKey;
+  const rawCli = JSON.parse(fs.readFileSync(file, "utf8"));
+  rawCli[staleCliKey].heartbeatAt = new Date(Date.now() - 31 * 60 * 1000).toISOString();
+  fs.writeFileSync(file, JSON.stringify(rawCli, null, 2));
+  const bareList = JSON.parse(runCli(`bash scripts/team-sessions.sh list --json`, cliEnv));
+  check("CLI bare list hides stale", !(bareList.claims || []).some((c) => c.claimKey === staleCliKey));
+  const allList = JSON.parse(runCli(`bash scripts/team-sessions.sh list --all --json`, cliEnv));
+  check("CLI list --all adds stale",
+    (allList.claims || []).some((c) => c.claimKey === staleCliKey && c.stale === true),
+    JSON.stringify((allList.claims || []).length));
   const begunCli = JSON.parse(runCli(`bash scripts/conductor-state.sh begin --goal "cli goal" --member John --team Team-Alpha --json`, cliEnv));
   check("CLI begin --json carries roster", begunCli.run.member === "john" && begunCli.run.teamId === "team-alpha", JSON.stringify(begunCli.run && { member: begunCli.run.member, teamId: begunCli.run.teamId }));
   const who = JSON.parse(runCli(`bash scripts/conductor-state.sh who --json`, cliEnv));

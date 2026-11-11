@@ -5,14 +5,15 @@
  * Self-check for session wake requests (Wave3 teammate nudge channel):
  *  1. domain +4 event types + recordWakeOutcome (additive, fail-open)
  *  2. buildWake validation (empty from/to, thread context stamps)
- *  3. requestWake happy path (same workspace+project delivers, requested +
- *     delivered domain events, thread fields carried)
- *  4. cross-workspace -> WAKE_CROSS_SCOPE + denied audit, nothing stored
- *  5. cross-project -> WAKE_CROSS_SCOPE (same slug, different project.yaml)
+ *  3. requestWake happy path (same team delivers across workspaces,
+ *     requested + delivered domain events, thread fields carried)
+ *  4. cross-team -> WAKE_CROSS_SCOPE + denied audit, nothing stored
+ *  5. cross-project same-team delivers; cross-team cross-project denied
  *  6. live-claim check (unknown/released/stale target -> WAKE_NO_CLAIM)
  *  7. rate ring (5/hr ok, 6th WAKE_THROTTLED + throttled event)
  *  8. ackWake (target acks, stranger denied, unknown id, list filters)
- *  9. worktree partition (wakes file under <worktree>/.pcore/state)
+ *  9. shared dir: writes land shared (no worktree partition) + legacy
+ *     worktree import (shared wins on id conflict)
  * 10. parseMentions matrix
  * 11. triggerWakesForDiscussion (@mention -> wake with messageId/threadId,
  *     self-mention skipped, no mentions -> [])
@@ -120,15 +121,19 @@ try {
   check("requested + delivered domain events", types.indexOf("wake.requested") !== -1 && types.indexOf("wake.delivered") !== -1);
   check("wakes file exists", fs.existsSync(wake.wakesFile()));
 
-  // ---- 4. cross-workspace ----
+  // ---- 4. cross-team (same shared root, different team) ----
   const wsB = mkWorkspace("proj-one");
-  const bob = claims.claimSession({ member: "bob", team: "alpha", workspace: wsB, sessionId: "s-bob" });
+  const bob = claims.claimSession({ member: "bob", team: "beta", workspace: wsB, sessionId: "s-bob" });
   const before = wake.readAll().length;
   const cross = wake.requestWake({ from: john.claimKey, to: bob.claimKey, workspace: wsA });
-  check("cross-workspace denied", cross.ok === false && cross.code === "WAKE_CROSS_SCOPE", JSON.stringify(cross));
+  check("cross-team denied", cross.ok === false && cross.code === "WAKE_CROSS_SCOPE", JSON.stringify(cross));
   check("cross-scope stores nothing", wake.readAll().length === before);
   check("cross-scope audit event",
     store.loadEvents().some((e) => e.type === "wake.denied" && e.payload && e.payload.reason === "WAKE_CROSS_SCOPE"));
+  // ---- 4b. same team pairs across workspaces (shared state dir) ----
+  const bobMate = claims.claimSession({ member: "bob", team: "alpha", workspace: wsB, sessionId: "s-bob2" });
+  const mateRes = wake.requestWake({ from: john.claimKey, to: bobMate.claimKey, workspace: wsA });
+  check("same-team cross-workspace delivers", mateRes.ok === true && !!mateRes.wake, JSON.stringify(mateRes));
 
   // ---- 5. cross-project (same slug, different project.yaml) ----
   const mkSame = (slug) => {
@@ -144,7 +149,12 @@ try {
   const zed = claims.claimSession({ member: "zed", team: "alpha", workspace: wsP2, sessionId: "s-zed" });
   check("same-slug fixture", ann.workspaceSlug === zed.workspaceSlug, `${ann.workspaceSlug} vs ${zed.workspaceSlug}`);
   const crossProj = wake.requestWake({ from: ann.claimKey, to: zed.claimKey, workspace: wsP1 });
-  check("cross-project denied", crossProj.ok === false && crossProj.code === "WAKE_CROSS_SCOPE" && crossProj.detail === "project", JSON.stringify(crossProj));
+  check("cross-project same-team delivers", crossProj.ok === true && !!crossProj.wake, JSON.stringify(crossProj));
+  const zedOther = claims.claimSession({ member: "zed2", team: "gamma", workspace: wsP2, sessionId: "s-zed2" });
+  const crossTeamProj = wake.requestWake({ from: ann.claimKey, to: zedOther.claimKey, workspace: wsP1 });
+  check("cross-team cross-project denied",
+    crossTeamProj.ok === false && crossTeamProj.code === "WAKE_CROSS_SCOPE" && crossTeamProj.detail === "project",
+    JSON.stringify(crossTeamProj));
 
   // ---- 6. live-claim check ----
   const ghost = wake.requestWake({ from: john.claimKey, to: "alpha/ghost/w/s-gone", workspace: wsA });
@@ -185,15 +195,22 @@ try {
   check("team filter", wake.listWakes({ team: "beta" }).length >= 1 && wake.listWakes({ team: "gamma" }).length === 0);
   check("null wake never matches", wake.matchWakeFilter(null, {}) === false);
 
-  // ---- 9. worktree partition ----
+  // ---- 9. shared dir + legacy import ----
   const worktree = fs.mkdtempSync(path.join(os.tmpdir(), "wake-worktree-"));
   const wFrom = claims.claimSession({ member: "wfrom", team: "beta", workspace: wsR, sessionId: "s-w", worktreePath: worktree });
   const wTo = claims.claimSession({ member: "wto", team: "beta", workspace: wsR, sessionId: "s-w2", worktreePath: worktree });
   const wRes = wake.requestWake({ from: wFrom.claimKey, to: wTo.claimKey, workspace: wsR, worktreePath: worktree });
-  check("worktree wake delivers", wRes.ok === true, JSON.stringify(wRes));
-  check("worktree file partitioned", fs.existsSync(path.join(worktree, ".pcore", "state", "team-wakes.jsonl")));
-  check("worktree wake isolated from global", !wake.listWakes({}).some((w) => w.id === (wRes.wake && wRes.wake.id)));
-  check("worktree list reads partition", wake.listWakes({}, worktree).some((w) => w.id === (wRes.wake && wRes.wake.id)));
+  check("worktree wake delivers shared", wRes.ok === true, JSON.stringify(wRes));
+  check("wakes file stays shared (no worktree partition)",
+    wake.wakesFile(worktree) === wake.wakesFile(), wake.wakesFile(worktree));
+  check("worktree write visible in shared list", wake.listWakes({}).some((w) => w.id === (wRes.wake && wRes.wake.id)));
+  const legacyWakes = wake.legacyWakesFile(worktree);
+  check("legacy path under worktree .pcore/state",
+    legacyWakes === path.join(worktree, ".pcore", "state", "team-wakes.jsonl"), legacyWakes);
+  fs.mkdirSync(path.dirname(legacyWakes), { recursive: true });
+  const legacyWake = { id: "w_legacy1", from: wFrom.claimKey, to: wTo.claimKey, fromMember: "wfrom", toMember: "wto", team: "beta", topic: null, threadId: null, messageId: null, topology: null, reason: "nudge", projectSlug: null, workspaceSlug: null, status: "delivered", createdAt: new Date().toISOString(), ackedAt: null, ackedBy: null };
+  fs.writeFileSync(legacyWakes, `${JSON.stringify(legacyWake)}\n`);
+  check("legacy-only wake merges into reads", wake.listWakes({}, worktree).some((w) => w.id === "w_legacy1"));
 
   // ---- 10. mentions ----
   check("parseMentions matrix",

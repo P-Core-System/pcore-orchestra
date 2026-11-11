@@ -232,7 +232,7 @@ switch (env.PCORE_CMD) {
   case "list":
   case "who": {
     const o = opts();
-    let list = claims.listClaims({ worktreePath: o.worktreePath, staleMs: staleMs() });
+    let list = claims.listClaims({ worktreePath: o.worktreePath, staleMs: staleMs(), includeStale: env.PCORE_ALL === "1" });
     if (o.team) {
       const want = claims.sanitizeName(o.team);
       list = list.filter((c) => (c.teamId || c.team || null) === (want || null));
@@ -284,13 +284,13 @@ switch (env.PCORE_CMD) {
     const skipped = [];
     for (const plan of plans) {
       try {
-        const claim = claims.claimSession({ member: plan.member, team: plan.team, scope: plan.scope, sessionId: plan.sessionId, workspace: wsRoot });
+        const claim = claims.claimSession({ member: plan.member, team: plan.team, scope: plan.scope, sessionId: plan.sessionId, workspace: wsRoot, workspaceSlug: plan.workspaceSlug });
         record("claimed", claim);
         if (plan.worktreePath) {
           try { nodeFs.mkdirSync(nodePath.join(plan.worktreePath, ".pcore", "state"), { recursive: true }); } catch { /* best effort */ }
         }
-        const payload = dispatch.buildDispatchPayload(plan, {});
-        dispatched.push({ member: plan.member, claimKey: claim.claimKey, branch: claim.branch || plan.branch, worktreePath: plan.worktreePath, scope: plan.scope, itemCount: plan.itemCount, payload });
+        const payload = dispatch.buildDispatchPayload(plan, { claimKey: claim.claimKey, branch: claim.branch || plan.branch });
+        dispatched.push({ member: plan.member, claimKey: claim.claimKey, branch: claim.branch || plan.branch, sessionId: claim.sessionId, workspaceSlug: claim.workspaceSlug, worktreePath: plan.worktreePath, scope: plan.scope, itemCount: plan.itemCount, payload });
         wakeForAssign(plan.member, plan.team);
       } catch (err) {
         if (dispatch.shouldSkipOnConflict(err)) { skipped.push({ member: plan.member, reason: "SCOPE_CONFLICT" }); continue; }
@@ -411,7 +411,7 @@ switch (env.PCORE_CMD) {
       out({ json: grant, text: `SKIP request ${member}: ${grant.reason}` });
       process.exit(2);
     }
-    out({ json: grant, text: `OK request ${grant.member} item=${grant.item && grant.item.id} claim=${grant.claimKey} branch=${grant.branch}` });
+    out({ json: Object.assign({ sessionId, workspaceSlug }, grant), text: `OK request ${grant.member} item=${grant.item && grant.item.id} claim=${grant.claimKey} branch=${grant.branch} session=${sessionId} slug=${workspaceSlug}` });
     break;
   }
   case "wake": {

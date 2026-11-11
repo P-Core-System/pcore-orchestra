@@ -8,10 +8,14 @@
  *   claimKey = "<team>/<member>/<slug>/<sessionId>"
  * Display forms: "Name@slug" (solo) and "Team/Member@slug" (teamed).
  *
- * Claims live in the unified state dir (`PCORE_STATE_DIR` wins via
+ * Claims live in the unified shared state dir (`PCORE_STATE_DIR` wins via
  * safe-write.resolveStateDir, otherwise the shared
- * `~/.config/opencode/hooks/state` dir) or, when `worktreePath` is given,
- * in `worktreePath/.pcore/state/` (worktree isolation, invariants 30/31).
+ * `~/.config/opencode/hooks/state` dir). The team roster is intentionally
+ * NOT worktree-partitioned: pairing needs one shared roster across sessions
+ * (carve-out from invariants 30/31 — conductor runs and domain events stay
+ * partitioned). `worktreePath` is accepted for legacy import only: a
+ * pre-unify `<worktree>/.pcore/state/team-sessions.json` is merged into
+ * reads (shared wins on key conflict), writes always go shared.
  *
  * Every write goes through safe-write.js (withLock + readJsonSafe +
  * writeJson) — never raw fs writes on shared state (invariant 15).
@@ -35,16 +39,35 @@ function defaultStateDir() {
   return path.join(os.homedir(), ".config", "opencode", "hooks", "state");
 }
 
-/** Resolved state dir: PCORE_STATE_DIR wins, never inside the bundle. */
+/** Resolved state dir: PCORE_STATE_DIR wins, never inside the bundle.
+ * Always the shared team dir — worktreePath is legacy-import only. */
 function claimsDir(worktreePath) {
-  if (worktreePath && typeof worktreePath === "string" && worktreePath.length > 0) {
-    return path.join(worktreePath, ".pcore", "state");
-  }
+  void worktreePath;
   return resolveStateDir(defaultStateDir());
 }
 
 function claimsFile(worktreePath) {
   return path.join(claimsDir(worktreePath), CLAIMS_FILE);
+}
+
+/**
+ * Legacy worktree-partitioned claims file (pre-unify layout). Read for
+ * import only — writes never target it.
+ * @returns {string|null} legacy file path, or null without a worktree
+ */
+function legacyClaimsFile(worktreePath) {
+  if (worktreePath && typeof worktreePath === "string" && worktreePath.length > 0) {
+    return path.join(worktreePath, ".pcore", "state", CLAIMS_FILE);
+  }
+  return null;
+}
+
+/** Read a legacy claims object; corrupt/missing -> {}. */
+function readLegacyClaims(worktreePath) {
+  const file = legacyClaimsFile(worktreePath);
+  if (!file) return {};
+  const data = readJsonSafe(file, {});
+  return data && typeof data === "object" && !Array.isArray(data) ? data : {};
 }
 
 function ensureDir(filePath) {
@@ -162,10 +185,19 @@ function isStaleClaim(claim, nowMs, staleMs) {
   return now - at > thresh;
 }
 
-/** Read all claims (object keyed by claimKey); corrupt/missing -> {}. */
+/** Read all claims (object keyed by claimKey); corrupt/missing -> {}.
+ * With worktreePath, a legacy worktree-partitioned file is merged in
+ * (shared wins on key conflict) so pre-unify slots stay visible. */
 function readAll(worktreePath) {
   const data = readJsonSafe(claimsFile(worktreePath), {});
-  return data && typeof data === "object" && !Array.isArray(data) ? data : {};
+  const shared = data && typeof data === "object" && !Array.isArray(data) ? data : {};
+  const legacy = readLegacyClaims(worktreePath);
+  const legKeys = Object.keys(legacy);
+  if (legKeys.length === 0) return shared;
+  const merged = {};
+  for (const k of legKeys) merged[k] = legacy[k];
+  for (const k of Object.keys(shared)) merged[k] = shared[k];
+  return merged;
 }
 
 /**
@@ -515,6 +547,7 @@ module.exports = {
   defaultStateDir,
   claimsDir,
   claimsFile,
+  legacyClaimsFile,
   sanitizeName,
   resolveMemberName,
   resolveTeamName,

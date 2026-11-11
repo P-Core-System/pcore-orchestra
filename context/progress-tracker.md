@@ -11,6 +11,19 @@ Update this file after every meaningful implementation change.
 
 - Verify token usage per phase is under budget
 
+## 2026-11-11 — fix A<->B session replies invisible (shared team state)
+
+- PRIMARY: A m2m->B, B lists sees, B replies, A sees both; same group — all with no --worktree on a shared PCORE_STATE_DIR, proven by NEW `scripts/test-team-roundtrip.js` (18 checks, real `team-sessions.sh` CLI with two SESSION_IDs SES_A/SES_B).
+- WI-1 unify: `claimsDir`/`discussionDir`/`wakesDir` ignore `worktreePath` (always shared `resolveStateDir`); legacy `<worktree>/.pcore/state/` files merged into reads (shared wins), writes always shared; new `legacyClaimsFile`/`legacyDiscussionFile`/`legacyWakesFile` exports; byte-identical OpenCode mirrors. Invariants 30/31 carve-out documented (conductor runs/domain events stay partitioned).
+- WI-2 dispatch/discuss use returned identity: dispatch payload built from the live `claim.claimKey`/`branch` + dispatched record carries real `sessionId`/`workspaceSlug`; `request` output adds `sessionId`/`workspaceSlug` next to the grant.
+- WI-3 discussion visibility: `matchDiscussionFilter` matches `group` broadcasts on member-filtered lists when the team matches (the A->B invisibility: B never saw the broadcast); `to` accepts member name or claim key both directions; default `topology=all`; `getThread` keeps resolved.
+- WI-4 wakes are team-scoped: same-team slots pair across workspaces/projects (shared state dir is the trust root); team mismatch stays `WAKE_CROSS_SCOPE` (exit 2).
+- WI-5 bare `list` shows live/unresolved only, `--all` adds stale claims + resolved messages + acked wakes; `list`/`who` share the one `groupByTeam` path.
+- Tests: `test-team-sessions.js` (shared+legacy pins, CLI bare/--all stale), `test-team-discussion.js` (group-visibility filter pins, shared+legacy), `test-session-wake.js` (same-team allow, cross-team deny, shared+legacy); CI orchestration suite + `context/code-standards.md` self-check list wire `test-team-roundtrip.js`; `context/architecture.md` rows/invariants 30/31/41 updated in place.
+  Key files: `bundle/hooks/lib/{session-claims,team-discussion,session-wake}.js` (+ opencode mirrors), `scripts/team-sessions.sh`, `scripts/test-team-{roundtrip,sessions,discussion}.js`, `scripts/test-session-wake.js`, `.github/workflows/ci.yml`, `context/{architecture,code-standards,progress-tracker}.md`.
+  Impact: cross-session pairing (discuss + wake) works out of the box on shared state — no worktree flags needed; pre-unify worktree files stay readable.
+
+
 ## 2026-11-10 — release 3.10.0 + context-truth docs sweep
 
 - Install verified: `bash install.sh --dry-run` (opencode 2.2.7 already at
