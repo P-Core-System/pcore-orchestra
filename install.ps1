@@ -303,6 +303,23 @@ console.log("  Merged hooks.json ->", destPath);
 ###############################################################################
 # OpenCode installation
 ###############################################################################
+# Resolve a real bash for the free-model refresh/apply + weekly schedule.
+# Git Bash paths first (native Windows paths work); PATH `bash` last because on
+# dev machines that is often WSL, whose bash cannot open D:\ paths directly.
+function Find-GitBash {
+  $candidates = @(
+    (Join-Path ${env:ProgramFiles} "Git\bin\bash.exe"),
+    (Join-Path ${env:ProgramFiles(x86)} "Git\bin\bash.exe"),
+    "C:\Program Files\Git\bin\bash.exe"
+  )
+  foreach ($c in $candidates) {
+    if ($c -and (Test-Path -LiteralPath $c -PathType Leaf)) { return $c }
+  }
+  $cmd = Get-Command bash -ErrorAction SilentlyContinue
+  if ($cmd) { return $cmd.Source }
+  return $null
+}
+
 function Install-OpenCode {
   Write-Host "==> Installing OpenCode Orchestra to $OpenCodeDir"
 
@@ -313,14 +330,21 @@ function Install-OpenCode {
   # Free-model refresh + dynamic apply (before agent copy + autonomy merge so
   # installed files carry the current light/heavy free-pool assignment).
   Write-Host "==> Free-model refresh + apply"
-  $bashCmd = Get-Command bash -ErrorAction SilentlyContinue
-  if ($bashCmd) {
-    & bash (Join-Path $Root "scripts\update-free-models.sh") --refresh --apply
+  $bashExe = Find-GitBash
+  $bashIsWslOnly = $false
+  if ($bashExe -and $bashExe -notmatch 'Git\\bin\\bash\.exe$') {
+    $bashIsWslOnly = $true
+    Write-Host "WARN resolved bash is not Git Bash ($bashExe) - likely WSL, which cannot open D:\ script paths."
+    Write-Host "WARN Install Git for Windows (https://git-scm.com/download/win), then re-run install.ps1 -OpenCode;"
+    Write-Host "WARN or run from Git Bash: bash scripts/update-free-models.sh --refresh --apply"
+  }
+  if ($bashExe -and -not $bashIsWslOnly) {
+    & $bashExe (Join-Path $Root "scripts\update-free-models.sh") --refresh --apply
     if ($LASTEXITCODE -ne 0) {
       Write-Host "WARN free-model refresh/apply failed (offline first-run?) - keeping existing model IDs"
     }
-  } else {
-    Write-Host "WARN bash not found - skipping free-model refresh (run update-free-models.sh from Git Bash)"
+  } elseif (-not $bashIsWslOnly) {
+    Write-Host "WARN bash not found - skipping free-model refresh (install Git for Windows, or run update-free-models.sh from Git Bash)"
   }
 
   @(
@@ -413,7 +437,7 @@ function Install-OpenCode {
   # "Invalid argument/option - 'Web'"), so schedule a no-space wrapper script
   # instead. The wrapper runs the repo script via its WSL /mnt/<drive>/ path
   # (WSL bash cannot open D:\ paths directly).
-  if ($bashCmd) {
+  if ($bashExe -and -not $bashIsWslOnly) {
     $scriptPath = (Join-Path $Root "scripts\update-free-models.sh").Replace('\', '/')
     $wrapperPath = Join-Path $env:USERPROFILE ".local\bin\pcore-free-models.sh"
     $localBinDir = Split-Path -Parent $wrapperPath

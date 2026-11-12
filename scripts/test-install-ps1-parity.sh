@@ -183,6 +183,45 @@ for tok in 'install_mcp_launcher()' '--mcp' 'INSTALL_MCP' '@modelcontextprotocol
     || bad "#18 sh: install.sh missing '$tok'"
 done
 
+# ---------------------------------------------------------------------------
+# Git-Bash resolution (free-model refresh must not run under WSL-only bash)
+# ---------------------------------------------------------------------------
+has "$PS1" 'function Find-GitBash' \
+  && ok "ps1: Find-GitBash helper defined" \
+  || bad "ps1: Find-GitBash helper missing"
+
+has "$PS1" 'Git\bin\bash.exe' \
+  && ok "ps1: Find-GitBash probes the Git Bash path" \
+  || bad "ps1: Find-GitBash does not probe Git\\bin\\bash.exe"
+
+for tok in '${env:ProgramFiles}' '${env:ProgramFiles(x86)}' 'C:\Program Files\Git\bin\bash.exe'; do
+  has "$PS1" "$tok" \
+    && ok "ps1: probes candidate '$tok'" \
+    || bad "ps1: missing Git Bash candidate '$tok'"
+done
+
+has "$PS1" '$cmd = Get-Command bash -ErrorAction SilentlyContinue' \
+  && ok "ps1: PATH bash is the last resort after the Git candidates" \
+  || bad "ps1: Get-Command bash fallback missing"
+
+has "$PS1" '$bashExe = Find-GitBash' \
+  && ok "ps1: free-model refresh uses the resolved Find-GitBash path" \
+  || bad "ps1: refresh does not use Find-GitBash"
+
+has "$PS1" 'likely WSL, which cannot open D:\ script paths' \
+  && ok "ps1: WSL-only bash warns actionably (install Git for Windows / Git Bash)" \
+  || bad "ps1: no actionable WSL-only warning"
+
+# Ordering: Git candidates must precede the Get-Command fallback inside the helper.
+gitbash_fn="$(awk '/^function Find-GitBash/{f=1} f{print} f&&/^}/{exit}' "$PS1")"
+first_git="$(printf '%s' "$gitbash_fn" | grep -nF 'Git\bin\bash.exe' | head -1 | cut -d: -f1)"
+last_cmd="$(printf '%s' "$gitbash_fn" | grep -nF 'Get-Command bash' | head -1 | cut -d: -f1)"
+if [[ -n "$first_git" && -n "$last_cmd" && "$first_git" -lt "$last_cmd" ]]; then
+  ok "ps1: Git Bash candidates precede the PATH fallback (line $first_git < $last_cmd)"
+else
+  bad "ps1: Git Bash candidates must precede Get-Command bash in Find-GitBash"
+fi
+
 echo ""
 echo "install.ps1 parity test: ${GREEN}$PASS passed${NC}, ${RED}$FAIL failed${NC}"
 [[ "$FAIL" -eq 0 ]] || exit 1
