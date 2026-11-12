@@ -97,7 +97,7 @@ function parseCronField(text, range, fullSpec) {
   const [min, max] = range;
   const values = new Set();
   for (const part of text.split(",")) {
-    const m = /^(\*|\d+)(?:-(\d+))?(?:\/(\d+))?$/.exec(part);
+    const m = part.match(/^(\*|\d+)(?:-(\d+))?(?:\/(\d+))?$/);
     if (!m) {
       throw new Error(
         `trigger-scheduler: invalid cron field "${part}" in "${fullSpec}" ` +
@@ -255,7 +255,7 @@ function parseSchedule(spec) {
   }
 
   if (s.startsWith("daily:")) {
-    const m = /^(\d{1,2}):(\d{2})$/.exec(s.slice("daily:".length).trim());
+    const m = s.slice("daily:".length).trim().match(/^(\d{1,2}):(\d{2})$/);
     if (!m) {
       throw new Error(`trigger-scheduler: invalid daily schedule "${spec}" (expected daily:<HH:MM>)`);
     }

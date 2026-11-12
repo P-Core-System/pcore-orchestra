@@ -12,6 +12,7 @@ coverage/
 
 # Caches
 .cache/
+.kilo/
 .ruff_cache/
 .mypy_cache/
 .pytest_cache/

@@ -154,6 +154,36 @@ test(".git and node_modules are never walked", () => {
   eq(r.vulnerabilities.length, 0, `vendor/VCS trees must be skipped: ${JSON.stringify(r.vulnerabilities)}`);
 });
 
+test("dotted JS member assign (obj.token = ident;) is not an unquoted secret", () => {
+  const dir = fixture({
+    "stats.js": "result.wastedTokensInFixCycles = wastedTokensInFixCycles;\n",
+  });
+  const r = scanner.scanDirectory(dir);
+  eq(r.secrets.length, 0, `dotted JS assignment must not trip the KEY=value rule: ${JSON.stringify(r.secrets)}`);
+});
+
+test("PASSWORD=hunter2 and TOKEN=abc123 stay critical after the dotted-key fix", () => {
+  for (const line of ["PASSWORD=hunter2\n", "TOKEN=abc123\n"]) {
+    const hits = scanner.scanForSecrets(line, ".env");
+    ok(
+      hits.some((s) => s.severity === "critical" && /unquoted/i.test(s.label)),
+      `bare ${line.trim()} must stay a critical unquoted secret: ${JSON.stringify(hits)}`
+    );
+  }
+});
+
+test(".kilo worktree copies are never walked", () => {
+  const dir = fixture({
+    ".kilo/worktrees/x/bundle/hooks/lib/security-scanner.js": "const x = 's3cr3t-value-here';\n",
+  });
+  const r = scanner.scanDirectory(dir);
+  eq(
+    [...r.secrets, ...r.vulnerabilities, ...r.crypto].length,
+    0,
+    `.kilo trees must be skipped: ${JSON.stringify([...r.secrets, ...r.vulnerabilities])}`
+  );
+});
+
 // ------------------------------------------------------- binary guard (regression)
 //
 // The binary guard in `scanFile` compares the file text against a NUL byte.

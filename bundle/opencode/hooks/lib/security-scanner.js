@@ -27,7 +27,7 @@ const SECRET_PATTERNS = [
  */
 const UNQUOTED_SECRET_PATTERNS = [
   {
-    pattern: /^[ \t]*(?:export[ \t]+)?[A-Za-z0-9_.-]*(?:password|passwd|secret|token|api_?key|private_?key|access_?key|credential)[A-Za-z0-9_.-]*[ \t]*=[ \t]*([^\s'"#][^\s'"#]{5,})[ \t]*(?:#.*)?$/gim,
+    pattern: /^[ \t]*(?:export[ \t]+)?[A-Za-z0-9_-]*(?:password|passwd|secret|token|api_?key|private_?key|access_?key|credential)[A-Za-z0-9_-]*[ \t]*=[ \t]*([^\s'"#][^\s'"#]{5,})[ \t]*(?:#.*)?$/gim,
     severity: "critical",
     label: "Unquoted secret in KEY=value form",
     placeholderSafe: true,
@@ -175,7 +175,7 @@ const SCAN_EXTENSIONS = [
 const SCAN_EXTENSIONLESS = true;
 
 /** Directories never walked — VCS internals, vendored dependencies, and build artifacts. */
-const SKIP_DIRS = new Set([".git", "node_modules", "dist", "build"]);
+const SKIP_DIRS = new Set([".git", ".kilo", ".pcore", "node_modules", "dist", "build"]);
 
 /** Skip files larger than this (logs, fixtures, minified bundles). */
 const MAX_FILE_BYTES = 512 * 1024;

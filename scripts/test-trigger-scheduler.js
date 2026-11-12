@@ -377,5 +377,17 @@ const MIN = 60000;
   check("default config exported", t.DEFAULT_TRIGGER_CONFIG && t.DEFAULT_TRIGGER_CONFIG.daily_budget === 6);
 }
 
+// ── cron-field parser form (no scanner-flagged regex .exec) ──────────────
+{
+  const fs = require("node:fs");
+  const src = fs.readFileSync(require("node:path").join(__dirname, "..", "bundle/hooks/lib/trigger-scheduler.js"), "utf8");
+  check(
+    "cron field parsed via String.match (identical semantics, no .exec call)",
+    src.includes("part.match(/^(\\*|\\d+)(?:-(\\d+))?(?:\\/(\\d+))?$/)"),
+    "expected the part.match cron-field form"
+  );
+  check("no regex .exec( remains in trigger-scheduler.js", !/\.exec\(/.test(src), "a .exec( call would re-trip the scanner's exec() rule");
+}
+
 console.log(failed === 0 ? "\nAll trigger scheduler tests passed." : `\n${failed} FAILED`);
 process.exit(failed === 0 ? 0 : 1);

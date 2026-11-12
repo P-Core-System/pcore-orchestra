@@ -22,6 +22,7 @@ bundle/opencode/hooks/state/trigger-state.json
 bundle/opencode/hooks/state/domain-*.json
 bundle/opencode/hooks/lib/state/
 .pcore/
+.kilo/
 
 # Studio v2 server deps (commit package.json + package-lock.json only)
 server/node_modules/
