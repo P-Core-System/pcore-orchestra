@@ -45,6 +45,28 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SYSTEM_CONFIG="${HOME}/.config/opencode/opencode.json"
 EXAMPLE_CONFIG="${REPO_ROOT}/docs/opencode.json.example"
 
+# ── Python path normalization (Windows / Git Bash) ──────────────────
+# MSYS auto-converts *argv* paths for native Windows programs, but NOT a
+# path interpolated into `python3 -c` source. On a native Windows python3
+# a POSIX path (/c/..., /d/..., /tmp/...) does not resolve -> FileNotFoundError.
+# PY_IS_WIN gates py_path(), which converts such paths to the mixed form
+# (C:/Users/...) that Windows Python accepts. On POSIX the helper is a
+# byte-identical passthrough.
+PY_IS_WIN=0
+if command -v python3 &>/dev/null; then
+  if python3 -c 'import sys; sys.exit(0 if sys.platform=="win32" else 1)' 2>/dev/null; then
+    PY_IS_WIN=1
+  fi
+fi
+
+py_path() {
+  if [[ "$PY_IS_WIN" -eq 1 ]] && command -v cygpath &>/dev/null; then
+    cygpath -m "$1"
+  else
+    printf '%s\n' "$1"
+  fi
+}
+
 # ── Static deny-list (offline fallback only) ────────────────────────
 # Listed by the API but rejected at runtime (or superseded) — filtered
 # out of BOTH the flat free-models cache and the generated pools below.
@@ -69,7 +91,9 @@ KNOWN_FREE_CSV="$(IFS=,; echo "${KNOWN_FREE[*]}")"
 # Returns a JSON string of {modelId: {reachable, timestamp, error?}} or "{}"
 load_probes() {
   if [[ -f "$PROBES_FILE" ]]; then
-    python3 -c "import json; print(json.dumps(json.load(open('$PROBES_FILE'))))" 2>/dev/null || echo "{}"
+    local probes_path
+    probes_path=$(py_path "$PROBES_FILE")
+    python3 -c "import json; print(json.dumps(json.load(open('$probes_path'))))" 2>/dev/null || echo "{}"
   else
     echo "{}"
   fi
@@ -77,7 +101,7 @@ load_probes() {
 
 # ── Write pools JSON from the free-models cache + live context data ─
 write_pools() {
-  if [[ ! -f "$CACHE_FILE" ]]; then
+  if [[ ! -s "$CACHE_FILE" ]]; then
     warn "No free-models cache found; cannot generate pools"
     return 1
   fi
@@ -87,7 +111,7 @@ write_pools() {
   probes_json=$(load_probes)
 
   python3 -c "
-import json, os, sys, datetime
+import json, os, sys, datetime, subprocess
 
 cache_file = sys.argv[1]
 pools_file = sys.argv[2]
@@ -99,12 +123,24 @@ def is_reachable(mid):
     p = probes.get(mid, {})
     return p.get('reachable', False)
 
-with open(cache_file) as f:
-    cache = json.load(f)
+try:
+    with open(cache_file) as f:
+        cache = json.load(f)
+except Exception as exc:
+    sys.stderr.write('unreadable free-models cache: %s\n' % exc)
+    sys.exit(1)
 
 # Fetch full model data with context windows from live API
 tmp = os.path.join(os.path.dirname(pools_file), '.tmp-zen-models.json')
-os.system('curl -sS --max-time 15 -o ' + tmp + ' https://opencode.ai/zen/v1/models 2>/dev/null')
+try:
+    subprocess.run(
+        ['curl', '-sS', '--max-time', '15', '-o', tmp, 'https://opencode.ai/zen/v1/models'],
+        timeout=20,
+        capture_output=True,
+        check=False,
+    )
+except Exception:
+    pass
 
 model_ctx = {}
 try:
@@ -183,7 +219,10 @@ os.replace(tmp_pools, pools_file)
 
 for name, items in pools.items():
     print('  %s: %d models' % (name, len(items)))
-" "$CACHE_FILE" "$POOLS_FILE" "$KNOWN_DEAD_CSV" "$probes_json" "$KNOWN_FREE_CSV"
+" "$CACHE_FILE" "$POOLS_FILE" "$KNOWN_DEAD_CSV" "$probes_json" "$KNOWN_FREE_CSV" || {
+    err "Pool generation failed (unreadable or empty cache)"
+    return 1
+  }
 }
 
 # ── Fetch free models ───────────────────────────────────────────────
@@ -192,6 +231,8 @@ fetch_free_models() {
 
   local tmp
   tmp=$(mktemp)
+  local tmp_path
+  tmp_path=$(py_path "$tmp")
 
   if curl -sS --max-time 15 -o "$tmp" "$REMOTE_URL" 2>/dev/null; then
     if command -v python3 &>/dev/null; then
@@ -199,7 +240,7 @@ fetch_free_models() {
 import json, sys
 known_dead = set('$KNOWN_DEAD_CSV'.split(',')) if '$KNOWN_DEAD_CSV' else set()
 known_free = set(x for x in '$KNOWN_FREE_CSV'.split(',') if x)
-with open('$tmp') as f:
+with open('$tmp_path') as f:
     data = json.load(f)
 models = data if isinstance(data, list) else data.get('data', [])
 free = []
@@ -237,10 +278,33 @@ print(json.dumps({'models': sorted(free), 'fetched': '$(date -u +%Y-%m-%dT%H:%M:
       rm -f "$tmp"
       return 1
     fi
+
+    # Fail closed: never mv an empty/unparseable tmp over a good cache.
+    if [[ ! -s "${CACHE_FILE}.tmp" ]]; then
+      err "Fetch produced an empty model cache -- keeping existing cache"
+      rm -f "${CACHE_FILE}.tmp" "$tmp"
+      return 1
+    fi
+    if command -v python3 &>/dev/null; then
+      if ! python3 -c "import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if isinstance(d, dict) and d.get('models') else 1)" \
+          "${CACHE_FILE}.tmp" 2>/dev/null; then
+        err "Fetch produced an unparseable/empty model cache -- keeping existing cache"
+        rm -f "${CACHE_FILE}.tmp" "$tmp"
+        return 1
+      fi
+    elif command -v jq &>/dev/null; then
+      if ! jq -e '(.models | type == "array") and (.models | length > 0)' "${CACHE_FILE}.tmp" >/dev/null 2>&1; then
+        err "Fetch produced an unparseable/empty model cache -- keeping existing cache"
+        rm -f "${CACHE_FILE}.tmp" "$tmp"
+        return 1
+      fi
+    fi
+
     mv -f "${CACHE_FILE}.tmp" "$CACHE_FILE"
     rm -f "$tmp"
-    local count
-    count=$(python3 -c "import json; print(len(json.load(open('$CACHE_FILE')).get('models', [])))" 2>/dev/null || echo "?")
+    local count cache_path
+    cache_path=$(py_path "$CACHE_FILE")
+    count=$(python3 -c "import json; print(len(json.load(open('$cache_path')).get('models', [])))" 2>/dev/null | tr -d '\r' || echo "?")
     ok "Fetched $count free models"
 
     # Auto-generate pools on every successful fetch
@@ -262,16 +326,24 @@ extract_models() {
   [[ -f "$config_file" ]] || return 0
 
   if command -v python3 &>/dev/null; then
+    local config_path
+    config_path=$(py_path "$config_file")
     python3 -c "
 import json, sys
-with open('$config_file') as f:
+with open('$config_path') as f:
     cfg = json.load(f)
 models = set()
 def add(v):
     if isinstance(v, dict):
         v = v.get('model', '')
-    if isinstance(v, str) and v:
-        models.add(v.split('/')[-1] if '/' in v else v)
+    if not isinstance(v, str) or not v:
+        return
+    # Provider-scoped refs (e.g. github-copilot/gpt-4o) are deliberate
+    # non-free-tier overrides -- only bare ids and opencode/* are validated.
+    provider = v.split('/')[0] if '/' in v else ''
+    if provider and provider != 'opencode':
+        return
+    models.add(v.split('/')[-1] if provider else v)
 add(cfg.get('model'))
 add(cfg.get('small_model'))
 agents_v2 = cfg.get('agents') or {}
@@ -282,14 +354,16 @@ for name, a in agents.items():
         add(a.get('model'))
 for m in sorted(models):
     print(m)
-"
+" | tr -d '\r'
   elif command -v jq &>/dev/null; then
     jq -r '
       [.model, .small_model, (.agents.title.model // empty)] +
       [((.agents // .agent // {}) | to_entries[] | .value.model // empty)] |
       map(if type == "object" then .model else . end) |
       map(select(type == "string" and length > 0)) |
-      map(split("/") | last) | sort | unique | .[]
+      map(split("/")) |
+      map(select(length == 1 or .[0] == "opencode")) |
+      map(last) | sort | unique | .[]
     ' "$config_file" 2>/dev/null
   fi
 }
@@ -298,15 +372,17 @@ for m in sorted(models):
 check_probe_reachability() {
   local model_id="$1"
   [[ ! -f "$PROBES_FILE" ]] && { echo "UNKNOWN"; return; }
+  local probes_path
+  probes_path=$(py_path "$PROBES_FILE")
   python3 -c "
 import json
 try:
-    with open('$PROBES_FILE') as f: probes = json.load(f)
+    with open('$probes_path') as f: probes = json.load(f)
     entry = probes.get('$model_id', {})
     print('REACHABLE' if entry.get('reachable') is True else 'UNREACHABLE' if entry.get('reachable') is False else 'UNKNOWN')
 except Exception:
     print('UNKNOWN')
-" 2>/dev/null || echo "UNKNOWN"
+" 2>/dev/null | tr -d '\r' || echo "UNKNOWN"
 }
 
 # ── Validate models against cache ───────────────────────────────────
@@ -325,6 +401,7 @@ validate_models() {
   local has_dead=0
   local has_unreachable=0
   while IFS= read -r model_id; do
+    model_id="${model_id%$'\r'}"
     [[ -z "$model_id" ]] && continue
     if echo "$free_models" | grep -qxF "$model_id"; then
       local reach_status
@@ -428,8 +505,14 @@ model_ids = set()
 def add(v):
     if isinstance(v, dict):
         v = v.get('model', '')
-    if isinstance(v, str) and v:
-        model_ids.add(v.split('/')[-1] if '/' in v else v)
+    if not isinstance(v, str) or not v:
+        return
+    # Provider-scoped refs (e.g. github-copilot/gpt-4o) are deliberate paid
+    # overrides -- only bare ids and opencode/* are checked against live pools.
+    provider = v.split('/')[0] if '/' in v else ''
+    if provider and provider != 'opencode':
+        return
+    model_ids.add(v.split('/')[-1] if provider else v)
 add(cfg.get('model'))
 add(cfg.get('small_model'))
 agents_v2 = cfg.get('agents') or {}
@@ -449,7 +532,7 @@ for mid in sorted(model_ids):
 
 # ── Check mode ──────────────────────────────────────────────────────
 run_check() {
-  if [[ ! -f "$CACHE_FILE" ]]; then
+  if [[ ! -s "$CACHE_FILE" ]]; then
     warn "No cache found. Run --refresh first."
     # Try to fetch
     if ! fetch_free_models; then
@@ -458,15 +541,16 @@ run_check() {
     fi
   fi
 
-  local stale=""
-  if [[ -f "$CACHE_FILE" ]]; then
+  local stale="" cache_path
+  cache_path=$(py_path "$CACHE_FILE")
+  if [[ -s "$CACHE_FILE" ]]; then
     local age
     age=$(python3 -c "
 import os, time
-mtime = os.path.getmtime('$CACHE_FILE')
+mtime = os.path.getmtime('$cache_path')
 age_h = (time.time() - mtime) / 3600
 print(f'{age_h:.1f}')
-" 2>/dev/null || echo "?")
+" 2>/dev/null | tr -d '\r' || echo "?")
     if [[ "$age" != "?" ]] && (( $(echo "$age > 24" | bc -l 2>/dev/null || echo 0) )); then
       warn "Cache is ${age}h old -- consider --refresh"
       stale=1
@@ -476,11 +560,11 @@ print(f'{age_h:.1f}')
   local free_models
   free_models=$(python3 -c "
 import json
-with open('$CACHE_FILE') as f:
+with open('$cache_path') as f:
     data = json.load(f)
 for m in data.get('models', []):
     print(m)
-" 2>/dev/null)
+" 2>/dev/null | tr -d '\r')
 
   local total_dead=0
   validate_models "System config ($SYSTEM_CONFIG)" "$SYSTEM_CONFIG" "$free_models" || total_dead=1
@@ -560,15 +644,16 @@ run_probe() {
   echo ""
 
   local failed=0
-  local mid tmp probe_jsonl
+  local mid tmp probe_jsonl cache_path probes_path
   probe_jsonl=$(mktemp)
+  cache_path=$(py_path "$CACHE_FILE")
   mapfile -t _probe_models < <(python3 -c "
 import json
-with open('$CACHE_FILE') as f:
+with open('$cache_path') as f:
     data = json.load(f)
 for m in data.get('models', []):
     print(m)
-" 2>/dev/null)
+" 2>/dev/null | tr -d '\r')
 
   for mid in "${_probe_models[@]}"; do
     [[ -z "$mid" ]] && continue
@@ -618,11 +703,14 @@ print(json.dumps({'id': '$mid', 'reachable': $reachable, 'timestamp': '$(date -u
 
   # Consolidate JSONL into probes.json
   mkdir -p "$CACHE_DIR"
+  probes_path=$(py_path "$PROBES_FILE")
+  local probe_jsonl_path
+  probe_jsonl_path=$(py_path "$probe_jsonl")
   python3 -c "
 import json, sys
 results = {}
 try:
-    with open('$probe_jsonl') as f:
+    with open('$probe_jsonl_path') as f:
         for line in f:
             line = line.strip()
             if line:
@@ -630,7 +718,7 @@ try:
                 results[e['id']] = {'reachable': e['reachable'], 'timestamp': e['timestamp'], 'error': e.get('error', '')}
 except Exception:
     pass
-with open('$PROBES_FILE', 'w') as f:
+with open('$probes_path', 'w') as f:
     json.dump(results, f, indent=2)
 print('Wrote probe results to $PROBES_FILE')
 "
@@ -716,7 +804,7 @@ PY
 
 # ── Apply mode: dynamic free-pool assignment into bundle + install ──
 run_apply() {
-  if [[ ! -f "$CACHE_FILE" ]] || ! python3 -c \
+  if [[ ! -s "$CACHE_FILE" ]] || ! python3 -c \
       "import json,sys; sys.exit(0 if json.load(open(sys.argv[1])).get('models') else 1)" \
       "$CACHE_FILE" 2>/dev/null; then
     warn "Free-model cache missing or empty — fetching first"
@@ -728,7 +816,7 @@ run_apply() {
   [[ -f "$POOLS_FILE" ]] || write_pools || warn "Pool generation failed (continuing with flat cache)"
 
   local picked primary heavy
-  if ! picked=$(pick_models); then
+  if ! picked=$(pick_models | tr -d '\r'); then
     err "No usable free model in cache after deny-list filter — run --refresh"
     return 1
   fi

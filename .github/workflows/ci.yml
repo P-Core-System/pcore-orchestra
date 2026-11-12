@@ -76,6 +76,7 @@ jobs:
           bash scripts/test-ensure-opencode-latest.sh
           bash scripts/test-mcp-installed-launcher.sh
           bash scripts/test-mcp-service.sh
+          bash scripts/test-update-free-models-paths.sh
           bash scripts/test-health-agents.sh
           bash scripts/test-install-ps1-parity.sh
           bash scripts/lint-install-ps1.sh

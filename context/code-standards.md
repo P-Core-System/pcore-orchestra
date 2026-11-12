@@ -100,6 +100,7 @@ node scripts/sync-claude-agents.js --check
 node scripts/sync-codex-agents.js --check
 bash scripts/test-ensure-opencode-latest.sh
 bash scripts/test-mcp-installed-launcher.sh
+bash scripts/test-update-free-models-paths.sh
 bash scripts/test-health-agents.sh
 node scripts/gen-agent-registry.js --check
 node scripts/scan-secrets.js --dir . --fail-on=high

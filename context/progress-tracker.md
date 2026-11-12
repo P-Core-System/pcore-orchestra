@@ -11,6 +11,13 @@ Update this file after every meaningful implementation change.
 
 - Verify token usage per phase is under budget
 
+## 2026-11-12 — update-free-models.sh native-Windows python3 support (Git Bash)
+
+- `scripts/update-free-models.sh`: NEW `PY_IS_WIN` detection + `py_path()` (`cygpath -m` on win32, byte-identical POSIX passthrough) — every path interpolated into `python3 -c` now goes through it (`load_probes`, `fetch`, count, `extract_models`, `check_probe_reachability`, `age`, `free_models`, `probe`, probe-consolidate), fixing FileNotFoundError for `/c/...`, `/d/...`, `/tmp/...` (MSYS converts argv but not `-c` source). Empty-cache fail-closed: `-s` gates in `write_pools`/`run_check`/`run_apply`, `write_pools` cache load in try/except (warn + exit 1), post-fetch tmp cache must be non-empty AND JSON-parseable (python argv / jq) before `mv -f` — never `mv` an empty file over a good cache. Provider-scoped free-tier verdict in `extract_models` (python + jq) and `check_pools`: refs with a non-`opencode` provider prefix are deliberate paid overrides and skipped; bare ids + `opencode/*` stay fully validated (STALE-POOL/DEAD unchanged for real free models). `write_pools` curl now `subprocess.run([...], timeout=20, capture_output=True)` instead of `os.system` string concat (no shell quoting for paths with spaces). Python stdout is `tr -d '\r'`-stripped at every bash consumer (native python3 emits CRLF — `grep -qxF`/`==` comparisons and picked model IDs were otherwise poisoned).
+- NEW `scripts/test-update-free-models-paths.sh` (7 checks, no network): `bash -n`, gate rejecting raw path vars interpolated into `-c` (`open('$CACHE_FILE` etc.), `py_path`/`PY_IS_WIN` presence + ≥9 use sites, cygpath-conditional absolute-path assertion (POSIX passthrough assertion otherwise). Wired into `context/code-standards.md` self-check list + `.github/workflows/ci.yml` host-suites step.
+  Key files: `scripts/update-free-models.sh`, `scripts/test-update-free-models-paths.sh`, `.github/workflows/ci.yml`, `context/{architecture,code-standards,progress-tracker}.md`.
+  Impact: `--refresh`/`--check`/`--pools`/`--probe`/`--apply` work on a native Windows 3.14 python3 under Git Bash; a failed fetch can no longer destroy a good cache; a deliberate provider override no longer reports DEAD/STALE-POOL.
+
 ## 2026-11-12 — install-HEAD verification + team-supervisor-hod capability sync
 
 - Verified install at HEAD (`b055b25`): health exit 0 (162/162 agents, all hooks/lib OK), `gen-agent-registry.js --check` OK (27 hook agents, 162 files), `test-mirror-sync.js` PASS (75 hook files, all lib byte-identical), installed `~/.cursor/hooks/lib` matches bundle (diff clean), worktree clean.
