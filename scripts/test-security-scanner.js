@@ -51,6 +51,15 @@ function eq(a, b, msg) {
   assert.strictEqual(a, b, msg);
 }
 
+/**
+ * `scanDirectory` reports `path.relative` paths — forward slashes on POSIX,
+ * backslashes on Windows. Normalize before comparing so assertions are
+ * separator-agnostic on both platforms (same assertions, no weakening).
+ */
+function norm(p) {
+  return String(p || "").replace(/\\/g, "/");
+}
+
 /** Create a throwaway directory tree from a {relPath: body} map. */
 function fixture(files) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "orchestra-sec-"));
@@ -140,7 +149,7 @@ test("dot-directories are walked (.github/workflows/ci.yml)", () => {
   });
   const r = scanner.scanDirectory(dir);
   ok(
-    r.secrets.some((v) => /^\.github\/workflows\/ci\.yml$/.test(v.file)),
+    r.secrets.some((v) => /^\.github\/workflows\/ci\.yml$/.test(norm(v.file))),
     `.github must be walked, findings: ${JSON.stringify(r.vulnerabilities.map((v) => v.file))}`
   );
 });
@@ -218,7 +227,7 @@ test("the scanner's own source file is scanned, not skipped as binary", () => {
   fs.copyFileSync(SCANNER, path.join(dir, "bundle/hooks/lib/security-scanner.js"));
   const r = scanner.scanDirectory(dir);
   const own = [...r.secrets, ...r.vulnerabilities, ...r.crypto].filter(
-    (f) => f.file === OWN_REL
+    (f) => norm(f.file) === OWN_REL
   );
   ok(
     own.length > 0,
@@ -234,14 +243,14 @@ test("a planted PAT in the scanner's own source file is Critical (sibling file a
   fs.copyFileSync(SCANNER, target);
   fs.appendFileSync(target, `\n// fixture token ${GH_TOKEN}\n`);
   const r = scanner.scanDirectory(dir);
-  const own = r.secrets.filter((f) => f.file === OWN_REL);
+  const own = r.secrets.filter((f) => norm(f.file) === OWN_REL);
   ok(own.length > 0, "a planted PAT in security-scanner.js must be reported");
   ok(
     own.some((f) => f.severity === "critical"),
     `the planted PAT must be critical: ${JSON.stringify(own.map((f) => [f.severity, f.label]))}`
   );
   ok(
-    r.secrets.some((f) => f.file === "bundle/hooks/lib/plain.js" && f.severity === "critical"),
+    r.secrets.some((f) => norm(f.file) === "bundle/hooks/lib/plain.js" && f.severity === "critical"),
     "the identical key in a sibling file must be Critical too (control)"
   );
 });
@@ -669,11 +678,11 @@ test("a PAT planted in a documented first-party file is BLOCKED, never silenced 
   eq(status, 1, `a critical PAT must fail the build in every first-party file: ${raw}`);
   for (const { file } of PATH_ONLY_ALLOWED) {
     ok(
-      blocked.some((f) => f.file === file),
+      blocked.some((f) => norm(f.file) === file),
       `a PAT planted in ${file} must be a BLOCKING finding, not an allowlisted one: ${raw}`
     );
     ok(
-      !parsed.allowed.some((f) => f.file === file && /GitHub personal access token/.test(f.label)),
+      !parsed.allowed.some((f) => norm(f.file) === file && /GitHub personal access token/.test(f.label)),
       `${file} must never allow a GitHub token: ${raw}`
     );
   }
@@ -683,7 +692,7 @@ test("a PAT planted in a documented first-party file is BLOCKED, never silenced 
 test("the genuine regex-exec false positive in those files is STILL allowed (N1 control)", () => {
   const { parsed, raw } = scanWithRepoAllow(plantedPatFixture());
   for (const { file, exec } of PATH_ONLY_ALLOWED) {
-    const allowedFp = parsed.allowed.some((f) => f.file === file && /exec\(\) call/.test(f.label));
+    const allowedFp = parsed.allowed.some((f) => norm(f.file) === file && /exec\(\) call/.test(f.label));
     eq(allowedFp, exec, `${file}: regex-exec false positive allowed=${exec} as documented: ${raw}`);
   }
 });

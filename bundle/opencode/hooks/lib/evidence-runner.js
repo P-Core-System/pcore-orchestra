@@ -306,7 +306,10 @@ const SELF_SCAN_EXCLUSIONS = [
 
 /** True when `finding` matches a documented self-scan exclusion. */
 function isSelfScanExcluded(finding) {
-  const file = (finding && finding.file) || "";
+  // `scanDirectory` reports `path.relative` paths: forward slashes on POSIX,
+  // backslashes on Windows. The exclusion `file` patterns are written with
+  // forward slashes, so normalize first — a no-op on POSIX.
+  const file = String((finding && finding.file) || "").replace(/\\/g, "/");
   const label = (finding && finding.label) || "";
   return SELF_SCAN_EXCLUSIONS.some(
     (e) => e.file.test(file) && e.label instanceof RegExp && !!label && e.label.test(label)

@@ -11,6 +11,15 @@ Update this file after every meaningful implementation change.
 
 - Verify token usage per phase is under budget
 
+## 2026-11-12 — separator-agnostic scanner gates on Windows (8->0, npm-churn revert)
+
+- Reverted uncommitted `studio/package-lock.json` churn (214-line npm prune, unrelated to scope) via `git checkout --`; tree clean.
+- `bundle/hooks/lib/evidence-runner.js` (+ byte-identical OpenCode mirror): `isSelfScanExcluded` normalizes `\` -> `/` before testing the forward-slash `file` patterns — `path.relative` yields backslashes on Windows so the scanner's own rule-source literals + the `phase-outcome.js` regex-exec FP were never excluded and every `evidenceSecurity` gateFixture test failed. Detection heuristics untouched; POSIX no-op (proven by equivalence check: old vs new agree on all POSIX samples, Windows now matches POSIX).
+- `scripts/test-security-scanner.js`: NEW `norm()` helper; all 6 multi-segment path comparisons (dot-dir regex, OWN_REL x2, plain.js sibling, N1 blocked/allowed/control) compare `norm(f.file)`. Separator-free basenames (`Dockerfile`, `blob.js`, `keep.js`) and substring regexes left as-is. No assertion weakened.
+- Verified: `test-security-scanner.js` exit 0 (144 assertions, was 8 FAILED); `scan-secrets --dir . --fail-on=high` exit 0; `test-evidence-runner.js` green; `test-trigger-scheduler` green; `test-update-free-models-paths.sh` 10 checks; `test-install-ps1-parity.sh` 44 passed; `test-mirror-sync.js` PASS.
+  Key files: `bundle/hooks/lib/evidence-runner.js` (+ mirror), `scripts/test-security-scanner.js`, `context/progress-tracker.md`.
+  Impact: scanner gates + self-scan exclusions behave identically on Windows and POSIX; green-up round unblocked.
+
 ## 2026-11-12 — blocking gates green: scanner FP fix, trigger-scheduler .match, install.ps1 Git-Bash resolution
 
 - `bundle/hooks/lib/security-scanner.js` (+ byte-identical OpenCode mirror): unquoted `KEY=value` rule no longer treats dotted JS member assigns (`result.wastedTokensInFixCycles = wastedTokensInFixCycles;`) as secrets — KEY char class dropped `.` (`[A-Za-z0-9_.-]*` → `[A-Za-z0-9_-]*`); `PASSWORD=hunter2` / `TOKEN=abc123` still critical. `SKIP_DIRS` gains `.kilo` + `.pcore` (worktree copies no longer scanned); `.kilo/` added to `.gitignore` + `.ignore` + `.cursorignore`.
