@@ -696,7 +696,7 @@ for m in data.get('models', []):
     # Append JSONL entry
     python3 -c "
 import json, sys
-print(json.dumps({'id': '$mid', 'reachable': $reachable, 'timestamp': '$(date -u +%Y-%m-%dT%H:%M:%SZ)', 'error': '$reach_error'}))
+print(json.dumps({'id': '$mid', 'reachable': $([ "$reachable" = 1 ] && echo True || echo False), 'timestamp': '$(date -u +%Y-%m-%dT%H:%M:%SZ)', 'error': '$reach_error'}))
 " >> "$probe_jsonl" 2>/dev/null || true
     echo ""
   done
@@ -840,7 +840,7 @@ def atomic_write(path, data):
     directory = os.path.dirname(path) or '.'
     fd, tmp = tempfile.mkstemp(dir=directory, prefix='.tmp-apply-')
     try:
-        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+        with os.fdopen(fd, 'w', encoding='utf-8', newline='\n') as f:
             f.write(data)
         if os.path.exists(path):
             os.chmod(tmp, os.stat(path).st_mode & 0o777)

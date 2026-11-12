@@ -98,6 +98,28 @@ else
 fi
 
 echo ""
+echo "── atomic-write + probe-shape gates ──"
+
+# 4) atomic_write must force LF newlines (CRLF from a Windows python breaks bash consumers)
+if grep -q "newline='\\\\n'" "$TARGET"; then
+  ok "atomic_write forces newline LF"
+else
+  bad "atomic_write missing newline='\\n' (CRLF risk on native Windows python3)"
+fi
+
+# 5) probe JSONL must carry a real JSON boolean, not 1/0 (the loop reads `is True`)
+if grep -q 'echo True || echo False' "$TARGET"; then
+  ok "probe reachable serializes as a JSON boolean (True/False -> true/false)"
+else
+  bad "probe reachable not a JSON boolean (check_probe_reachability reads identity)"
+fi
+if grep -q "'reachable': \$reachable," "$TARGET"; then
+  bad "raw 1/0 reachable interpolation still present"
+else
+  ok "no raw 1/0 reachable interpolation"
+fi
+
+echo ""
 if [[ "$fail" -ne 0 ]]; then
   echo "FAILED ($fail failures, $pass passes)"
   exit 1
