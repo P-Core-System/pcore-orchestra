@@ -8,10 +8,14 @@
  *   claimKey = "<team>/<member>/<slug>/<sessionId>"
  * Display forms: "Name@slug" (solo) and "Team/Member@slug" (teamed).
  *
- * Claims live in the unified state dir (`PCORE_STATE_DIR` wins via
+ * Claims live in the unified shared state dir (`PCORE_STATE_DIR` wins via
  * safe-write.resolveStateDir, otherwise the shared
- * `~/.config/opencode/hooks/state` dir) or, when `worktreePath` is given,
- * in `worktreePath/.pcore/state/` (worktree isolation, invariants 30/31).
+ * `~/.config/opencode/hooks/state` dir). The team roster is intentionally
+ * NOT worktree-partitioned: pairing needs one shared roster across sessions
+ * (carve-out from invariants 30/31 — conductor runs and domain events stay
+ * partitioned). `worktreePath` is accepted for legacy import only: a
+ * pre-unify `<worktree>/.pcore/state/team-sessions.json` is merged into
+ * reads (shared wins on key conflict), writes always go shared.
  *
  * Every write goes through safe-write.js (withLock + readJsonSafe +
  * writeJson) — never raw fs writes on shared state (invariant 15).
@@ -35,16 +39,35 @@ function defaultStateDir() {
   return path.join(os.homedir(), ".config", "opencode", "hooks", "state");
 }
 
-/** Resolved state dir: PCORE_STATE_DIR wins, never inside the bundle. */
+/** Resolved state dir: PCORE_STATE_DIR wins, never inside the bundle.
+ * Always the shared team dir — worktreePath is legacy-import only. */
 function claimsDir(worktreePath) {
-  if (worktreePath && typeof worktreePath === "string" && worktreePath.length > 0) {
-    return path.join(worktreePath, ".pcore", "state");
-  }
+  void worktreePath;
   return resolveStateDir(defaultStateDir());
 }
 
 function claimsFile(worktreePath) {
   return path.join(claimsDir(worktreePath), CLAIMS_FILE);
+}
+
+/**
+ * Legacy worktree-partitioned claims file (pre-unify layout). Read for
+ * import only — writes never target it.
+ * @returns {string|null} legacy file path, or null without a worktree
+ */
+function legacyClaimsFile(worktreePath) {
+  if (worktreePath && typeof worktreePath === "string" && worktreePath.length > 0) {
+    return path.join(worktreePath, ".pcore", "state", CLAIMS_FILE);
+  }
+  return null;
+}
+
+/** Read a legacy claims object; corrupt/missing -> {}. */
+function readLegacyClaims(worktreePath) {
+  const file = legacyClaimsFile(worktreePath);
+  if (!file) return {};
+  const data = readJsonSafe(file, {});
+  return data && typeof data === "object" && !Array.isArray(data) ? data : {};
 }
 
 function ensureDir(filePath) {
@@ -162,24 +185,79 @@ function isStaleClaim(claim, nowMs, staleMs) {
   return now - at > thresh;
 }
 
-/** Read all claims (object keyed by claimKey); corrupt/missing -> {}. */
+/** Read all claims (object keyed by claimKey); corrupt/missing -> {}.
+ * With worktreePath, a legacy worktree-partitioned file is merged in
+ * (shared wins on key conflict) so pre-unify slots stay visible. */
 function readAll(worktreePath) {
   const data = readJsonSafe(claimsFile(worktreePath), {});
-  return data && typeof data === "object" && !Array.isArray(data) ? data : {};
+  const shared = data && typeof data === "object" && !Array.isArray(data) ? data : {};
+  const legacy = readLegacyClaims(worktreePath);
+  const legKeys = Object.keys(legacy);
+  if (legKeys.length === 0) return shared;
+  const merged = {};
+  for (const k of legKeys) merged[k] = legacy[k];
+  for (const k of Object.keys(shared)) merged[k] = shared[k];
+  return merged;
+}
+
+/**
+ * Find a member's LIVE (non-stale) slot by identity — member + team +
+ * workspace slug, any session. A re-claim from a new session renews this
+ * slot in place instead of minting a parallel key, so one member holds one
+ * live slot per team/workspace. Stale slots read as absent (a stale slot
+ * mints fresh); pass { includeStale: true } to see the stale slot itself.
+ * @returns {object|null} the live claim record, or null
+ */
+function findLiveSlot(opts) {
+  const o = opts || {};
+  const sessionId = o.sessionId || resolveSessionId();
+  const member = sanitizeName(o.member) || resolveMemberName(o.member, sessionId);
+  const team = resolveTeamName(o.team);
+  const ws = resolveSlug(o.workspace);
+  const workspaceSlug = sanitizeName(o.workspaceSlug) || ws.slug;
+  const now = Date.now();
+  const thresh = Number.isFinite(o.staleMs) ? o.staleMs : STALE_MS;
+  const all = Object.values(readAll(o.worktreePath));
+  for (const c of all) {
+    if (!c || typeof c !== "object") continue;
+    if (sanitizeName(c.member) !== member) continue;
+    if (sanitizeName(c.teamId || c.team) !== team) continue;
+    if (sanitizeName(c.workspaceSlug) !== workspaceSlug) continue;
+    if (!o.includeStale && isStaleClaim(c, now, thresh)) continue;
+    return c;
+  }
+  return null;
 }
 
 /**
  * Claim (or renew) a member slot. Upserts under an advisory lock.
+ * Slot reuse (default): when the member holds a LIVE slot for the same
+ * team/workspace and no conflicting explicit session pins the claim, the
+ * claim renews that slot in place — heartbeat + scope + role + branch + host
+ * refreshed under the SAME claimKey — and returns it with `renewed: true`.
+ * The renew preserves holder identity: sessionId, workspace, workspaceSlug,
+ * claimKey, member and team all stay exactly as the live slot holds them
+ * (only heartbeatAt/updatedAt always move; scope/role/branch/host move when
+ * explicitly provided, otherwise the slot's own values are kept — a renew
+ * without --role never resets a leader back to "member").
+ * Pass `{ newSlot: true }` (CLI `--new-slot`) to hatch a parallel slot under
+ * a fresh session-scoped key instead. An EXPLICIT o.sessionId that differs
+ * from the live slot's holder sessionId mints a fresh slot under the new
+ * session-scoped key (never rewrites the other session's identity) — so an
+ * explicit `--session S` differing from the slot pins a new key, while an
+ * implicit (resolved) session renews the holder's slot in place. A stale slot
+ * never renews: it reads as absent and the claim mints fresh.
  * Scope (`--scope`, string or array) declares the files this member will
  * touch: a claim whose scope overlaps another LIVE member's scope conflicts
- * and is blocked unless `allowOverlap` is set — renewing the same claimKey
- * never conflicts with itself. Throws an Error with `code:
- * "SCOPE_CONFLICT"` and a `conflicts` array when blocked.
+ * and is blocked unless `allowOverlap` is set — renewing a slot never
+ * conflicts with itself (self-exclusion on the renewed key). Throws an
+ * Error with `code: "SCOPE_CONFLICT"` and a `conflicts` array when blocked.
  */
 function claimSession(opts) {
   const o = opts || {};
   const ws = resolveSlug(o.workspace);
-  const sessionId = o.sessionId || resolveSessionId();
+  const explicitSession = typeof o.sessionId === "string" && o.sessionId.length > 0;
+  const sessionId = explicitSession ? o.sessionId : resolveSessionId();
   const member = resolveMemberName(o.member, sessionId);
   const team = resolveTeamName(o.team);
   const role = resolveRole(o.role);
@@ -187,9 +265,29 @@ function claimSession(opts) {
   const workspaceSlug = sanitizeName(o.workspaceSlug) || ws.slug;
   const key = claimKey({ team, member, workspaceSlug, sessionId });
   const shown = displayFor({ team, member, workspaceSlug });
+  let reuse = null;
+  if (!o.newSlot) {
+    const candidate = findLiveSlot({
+      member,
+      team,
+      workspaceSlug,
+      workspace: o.workspace,
+      sessionId,
+      worktreePath: o.worktreePath,
+      staleMs: o.staleMs,
+    });
+    if (candidate) {
+      // Explicit session pinning: an explicit o.sessionId that differs from
+      // the live slot's holder session mints a fresh slot under the new
+      // session-scoped key — a renew never rewrites another session's
+      // identity. An implicit (resolved) session renews in place.
+      reuse = explicitSession && candidate.sessionId !== o.sessionId ? null : candidate;
+    }
+  }
+  const activeKey = reuse ? reuse.claimKey : key;
   const conflicts = findScopeConflicts({
     scope,
-    excludeKey: key,
+    excludeKey: activeKey,
     worktreePath: o.worktreePath,
     staleMs: o.staleMs,
   });
@@ -209,11 +307,13 @@ function claimSession(opts) {
     file,
     () => {
       const current = readAll(o.worktreePath);
-      const prev = current[key];
+      const prev = current[activeKey];
       // Re-check under the lock: a concurrent claim may have landed first.
+      // Self-exclusion rides on the renewed key, so a slot renew never
+      // conflicts with its own scope.
       if (!o.allowOverlap && scope.length > 0) {
         const raced = Object.values(current).filter(
-          (c) => c && c.claimKey !== key && !isStaleClaim(c, Date.now(), o.staleMs) && scopesOverlap(c.scope, scope)
+          (c) => c && c.claimKey !== activeKey && !isStaleClaim(c, Date.now(), o.staleMs) && scopesOverlap(c.scope, scope)
         );
         if (raced.length > 0) {
           const err = new Error(
@@ -224,25 +324,56 @@ function claimSession(opts) {
           throw err;
         }
       }
-      stored = {
-        claimKey: key,
-        member,
-        memberDisplay: shown.display,
-        team: team || null,
-        teamId: team || null,
-        teamDisplay: shown.teamDisplay,
-        role,
-        scope,
-        branch: typeof o.branch === "string" && o.branch ? o.branch : memberBranch({ team, member }),
-        sessionId,
-        workspace: o.workspace || ws.root,
-        workspaceSlug,
-        host: o.host || null,
-        createdAt: (prev && prev.createdAt) || now,
-        updatedAt: now,
-        heartbeatAt: now,
-      };
-      current[key] = stored;
+      // A renew never rewrites holder identity: the base is the live slot
+      // itself (lock-fresh prev when available, else the reuse candidate).
+      const base = (reuse && (prev || reuse)) || null;
+      // An explicit role (flag or env) refreshes the slot; otherwise the
+      // holder's own role is kept so a renew never demotes a leader.
+      const roleExplicit = o.role !== undefined || !!process.env.PCORE_MEMBER_ROLE;
+      stored = reuse
+        ? {
+          // Renew: holder identity preserved — claimKey/member/team/
+          // sessionId/workspace stay exactly as the live slot holds them.
+          // Only the heartbeat moves always; scope/role/branch/host move
+          // when explicitly provided, otherwise the slot's own values win.
+          claimKey: base.claimKey,
+          member: base.member,
+          memberDisplay: base.memberDisplay,
+          team: base.team,
+          teamId: base.teamId,
+          teamDisplay: base.teamDisplay,
+          role: roleExplicit ? role : base.role || role,
+          scope: o.scope === undefined ? (Array.isArray(base.scope) ? base.scope : scope) : scope,
+          branch: typeof o.branch === "string" && o.branch ? o.branch : base.branch || memberBranch({ team: base.teamId || base.team, member: base.member }),
+          sessionId: base.sessionId,
+          workspace: base.workspace,
+          workspaceSlug: base.workspaceSlug,
+          host: o.host || base.host || null,
+          createdAt: base.createdAt || now,
+          updatedAt: now,
+          heartbeatAt: now,
+          renewed: true,
+        }
+        : {
+          claimKey: activeKey,
+          member,
+          memberDisplay: shown.display,
+          team: team || null,
+          teamId: team || null,
+          teamDisplay: shown.teamDisplay,
+          role,
+          scope: o.scope === undefined && prev && Array.isArray(prev.scope) ? prev.scope : scope,
+          branch: typeof o.branch === "string" && o.branch ? o.branch : (prev && prev.branch) || memberBranch({ team, member }),
+          sessionId,
+          workspace: o.workspace || (prev && prev.workspace) || ws.root,
+          workspaceSlug,
+          host: o.host || (prev && prev.host) || null,
+          createdAt: (prev && prev.createdAt) || now,
+          updatedAt: now,
+          heartbeatAt: now,
+          renewed: false,
+        };
+      current[activeKey] = stored;
       writeJson(file, current);
     },
     { waitMs: o.waitMs }
@@ -250,7 +381,9 @@ function claimSession(opts) {
   return stored;
 }
 
-/** Touch the heartbeat of an existing claim; null when unknown. */
+/** Touch the heartbeat of an existing claim; null when unknown.
+ * Touch-only: heartbeatAt/updatedAt move, every identity field (claimKey,
+ * member, team, sessionId, workspace, role, scope, branch) is preserved. */
 function heartbeatClaim(opts) {
   const o = opts || {};
   const file = claimsFile(o.worktreePath);
@@ -515,6 +648,7 @@ module.exports = {
   defaultStateDir,
   claimsDir,
   claimsFile,
+  legacyClaimsFile,
   sanitizeName,
   resolveMemberName,
   resolveTeamName,
@@ -524,6 +658,7 @@ module.exports = {
   displayFor,
   isStaleClaim,
   claimSession,
+  findLiveSlot,
   heartbeatClaim,
   releaseClaim,
   getClaim,

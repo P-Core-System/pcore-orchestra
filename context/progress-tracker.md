@@ -11,6 +11,68 @@ Update this file after every meaningful implementation change.
 
 - Verify token usage per phase is under budget
 
+## 2026-11-12 — install-HEAD verification + team-supervisor-hod capability sync
+
+- Verified install at HEAD (`b055b25`): health exit 0 (162/162 agents, all hooks/lib OK), `gen-agent-registry.js --check` OK (27 hook agents, 162 files), `test-mirror-sync.js` PASS (75 hook files, all lib byte-identical), installed `~/.cursor/hooks/lib` matches bundle (diff clean), worktree clean.
+- `0d77aea` chore(agents): synced WebFetch/WebSearch capabilities onto `team-supervisor-hod` across bundle + claude/qoder mirrors; `bundle/agent-registry.json` regenerated (capability allowlist only, no coverage change).
+- Re-verify after sync: health/registry/mirror/installed-match all green, `git status --porcelain` empty.
+  Key files: `bundle/agents/04-planning/team-supervisor-hod.md`, `bundle/agent-registry.json` (+ claude/qoder mirrors), `context/progress-tracker.md`.
+  Impact: HOD agent can use WebFetch/WebSearch per its researcher-adjacent duties; install-HEAD proven green end to end with a clean tree.
+
+## 2026-11-11 — layer diagram docs (WI-0, docs only)
+
+- NEW `docs/layer-diagram.md`: Mermaid layer graph (presentation → server → business → persistence), per-subsystem Mark Richards patterns, trade-offs, allowed-import table, violation examples.
+- `context/architecture.md`: "Harness > Scaffold > Loop" prose replaced with link-out pointer to `docs/layer-diagram.md`; 61275 → 61006 bytes (−269, net ≤ 0 vs baseline).
+  Key files: `docs/layer-diagram.md`, `context/architecture.md`, `context/progress-tracker.md`.
+  Impact: layered view lives in one docs page; architecture.md shrinks; no code/CI/tests touched.
+
+## 2026-11-12 — renew preserves holder identity, explicit session mints fresh
+
+- `bundle/hooks/lib/session-claims.js` (+ byte-identical OpenCode mirror): `claimSession` reuse path preserves holder identity — claimKey/member/team/sessionId/workspace/workspaceSlug kept from the live slot; only heartbeatAt/updatedAt always move, scope/role/branch/host move when explicitly provided (implicit renew without `--role` no longer demotes a leader to `member`). An EXPLICIT `o.sessionId` differing from the holder session mints a fresh session-scoped slot (never rewrites); implicit (resolved) sessions renew in place; explicit-equal renews in place; stale/`newSlot` behavior unchanged. `heartbeatClaim` audited touch-only (docstring now states it). `session-wake.js` (+ mirror): `ackWake` is claimKey-equality-first (exact holder hits outright, same-member sibling fallback preserved, non-target still `WAKE_DENIED`).
+- Pins: `test-slot-reuse.js` (40 checks: cross-session implicit renew keeps `ses-a` identity + `renewed:true`, second renew idempotent, same-explicit renews, different-explicit mints `ses-b`, CLI same/different/implicit `--session`, post same/different session); `test-team-sessions.js` (+3: same-session renew flag, explicit-different mints fresh, holder slot untouched); `test-session-wake.js` (+2: sibling same-member fallback ack). Suites green: slot-reuse, team-sessions, session-wake, team-discussion, team-roundtrip, team-dispatch, team-hod, evidence-runner, mirror-sync.
+- `scripts/team-sessions.sh` help text notes the explicit-`--session` mint-fresh rule.
+  Key files: `bundle/hooks/lib/{session-claims,session-wake}.js` (+ mirrors), `scripts/test-{slot-reuse,team-sessions,session-wake}.js`, `scripts/team-sessions.sh`, `context/{architecture,progress-tracker}.md`.
+  Impact: a member's slot is stable across sessions — re-claims/heartbeats/discuss-posts renew the holder's identity instead of migrating it; explicit `--session` is the deliberate pin for a new key.
+
+## 2026-11-11 — member-filtered discuss list shows same-team star legs
+
+- `bundle/hooks/lib/team-discussion.js` (+ byte-identical OpenCode mirror): `matchDiscussionFilter` member clause — same-team `m2l`/`l2m` (sanitized `filter.team == msg.team`, both non-empty) matches any member-filtered list; `group` branch, `m2m`/`l2l` author/to privacy, and kind/topology/topic/resolved order unchanged; docstring updated.
+- `scripts/test-team-discussion.js`: +4 pins (HOD sees same-team `m2l`/`l2m` + `group`; Alice hides Bob-Carol `m2m`/`l2l`; other-team star hidden; no-team filter never leaks star legs) — suite green, `test-mirror-sync.js` + `test-team-roundtrip.js` + `test-session-wake.js` green.
+  Key files: `bundle/hooks/lib/team-discussion.js` (+ mirror), `scripts/test-team-discussion.js`, `context/{architecture,progress-tracker}.md`.
+  Impact: a member-filtered `discuss list --member M --team T` shows the team's star push/pull legs and broadcasts without exposing pairwise `m2m`/`l2l` or leaking across teams.
+
+## 2026-11-11 — slot reuse on re-claim (findLiveSlot, --new-slot hatch)
+
+- `bundle/hooks/lib/session-claims.js` (+ byte-identical OpenCode mirror): NEW `findLiveSlot` (live slot by member+team+slug, any session; skips stale candidates so a stale-first roster still finds the live slot); `claimSession` renews the live slot in place by default (same claimKey, `renewed: true`, heartbeat/scope/session/role/branch refreshed, scope-less renew keeps prior scope, self-exclusion on the renewed key); `{ newSlot: true }` hatches a parallel session-scoped slot; stale slots mint fresh. Scope guard intact (foreign overlap still `SCOPE_CONFLICT`).
+- `scripts/team-sessions.sh`: NEW `--new-slot` hatch (claim/dispatch/supervise/discuss-post; dispatch/supervise/request default to reuse); help text documents renew-by-default.
+- NEW `scripts/test-slot-reuse.js` (25 checks: renew same key/count1/renewed, scope refresh + scope-less keep, hatch count2, stale fresh, findLiveSlot session-ignore/unknown-null, SCOPE_CONFLICT + self-overlap pass, CLI claim reuse/renewed/--new-slot, discuss-post author reuse) wired into CI orchestration suite + `context/code-standards.md` self-check list.
+  Key files: `bundle/hooks/lib/session-claims.js` (+ mirror), `scripts/team-sessions.sh`, `scripts/test-slot-reuse.js`, `.github/workflows/ci.yml`, `context/{architecture,code-standards,progress-tracker}.md`.
+  Impact: one member holds one live slot per team/workspace across sessions — re-claims, dispatch re-runs, and discuss posts renew instead of fragmenting the roster; `--new-slot` covers the parallel-slot escape hatch.
+
+## 2026-11-11 — HOD autonomous loop + R&D (supervise/queue/done, research, whitepapers, UX)
+
+- NEW `bundle/hooks/lib/team-supervisor.js` (+ mirror): pure `sweep({backlog, claims, requests})` (FIFO requests first, HOD-push remainder, busy never assigned), `nextAction` (work/idle/release), `memberBranch`/`memberClaimKey`/`memberWorktree` (/tmp rejected, inv 38); `team-requests.js` FIFO durable `team-requests.json` (shared 30/31 carve-out, `enqueue`/`grant`/`list`); `team-done.js` SHA reports (`team-done.json` shared carve-out, `DONE_BAD_SHA` refusal); `team-research.js` `scoreOption`/`pickBest` (25/20/20/15/10/10, missing=0, deterministic).
+- `scripts/team-sessions.sh`: `supervise --team T [--dry-run]` (sweep → claim + per-member `.pcore/state` worktree + payload, SCOPE_CONFLICT skips), `queue enqueue|list|grant`, `done report|list` — all `--json`, fail-open, proven live on a temp `PCORE_STATE_DIR`.
+- `spawn-adapter.js` (+ mirror, additive): `spawnBackground` (detached handle, async errors observed never thrown) + `teamParallelWaves` greedy packing over `canDispatchInParallel` (same-claim/teammate-worktree/scope-conflict serialize, inv 32).
+- Agents: `team-supervisor-hod.md` (04-planning, readonly) + `team-researcher.md` (00-domain, readonly, official-sources/latest-stable); registry regen 160 → 162 files (`gen-agent-registry.js --check` OK); qoder/opencode/claude/codex syncs re-run (8 stale claude/codex core mirrors caught up — pre-existing drift from 4889560/8f66c01/a56f832/2ff878e, fixes red CI `--check` lines).
+- R&D: `templates/whitepaper.md` (pending → approved per order, never auto-applies) + `docs/whitepapers/README.md` gate doc; `docs/ux-tokens-patterns.md` (DTCG 3-tier first, patterns gap-fill only against the skill/template inventory).
+- Tests: NEW `scripts/test-team-hod.js` (33 checks) wired into CI orchestration suite + `context/code-standards.md` self-check list; `test-mirror-sync.js` + `test-spawn-adapter.js` + `test-team-dispatch/sessions` green.
+  Key files: `bundle/hooks/lib/team-{supervisor,requests,done,research}.js` (+ mirrors), `bundle/hooks/lib/spawn-adapter.js` (+ mirror), `scripts/team-sessions.sh`, `bundle/agents/{04-planning/team-supervisor-hod,00-domain/team-researcher}.md` (+ 4-host mirrors), `templates/whitepaper.md`, `docs/{whitepapers/README,ux-tokens-patterns}.md`, `scripts/test-team-hod.js`, `.github/workflows/ci.yml`, `context/{architecture,code-standards,progress-tracker}.md`.
+  Impact: HOD can run the full assign → nudge → collect loop from the CLI with SHA-verified completions; researchers score options deterministically and write human-gated whitepapers; no scope beyond the team loop.
+
+## 2026-11-11 — fix A<->B session replies invisible (shared team state)
+
+- PRIMARY: A m2m->B, B lists sees, B replies, A sees both; same group — all with no --worktree on a shared PCORE_STATE_DIR, proven by NEW `scripts/test-team-roundtrip.js` (18 checks, real `team-sessions.sh` CLI with two SESSION_IDs SES_A/SES_B).
+- WI-1 unify: `claimsDir`/`discussionDir`/`wakesDir` ignore `worktreePath` (always shared `resolveStateDir`); legacy `<worktree>/.pcore/state/` files merged into reads (shared wins), writes always shared; new `legacyClaimsFile`/`legacyDiscussionFile`/`legacyWakesFile` exports; byte-identical OpenCode mirrors. Invariants 30/31 carve-out documented (conductor runs/domain events stay partitioned).
+- WI-2 dispatch/discuss use returned identity: dispatch payload built from the live `claim.claimKey`/`branch` + dispatched record carries real `sessionId`/`workspaceSlug`; `request` output adds `sessionId`/`workspaceSlug` next to the grant.
+- WI-3 discussion visibility: `matchDiscussionFilter` matches `group` broadcasts on member-filtered lists when the team matches (the A->B invisibility: B never saw the broadcast); `to` accepts member name or claim key both directions; default `topology=all`; `getThread` keeps resolved.
+- WI-4 wakes are team-scoped: same-team slots pair across workspaces/projects (shared state dir is the trust root); team mismatch stays `WAKE_CROSS_SCOPE` (exit 2).
+- WI-5 bare `list` shows live/unresolved only, `--all` adds stale claims + resolved messages + acked wakes; `list`/`who` share the one `groupByTeam` path.
+- Tests: `test-team-sessions.js` (shared+legacy pins, CLI bare/--all stale), `test-team-discussion.js` (group-visibility filter pins, shared+legacy), `test-session-wake.js` (same-team allow, cross-team deny, shared+legacy); CI orchestration suite + `context/code-standards.md` self-check list wire `test-team-roundtrip.js`; `context/architecture.md` rows/invariants 30/31/41 updated in place.
+  Key files: `bundle/hooks/lib/{session-claims,team-discussion,session-wake}.js` (+ opencode mirrors), `scripts/team-sessions.sh`, `scripts/test-team-{roundtrip,sessions,discussion}.js`, `scripts/test-session-wake.js`, `.github/workflows/ci.yml`, `context/{architecture,code-standards,progress-tracker}.md`.
+  Impact: cross-session pairing (discuss + wake) works out of the box on shared state — no worktree flags needed; pre-unify worktree files stay readable.
+
+
 ## 2026-11-10 — release 3.10.0 + context-truth docs sweep
 
 - Install verified: `bash install.sh --dry-run` (opencode 2.2.7 already at

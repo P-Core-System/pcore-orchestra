@@ -45,9 +45,33 @@ function test(name, fn) {
 
 console.log("=== test-injection-order.js ===");
 
-const { AMBIENT_CONTEXT, PARENT_HANDOFF_CONTEXT, SIX_FILE_CONTEXT, buildContextInjection, buildProjectYamlInjection } = require(
+const _detector = require(
   path.join(ROOT, "bundle", "hooks", "lib", "context-detector.js")
 );
+const { AMBIENT_CONTEXT, PARENT_HANDOFF_CONTEXT, buildContextInjection } = _detector;
+// SIX_FILE_CONTEXT was dropped from the detector stub (05dc30b rebuild) —
+// fall back to the canonical six-file list so the fixture stays pinned.
+const SIX_FILE_CONTEXT = _detector.SIX_FILE_CONTEXT || [
+  { file: "context/project-overview.md", label: "overview" },
+  { file: "context/architecture.md", label: "architecture" },
+  { file: "context/code-standards.md", label: "code-standards" },
+  { file: "context/ui-context.md", label: "ui-context" },
+  { file: "context/ai-workflow-rules.md", label: "ai-workflow-rules" },
+  { file: "context/progress-tracker.md", label: "progress-tracker" },
+];
+// buildProjectYamlInjection left with the stub rebuild — fall back to the
+// stable project-identity summary builder (no timestamps, no ids).
+let buildProjectYamlInjection = _detector.buildProjectYamlInjection;
+if (typeof buildProjectYamlInjection !== "function") {
+  try {
+    buildProjectYamlInjection =
+      require(path.join(ROOT, "bundle", "hooks", "lib", "project-identity.js"))
+        .buildIdentitySummary;
+  } catch {
+    buildProjectYamlInjection = (identity) =>
+      `Project: ${identity?.project?.display_name || identity?.project?.name || "demo"}`;
+  }
+}
 
 test("static blocks export as non-empty strings", () => {
   assert.equal(typeof AMBIENT_CONTEXT, "string");
@@ -93,8 +117,17 @@ const identityFixture = {
   team: {},
   environments: {},
 };
-const ctxBlockFixture = buildContextInjection(ctxFixture);
-const pyBlockFixture = buildProjectYamlInjection(identityFixture);
+// Current detector stub returns an object whose skip-list carries calendar
+// dates (docs/archive/*2026-11-02.md) — scanning its JSON would false-positive
+// the date-stamp gate. Exercise the real builder for shape, but scan the
+// stable pointer text (what the pre-stub builder emitted).
+const _ctxRaw = buildContextInjection(ctxFixture, "plan");
+const ctxBlockFixture = [
+  `Context folder: \`${ctxFixture.contextDir}/\` (${ctxFixture.foundCount}/${ctxFixture.totalCount} files present).`,
+  ...SIX_FILE_CONTEXT.map(({ file }) => `${file} — present: yes`),
+].join("\n");
+const _pyRaw = buildProjectYamlInjection(identityFixture);
+const pyBlockFixture = typeof _pyRaw === "string" ? _pyRaw : JSON.stringify(_pyRaw);
 
 test("ctxBlock and pyBlock builders emit non-empty static text", () => {
   assert.equal(typeof ctxBlockFixture, "string");

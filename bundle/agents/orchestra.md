@@ -171,6 +171,8 @@ permission:
     "web-app-pentester*": allow
     "web-scraper*": allow
     "zero-knowledge-tester*": allow
+    "team-researcher*": allow
+    "team-supervisor-hod*": allow
     # END GENERATED: task allowlist
   bash: allow
   edit: deny

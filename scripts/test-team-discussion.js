@@ -9,7 +9,8 @@
  *  4. post/list round-trip in isolated PCORE_STATE_DIR (JSONL file)
  *  5. resolve + react (unknown id -> null, never throws)
  *  6. cap/prune rule (DISCUSSION_CAP ring, pruneDiscussion resolved-age)
- *  7. worktree partition: PCORE_WORKTREE writes under <worktree>/.pcore/state
+ *  7. shared dir: writes land shared (no worktree partition) + legacy
+ *     worktree import (shared wins on id conflict)
  *  8. domain: +3 event types + recordDiscussionOutcome (posted/resolved/
  *     reaction) additive, fail-open
  *  9. server/ws.js: diffSnapshots replays discussion.* + parseWsFilter /
@@ -109,6 +110,28 @@ try {
     discussion.matchDiscussionFilter(m("m2m"), { member: "john" }) &&
     discussion.matchDiscussionFilter(m("m2m", { to: "team-alpha/james/wsa/s9" }), { member: "james" }) &&
     !discussion.matchDiscussionFilter(m("m2m"), { member: "sara" }));
+  check("group visible to member-filtered list of same team",
+    discussion.matchDiscussionFilter(m("group"), { member: "sara", team: "team-alpha" }) &&
+    discussion.matchDiscussionFilter(m("group"), { member: "sara" }));
+  check("group hidden from member-filtered list of other team",
+    !discussion.matchDiscussionFilter(m("group"), { member: "sara", team: "team-beta" }));
+  check("m2m still needs author-or-to on member filter",
+    !discussion.matchDiscussionFilter(m("m2m"), { member: "sara", team: "team-alpha" }));
+  check("member filter shows same-team star legs + group (HOD view)",
+    discussion.matchDiscussionFilter(m("m2l", { from: "team-alpha/alice/wsa/s1", to: "team-alpha/hod/wsa/s0" }), { member: "hod", team: "team-alpha" }) &&
+    discussion.matchDiscussionFilter(m("l2m", { from: "team-alpha/hod/wsa/s0", to: "team-alpha/alice/wsa/s1" }), { member: "hod", team: "team-alpha" }) &&
+    discussion.matchDiscussionFilter(m("group"), { member: "hod", team: "team-alpha" }));
+  check("member filter hides unrelated pairwise m2m (Alice hides Bob-Carol)",
+    !discussion.matchDiscussionFilter(m("m2m", { from: "team-alpha/bob/wsa/s1", to: "carol" }), { member: "alice", team: "team-alpha" }) &&
+    !discussion.matchDiscussionFilter(m("l2l", { from: "team-alpha/bob/wsa/s1", to: "team-alpha/carol/wsa/s2" }), { member: "alice", team: "team-alpha" }) &&
+    discussion.matchDiscussionFilter(m("m2l", { from: "team-alpha/bob/wsa/s1", to: "team-alpha/hod/wsa/s0" }), { member: "alice", team: "team-alpha" }));
+  check("member filter hides other-team star legs",
+    !discussion.matchDiscussionFilter(m("m2l", { from: "team-beta/bob/wsb/s1", to: "team-beta/hod/wsb/s0", team: "team-beta" }), { member: "hod", team: "team-alpha" }) &&
+    !discussion.matchDiscussionFilter(m("l2m", { from: "team-beta/hod/wsb/s0", to: "team-beta/bob/wsb/s1", team: "team-beta" }), { member: "hod", team: "team-alpha" }));
+  check("member filter without team never leaks star legs",
+    !discussion.matchDiscussionFilter(m("m2l", { from: "team-alpha/bob/wsa/s1", to: "team-alpha/hod/wsa/s0" }), { member: "alice" }) &&
+    !discussion.matchDiscussionFilter(m("l2m", { from: "team-alpha/hod/wsa/s0", to: "team-alpha/bob/wsa/s1" }), { member: "alice" }) &&
+    discussion.matchDiscussionFilter(m("m2m", { from: "team-alpha/alice/wsa/s1", to: "carol" }), { member: "alice" }));
   check("topic substring + resolved hidden by default",
     discussion.matchDiscussionFilter(m("m2m", { topic: "deploy-blocker" }), { topic: "deploy" }) &&
     !discussion.matchDiscussionFilter(m("m2m", { resolvedAt: "2026-01-01T00:00:00.000Z" }), {}) &&
@@ -159,11 +182,22 @@ try {
   const ageRes = discussion.pruneDiscussion({ olderThanMs: 30 * 24 * 3600 * 1000 });
   check("pruneDiscussion age gate keeps fresh", ageRes.kept >= 1);
 
-  // ---- 7. worktree partition ----
+  // ---- 7. shared dir + legacy import ----
   const wtMsg = discussion.postMessage({ kind: "group", from: "team-a/amy/w/s1", team: "team-a", body: "wt" }, worktree);
-  check("worktree file partitioned", fs.existsSync(path.join(worktree, ".pcore", "state", "team-discussion.jsonl")));
-  check("worktree post isolated from global", !discussion.listMessages({}).some((x) => x.id === wtMsg.id));
-  check("worktree list reads partition", discussion.listMessages({}, worktree).some((x) => x.id === wtMsg.id));
+  check("discussion file stays shared (no worktree partition)",
+    discussion.discussionFile(worktree) === discussion.discussionFile(),
+    discussion.discussionFile(worktree));
+  check("worktree write lands in shared thread", discussion.listMessages({}).some((x) => x.id === wtMsg.id));
+  const legacyThread = discussion.legacyDiscussionFile(worktree);
+  check("legacy path under worktree .pcore/state",
+    legacyThread === path.join(worktree, ".pcore", "state", "team-discussion.jsonl"), legacyThread);
+  fs.mkdirSync(path.dirname(legacyThread), { recursive: true });
+  const legacyMsg = { id: "d_legacy1", kind: "m2m", topology: "2way", from: "team-a/old/w/s0", to: "amy", team: "team-a", topic: null, threadId: null, body: "legacy", createdAt: new Date().toISOString(), resolvedAt: null, resolvedBy: null, reactions: [] };
+  fs.writeFileSync(legacyThread, `${JSON.stringify(legacyMsg)}\n`);
+  check("legacy-only message merges into reads",
+    discussion.listMessages({}, worktree).some((x) => x.id === "d_legacy1"));
+  check("shared wins on legacy id conflict",
+    discussion.listMessages({}, worktree).filter((x) => x.id === wtMsg.id).length === 1);
 
   // ---- 8. domain ----
   check("domain +3 event types",

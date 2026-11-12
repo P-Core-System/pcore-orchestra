@@ -343,6 +343,8 @@ function spawnQoder(agentId, payload) {
 
 module.exports = {
   spawn,
+  spawnBackground,
+  teamParallelWaves,
   SUPPORTED_HOSTS,
   PHASE_AGENTS,
   normalizeResponse,
@@ -350,6 +352,57 @@ module.exports = {
   deriveRunIdFromWorktree,
   canDispatchInParallel,
 };
+
+/**
+ * Fire-and-forget spawn for HOD fan-out: kicks off `spawn` without
+ * awaiting it and returns a detached handle immediately. Fail-open: a
+ * synchronous throw becomes { detached:false, error } instead of
+ * breaking the dispatch loop; async failures are observed, never thrown.
+ */
+function spawnBackground(agentId, payload, worktreePath, host) {
+  const startedAt = new Date().toISOString();
+  try {
+    const p = spawn(agentId, payload, worktreePath, host);
+    if (p && typeof p.catch === "function") {
+      p.catch((err) => {
+        try {
+          observeResult(buildSpawnProvenance(agentId, payload, worktreePath, host),
+            false, err && err.message, []);
+        } catch {}
+      });
+    }
+    return { detached: true, agentId, startedAt };
+  } catch (err) {
+    return { detached: false, agentId, startedAt, error: err && err.message };
+  }
+}
+
+/**
+ * Partition HOD assignments into parallel-safe waves (invariant 32):
+ * greedy wave packing — an assignment joins the first wave whose members
+ * all pass canDispatchInParallel with it, else opens a new wave.
+ * Pure over the gate (registry passed through).
+ */
+function teamParallelWaves(assignments, registry) {
+  const list = Array.isArray(assignments) ? assignments : [];
+  const waves = [];
+  for (const a of list) {
+    const phase = { claimKey: a.claimKey, worktreePath: a.worktreePath, scope: a.scope };
+    let placed = false;
+    for (const wave of waves) {
+      let ok = true;
+      for (const b of wave) {
+        const other = { claimKey: b.claimKey, worktreePath: b.worktreePath, scope: b.scope };
+        try {
+          if (!canDispatchInParallel(phase, other, registry).ok) { ok = false; break; }
+        } catch { ok = false; break; }
+      }
+      if (ok) { wave.push(a); placed = true; break; }
+    }
+    if (!placed) waves.push([a]);
+  }
+  return waves;
+}
 
 /**
  * Parallel-dispatch gate (invariant 32): two phases may run concurrently

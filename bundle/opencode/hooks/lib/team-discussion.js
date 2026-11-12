@@ -22,9 +22,12 @@
  *   group group only
  *   all   everything (default)
  *
- * Storage: `<state>/team-discussion.jsonl` (or
- * `<worktree>/.pcore/state/team-discussion.jsonl` when worktreePath is
- * given — invariants 30/31), one JSON object per line, ring-capped at
+ * Storage: `<state>/team-discussion.jsonl` — always the shared team dir
+ * (carve-out from invariants 30/31: pairing needs one shared thread across
+ * sessions; conductor runs and domain events stay partitioned).
+ * `worktreePath` is accepted for legacy import only: a pre-unify
+ * `<worktree>/.pcore/state/team-discussion.jsonl` is merged into reads
+ * (shared wins on id conflict), writes always go shared.
  * DISCUSSION_CAP lines (oldest trimmed first; see pruneDiscussion).
  * Every write goes through safe-write.js (withLock + atomicWrite) — never
  * raw fs writes on shared state (invariant 15). Bad lines read as skipped,
@@ -63,16 +66,26 @@ function defaultStateDir() {
   return path.join(os.homedir(), ".config", "opencode", "hooks", "state");
 }
 
-/** Resolved state dir: PCORE_STATE_DIR wins, never inside the bundle. */
+/** Resolved state dir: always the shared team dir (worktreePath is legacy-import only). */
 function discussionDir(worktreePath) {
-  if (worktreePath && typeof worktreePath === "string" && worktreePath.length > 0) {
-    return path.join(worktreePath, ".pcore", "state");
-  }
+  void worktreePath;
   return resolveStateDir(defaultStateDir());
 }
 
 function discussionFile(worktreePath) {
   return path.join(discussionDir(worktreePath), DISCUSSION_FILE);
+}
+
+/**
+ * Legacy worktree-partitioned thread file (pre-unify layout). Read for
+ * import only — writes never target it.
+ * @returns {string|null} legacy file path, or null without a worktree
+ */
+function legacyDiscussionFile(worktreePath) {
+  if (worktreePath && typeof worktreePath === "string" && worktreePath.length > 0) {
+    return path.join(worktreePath, ".pcore", "state", DISCUSSION_FILE);
+  }
+  return null;
 }
 
 function ensureDiscussionDir(file) {
@@ -107,8 +120,16 @@ function topologyOf(kind) {
 /**
  * Pure filter predicate for one message. All fields optional:
  * kind/kinds, topology (2way|star|group|all), team, member (matches author
- * member slug or `to`), topic (substring), includeResolved (default hides
- * resolved). Never throws; a null message never matches.
+ * member slug or `to` — member name or claim key, both directions — plus any
+ * same-team m2l/l2m star leg and any same-team `group` broadcast), topic
+ * (substring), includeResolved (default hides resolved). A `group`
+ * broadcast addresses the whole team, not a member slot: it matches a
+ * member-filtered list when the team matches (or no team is filtered).
+ * Same-team star legs (m2l/l2m) are leader-centered, not pairwise-private:
+ * they match any member-filtered list whose sanitized team equals the
+ * message team (both non-empty). m2m/l2l stay pairwise-private (author/to
+ * only), and a member filter without a team never leaks another team's
+ * star legs. Never throws; a null message never matches.
  */
 function matchDiscussionFilter(msg, filter) {
   if (!msg || typeof msg !== "object") return false;
@@ -119,12 +140,21 @@ function matchDiscussionFilter(msg, filter) {
   if (topology && topology !== "all" && topologyOf(msg.kind) !== topology) return false;
   if (typeof f.team === "string" && f.team && sanitizeDiscussionToken(f.team) !== sanitizeDiscussionToken(msg.team)) return false;
   if (typeof f.member === "string" && f.member) {
-    const want = sanitizeDiscussionToken(f.member);
-    const authorMember = String(msg.from || "").split("/")[1] || "";
-    const hit = sanitizeDiscussionToken(authorMember) === want ||
-      sanitizeDiscussionToken(msg.to) === want ||
-      String(msg.to || "").split("/")[1] === want;
-    if (!hit) return false;
+    if (msg.kind === "group") {
+      if (typeof f.team === "string" && f.team &&
+          sanitizeDiscussionToken(f.team) !== sanitizeDiscussionToken(msg.team)) return false;
+    } else if ((msg.kind === "m2l" || msg.kind === "l2m") &&
+        typeof f.team === "string" && f.team && msg.team &&
+        sanitizeDiscussionToken(f.team) === sanitizeDiscussionToken(msg.team)) {
+      // same-team star leg: visible to any member-filtered list of that team
+    } else {
+      const want = sanitizeDiscussionToken(f.member);
+      const authorMember = String(msg.from || "").split("/")[1] || "";
+      const hit = sanitizeDiscussionToken(authorMember) === want ||
+        sanitizeDiscussionToken(msg.to) === want ||
+        String(msg.to || "").split("/")[1] === want;
+      if (!hit) return false;
+    }
   }
   if (typeof f.topic === "string" && f.topic && String(msg.topic || "").indexOf(f.topic) === -1) return false;
   if (!f.includeResolved && msg.resolvedAt) return false;
@@ -168,24 +198,53 @@ function buildMessage(input) {
   };
 }
 
-/** Read all messages (tolerant: bad lines skipped); corrupt/missing -> []. */
-function readAll(worktreePath) {
-  const file = discussionFile(worktreePath);
+/** Parse one JSONL line; null when blank/torn/non-message. Never throws. */
+function parseDiscussionLine(line) {
+  const s = String(line).trim();
+  if (!s) return null;
+  try {
+    const msg = JSON.parse(s);
+    if (msg && typeof msg === "object" && typeof msg.id === "string") return msg;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/** Read raw text lines of a file; missing/unreadable -> []. */
+function readDiscussionLines(file) {
   let raw = "";
   try {
     raw = fs.readFileSync(file, "utf8");
   } catch {
     return [];
   }
+  return String(raw).split("\n");
+}
+
+/**
+ * Read all messages (tolerant: bad lines skipped); corrupt/missing -> [].
+ * With worktreePath, a legacy worktree-partitioned file is merged in
+ * (shared wins on id conflict) so pre-unify threads stay visible.
+ */
+function readAll(worktreePath) {
+  const seen = new Set();
   const out = [];
-  for (const line of String(raw).split("\n")) {
-    const s = line.trim();
-    if (!s) continue;
-    try {
-      const msg = JSON.parse(s);
-      if (msg && typeof msg === "object" && typeof msg.id === "string") out.push(msg);
-    } catch {
-      /* skip bad lines — a torn write must never break the read path */
+  const push = (msg) => {
+    if (msg && !seen.has(msg.id)) {
+      seen.add(msg.id);
+      out.push(msg);
+    }
+  };
+  for (const line of readDiscussionLines(discussionFile(worktreePath))) {
+    const msg = parseDiscussionLine(line);
+    if (msg) push(msg);
+  }
+  const legacy = legacyDiscussionFile(worktreePath);
+  if (legacy) {
+    for (const line of readDiscussionLines(legacy)) {
+      const msg = parseDiscussionLine(line);
+      if (msg) push(msg);
     }
   }
   return out;
@@ -349,6 +408,7 @@ module.exports = {
   defaultStateDir,
   discussionDir,
   discussionFile,
+  legacyDiscussionFile,
   sanitizeDiscussionToken,
   isDiscussionKind,
   topologyOf,
