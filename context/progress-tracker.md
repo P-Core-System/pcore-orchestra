@@ -11,6 +11,16 @@ Update this file after every meaningful implementation change.
 
 - Verify token usage per phase is under budget
 
+## 2026-11-12 — team loop proven on Windows: shell path fix + workspace-blind cross-team wake deny
+
+- `scripts/team-sessions.sh` + `scripts/conductor-state.sh`: convert the lib path via `cygpath -m` when node is win32 — a native Windows node cannot `require()` the POSIX `/d/...` path Git Bash computes for `REPO_ROOT`, so every CLI smoke path (`dispatch`/`request`/`supervise`/`discuss`/`wake`/`learning`/`queue`/`done`, conductor `begin`) died with MODULE_NOT_FOUND on this box. POSIX is a byte-identical passthrough (conversion only when node reports win32 AND `cygpath` exists).
+- `bundle/hooks/lib/session-wake.js` (+ byte-identical OpenCode mirror): same-workspace cross-team wakes now deny with `WAKE_CROSS_SCOPE` (detail `"team"`) — the guard only fired across workspaces/projects, so same-workspace Alpha→Beta delivered despite invariant 41 and the "same team only" docstring. Solo semantics preserved (solo-solo same-workspace still delivers, solo cross-workspace still denied). No existing pin changed.
+- `scripts/test-session-wake.js`: +3 additive pins (same-workspace cross-team denied + stores nothing, solo-solo same-workspace delivers); suite exit 0.
+- Live E2E on isolated temp state (`PCORE_STATE_DIR` + `PCORE_ARTIFACT_DIR` in mktemp dirs, never `~/.config`): 44/44 — claim/heartbeat/SCOPE_CONFLICT-exit-2, dispatch dry-run+live, discuss m2m both ways + group + react/resolve + bare/`--all`, queue, request busy/free/empty, supervise dry-run+live, wake deliver/ack/wrong-acker/cross-team-deny, done bad-SHA/good-SHA, learning record/distill/human-gate, gc stale + release + empty final list.
+- Baseline via Git Bash: all 8 team suites + `test-mirror-sync.js` exit 0; all 8 confirmed enrolled in `.github/workflows/ci.yml` orchestration suite + `context/code-standards.md` self-check list (no changes needed).
+  Key files: `scripts/{team-sessions,conductor-state}.sh`, `bundle/hooks/lib/session-wake.js` (+ mirror), `scripts/test-session-wake.js`, `context/progress-tracker.md`.
+  Impact: the full team loop (claim → dispatch → discuss → request/supervise → wake → done → learning) runs on native-Windows Git Bash, and the wake channel is workspace-blind same-team-only as invariant 41 always stated (no `architecture.md` change — code now matches the documented rule).
+
 ## 2026-11-12 — separator-agnostic scanner gates on Windows (8->0, npm-churn revert)
 
 - Reverted uncommitted `studio/package-lock.json` churn (214-line npm prune, unrelated to scope) via `git checkout --`; tree clean.

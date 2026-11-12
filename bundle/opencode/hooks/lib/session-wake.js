@@ -367,9 +367,9 @@ function requestWake(opts) {
   }
 
   // Scope guard: same-team slots pair across workspaces and projects —
-  // the shared state dir is the trust root (WI-1 unify). A team mismatch
-  // stays fail-closed (WAKE_CROSS_SCOPE); unteamed (solo) slots pair only
-  // in the same workspace, as before.
+  // the shared state dir is the trust root (WI-1 unify). A mismatch of two
+  // teamed slots stays fail-closed (WAKE_CROSS_SCOPE) in every workspace;
+  // unteamed (solo) slots pair only in the same workspace, as before.
   const fromWs = fromClaim.workspaceSlug || null;
   const toWs = toClaim.workspaceSlug || null;
   const fromProj = resolveProjectSlug(fromClaim.workspace) || (typeof o.projectSlug === "string" ? o.projectSlug : null);
@@ -377,14 +377,15 @@ function requestWake(opts) {
   const fromTeam = sanitizeWakeToken(fromClaim.teamId || fromClaim.team);
   const toTeam = sanitizeWakeToken(toClaim.teamId || toClaim.team);
   const sameTeam = !!fromTeam && fromTeam === toTeam;
+  const bothTeamed = !!fromTeam && !!toTeam;
   const crossWorkspace = !!fromWs && !!toWs && fromWs !== toWs;
   const crossProject = !!fromProj && !!toProj && fromProj !== toProj;
-  if ((crossWorkspace || crossProject) && !sameTeam) {
+  if ((!sameTeam && (bothTeamed || crossWorkspace || crossProject))) {
     emitWakeOutcome({
       id: null, from: fromClaim.claimKey, to: toClaim.claimKey,
       team: toClaim.teamId || toClaim.team || null, reason: WAKE_CROSS_SCOPE,
     }, "denied", worktreePath);
-    return { ok: false, code: WAKE_CROSS_SCOPE, detail: crossProject ? "project" : "workspace" };
+    return { ok: false, code: WAKE_CROSS_SCOPE, detail: crossProject ? "project" : (crossWorkspace ? "workspace" : "team") };
   }
 
   // Rate ring: at most WAKE_RATE_MAX requested wakes per author per hour.

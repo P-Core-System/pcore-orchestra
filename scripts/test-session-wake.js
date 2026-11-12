@@ -8,6 +8,8 @@
  *  3. requestWake happy path (same team delivers across workspaces,
  *     requested + delivered domain events, thread fields carried)
  *  4. cross-team -> WAKE_CROSS_SCOPE + denied audit, nothing stored
+ *     (cross-workspace AND same-workspace; solo-solo same-workspace still
+ *     delivers)
  *  5. cross-project same-team delivers; cross-team cross-project denied
  *  6. live-claim check (unknown/released/stale target -> WAKE_NO_CLAIM)
  *  7. rate ring (5/hr ok, 6th WAKE_THROTTLED + throttled event)
@@ -130,6 +132,21 @@ try {
   check("cross-scope stores nothing", wake.readAll().length === before);
   check("cross-scope audit event",
     store.loadEvents().some((e) => e.type === "wake.denied" && e.payload && e.payload.reason === "WAKE_CROSS_SCOPE"));
+  // ---- 4c. cross-team in the SAME workspace (teamed vs teamed) ----
+  // Invariant 41 is workspace-blind: a mismatch of two teamed slots denies
+  // everywhere, not just across workspaces. Solo slots keep the old
+  // same-workspace pairing.
+  const sam = claims.claimSession({ member: "sam-x", team: "alpha", workspace: wsA, sessionId: "s-samx" });
+  const zedSame = claims.claimSession({ member: "zed-x", team: "beta", workspace: wsA, sessionId: "s-zedx" });
+  const beforeSame = wake.readAll().length;
+  const crossSame = wake.requestWake({ from: sam.claimKey, to: zedSame.claimKey, workspace: wsA });
+  check("same-workspace cross-team denied",
+    crossSame.ok === false && crossSame.code === "WAKE_CROSS_SCOPE" && crossSame.detail === "team", JSON.stringify(crossSame));
+  check("same-workspace cross-scope stores nothing", wake.readAll().length === beforeSame);
+  const solo1 = claims.claimSession({ member: "solo1", workspace: wsA, sessionId: "s-solo1" });
+  const solo2 = claims.claimSession({ member: "solo2", workspace: wsA, sessionId: "s-solo2" });
+  const soloRes = wake.requestWake({ from: solo1.claimKey, to: solo2.claimKey, workspace: wsA });
+  check("solo-solo same-workspace still delivers", soloRes.ok === true && !!soloRes.wake, JSON.stringify(soloRes));
   // ---- 4b. same team pairs across workspaces (shared state dir) ----
   const bobMate = claims.claimSession({ member: "bob", team: "alpha", workspace: wsB, sessionId: "s-bob2" });
   const mateRes = wake.requestWake({ from: john.claimKey, to: bobMate.claimKey, workspace: wsA });

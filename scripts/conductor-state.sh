@@ -14,6 +14,15 @@ else
   LIB_PATH="$REPO_ROOT/bundle/hooks/lib/conductor-state.js"
 fi
 
+# Windows Git Bash: a native win32 node cannot require() a POSIX /d/... path.
+# Convert the lib path to mixed form (D:/...) when node is win32 and cygpath
+# exists; POSIX stays a byte-identical passthrough.
+if node -e 'process.exit(process.platform === "win32" ? 0 : 1)' 2>/dev/null; then
+  if command -v cygpath >/dev/null 2>&1; then
+    LIB_PATH="$(cygpath -m "$LIB_PATH")"
+  fi
+fi
+
 if [ ! -f "$LIB_PATH" ]; then
   echo "conductor-state.sh: lib not found: $LIB_PATH" >&2
   exit 1
