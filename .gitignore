@@ -31,3 +31,8 @@ server/node_modules/
 studio/node_modules/
 studio/dist/
 
+# Opt-in GWS connector: subdir deps install locally, creds never in the repo
+scripts/google-workspace/node_modules/
+**/gws-tokens.json
+**/gws-client*.json
+

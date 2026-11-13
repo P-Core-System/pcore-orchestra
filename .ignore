@@ -20,3 +20,8 @@ coverage/
 # VCS and logs
 .git/
 *.log
+
+# Opt-in connector deps + creds (never in the repo)
+node_modules/
+**/gws-tokens.json
+**/gws-client*.json
