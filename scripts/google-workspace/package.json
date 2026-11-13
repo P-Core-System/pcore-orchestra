@@ -1,0 +1,11 @@
+{
+  "name": "pcore-google-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Opt-in Google Workspace connector for pcore-orchestra (Tasks, Reminders, Calendar, Docs). Never auto-installed; see scripts/setup-google-workspace.sh.",
+  "license": "MIT",
+  "dependencies": {
+    "google-auth-library": "11.3.4",
+    "googleapis": "189.0.0"
+  }
+}
