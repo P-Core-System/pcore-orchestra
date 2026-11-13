@@ -86,7 +86,6 @@ node scripts/test-learning-loop.js
 node scripts/test-team-hod.js
 node scripts/test-resume-collision.js
 node scripts/test-google-workspace.js
-node scripts/test-orgs.js
 node scripts/test-plan-artifact.js
 node scripts/test-baseline-adjudication.js
 node scripts/test-context-preservation.js

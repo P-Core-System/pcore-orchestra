@@ -63,20 +63,12 @@ the planned action and exit 0 without network. Nothing executes without
 Add `--timed --time 2026-11-20T09:00:00Z` to also plan the linked event
 (`reminders.overrides: [{ method: "popup", minutes: 10 }]`).
 
-## Org contact sync
-
-`bash scripts/orgs.sh contacts sync --direction pull|push --org <slug>`
-uses this connector's People API helpers (same human gate): `pull` imports
-connections as org contacts, `push` creates People contacts from them.
-SKIPs with `GWS_NOT_LINKED` (exit 2) when unlinked.
-
 ## Explicit follow-ups (NOT built here)
 
-Recorded per the platform nav; out of scope for these two slices:
+Recorded per the platform nav; out of scope for this connector:
 
 - **Analytics** (Productivity > Analytics) — no reporting built.
 - **Assistants / Bots** and **AI Providers** (Build nav) — no agent surfaces.
-- **Users** (Manage > Users) and **Organizations CRUD** (Platform operations
-  > Organizations) — orgs are slug-partitioned local state only; no org
-  management API.
+- **Contacts / Orders / Products** (Manage nav) - per-org store reverted at user direction (2026-11-13).
+- **Users** (Manage > Users) and **Organizations CRUD** - not built.
 - **Any UI** — CLI + status entries only; the platform renders them.

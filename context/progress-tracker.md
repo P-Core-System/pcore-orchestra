@@ -1,4 +1,9 @@
 # Progress Tracker
+## 2026-11-13 - revert per-org store (user direction)
+
+- Reverted c1ea73e feat(orgs) (org-store.js + mirror, orgs.sh, test-orgs.js) via git revert; removed org traces from CI, code-standards self-check list, architecture (boundaries + storage rows), and google-workspace-setup.md. GWS connector slice 8b0c434 kept as built.
+  Key files: bundle/hooks/lib/org-store.js + mirror (deleted), scripts/orgs.sh, scripts/test-orgs.js (deleted), .github/workflows/ci.yml, context files, docs/google-workspace-setup.md.
+  Impact: no per-org store in tree; CI, checks, architecture, docs agree; GWS connector untouched.
 
 SEE ALSO: older session logs archived at docs/archive/progress-tracker-2026-11-02.md (nothing deleted).
 
