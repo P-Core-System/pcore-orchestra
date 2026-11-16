@@ -232,3 +232,10 @@ Update this file after every meaningful implementation change.
 - Updated `scripts/team-sessions.sh`: `--use-sqlite` flag (default true), routes claim/discuss/wake/done through SQLite when available, falls back to JSON when SQLite unavailable.
   Key files: `bundle/hooks/lib/{session-store,team-claims,team-discussions,session-wake,team-done}.js`, `scripts/team-sessions.sh`, `context/progress-tracker.md`.
   Impact: team session state (claims, discussions, wakes, done reports) is stored in SQLite partitioned per project, works across all CLIs (Cursor, OpenCode, Qoder, Claude, Codex), with automatic safe-write JSON fallback when SQLite is unavailable.
+
+## 2026-11-16 — Documented amazonwebservices.aws-startup-advisor v1.0.17 Cursor extension
+
+- `README.md`: Added "Recommended VS Code/Cursor Extensions" section after the Commands table documenting `amazonwebservices.aws-startup-advisor` v1.0.17 (already installed globally via `cursor --install-extension`): purpose (AWS startup guidance, Well-Architected reviews, cost optimization), install command, global Cursor scope.
+- `context/progress-tracker.md`: This entry.
+  Key files: `README.md`, `context/progress-tracker.md`.
+  Impact: users/agents know the AWS startup advisor extension is installed globally for AWS startup guidance, Well-Architected reviews, and cost optimization.

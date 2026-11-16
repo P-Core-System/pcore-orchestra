@@ -275,6 +275,12 @@ Use the sidebar dropdown to switch between state directories.
 | `/orchestra <goal>` | Force start with goal |
 | `abort [reason]` | Save checkpoint and abort |
 
+## Recommended VS Code/Cursor Extensions
+
+| Extension | Version | Purpose | Install |
+|-----------|---------|---------|---------|
+| `amazonwebservices.aws-startup-advisor` | 1.0.17 | AWS startup guidance, Well-Architected reviews, and cost optimization for AWS workloads. | `cursor --install-extension amazonwebservices.aws-startup-advisor` (global Cursor scope) |
+
 ### Self-check (repo maintainers)
 
 ```bash
