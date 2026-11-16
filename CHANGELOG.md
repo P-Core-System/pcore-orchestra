@@ -10,7 +10,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > retroactive `v3.7.0` tag was fabricated. Pre-3.7.0 history is thematic and lives
 > in full in `git log` and `docs/index.md` (historical plans and audits).
 
-## [Unreleased]
+## [3.10.1] - 2026-11-16
+
+### Added
+- **SDLC 7-stage SDLC migration** — the core loop now defaults to PLAN→DESIGN→BUILD→TEST→REVIEW→DEPLOY→OPERATE with role-based approval gates and stage agents (ai-trigger, product-owner/architect, tech-lead, coding-agent, qa-agent, auto-retry, review-agent, release-agent, release-manager, sre-agent, sre-agent-2, on-call-engineer); hook-library foundation (constants, phase-engine, phase-outcome, subagent-stop); all 5 hosts Cursor/OpenCode/Qoder/Claude/Codex; registry 162→171 agents; core 4-loop backward compat preserved.
+
+### Changed
+- **Version bump** — pcore-orchestra released as 3.10.1 (patch); version strings synced across package.json, project.yaml, README, SECURITY.md, and docs.
 
 ## [3.10.0] - 2026-11-10
 

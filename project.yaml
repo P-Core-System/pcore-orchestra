@@ -9,16 +9,14 @@ project:
   description: Global orchestra harness for Cursor, OpenCode CLI, and Qoder CLI
 
 version:
-  current: 3.10.0
+  current: 3.10.1
   channel: stable
-  build_number: 3
-
+  build_number: 4
 lifecycle:
   stage: production
   status: active
   started: 2026-01-01
-  updated: 2026-11-10
-
+  updated: 2026-11-16
 repository:
   url: https://github.com/P-Core-System/pcore-orchestra
   branch: main
@@ -61,39 +59,43 @@ _pcore:
   initialized: 2026-07-22T00:00:00Z
   orchestration_count: 0
   version_history:
-    - version: "3.10.0"
-      date: "2026-11-10"
-      tag: v3.10.0
-      note: >-
-        Team-loop + knowledge-hub release (minor): MCP knowledge hub (SQLite
-        store, chat threads, pairing, master prompts, service + register
-        scripts), Wave2/Wave3 team discussion + wake/learning loop, loop
-        guardrails (resume-collision, durable artifacts, baseline
-        adjudication, live-proof bar, env-divergence), PowerShell parity lint
-        in CI, installer defect fixes; version synced across README/SECURITY/
-        CONTRIBUTING/docs.
-    - version: "3.9.1"
-      date: "2026-11-02"
-      tag: v3.9.1
-      note: >-
-        BOM purge (patch): removed UTF-8 BOMs that broke Node shebang parsing
-        in orchestra-prompt/orchestra-session-start hooks (UserPromptSubmit
-        SyntaxError), plus 12 opencode SKILL.md files and assorted docs;
-        installed copies under ~/.qoder/hooks repaired and all hooks smoke-tested.
-    - version: "3.9.0"
-      date: "2026-10-31"
-      tag: v3.9.0
-      note: >-
-        Install-path hardening (minor): install.sh --uninstall, preflight
-        fail-fast (OS/git/node>=18), README clone pinned to the release tag, and
-        a CI installer-smoke matrix on ubuntu+macOS with a push:[main] trigger.
-    - version: "3.8.0"
-      date: "2026-10-31"
-      tag: v3.8.0
-      note: >-
-        First annotated git tag; open-source publish. Bundles five-host installers
-        (Claude Code + Codex), MCP start() cache-race fix, verdict-accurate phase
-        outcomes, memory/learning lane, and the orchestra-install skill.
+  - version: 3.10.1
+    date: '2026-11-16'
+    tag: v3.10.1
+    note: 'SDLC 7-stage SDLC migration (patch): PLAN→DESIGN→BUILD→TEST→REVIEW→DEPLOY→OPERATE
+      pipeline with role-based approval gates and stage agents (ai-trigger, product-owner/architect,
+      tech-lead, coding-agent, qa-agent, auto-retry, review-agent, release-agent, release-manager,
+      sre-agent, sre-agent-2, on-call-engineer); hook-library foundation (constants,
+      phase-engine, phase-outcome, subagent-stop); all 5 hosts Cursor/OpenCode/Qoder/Claude/Codex;
+      registry 162→171 agents; core 4-loop backward compat preserved.'
+  - version: 3.10.0
+    date: '2026-11-10'
+    tag: v3.10.0
+    note: 'Team-loop + knowledge-hub release (minor): MCP knowledge hub (SQLite store,
+      chat threads, pairing, master prompts, service + register scripts), Wave2/Wave3
+      team discussion + wake/learning loop, loop guardrails (resume-collision, durable
+      artifacts, baseline adjudication, live-proof bar, env-divergence), PowerShell
+      parity lint in CI, installer defect fixes; version synced across README/SECURITY/
+      CONTRIBUTING/docs.'
+  - version: 3.9.1
+    date: '2026-11-02'
+    tag: v3.9.1
+    note: 'BOM purge (patch): removed UTF-8 BOMs that broke Node shebang parsing in
+      orchestra-prompt/orchestra-session-start hooks (UserPromptSubmit SyntaxError),
+      plus 12 opencode SKILL.md files and assorted docs; installed copies under ~/.qoder/hooks
+      repaired and all hooks smoke-tested.'
+  - version: 3.9.0
+    date: '2026-10-31'
+    tag: v3.9.0
+    note: 'Install-path hardening (minor): install.sh --uninstall, preflight fail-fast
+      (OS/git/node>=18), README clone pinned to the release tag, and a CI installer-smoke
+      matrix on ubuntu+macOS with a push:[main] trigger.'
+  - version: 3.8.0
+    date: '2026-10-31'
+    tag: v3.8.0
+    note: First annotated git tag; open-source publish. Bundles five-host installers
+      (Claude Code + Codex), MCP start() cache-race fix, verdict-accurate phase outcomes,
+      memory/learning lane, and the orchestra-install skill.
   lifecycle_transitions:
     - stage: development
       status: active
