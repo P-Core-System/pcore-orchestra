@@ -12,7 +12,9 @@ const {
   getImplementPhaseId,
   getPhasesForMode,
   reviewerNeedsFix,
+  normalizeLoopMode,
   LOOP_MODE_ENTERPRISE,
+  LOOP_MODE_SDLC_7STAGE,
 } = require("./lib/phase-engine.js");
 const { emitLifecycleEvent, endPhaseTimer, startPhaseTimer } = require("./lib/lifecycle-recorder.js");
 const { flushShortToLong, recordPhasePlanOutcome, learnProjectPattern } = require("./lib/memory-manager.js");
@@ -230,10 +232,36 @@ function emitConcurrentSpawn(state, nextPhase, nextAgentId, parallelPhase) {
   });
 }
 
+/** Gate-enforced phases: core = verify/review; sdlc-7stage = test/review/deploy. */
+function isGateEnforcedPhase(phase, loopMode) {
+  const mode = normalizeLoopMode(loopMode);
+  if (mode === LOOP_MODE_SDLC_7STAGE) return ["test", "review", "deploy"].includes(phase);
+  return ["verify", "review"].includes(phase);
+}
+
+/** First gate-enforced phase (evidence preflight runs on entry to this stage). */
+function firstGateEnforcedPhase(loopMode) {
+  return normalizeLoopMode(loopMode) === LOOP_MODE_SDLC_7STAGE ? "test" : "verify";
+}
+
 async function handleFixRequired(state) {
-  const implPhase = getImplementPhaseId(state.loopMode);
-  const agentId = "orchestra-implementer";
-  state.currentPhase = implPhase;
+  const loopMode = state.loopMode || LOOP_MODE_CORE;
+  const mode = normalizeLoopMode(loopMode);
+  const phase = state.currentPhase;
+
+  // 7-stage: replay the build stage with coding-agent.
+  // Core: always replay implement with orchestra-implementer.
+  let agentId;
+  let fixPhase;
+  if (mode === LOOP_MODE_SDLC_7STAGE) {
+    agentId = "coding-agent";
+    fixPhase = "build";
+  } else {
+    agentId = "orchestra-implementer";
+    fixPhase = getImplementPhaseId(loopMode);
+  }
+
+  state.currentPhase = fixPhase;
   if (!state.memory) state.memory = { ...DEFAULT_STATE.memory };
   state.memory.fix_cycles = (state.memory.fix_cycles || 0) + 1;
   emitLifecycleEvent(state, "fix_required", state.currentPhase, {
@@ -241,7 +269,7 @@ async function handleFixRequired(state) {
     fix_cycle: state.memory.fix_cycles,
   });
   state.memory.decisions.push({
-    phase: "review",
+    phase,
     decision: "FIX_REQUIRED",
     rationale: "Reviewer requested fixes",
     timestamp: new Date().toISOString(),
@@ -258,14 +286,14 @@ async function handleFixRequired(state) {
     state.active = false;
     state.currentPhase = "idle";
     saveState(state);
-    
+
     // Stop MCP server on max iterations
     if (state.runId && mcpServerStop) {
       try {
         await mcpServerStop(state.runId);
       } catch {}
     }
-    
+
     emit({
       followup_message:
         "Orchestra max iterations reached after FIX_REQUIRED. Report blockers to the user.",
@@ -273,10 +301,10 @@ async function handleFixRequired(state) {
     return true;
   }
 
-  startPhaseTimer(state, implPhase, agentId);
+  startPhaseTimer(state, fixPhase, agentId);
   saveState(state);
-  
-  // Spawn implementer via adapter for fix loop
+
+  // Spawn the stage's fix agent via adapter for the fix loop
   const host = detectHost(state);
   const payload = {
     goal: state.goal,
@@ -284,11 +312,11 @@ async function handleFixRequired(state) {
     iteration: state.iteration,
   };
   await spawnSubagent(agentId, payload, state.worktreePath, host);
-  
-  const modeLabel = state.loopMode === LOOP_MODE_ENTERPRISE ? "Enterprise" : "Core";
+
+  const modeLabel = mode === LOOP_MODE_ENTERPRISE ? "Enterprise" : mode === LOOP_MODE_SDLC_7STAGE ? "SDLC 7-stage" : "Core";
   emit({
     followup_message:
-      `${modeLabel} loop — FIX_REQUIRED. Launch **${agentId}** to address reviewer blockers, then **commit**, then continue verify → review.\n\nGoal: ${state.goal}\n\nPhase commit gate: fixes must be committed before re-verify.`,
+      `${modeLabel} loop — FIX_REQUIRED. Launch **${agentId}** to address blockers, then **commit**, then continue to re-run the ${fixPhase} stage.\n\nGoal: ${state.goal}\n\nPhase commit gate: fixes must be committed before re-running ${fixPhase}.`,
   });
   return true;
 }
@@ -456,7 +484,7 @@ async function handlePhaseComplete(state, chain) {
     } catch {}
   }
 
-  const nextAgentId = getAgentForPhase(nextPhase);
+  const nextAgentId = getAgentForPhase(nextPhase, state);
   state.last_subagent = null;
   saveState(state);
   startPhaseTimer(state, nextPhase, nextAgentId);
@@ -465,7 +493,7 @@ async function handlePhaseComplete(state, chain) {
   let evidenceBlock = "";
   let evidenceRecords = [];
   let sixFileValidation = null;
-  if (nextPhase === "verify") {
+  if (nextPhase === firstGateEnforcedPhase(state.loopMode)) {
     try {
       // Ensure worktree exists for this run
       const worktreePath = ensureWorktree(state);
@@ -497,7 +525,7 @@ async function handlePhaseComplete(state, chain) {
   try {
     const gate = checkPhaseCommitGate(state);
     commitGateBlock = gate.message;
-    if (!gate.clean && (nextPhase === "verify" || nextPhase === "review")) {
+    if (!gate.clean && isGateEnforcedPhase(nextPhase, state.loopMode)) {
       commitGateBlock +=
         "\nParent: commit or discard blocking files BEFORE launching the next subagent.";
     }
@@ -658,7 +686,7 @@ async function main() {
     return;
   }
 
-  if (subagentType === "orchestra-verifier" && state.currentPhase === "verify") {
+  if (isGateEnforcedPhase(state.currentPhase, state.loopMode)) {
     try {
       const worktreePath = state.worktreePath;
       const { report } = applyEvidenceToGates(state, passGate, failGate, skipGate, {
@@ -701,7 +729,7 @@ async function main() {
 
   // Record plan outcome for pattern learning (verify/review phases)
   try {
-    if (state.currentPhase === 'verify' || state.currentPhase === 'review') {
+    if (isGateEnforcedPhase(state.currentPhase, state.loopMode)) {
       recordPhasePlanOutcome(state, null);
     }
   } catch {}

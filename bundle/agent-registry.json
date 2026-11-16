@@ -69,9 +69,9 @@
   },
   "counts": {
     "hookAgents": 27,
-    "agentFiles": 162,
-    "cursorAgents": 162,
-    "opencodeAgents": 162
+    "agentFiles": 171,
+    "cursorAgents": 171,
+    "opencodeAgents": 172
   },
   "opencodeNamespaced": {
     "count": 157,
@@ -242,6 +242,7 @@
     "agent-selector",
     "ai-ethics-reviewer",
     "ai-safety-engineer",
+    "ai-trigger",
     "annotation-specialist",
     "api-collector",
     "api-contract-validator",
@@ -249,6 +250,7 @@
     "appsec-engineer",
     "architect",
     "attack-simulator",
+    "auto-retry",
     "automation-engineer",
     "backend-engineer",
     "bias-auditor",
@@ -260,6 +262,7 @@
     "cloud-engineer",
     "cloud-pentester",
     "code-reviewer",
+    "coding-agent",
     "compliance-officer",
     "content-strategist",
     "corpus-builder",
@@ -288,6 +291,7 @@
     "documentation-writer",
     "domain-expert",
     "embedding-engineer",
+    "engineer",
     "exercise-controller",
     "explainability-engineer",
     "exploit-developer",
@@ -327,6 +331,7 @@
     "nlp-engineer",
     "observability-engineer",
     "observer",
+    "on-call-engineer",
     "ops-manager",
     "orchestra",
     "orchestra-implementer",
@@ -352,8 +357,10 @@
     "red-team-operator",
     "regression-tester",
     "regulatory-specialist",
+    "release-agent",
     "release-manager",
     "research-scientist",
+    "review-agent",
     "rule-enforcer",
     "safety-officer",
     "scenario-designer",
@@ -370,6 +377,8 @@
     "site-reliability-engineer",
     "social-engineer",
     "sre",
+    "sre-agent",
+    "sre-agent-2",
     "stakeholder-advocate",
     "support-engineer",
     "survey-designer",
@@ -538,6 +547,23 @@
       }
     },
     {
+      "id": "ai-trigger",
+      "category": "root",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "permissionMode": null,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "SDLC Stage 1 (Plan) — scores issue readiness. Analyzes incoming issues, scores them for design readiness (clarity, scope, dependencies, risk). Gates Plan completion: unscored issues do not proceed to Design.",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
       "id": "annotation-specialist",
       "category": "11-data-language",
       "capabilities": {
@@ -700,6 +726,23 @@
           "attack_results",
           "memory"
         ]
+      }
+    },
+    {
+      "id": "auto-retry",
+      "category": "root",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "permissionMode": null,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "SDLC Stage 4 (Test) — loops until all checks pass. Wraps the verify/test cycle with automatic retry: on failure, feeds errors back to implementer and re-runs until checks pass or max retries exhausted.",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
       }
     },
     {
@@ -969,6 +1012,23 @@
           "review_comments",
           "memory"
         ]
+      }
+    },
+    {
+      "id": "coding-agent",
+      "category": "root",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": false,
+        "permissionMode": "acceptEdits",
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "SDLC Stage 3 (Build) — implements the approved design. Writes code per spec, follows project conventions, produces PR-ready changes. Gates Build completion: no code, no PR for Engineer review.",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
       }
     },
     {
@@ -1488,6 +1548,23 @@
         "effort": null
       },
       "description": "Enterprise SDLC Phase 5,11 — Embedding model selection, embedding pipeline design, semantic search, vector similarity, embedding fine-tuning, embedding evaluation. Use proactively when this specialist's phase is active.",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "engineer",
+      "category": "root",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "permissionMode": null,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "SDLC Stage 3 (Build) — approves the PR. Reviews the coding agent's implementation for correctness, completeness, and adherence to plan. Gates merge: no approval, no merge to main.",
       "independence": {
         "files": [],
         "gates": [],
@@ -2202,6 +2279,23 @@
       }
     },
     {
+      "id": "on-call-engineer",
+      "category": "root",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "permissionMode": null,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "SDLC Stage 7 (Operate) — owns incidents. First responder for production incidents, owns incident response from detection through postmortem. Gates incident closure: no postmortem, no incident close.",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
       "id": "ops-manager",
       "category": "08-deployment",
       "capabilities": {
@@ -2233,7 +2327,7 @@
         "model": "composer-2.5",
         "effort": "low"
       },
-      "description": "Orchestra conductor — entry point for build/fix/refactor tasks. Runs the full SDLC: PLAN → PRODUCT/UX → ARCHITECTURE → EXECUTE → VERIFY → UAT → DEPLOY → POST-DEPLOY VERIFY. For simple tasks, uses core loop only (plan → implement → verify → review). Use for any implementation work; do not pick phase ",
+      "description": "Orchestra conductor — runs the 7-stage SDLC pipeline: PLAN → DESIGN → BUILD → TEST → REVIEW → DEPLOY → OPERATE. Each stage has role-based approval gates and stage-specific tokens. For simple tasks, uses core loop only (plan → build → test → review). Use for any implementation work; do not pick phase",
       "independence": {
         "files": [],
         "gates": [],
@@ -2704,6 +2798,23 @@
       }
     },
     {
+      "id": "release-agent",
+      "category": "root",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "permissionMode": null,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "SDLC Stage 6 (Deploy) — rolls out releases behind feature flags. Executes the deployment pipeline: build artifacts, staging validation, flagged rollout, canary analysis. Gates Deploy completion: no rollout, no Deploy sign-off.",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
       "id": "release-manager",
       "category": "08-deployment",
       "capabilities": {
@@ -2742,6 +2853,23 @@
         "effort": null
       },
       "description": "Enterprise SDLC Phase 0,5 — Research design, experimentation, proof of concept, literature review, hypothesis testing, statistical analysis. Use proactively when this specialist's phase is active.",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "review-agent",
+      "category": "root",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "permissionMode": null,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "SDLC Stage 5 (Review) — first-pass PR review. Reviews PR for correctness, conventions, completeness, scope adherence. Gates Review completion: no approval, no Deploy stage.",
       "independence": {
         "files": [],
         "gates": [],
@@ -3046,6 +3174,40 @@
           "slo_data",
           "memory"
         ]
+      }
+    },
+    {
+      "id": "sre-agent",
+      "category": "root",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "permissionMode": null,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "SDLC Stage 7 (Operate) — watches SLOs. Monitors production health, error budgets, latency, throughput. Alerts on SLO breaches. Gates Operate stage: no SLO health, no steady state.",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "sre-agent-2",
+      "category": "root",
+      "capabilities": {
+        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "readonly": true,
+        "permissionMode": null,
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "SDLC Stage 7 (Operate) — incident escalation and SRE backup. Monitors alert channels, escalates SLO breaches to On-call engineer, manages incident communication. Works with sre-agent (SLO monitoring) for full observability coverage.",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
       }
     },
     {

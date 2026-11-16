@@ -5,8 +5,11 @@ const {
   CORE_PHASE_IDS,
   SDLC_PHASES,
   PHASE_IDS,
+  SDLC_7STAGE_PHASES,
+  SDLC_7STAGE_PHASE_IDS,
   LOOP_MODE_CORE,
   LOOP_MODE_ENTERPRISE,
+  LOOP_MODE_SDLC_7STAGE,
 } = require("./constants.js");
 
 function buildPhaseChain(phases) {
@@ -38,22 +41,26 @@ function buildPhaseMap(phases) {
 
 const CORE_PHASE_CHAIN = buildPhaseChain(CORE_PHASES);
 const ENTERPRISE_PHASE_CHAIN = buildPhaseChain(SDLC_PHASES);
+const SDLC_7STAGE_PHASE_CHAIN = buildPhaseChain(SDLC_7STAGE_PHASES);
 const CORE_PHASE_MAP = buildPhaseMap(CORE_PHASES);
 const ENTERPRISE_PHASE_MAP = buildPhaseMap(SDLC_PHASES);
+const SDLC_7STAGE_PHASE_MAP = buildPhaseMap(SDLC_7STAGE_PHASES);
 
-/** Union map for lookups (core + enterprise). Core wins on id collision (none today). */
-const PHASE_MAP = { ...ENTERPRISE_PHASE_MAP, ...CORE_PHASE_MAP };
+/** Union map for lookups (core + enterprise + 7-stage). Core wins on id collision (none today). */
+const PHASE_MAP = { ...ENTERPRISE_PHASE_MAP, ...CORE_PHASE_MAP, ...SDLC_7STAGE_PHASE_MAP };
 
 /** @deprecated Prefer getPhaseChain(state) — defaults to enterprise for back-compat readers */
 const PHASE_CHAIN = ENTERPRISE_PHASE_CHAIN;
 
 const PHASE_AGENT_MAP = {};
-for (const p of [...SDLC_PHASES, ...CORE_PHASES]) {
+for (const p of [...SDLC_PHASES, ...CORE_PHASES, ...SDLC_7STAGE_PHASES]) {
   PHASE_AGENT_MAP[p.id] = p.agent;
 }
 
 function normalizeLoopMode(mode) {
-  return mode === LOOP_MODE_ENTERPRISE ? LOOP_MODE_ENTERPRISE : LOOP_MODE_CORE;
+  if (mode === LOOP_MODE_ENTERPRISE) return LOOP_MODE_ENTERPRISE;
+  if (mode === LOOP_MODE_SDLC_7STAGE) return LOOP_MODE_SDLC_7STAGE;
+  return LOOP_MODE_CORE;
 }
 
 function filterPhasesByConfig(allPhases, enabledIds) {
@@ -74,13 +81,18 @@ function validatePhaseFilter(enabledIds, allPhases) {
 /** Phases for current run — respects enterprise `orchestraConfig.phases` filter. */
 function getPhasesForState(state) {
   const mode = normalizeLoopMode(state?.loopMode);
-  if (mode !== LOOP_MODE_ENTERPRISE) return CORE_PHASES;
-  return filterPhasesByConfig(SDLC_PHASES, state?.orchestraConfig?.phases);
+  if (mode === LOOP_MODE_ENTERPRISE)
+    return filterPhasesByConfig(SDLC_PHASES, state?.orchestraConfig?.phases);
+  if (mode === LOOP_MODE_SDLC_7STAGE) return SDLC_7STAGE_PHASES;
+  return CORE_PHASES;
 }
 
 function getPhasesForMode(mode, state) {
   if (state && typeof state === "object") return getPhasesForState(state);
-  return normalizeLoopMode(mode) === LOOP_MODE_ENTERPRISE ? SDLC_PHASES : CORE_PHASES;
+  const m = normalizeLoopMode(mode);
+  if (m === LOOP_MODE_ENTERPRISE) return SDLC_PHASES;
+  if (m === LOOP_MODE_SDLC_7STAGE) return SDLC_7STAGE_PHASES;
+  return CORE_PHASES;
 }
 
 function getPhaseIdsForState(state) {
@@ -89,20 +101,25 @@ function getPhaseIdsForState(state) {
 
 function getPhaseIdsForMode(mode, state) {
   if (state && typeof state === "object") return getPhaseIdsForState(state);
-  return normalizeLoopMode(mode) === LOOP_MODE_ENTERPRISE ? PHASE_IDS : CORE_PHASE_IDS;
+  const m = normalizeLoopMode(mode);
+  if (m === LOOP_MODE_ENTERPRISE) return PHASE_IDS;
+  if (m === LOOP_MODE_SDLC_7STAGE) return SDLC_7STAGE_PHASE_IDS;
+  return CORE_PHASE_IDS;
 }
 
 function getPhaseChain(stateOrMode) {
   if (typeof stateOrMode === "object" && stateOrMode !== null) {
     const mode = normalizeLoopMode(stateOrMode.loopMode);
-    return mode === LOOP_MODE_ENTERPRISE
-      ? buildPhaseChain(getPhasesForState(stateOrMode))
-      : CORE_PHASE_CHAIN;
+    if (mode === LOOP_MODE_ENTERPRISE)
+      return buildPhaseChain(getPhasesForState(stateOrMode));
+    if (mode === LOOP_MODE_SDLC_7STAGE) return SDLC_7STAGE_PHASE_CHAIN;
+    return CORE_PHASE_CHAIN;
   }
   const mode = stateOrMode;
-  return normalizeLoopMode(mode) === LOOP_MODE_ENTERPRISE
-    ? ENTERPRISE_PHASE_CHAIN
-    : CORE_PHASE_CHAIN;
+  const m = normalizeLoopMode(mode);
+  if (m === LOOP_MODE_ENTERPRISE) return ENTERPRISE_PHASE_CHAIN;
+  if (m === LOOP_MODE_SDLC_7STAGE) return SDLC_7STAGE_PHASE_CHAIN;
+  return CORE_PHASE_CHAIN;
 }
 
 function getPhaseInfo(phaseId) {
@@ -169,6 +186,10 @@ function isReadonlyPhase(phaseId) {
   return info ? info.readonly : true;
 }
 
+function isSdlc7StagePhase(phaseId) {
+  return SDLC_7STAGE_PHASE_MAP[phaseId] !== undefined;
+}
+
 function getImplementPhaseId(mode) {
   return normalizeLoopMode(mode) === LOOP_MODE_ENTERPRISE
     ? "implementation"
@@ -208,6 +229,10 @@ module.exports = {
   CORE_PHASE_IDS,
   SDLC_PHASES,
   PHASE_IDS,
+  SDLC_7STAGE_PHASES,
+  SDLC_7STAGE_PHASE_IDS,
+  SDLC_7STAGE_PHASE_CHAIN,
+  SDLC_7STAGE_PHASE_MAP,
   PHASE_MAP,
   PHASE_CHAIN,
   CORE_PHASE_CHAIN,
@@ -215,6 +240,7 @@ module.exports = {
   PHASE_AGENT_MAP,
   LOOP_MODE_CORE,
   LOOP_MODE_ENTERPRISE,
+  LOOP_MODE_SDLC_7STAGE,
   normalizeLoopMode,
   filterPhasesByConfig,
   validatePhaseFilter,
@@ -237,6 +263,7 @@ module.exports = {
   isReleasePhase,
   isOperationsPhase,
   isReadonlyPhase,
+  isSdlc7StagePhase,
   advancePhase,
   reviewerNeedsFix,
 };

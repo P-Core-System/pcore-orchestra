@@ -44,11 +44,25 @@
  *     advance + warning only.
  */
 
-const { PHASE_END_TOKENS, PHASE_BLOCKED_EVENT, LOOP_MODE_ENTERPRISE } = require("./constants.js");
+const {
+  PHASE_END_TOKENS,
+  SDLC_7STAGE_END_TOKENS,
+  PHASE_BLOCKED_EVENT,
+  LOOP_MODE_ENTERPRISE,
+  LOOP_MODE_SDLC_7STAGE,
+} = require("./constants.js");
 
 const OUTPUT_FIELDS = ["summary", "result", "output", "final_text", "text"];
-const FIX_PHASES = new Set(["verify", "review"]);
-const GATE_ENFORCED_PHASES = new Set(["verify", "review"]);
+// Mode-aware fix phases: core = verify/review; sdlc-7stage = test/review/deploy.
+function isFixPhase(phase, loopMode) {
+  if (loopMode === LOOP_MODE_SDLC_7STAGE) return ["test", "review", "deploy"].includes(phase);
+  return ["verify", "review"].includes(phase);
+}
+// Mode-aware gate-enforced phases: core = verify/review; sdlc-7stage = test/review/deploy.
+function isGateEnforcedPhase(phase, loopMode) {
+  if (loopMode === LOOP_MODE_SDLC_7STAGE) return ["test", "review", "deploy"].includes(phase);
+  return ["verify", "review"].includes(phase);
+}
 // Every phase token is either a pass verdict or a fix verdict.
 const FIX_TOKENS = new Set(["VERIFY_FAIL", "FIX_REQUIRED"]);
 
@@ -60,6 +74,10 @@ function outputBlob(input) {
 
 function tokensFor(phase, loopMode) {
   if (loopMode === LOOP_MODE_ENTERPRISE) return null;
+  if (loopMode === LOOP_MODE_SDLC_7STAGE) {
+    const tokens = SDLC_7STAGE_END_TOKENS[phase];
+    return Array.isArray(tokens) && tokens.length > 0 ? tokens : null;
+  }
   const tokens = PHASE_END_TOKENS[phase];
   return Array.isArray(tokens) && tokens.length > 0 ? tokens : null;
 }
@@ -102,16 +120,24 @@ function blockResult(phase, reason, expected, message) {
   return { decision: "block", phase, reason, expected, token: null, message, warning: null, needs_human: true };
 }
 
-function advanceResult(phase, reason, token, warning) {
-  return { decision: "advance", phase, reason, expected: PHASE_END_TOKENS[phase] || null, token, message: null, warning: warning || null };
+function advanceResult(phase, reason, token, warning, expected) {
+  return {
+    decision: "advance",
+    phase,
+    reason,
+    expected: expected != null ? expected : PHASE_END_TOKENS[phase] || null,
+    token,
+    message: null,
+    warning: warning || null,
+  };
 }
 
-function fixResult(phase, token) {
+function fixResult(phase, token, expected) {
   return {
     decision: "fix",
     phase,
     reason: "fix-token",
-    expected: PHASE_END_TOKENS[phase] || null,
+    expected: expected != null ? expected : PHASE_END_TOKENS[phase] || null,
     token,
     message: null,
     warning: null,
@@ -130,11 +156,11 @@ function evaluatePhaseOutcome(state, input) {
   const blob = outputBlob(input);
   const expected = tokensFor(phase, loopMode);
   const verdict =
-    expected && FIX_PHASES.has(phase) ? lastVerdictToken(expected, blob) : null;
+    expected && isFixPhase(phase, loopMode) ? lastVerdictToken(expected, blob) : null;
 
   // 1. a fix verdict wins over everything: the loop must go back to implement.
   if (verdict && FIX_TOKENS.has(verdict.token)) {
-    return fixResult(phase, verdict.token);
+    return fixResult(phase, verdict.token, expected);
   }
 
   // 2. no contract to enforce (enterprise SDLC / unknown phase) → warn only.
@@ -143,15 +169,16 @@ function evaluatePhaseOutcome(state, input) {
       loopMode === LOOP_MODE_ENTERPRISE
         ? `Enterprise phase "${phase}" has no end-token contract — advancing without outcome verification.`
         : `Phase "${phase}" has no end-token contract — advancing without outcome verification.`;
-    return advanceResult(phase, "unenforced-phase", null, warning);
+    return advanceResult(phase, "unenforced-phase", null, warning, null);
   }
 
-  // 3. required gates must be green before verify/review move on (P0-1).
-  //    Phase-scoped: plan/implement are not gate-enforced — they advance on
-  //    their own end token (verify re-runs evidence on entry; the implementer
-  //    cannot clear gates). Checked BEFORE the empty-output advance below so
-  //    silent output never finishes a run with red gates.
-  if (GATE_ENFORCED_PHASES.has(phase)) {
+  // 3. required gates must be green before enforced phases move on (P0-1).
+  //    Phase-scoped: plan/implement (core) and plan/design/build (7-stage) are
+  //    not gate-enforced — they advance on their own end token (the enforced
+  //    phase re-runs evidence on entry; the builder cannot clear gates).
+  //    Checked BEFORE the empty-output advance below so silent output never
+  //    finishes a run with red gates.
+  if (isGateEnforcedPhase(phase, loopMode)) {
     const red = failedGateIds(state.qualityGates);
     if (red.length > 0) {
       return blockResult(
@@ -169,13 +196,25 @@ function evaluatePhaseOutcome(state, input) {
 
   // 4. nothing to judge → advance with a warning (never brick on silence).
   if (!blob) {
-    return advanceResult(phase, "empty-output", null, `Subagent returned no output for phase "${phase}" — cannot verify ${expected.join("|")}.`);
+    return advanceResult(
+      phase,
+      "empty-output",
+      null,
+      `Subagent returned no output for phase "${phase}" — cannot verify ${expected.join("|")}.`,
+      expected
+    );
   }
 
   // 5. end token contract. A scanned verdict (last phase token anywhere) is
   //    authoritative; plan/implement fall back to a blob-wide match.
   if (verdict) {
-    return advanceResult(phase, verdict.last ? "verdict-line" : "verdict-scan", verdict.token, null);
+    return advanceResult(
+      phase,
+      verdict.last ? "verdict-line" : "verdict-scan",
+      verdict.token,
+      null,
+      expected
+    );
   }
   const token = matchToken(expected, blob);
   if (!token) {
@@ -191,7 +230,7 @@ function evaluatePhaseOutcome(state, input) {
     );
   }
 
-  return advanceResult(phase, "token-matched", token, null);
+  return advanceResult(phase, "token-matched", token, null, expected);
 }
 
 module.exports = {

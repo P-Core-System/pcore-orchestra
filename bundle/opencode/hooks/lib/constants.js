@@ -33,6 +33,7 @@ const PATTERN_RECALL_TOP_K = 5;
 // --- Loop modes ---
 const LOOP_MODE_CORE = "core";
 const LOOP_MODE_ENTERPRISE = "enterprise";
+const LOOP_MODE_SDLC_7STAGE = "sdlc-7stage";
 
 // --- V3 Enterprise caps ---
 const MAX_EPICS = 50;
@@ -71,6 +72,21 @@ const CORE_PHASES = [
 ];
 
 const CORE_PHASE_IDS = CORE_PHASES.map((p) => p.id);
+
+// --- SDLC 7-stage pipeline (opt-in loop mode "sdlc-7stage") ---
+// PLAN→DESIGN→BUILD→TEST→REVIEW→DEPLOY→OPERATE. Only the BUILD stage writes
+// code (coding-agent is readonly: false); every other stage is readonly.
+const SDLC_7STAGE_PHASES = [
+  { id: "plan", category: "plan", agent: "ai-trigger", readonly: true },
+  { id: "design", category: "design", agent: "tech-lead", readonly: true },
+  { id: "build", category: "build", agent: "coding-agent", readonly: false },
+  { id: "test", category: "test", agent: "qa-agent", readonly: true },
+  { id: "review", category: "review", agent: "review-agent", readonly: true },
+  { id: "deploy", category: "deploy", agent: "release-agent", readonly: true },
+  { id: "operate", category: "operate", agent: "sre-agent", readonly: true },
+];
+
+const SDLC_7STAGE_PHASE_IDS = SDLC_7STAGE_PHASES.map((p) => p.id);
 
 // --- Phase chain V3 (enterprise SDLC; opt-in) ---
 const SDLC_PHASES = [
@@ -122,8 +138,20 @@ const QUALITY_GATES = [
 // --- Phase outcome contract ---
 // A core phase may only advance when its subagent emits one of these end
 // tokens. Enterprise SDLC phases have no token contract (warning only).
-const PHASE_END_TOKENS = {
+// SDLC 7-stage tokens are layered on top; core wins the `review` collision
+// so the 4-step loop tokens are unchanged.
+const SDLC_7STAGE_END_TOKENS = {
   plan: ["PLAN_READY"],
+  design: ["DESIGN_SIGNED_OFF"],
+  build: ["BUILD_COMPLETE"],
+  test: ["TESTS_PASS"],
+  review: ["REVIEW_APPROVED"],
+  deploy: ["DEPLOY_COMPLETE"],
+  operate: ["OPERATE_STEADY_STATE"],
+};
+
+const PHASE_END_TOKENS = {
+  ...SDLC_7STAGE_END_TOKENS,
   implement: ["IMPLEMENT_DONE"],
   verify: ["VERIFY_PASS", "VERIFY_FAIL"],
   review: ["ORCHESTRA_COMPLETE", "FIX_REQUIRED"],
@@ -172,6 +200,7 @@ module.exports = {
   STOP_NUDGE_LOOP_LIMIT,
   LOOP_MODE_CORE,
   LOOP_MODE_ENTERPRISE,
+  LOOP_MODE_SDLC_7STAGE,
   MAX_EPICS,
   MAX_MILESTONES,
   MAX_STORIES,
@@ -198,6 +227,9 @@ module.exports = {
   CORE_PHASE_IDS,
   SDLC_PHASES,
   PHASE_IDS,
+  SDLC_7STAGE_PHASES,
+  SDLC_7STAGE_PHASE_IDS,
+  SDLC_7STAGE_END_TOKENS,
   QUALITY_GATES,
   PHASE_END_TOKENS,
   PHASE_BLOCKED_EVENT,
