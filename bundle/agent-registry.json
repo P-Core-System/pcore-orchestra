@@ -1018,7 +1018,7 @@
       "id": "coding-agent",
       "category": "root",
       "capabilities": {
-        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
+        "tools": "Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch",
         "readonly": false,
         "permissionMode": "acceptEdits",
         "model": "composer-2.5",

@@ -5,7 +5,7 @@ description: >-
   spec, follows project conventions, produces PR-ready changes. Gates Build
   completion: no code, no PR for Engineer review.
 model: composer-2.5
-tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
+tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 
 ## Model

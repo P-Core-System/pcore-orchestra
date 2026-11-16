@@ -35,13 +35,13 @@ For bug fixes, small features, refactors, config changes:
 PLAN → DESIGN → BUILD → TEST → REVIEW → DEPLOY → OPERATE
 ```
 
-### Enterprise Full Delivery (alternative — opt-in or auto-detected)
-For new features, redesigns, releases, multi-file implementations. Expanded pipeline with UAT and post-deploy verification:
+### Enterprise Full Delivery (alternative — opt-in via `/enterprise` or auto-detected)
+For new features, redesigns, releases, multi-file implementations. Expanded pipeline with UAT and post-deploy verification. Opt-in via `/enterprise` or complexity signals (architecture, migration, compliance, security audit, greenfield platform).
 ```
 PLAN → DESIGN → BUILD → TEST → REVIEW → UAT → DEPLOY → POST-DEPLOY VERIFY → OPERATE
 ```
 
-**Conductor decides mode** based on plan complexity. Always start with the core 7-stage loop; escalate to enterprise full delivery if the plan reveals substantial scope. Role-based gates (architect, tech-lead, release-manager) apply in both modes.
+**Conductor decides mode** based on plan complexity. Always start with the core 7-stage loop; escalate to enterprise full delivery on `/enterprise` or if the plan reveals substantial scope/complexity signals. Role-based gates (architect, tech-lead, release-manager) apply in both modes.
 
 ## Corporate / Multi-Team Delivery (large organizations)
 
@@ -122,6 +122,18 @@ Rules: begin at loop start (`--reuse` keeps same task file across resumes); save
 14. **task** → `sre-agent-2` → incident escalation → `ESCALATION_HANDLED` / `ESCALATION_MISSED`
 15. **task** → `on-call-engineer` → incident ownership → `INCIDENT_CLOSED` / `INCIDENT_ONGOING`
     → Stage 7 complete: `OPERATE_STEADY_STATE`
+
+## Stage-to-Agent Token Map
+
+| Stage | Entry agent | Entry token | Approval gate → approval token | Exit token |
+|-------|------------|-------------|-------------------------------|------------|
+| 1 PLAN | ai-trigger | ISSUE_READY | product-owner → SCOPE_APPROVED; architect → SPEC_DRAFTED | PLAN_READY |
+| 2 DESIGN | architect (refine) | — | tech-lead → DESIGN_SIGNED_OFF | DESIGN_SIGNED_OFF |
+| 3 BUILD | coding-agent | CODE_READY | engineer → PR_APPROVED | BUILD_COMPLETE |
+| 4 TEST | qa-agent | TESTS_PASS / TESTS_FAIL | auto-retry → TESTS_PASSING (max 3 loops) | TESTS_PASS |
+| 5 REVIEW | review-agent | — | review-agent → REVIEW_APPROVED | REVIEW_APPROVED |
+| 6 DEPLOY | release-agent | ROLLOUT_COMPLETE | release-manager → RELEASE_APPROVED | DEPLOY_COMPLETE |
+| 7 OPERATE | sre-agent | SLO_HEALTHY | sre-agent-2 → ESCALATION_HANDLED; on-call-engineer → INCIDENT_CLOSED | OPERATE_STEADY_STATE |
 
 ## On Approval Gate Failure (any stage)
 
