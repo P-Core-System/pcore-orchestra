@@ -135,6 +135,7 @@ function hideAgents(opts) {
   let probes = 0;
   let docs = 0;
   let stale = 0;
+  let needClamping = 0;
   const STALE = [
     "references/orchestra-planner-identity.md",
     "references/orchestra-implementer-identity.md",
@@ -179,6 +180,19 @@ function hideAgents(opts) {
     }
     if (fm.mode && fm.mode !== "subagent") continue; // primary/system agents untouched
     if (!cb.isIndexHidden(fm.name, fm.mode || "subagent")) continue;
+    // Step ceilings are the per-day request dial. The bundle enforces them at
+    // generation time, but the installed tree can still hold orphan agents from
+    // older installs that no bundle file regenerates — cap those here too.
+    // Lowering a ceiling is reversible by reinstall; leaving it is a quota risk.
+    const cap = cb.maxStepsFor(fm.name);
+    const cur = parseInt(String(raw.match(/^steps:[ \t]*(\d+)/m)?.[1] ?? ""), 10);
+    if (Number.isFinite(cur) && cur > cap) {
+      needClamping++;
+      if (opts.apply) {
+        fs.writeFileSync(file, raw.replace(/^(steps:[ \t]*)\d+/m, `$1${cap}`));
+        log(`capped steps ${cur} -> ${cap} on ${path.relative(root, file)}`);
+      }
+    }
     if (fm.hidden) {
       hidden++;
       continue;
@@ -190,7 +204,7 @@ function hideAgents(opts) {
       log(`hid ${path.relative(root, file)}`);
     }
   }
-  return { alreadyHidden: hidden, needHiding: wouldHide, probes, docs, stale };
+  return { alreadyHidden: hidden, needHiding: wouldHide, probes, docs, stale, needClamping };
 }
 
 /**
