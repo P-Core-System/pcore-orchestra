@@ -3,16 +3,16 @@ name: engineer
 description: >-
   SDLC Stage 3 (Build) — approves the PR. Reviews the coding agent's
   implementation for correctness, completeness, and adherence to plan.
-  Gates merge: no approval, no merge to main.
+  Gates merge: no approval, no merge to main. Use proactively when this
+  specialist's phase is active.
 mode: subagent
-steps: 500
+hidden: true
+steps: 20
 permission:
-  edit: allow
+  edit: deny
   bash: allow
   websearch: allow
   webfetch: allow
-  skill: allow
-  subagent: allow
 ---
 
 ## Model

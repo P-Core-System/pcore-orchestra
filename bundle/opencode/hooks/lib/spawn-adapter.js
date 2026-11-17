@@ -16,7 +16,7 @@ try {
   harnessObs = require("./harness-observability.js");
 } catch {}
 
-const SUPPORTED_HOSTS = ["cursor", "opencode", "claude-code", "codex", "qoder"];
+const SUPPORTED_HOSTS = ["cursor", "opencode", "claude-code", "codex", "qoder", "deepai"];
 const PHASE_AGENTS = [
   "orchestra-planner",
   "orchestra-implementer",
@@ -230,6 +230,8 @@ function dispatchSpawn(agentId, fullPayload, host) {
       return spawnCodex(agentId, fullPayload);
     case "qoder":
       return spawnQoder(agentId, fullPayload);
+    case "deepai":
+      return spawnDeepAI(agentId, fullPayload);
     default:
       throw new Error(`Unsupported host: ${host}`);
   }
@@ -333,6 +335,52 @@ function spawnQoder(agentId, payload) {
       tool: "Agent",
       subagent_type: agentId,
       prompt: JSON.stringify(payload),
+    };
+
+    process.stdout.write(JSON.stringify(taskCall) + "\n");
+
+    resolve(normalizeResponse(true, { taskCall }, null, []));
+  });
+}
+
+/**
+ * DeepAI Code: there is no hook surface and no ambient rule file. The
+ * conductor is an ordinary top-level thread that delegates one task per phase
+ * through the app-owned delegation tool, so the emitted call shape is a
+ * `delegate_task` argument bundle rather than a tool invocation string.
+ *
+ * Two rules come from the platform contract and must not be "optimized" away:
+ *   - a second round of the SAME review is a NEW delegate_task carrying the
+ *     original brief + prior findings + unresolved objections (history is not
+ *     copied to the child), never a message to the child thread;
+ *   - one clientRequestId per round, reused across retries of that round, so a
+ *     retry cannot become a second billable run against a per-day request cap.
+ */
+function spawnDeepAI(agentId, payload) {
+  return new Promise((resolve) => {
+    const role = /planner/.test(agentId)
+      ? "design"
+      : /reviewer/.test(agentId)
+        ? "review"
+        : /verifier/.test(agentId)
+          ? "test"
+          : "implementation";
+    const taskCall = {
+      tool: "mcp__deepai-code__delegate_task",
+      args: {
+        task: JSON.stringify(payload),
+        role,
+        title: `${agentId}: ${String(payload.goal || payload.phase || "").slice(0, 60)}`,
+        mode: "wait",
+        clientRequestId: `${agentId}-${String(payload.runId || payload.phase || "run").slice(0, 24)}`,
+      },
+      // Round re-entry contract, surfaced so the conductor cannot improvise it.
+      roundRules: [
+        "next round = delegate_task again with full brief + prior findings + open objections",
+        "do not use deepai_thread_send on childThreadId to continue a review",
+        "keep clientRequestId stable across retries of the same round",
+        "before delegating, check orchestrator_capabilities for canRunChildTask",
+      ],
     };
 
     process.stdout.write(JSON.stringify(taskCall) + "\n");

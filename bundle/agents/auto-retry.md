@@ -5,6 +5,7 @@ description: >-
   cycle with automatic retry: on failure, feeds errors back to implementer
   and re-runs until checks pass or max retries exhausted.
 readonly: true
+steps: 20
 model: composer-2.5
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---

@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 0,24 — Regulatory compliance, audit readiness, policy enforcement, GDPR/CCPA/HIPAA compliance. Ensures legal and regulatory adherence.
   Use proactively when this specialist's phase is active.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

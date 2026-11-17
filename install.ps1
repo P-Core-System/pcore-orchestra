@@ -432,6 +432,16 @@ function Install-OpenCode {
   # Autonomy: merge permission/agent into opencode.json (preserves mcp secrets)
   node (Join-Path $Root "scripts\merge-autonomy-config.js") --opencode --opencode-home $OpenCodeDir
 
+  # Context diet: hide every subagent from the per-request prompt index (they
+  # stay spawnable by id) and move unused orchestra skills into a lazy catalog.
+  # Parity with install.sh; scope is the OpenCode skill root only.
+  node (Join-Path $Root "scripts\orchestra-context-diet.js") --apply
+  if ($LASTEXITCODE -eq 0) {
+    Write-Host "  Context diet:     agents hidden + unused skills lazy-indexed"
+  } else {
+    Write-Host "WARN context diet did not run - index may be heavier than intended: node scripts\orchestra-context-diet.js --apply"
+  }
+
   # Weekly free-model schedule (Windows has no systemd — schtasks Monday 04:17)
   # schtasks cannot parse a spaced repo path inside /TR ("D:/Some Spaced Dir/..." →
   # "Invalid argument/option - 'Web'"), so schedule a no-space wrapper script

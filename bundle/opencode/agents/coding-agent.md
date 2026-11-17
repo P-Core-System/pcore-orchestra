@@ -2,17 +2,17 @@
 name: coding-agent
 description: >-
   SDLC Stage 3 (Build) — implements the approved design. Writes code per
-  spec, follows project conventions, produces PR-ready changes. Gates Build
-  completion: no code, no PR for Engineer review.
+  spec, follows project conventions, produces PR-ready changes. Gates
+  Build completion: no code, no PR for Engineer review. Use proactively
+  when this specialist's phase is active.
 mode: subagent
-steps: 500
+hidden: true
+steps: 40
 permission:
   edit: allow
   bash: allow
   websearch: allow
   webfetch: allow
-  skill: allow
-  subagent: allow
 ---
 
 ## Model

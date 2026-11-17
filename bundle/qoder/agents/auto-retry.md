@@ -5,7 +5,7 @@ description: >-
   cycle with automatic retry: on failure, feeds errors back to implementer
   and re-runs until checks pass or max retries exhausted.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

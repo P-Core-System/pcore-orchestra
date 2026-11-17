@@ -5,6 +5,7 @@ description: >-
   conventions, completeness, scope adherence. Gates Review completion: no
   approval, no Deploy stage.
 readonly: true
+steps: 40
 model: composer-2.5
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---

@@ -258,32 +258,69 @@ t("hooks dropped, skills object→array, command→commands, tool_output passthr
 });
 
 t("instructions: array passthrough, object form dropped (runtime rejects it)", () => {
-
-  // T1: NARROW_INSTRUCTIONS has no context entries
-  t("NARROW_INSTRUCTIONS has no context/* entries", () => {
-    const cfg = JSON.parse(JSON.stringify(require("opencode").debug()));
-    assert.ok(cfg.instructions.every(i => !i.startsWith("context/")));
-  });
-
-  // T2: compaction buffer and model
-  t("COMPACTION has buffer 16000 and background false", () => {
-    const cfg = JSON.parse(JSON.stringify(require("opencode").debug()));
-    assert.strictEqual(cfg.compaction.buffer, 16000);
-    assert.strictEqual(cfg.compaction.background, false);
-  });
-
-  t("agents.compaction.model set after applyTokenProfile", () => {
-    // exec a quick merge to verify
-    const merge = require("./lib/opencode-v2.js");
-    const out = merge.mergeConfig({ instructions: ["AGENTS.md", "CLAUDE.md"] });
-    assert.ok(out.agents.compaction && out.agents.compaction.model);
-  });
-
   const arr = ["AGENTS.md", "context/architecture.md"];
   const outArr = migrateConfig({ instructions: arr });
   assert.deepStrictEqual(outArr.instructions, arr);
   const outObj = migrateConfig({ instructions: { context: ["a"], monorepo: { exclude: ["b"] } } });
   assert.ok(!("instructions" in outObj));
+});
+
+/* ── Token-profile pins (were nested + requiring a module named 'opencode') ── */
+
+t("NARROW_INSTRUCTIONS carries no context/* globs", () => {
+  const tp = require("./lib/opencode-token-profile.js");
+  assert.ok(tp.NARROW_INSTRUCTIONS.every((i) => !i.includes("context/")), JSON.stringify(tp.NARROW_INSTRUCTIONS));
+  assert.deepStrictEqual(tp.NARROW_INSTRUCTIONS, ["AGENTS.md", "CLAUDE.md"]);
+});
+
+t("COMPACTION pins buffer 16000, background false, bounded verbatim keep", () => {
+  const tp = require("./lib/opencode-token-profile.js");
+  assert.strictEqual(tp.COMPACTION.buffer, 16000);
+  assert.strictEqual(tp.COMPACTION.background, false);
+  assert.strictEqual(tp.COMPACTION.keep.tokens, tp.COMPACTION_KEEP_TOKENS);
+  assert.ok(tp.COMPACTION_KEEP_TOKENS > 0 && tp.COMPACTION_KEEP_TOKENS <= 32000);
+});
+
+t("applyTokenProfile: title model mirrored to compaction, subagents hidden, steps clamped", () => {
+  const tp = require("./lib/opencode-token-profile.js");
+  const cb = require("./lib/context-budget.js");
+  const cfg = {
+    agents: {
+      title: { model: "opencode/big-pickle" },
+      general: { mode: "primary" },
+      orchestra: { mode: "primary", steps: 500 },
+      "orchestra-planner": { mode: "subagent", steps: 200 },
+      "red-team-operator": { mode: "subagent", steps: 200 },
+      "market-analyst": { mode: "subagent", steps: 200 },
+    },
+    permissions: [],
+  };
+  const res = tp.applyTokenProfile(cfg);
+  const out = cfg; // applyTokenProfile mutates dest and returns { changed }
+  assert.ok(Array.isArray(res.changed) && res.changed.length > 0, JSON.stringify(res));
+  assert.strictEqual(out.agents.compaction.model, "opencode/big-pickle");
+  // Reserved built-ins must never be hidden or the title/compaction pipeline breaks.
+  assert.notStrictEqual(out.agents.title.hidden, true);
+  assert.notStrictEqual(out.agents.general.hidden, true);
+  // Non-reserved subagents leave the per-request index but stay spawnable.
+  for (const n of ["orchestra-planner", "red-team-operator", "market-analyst"]) {
+    assert.strictEqual(out.agents[n].hidden, true, `${n} should be hidden`);
+    assert.strictEqual(out.agents[n].steps, cb.maxStepsFor(n), `${n} steps should hit role cap`);
+  }
+  assert.strictEqual(out.agents.orchestra.steps, cb.maxStepsFor("orchestra"));
+  // Config must never advertise a skill the index does not carry.
+  const skillAllows = (out.permissions || []).filter((p) => p.action === "skill" && p.effect === "allow").map((p) => p.resource).sort();
+  assert.deepStrictEqual(skillAllows, [...cb.INDEXED_SKILLS].sort());
+});
+
+t("applyTokenProfile survives a config with no title agent (fail-soft)", () => {
+  const tp = require("./lib/opencode-token-profile.js");
+  const cfg = { instructions: ["AGENTS.md"] };
+  const res = tp.applyTokenProfile(cfg);
+  const out = cfg;
+  assert.ok(!("compaction" in (out.agents || {})) || out.agents.compaction.model);
+  assert.deepStrictEqual(out.instructions, ["AGENTS.md", "CLAUDE.md"]);
+  assert.ok(res.changed.includes("instructions(narrow)"), JSON.stringify(res.changed));
 });
 
 t("passthrough keys: $schema, model, default_agent, watcher", () => {
@@ -365,7 +402,8 @@ t("autonomy.json migrates to V2 (no V1 keys remain)", () => {
   assert.ok(out.agents && out.agents.orchestra, "agents.orchestra missing");
   assert.ok(out.providers, "providers missing");
   assert.ok(Array.isArray(out.permissions) && out.permissions.length > 0);
-  assert.strictEqual(out.compaction.buffer, 6000);
+  assert.strictEqual(out.compaction.buffer, 16000);
+  assert.strictEqual(out.compaction.keep.tokens, 20000);
   assert.ok(!("prune" in out.compaction));
   const twice = migrateConfig(j(out));
   assert.deepStrictEqual(twice, j(out));

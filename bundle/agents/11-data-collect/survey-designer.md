@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 0,11 — Survey design, questionnaire creation, sampling strategy, response collection, survey analytics, A/B testing for survey instruments.
   Use proactively when this specialist's phase is active.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

@@ -5,7 +5,7 @@ description: >-
   budgets, latency, throughput. Alerts on SLO breaches. Gates Operate
   stage: no SLO health, no steady state.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 40
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

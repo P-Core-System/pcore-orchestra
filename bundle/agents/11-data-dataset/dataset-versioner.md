@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 5,11 — Dataset versioning, DVC/Git LFS, lineage tracking, reproducibility, diff tools, version comparison, rollback strategies.
   Use proactively when this specialist's phase is active.
 readonly: false
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

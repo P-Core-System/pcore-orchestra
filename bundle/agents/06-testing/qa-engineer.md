@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 19-20 — Unit testing, integration testing.
   Ensures code correctness at unit and integration levels. Use proactively when this specialist's phase is active.
 readonly: false
+steps: 20
 model: composer-2.5
 tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---

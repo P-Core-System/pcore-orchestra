@@ -5,7 +5,7 @@ description: >-
   collection, chain of custody, disk/memory/network forensics, timeline
   analysis, forensic reporting.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

@@ -3,6 +3,7 @@ name: insider-threat-simulator
 description: >-
   Enterprise SDLC Phase 6,7 — Insider threat simulation, malicious insider scenarios, privilege abuse, data exfiltration, collusion testing, detection validation.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

@@ -5,6 +5,7 @@ description: >-
   scored with team-research.js, whitepaper output human-gated. Use
   proactively when a technology or vendor choice needs evidence.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

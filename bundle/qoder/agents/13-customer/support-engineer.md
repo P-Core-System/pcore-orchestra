@@ -5,7 +5,7 @@ description: >-
   troubleshooting workflows, knowledge base management, ticket triage, SLA
   tracking. Use proactively when this specialist's phase is active.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

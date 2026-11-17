@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 9,15,24 — Customer support operations, troubleshooting workflows, knowledge base management, ticket triage, SLA tracking.
   Use proactively when this specialist's phase is active.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

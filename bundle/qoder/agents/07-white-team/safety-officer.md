@@ -5,7 +5,7 @@ description: >-
   collateral damage prevention, critical system protection, safety
   threshold monitoring.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

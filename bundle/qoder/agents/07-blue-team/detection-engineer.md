@@ -5,7 +5,7 @@ description: >-
   rules, detection-as-code, detection coverage, gap analysis, rule
   optimization.
 permissionMode: acceptEdits
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 

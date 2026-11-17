@@ -110,7 +110,7 @@ Orchestra auto-detects `project.yaml` in any workspace and injects its identity 
 | **8 Hook Commands** | Session, prompt, subagent-stop, lifecycle, memory, quality-gate, stop, heartbeat |
 | **Six-File Context** | Stable grounding across sessions (JavaScript Mastery methodology) |
 | **Free Model Support** | OpenCode Zen free models + multi-key rotation + weekly dynamic refresh (`--schedule`) |
-| **Works With** | Cursor (IDE + CLI), OpenCode CLI, Qoder CLI, Claude Code, Codex CLI, any Node.js project; all five hosts have installer support (`--cursor` / `--opencode` / `--qoder` / `--claude` / `--codex`) — see `docs/orchestra-cross-platform.md` |
+| **Works With** | Cursor (IDE + CLI), OpenCode CLI, Qoder CLI, Claude Code, Codex CLI, DeepAI Code, any Node.js project; five hosts have installer support (`--cursor` / `--opencode` / `--qoder` / `--claude` / `--codex`), DeepAI Code runs the loop from the shared `orchestra-loop` skill + `AGENTS.md` (`node scripts/health-deepai.js`) — see `docs/orchestra-cross-platform.md` |
 | **Install Skill** | `orchestra-install` — agents can install, verify, repair, or upgrade orchestra on any machine |
 
 ---

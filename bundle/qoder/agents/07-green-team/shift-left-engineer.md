@@ -5,7 +5,7 @@ description: >-
   integration, security requirements in design, developer security
   training, security champions.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

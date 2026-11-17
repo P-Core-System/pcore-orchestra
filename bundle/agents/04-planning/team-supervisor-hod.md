@@ -5,6 +5,7 @@ description: >-
   one session per free member on its member branch/worktree, collect SHA
   completion reports. Use proactively when supervising a member team.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

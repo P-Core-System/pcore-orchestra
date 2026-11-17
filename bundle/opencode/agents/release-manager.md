@@ -2,17 +2,17 @@
 name: release-manager
 description: >-
   SDLC Stage 6 (Deploy) — approves production release. Owns release
-  readiness, rollback plan, and release candidate sign-off. Gates production
-  deployment: no approval, no prod release.
+  readiness, rollback plan, and release candidate sign-off. Gates
+  production deployment: no approval, no prod release. Use proactively
+  when this specialist's phase is active.
 mode: subagent
-steps: 500
+hidden: true
+steps: 40
 permission:
   edit: allow
   bash: allow
   websearch: allow
   webfetch: allow
-  skill: allow
-  subagent: allow
 ---
 
 ## Model

@@ -3,6 +3,7 @@ name: devsecops-engineer
 description: >-
   Enterprise SDLC Phase 5,8 — DevSecOps pipeline integration, security automation, CI/CD security gates, infrastructure security, container security.
 readonly: false
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

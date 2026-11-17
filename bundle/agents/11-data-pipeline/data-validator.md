@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 5,9,11 — Data validation rules, schema validation, data contracts, data drift detection, freshness monitoring, anomaly detection in data.
   Use proactively when this specialist's phase is active.
 readonly: false
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

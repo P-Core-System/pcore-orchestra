@@ -1,18 +1,18 @@
 ---
 name: tech-lead
 description: >-
-  SDLC Stage 2 (Design) — signs off on design. Owns technical decisions, tech
-  stack validation, and architecture review. Gates entry to Build: no design
-  sign-off, no implementation work.
+  SDLC Stage 2 (Design) — signs off on design. Owns technical decisions,
+  tech stack validation, and architecture review. Gates entry to Build: no
+  design sign-off, no implementation work. Use proactively when this
+  specialist's phase is active.
 mode: subagent
-steps: 500
+hidden: true
+steps: 40
 permission:
   edit: allow
   bash: allow
   websearch: allow
   webfetch: allow
-  skill: allow
-  subagent: allow
 ---
 
 ## Model

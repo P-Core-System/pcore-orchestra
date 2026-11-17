@@ -4,7 +4,8 @@ description: >-
   Enterprise SDLC Phase 27 — Production release, CI/CD, infrastructure
   deployment. Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 200
+hidden: true
+steps: 20
 permission:
   edit: allow
   bash: allow

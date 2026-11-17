@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC — Selects the right agents for a given task based on project type, phase, and task description. Filters from the 160-agent registry (`bundle/agent-registry.json`) to recommend the optimal specialist team.
   Use proactively when this specialist's phase is active.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

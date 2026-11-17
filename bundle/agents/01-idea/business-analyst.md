@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 1-3 — Idea collection, business analysis, requirements gathering.
   Analyzes business needs, validates assumptions, defines scope. Use proactively when this specialist's phase is active.
 readonly: true
+steps: 20
 model: composer-2.5
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---

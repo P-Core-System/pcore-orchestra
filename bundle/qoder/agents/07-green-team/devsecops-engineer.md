@@ -5,7 +5,7 @@ description: >-
   automation, CI/CD security gates, infrastructure security, container
   security.
 permissionMode: acceptEdits
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 

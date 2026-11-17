@@ -5,7 +5,7 @@ description: >-
   correctness, conventions, completeness, scope adherence. Gates Review
   completion: no approval, no Deploy stage.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 40
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

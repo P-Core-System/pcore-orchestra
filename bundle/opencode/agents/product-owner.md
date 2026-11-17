@@ -2,17 +2,17 @@
 name: product-owner
 description: >-
   SDLC Stage 1 (Plan) — approves scope and acceptance criteria. Owns the
-  product backlog, decides WHAT to build and WHY. Gates entry to Design: no
-  scope approval, no design work.
+  product backlog, decides WHAT to build and WHY. Gates entry to Design:
+  no scope approval, no design work. Use proactively when this
+  specialist's phase is active.
 mode: subagent
-steps: 500
+hidden: true
+steps: 40
 permission:
   edit: allow
   bash: allow
   websearch: allow
   webfetch: allow
-  skill: allow
-  subagent: allow
 ---
 
 ## Model

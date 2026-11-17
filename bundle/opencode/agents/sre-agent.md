@@ -2,17 +2,17 @@
 name: sre-agent
 description: >-
   SDLC Stage 7 (Operate) — watches SLOs. Monitors production health, error
-  budgets, latency, throughput. Alerts on SLO breaches. Gates Operate stage:
-  no SLO health, no steady state.
+  budgets, latency, throughput. Alerts on SLO breaches. Gates Operate
+  stage: no SLO health, no steady state. Use proactively when this
+  specialist's phase is active.
 mode: subagent
-steps: 500
+hidden: true
+steps: 40
 permission:
-  edit: allow
+  edit: deny
   bash: allow
   websearch: allow
   webfetch: allow
-  skill: allow
-  subagent: allow
 ---
 
 ## Model

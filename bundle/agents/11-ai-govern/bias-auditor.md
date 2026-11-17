@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 5,6,11 — Bias detection, fairness metrics, bias mitigation strategies, protected attribute analysis, intersectional fairness, bias testing.
   Use proactively when this specialist's phase is active.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

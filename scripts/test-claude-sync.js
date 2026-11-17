@@ -142,11 +142,20 @@ function runTests() {
 
   // Test 4: flat mirror and count parity with the source tree
   try {
-    const srcCount = walk(SRC).filter((f) => !path.relative(SRC, f).startsWith("references" + path.sep)).length;
     const destFiles = walk(DEST);
     const nested = destFiles.filter((f) => path.dirname(f) !== DEST);
     assert(nested.length === 0, "mirror is flat (Claude Code agent discovery is name-based)");
-    assert(destFiles.length === srcCount, `generated agent count (${destFiles.length}) == source agent count (${srcCount})`);
+    const srcFiles = walk(SRC).filter((f) => !path.relative(SRC, f).startsWith("references" + path.sep));
+    const srcNames = new Set(srcFiles.map((f) => path.basename(f)));
+    assert(
+      destFiles.length === srcNames.size,
+      `generated agent count (${destFiles.length}) == unique source agent names (${srcNames.size}) [files=${srcFiles.length}]`
+    );
+    // A flat tree keys by name, so duplicate basenames are resolved
+    // shallowest-first. Pin the known overlap: the 7-stage root roles shadow
+    // same-named phase-folder specialists. Any NEW collision must fail here.
+    const dupes = srcFiles.length - srcNames.size;
+    assert(dupes === 4, `flat-name overlaps must stay 4 (got ${dupes})`);
     const names = destFiles.map((f) => path.basename(f, ".md"));
     assert(new Set(names).size === names.length, "agent basenames are unique");
     passed += 3;

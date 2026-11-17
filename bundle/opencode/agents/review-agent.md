@@ -1,18 +1,18 @@
 ---
 name: review-agent
 description: >-
-  SDLC Stage 5 (Review) — first-pass PR review. Reviews PR for correctness,
-  conventions, completeness, scope adherence. Gates Review completion: no
-  approval, no Deploy stage.
+  SDLC Stage 5 (Review) — first-pass PR review. Reviews PR for
+  correctness, conventions, completeness, scope adherence. Gates Review
+  completion: no approval, no Deploy stage. Use proactively when this
+  specialist's phase is active.
 mode: subagent
-steps: 500
+hidden: true
+steps: 40
 permission:
-  edit: allow
+  edit: deny
   bash: allow
   websearch: allow
   webfetch: allow
-  skill: allow
-  subagent: allow
 ---
 
 ## Model

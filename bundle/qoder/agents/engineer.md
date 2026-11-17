@@ -5,7 +5,7 @@ description: >-
   implementation for correctness, completeness, and adherence to plan.
   Gates merge: no approval, no merge to main.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

@@ -6,7 +6,8 @@ description: >-
   coordinates hybrid human-AI teams, tracks capacity and token budgets.
   Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 200
+hidden: true
+steps: 20
 permission:
   edit: deny
   bash: allow

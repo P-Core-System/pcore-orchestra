@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 0,5,9 — ML model training, deployment, monitoring, MLOps, feature engineering, experiment tracking, model serving.
   Use proactively when this specialist's phase is active.
 readonly: false
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

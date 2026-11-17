@@ -5,7 +5,8 @@ description: >-
   troubleshooting workflows, knowledge base management, ticket triage, SLA
   tracking. Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 200
+hidden: true
+steps: 20
 permission:
   edit: deny
   bash: allow

@@ -5,7 +5,7 @@ description: >-
   attack campaigns, multi-vector attacks, persistence mechanisms, data
   exfiltration simulation.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

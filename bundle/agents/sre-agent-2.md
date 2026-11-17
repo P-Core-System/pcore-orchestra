@@ -6,6 +6,7 @@ description: >-
   incident communication. Works with sre-agent (SLO monitoring) for full
   observability coverage.
 readonly: true
+steps: 40
 model: composer-2.5
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---

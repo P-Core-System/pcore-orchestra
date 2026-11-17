@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 0,15 — Industry analysis, market trends, competitive landscape, technology adoption curves, industry standards, best practices.
   Use proactively when this specialist's phase is active.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

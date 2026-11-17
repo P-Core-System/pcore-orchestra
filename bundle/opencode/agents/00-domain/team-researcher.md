@@ -5,7 +5,8 @@ description: >-
   scored with team-research.js, whitepaper output human-gated. Use
   proactively when a technology or vendor choice needs evidence.
 mode: subagent
-steps: 200
+hidden: true
+steps: 20
 permission:
   edit: deny
   bash: allow

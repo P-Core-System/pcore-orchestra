@@ -3,16 +3,16 @@ name: ai-trigger
 description: >-
   SDLC Stage 1 (Plan) — scores issue readiness. Analyzes incoming issues,
   scores them for design readiness (clarity, scope, dependencies, risk).
-  Gates Plan completion: unscored issues do not proceed to Design.
+  Gates Plan completion: unscored issues do not proceed to Design. Use
+  proactively when this specialist's phase is active.
 mode: subagent
-steps: 500
+hidden: true
+steps: 40
 permission:
-  edit: allow
+  edit: deny
   bash: allow
   websearch: allow
   webfetch: allow
-  skill: allow
-  subagent: allow
 ---
 
 ## Model

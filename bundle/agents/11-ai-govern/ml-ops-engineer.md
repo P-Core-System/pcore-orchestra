@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 5,9,11 — ML pipeline automation, experiment tracking, model registry, CI/CD for ML, feature stores, model monitoring, automated retraining.
   Use proactively when this specialist's phase is active.
 readonly: false
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

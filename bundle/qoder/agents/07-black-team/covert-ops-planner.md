@@ -5,7 +5,7 @@ description: >-
   techniques, long-term persistence, advanced OPSEC, multi-stage
   campaigns.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

@@ -364,6 +364,15 @@ async function main() {
     parts.push(ctxBlock);
     parts.push("Planner: read all present context/*.md files before PLAN_READY.");
   }
+
+  // Quota line is injected ONLY when constrained: formatBudgetLine returns ""
+  // while healthy, so this never adds boilerplate to a normal turn.
+  try {
+    const rb = require("./lib/request-budget.js");
+    const line = rb.formatBudgetLine(rb.worstStatus(rb.readLedger(), {}));
+    if (line) parts.push(line);
+  } catch {}
+
   emit({ additional_context: parts.join("\n\n") });
 }
 

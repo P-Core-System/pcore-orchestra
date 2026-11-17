@@ -3,6 +3,7 @@ name: adversary-emulator
 description: >-
   Enterprise SDLC Phase 6,7 — Advanced adversary emulation, APT group simulation, MITRE ATT&CK-based emulation, TTP replication, detection gap analysis.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

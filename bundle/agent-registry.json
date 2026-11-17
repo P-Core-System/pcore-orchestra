@@ -69,12 +69,12 @@
   },
   "counts": {
     "hookAgents": 27,
-    "agentFiles": 171,
-    "cursorAgents": 171,
-    "opencodeAgents": 172
+    "agentFiles": 172,
+    "cursorAgents": 172,
+    "opencodeAgents": 173
   },
   "opencodeNamespaced": {
-    "count": 157,
+    "count": 158,
     "globs": [
       "00-business/business-strategist*",
       "00-business/compliance-officer*",
@@ -232,7 +232,8 @@
       "13-customer/training-specialist*",
       "14-research/innovation-lead*",
       "14-research/research-scientist*",
-      "14-research/technology-scout*"
+      "14-research/technology-scout*",
+      "references/orchestra-spawn-matrix*"
     ]
   },
   "agents": [
@@ -353,6 +354,7 @@
     "project-type-classifier",
     "prompt-engineer",
     "purple-team-lead",
+    "qa-agent",
     "qa-engineer",
     "red-team-operator",
     "regression-tester",
@@ -683,15 +685,15 @@
     },
     {
       "id": "architect",
-      "category": "03-architecture",
+      "category": "root",
       "capabilities": {
-        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
-        "readonly": true,
-        "permissionMode": null,
-        "model": "grok-4.6",
+        "tools": "Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch",
+        "readonly": false,
+        "permissionMode": "acceptEdits",
+        "model": "composer-2.5",
         "effort": null
       },
-      "description": "Enterprise SDLC Phase 8-11 — Domain model, risk analysis, architecture review. Ensures system meets quality attributes and follows Clean/Hexagonal Architecture. Use proactively when this specialist's phase is active.",
+      "description": "SDLC Stage 1+2 (Plan/Design) — drafts and refines the technical spec. Owns spec creation in Plan, spec refinement in Design after Tech Lead feedback. Gates: no spec, no design sign-off.",
       "independence": {
         "files": [
           "context/architecture.md",
@@ -2626,15 +2628,15 @@
     },
     {
       "id": "product-owner",
-      "category": "02-requirements",
+      "category": "root",
       "capabilities": {
-        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
-        "readonly": true,
-        "permissionMode": null,
+        "tools": "Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch",
+        "readonly": false,
+        "permissionMode": "acceptEdits",
         "model": "composer-2.5",
         "effort": null
       },
-      "description": "Enterprise SDLC Phase 4-5 — Backlog prioritization, business value assessment, scope decisions, acceptance criteria ownership. Distinct from product-manager who writes specifications; product-owner decides WHAT to build and WHY. Use proactively when this specialist's phase is active.",
+      "description": "SDLC Stage 1 (Plan) — approves scope and acceptance criteria. Owns the product backlog, decides WHAT to build and WHY. Gates entry to Design: no scope approval, no design work.",
       "independence": {
         "files": [],
         "gates": [],
@@ -2714,6 +2716,23 @@
         "effort": null
       },
       "description": "Enterprise SDLC Phase 6,7 — Purple team coordination, offensive-defensive collaboration, red+blue exercise design, gap remediation, security improvement tracking.",
+      "independence": {
+        "files": [],
+        "gates": [],
+        "stateKeys": []
+      }
+    },
+    {
+      "id": "qa-agent",
+      "category": "root",
+      "capabilities": {
+        "tools": "Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch",
+        "readonly": false,
+        "permissionMode": "acceptEdits",
+        "model": "composer-2.5",
+        "effort": null
+      },
+      "description": "SDLC Stage 4 (Test) — writes and runs tests. Creates test suites per plan, runs them, reports pass/fail with evidence. Gates Test completion: no tests, no test pass.",
       "independence": {
         "files": [],
         "gates": [],
@@ -2816,7 +2835,7 @@
     },
     {
       "id": "release-manager",
-      "category": "08-deployment",
+      "category": "root",
       "capabilities": {
         "tools": "Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch",
         "readonly": false,
@@ -2824,7 +2843,7 @@
         "model": "composer-2.5",
         "effort": null
       },
-      "description": "Enterprise SDLC Phase 26 — Release candidate preparation, versioning, changelog. Use proactively when this specialist's phase is active.",
+      "description": "SDLC Stage 6 (Deploy) — approves production release. Owns release readiness, rollback plan, and release candidate sign-off. Gates production deployment: no approval, no prod release.",
       "independence": {
         "files": [
           "CHANGELOG.md",
@@ -3353,15 +3372,15 @@
     },
     {
       "id": "tech-lead",
-      "category": "03-architecture",
+      "category": "root",
       "capabilities": {
-        "tools": "Bash, Read, Grep, Glob, WebFetch, WebSearch",
-        "readonly": true,
-        "permissionMode": null,
-        "model": "grok-4.6",
+        "tools": "Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch",
+        "readonly": false,
+        "permissionMode": "acceptEdits",
+        "model": "composer-2.5",
         "effort": null
       },
-      "description": "Enterprise SDLC Phase 12-14 — Technology selection, folder structure, coding standards. Defines technical foundation for implementation. Use proactively when this specialist's phase is active.",
+      "description": "SDLC Stage 2 (Design) — signs off on design. Owns technical decisions, tech stack validation, and architecture review. Gates entry to Build: no design sign-off, no implementation work.",
       "independence": {
         "files": [
           "context/folder-structure.md",

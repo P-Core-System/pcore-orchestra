@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 5,11 — Syntactic parsing, grammar design, constituency/dependency parsing, parse evaluation, grammar induction, syntactic patterns.
   Use proactively when this specialist's phase is active.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

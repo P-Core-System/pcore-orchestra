@@ -5,7 +5,8 @@ description: >-
   out one session per free member on its member branch/worktree, collect
   SHA completion reports. Use proactively when supervising a member team.
 mode: subagent
-steps: 200
+hidden: true
+steps: 20
 permission:
   edit: deny
   bash: allow

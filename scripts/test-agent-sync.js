@@ -80,7 +80,11 @@ for (const [name, tokens] of Object.entries(VERDICT_TOKENS)) {
 
 for (const name of CORE) {
   const steps = stepsOf(path.join(ROOT, "bundle", "opencode", "agents", `${name}.md`));
-  check(`${name}: OpenCode step budget preserved (${steps})`, Number.isFinite(steps) && steps >= 200, String(steps));
+  // Free model pools are limited by REQUESTS PER DAY, so step ceilings are the
+  // quota dial. The old pin (>= 200) defended a value that could burn a whole
+  // day's allowance in one runaway phase agent.
+  const cap = require("./lib/context-budget.js").maxStepsFor(name);
+  check(`${name}: OpenCode step budget at role cap (${steps})`, Number.isFinite(steps) && steps === cap, String(steps));
 }
 
 // Drift detection: a manual edit to a generated core agent must fail --check.

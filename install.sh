@@ -452,6 +452,19 @@ JS
   # Autonomy: merge permission/agent into opencode.json (preserves mcp secrets)
   node "$ROOT/scripts/merge-autonomy-config.js" --opencode --opencode-home "$OPENCODE"
 
+  # Context diet: hide every subagent from the per-request prompt index (they
+  # stay spawnable by id) and move unused orchestra skills into a lazy catalog.
+  # Without this, an install re-inlines ~18K tokens of agent+skill descriptions
+  # into EVERY request on free pools that are capped per day by request count.
+  # Scope is the OpenCode skill root only; shared roots used by Codex/Claude/DeepAI
+  # stay intact unless the operator opts in with --shared.
+  if node "$ROOT/scripts/orchestra-context-diet.js" --apply >/dev/null 2>&1; then
+    echo "  Context diet:     agents hidden + unused skills lazy-indexed"
+  else
+    echo "WARN context diet did not run — index may be heavier than intended:"
+    echo "      node $ROOT/scripts/orchestra-context-diet.js --apply"
+  fi
+
   # Weekly free-model schedule: systemd user timer; cron fallback if missing
   if bash "$ROOT/scripts/update-free-models.sh" --schedule; then
     echo "  Free-model schedule: weekly refresh+apply installed"

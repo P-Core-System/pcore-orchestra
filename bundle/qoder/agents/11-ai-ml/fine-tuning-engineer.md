@@ -5,7 +5,7 @@ description: >-
   instruction tuning, RLHF, DPO, constitutional AI, alignment techniques,
   reward modeling. Use proactively when this specialist's phase is active.
 permissionMode: acceptEdits
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 

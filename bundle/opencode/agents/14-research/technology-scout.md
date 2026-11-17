@@ -5,7 +5,8 @@ description: >-
   analysis, POC coordination, build vs buy decisions, technical due
   diligence. Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 200
+hidden: true
+steps: 20
 permission:
   edit: deny
   bash: allow

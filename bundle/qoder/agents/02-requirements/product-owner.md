@@ -7,7 +7,7 @@ description: >-
   WHAT to build and WHY. Use proactively when this specialist's phase is
   active.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 40
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

@@ -1,19 +1,19 @@
 ---
 name: release-agent
 description: >-
-  SDLC Stage 6 (Deploy) — rolls out releases behind feature flags. Executes
-  the deployment pipeline: build artifacts, staging validation, flagged
-  rollout, canary analysis. Gates Deploy completion: no rollout, no Deploy
-  sign-off.
+  SDLC Stage 6 (Deploy) — rolls out releases behind feature flags.
+  Executes the deployment pipeline: build artifacts, staging validation,
+  flagged rollout, canary analysis. Gates Deploy completion: no rollout,
+  no Deploy sign-off. Use proactively when this specialist's phase is
+  active.
 mode: subagent
-steps: 500
+hidden: true
+steps: 40
 permission:
-  edit: allow
+  edit: deny
   bash: allow
   websearch: allow
   webfetch: allow
-  skill: allow
-  subagent: allow
 ---
 
 ## Model

@@ -3,6 +3,7 @@ name: threat-intelligence-analyst
 description: >-
   Enterprise SDLC Phase 0,6,9 — Threat intelligence collection, analysis, dissemination, threat actor profiling, TTP mapping, intelligence-driven defense.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

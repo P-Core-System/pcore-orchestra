@@ -67,19 +67,28 @@ function toClaudeMarkdown(raw, fallbackName) {
   return front + body;
 }
 
-/** Flat relative path → generated content. Throws on duplicate basenames. */
+/**
+ * Flat relative path → generated content.
+ * Basename conflicts resolve shallowest-source-wins via dedupeFlat (a root
+ * 7-stage agent beats a phase-foldered specialist of the same name) instead of
+ * throwing, so the flat hosts stay installable and the conflict is reported.
+ */
 function generate() {
-  const out = new Map();
+  const entries = [];
   for (const src of walkMarkdown(SRC)) {
     const rel = path.relative(SRC, src);
     if (rel.startsWith("references" + path.sep)) continue;
     const fileName = path.basename(src);
-    if (out.has(fileName)) {
-      throw new Error(`duplicate agent basename "${fileName}" — Claude Code agents are flat`);
-    }
-    out.set(fileName, toClaudeMarkdown(fs.readFileSync(src, "utf8"), path.basename(src, ".md")));
+    entries.push({ fileName, rel, value: toClaudeMarkdown(fs.readFileSync(src, "utf8"), path.basename(src, ".md")) });
   }
-  return out;
+  const { map, conflicts } = require("./lib/context-budget.js").dedupeFlat(entries);
+  if (conflicts.length) {
+    console.error(
+      `note: ${conflicts.length} flat-name conflict(s) resolved shallowest-first, e.g. ` +
+        conflicts.slice(0, 3).map((c) => `${c.fileName}: ${c.winner} over ${c.loser}`).join(" | ")
+    );
+  }
+  return map;
 }
 
 function main() {

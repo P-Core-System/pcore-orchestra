@@ -5,7 +5,7 @@ description: >-
   spec, follows project conventions, produces PR-ready changes. Gates
   Build completion: no code, no PR for Engineer review.
 permissionMode: acceptEdits
-maxTurns: 200
+maxTurns: 40
 tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 

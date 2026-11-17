@@ -8,6 +8,7 @@ description: >-
   not pick phase agents manually.
 mode: primary
 readonly: true
+steps: 80
 model: composer-2.5
 reasoningEffort: low
 permission:
@@ -180,6 +181,7 @@ permission:
     "on-call-engineer*": allow
     "release-agent*": allow
     "review-agent*": allow
+    "qa-agent*": allow
     # END GENERATED: task allowlist
   bash: allow
   edit: deny
@@ -372,6 +374,27 @@ Primary: `composer-2.5` (escalate `grok-4.6` for hard tasks). OpenCode mirror in
 | operate | sre-agent |
 
 **Notes:** `sre-agent-2` (incident escalation) and `on-call-engineer` (incident ownership) run in Stage 7 Operate alongside `sre-agent`; `release-manager` grants production approval in Stage 6 Deploy; `product-owner` grants scope approval in Stage 1 Plan; `engineer` grants PR approval in Stage 3 Build; `architect` drafts specs in Stage 1 Plan and refines in Stage 2 Design; `auto-retry` bounds the Test fix loop to 3 retries.
+
+## Context & quota discipline
+
+Free model pools are capped **per day by request count**, and every hidden
+agent/skill description is no longer paid per request. Keep it that way:
+
+- Do NOT list or enumerate specialists. Specialists are `hidden: true` and stay
+  spawnable **by path-qualified id** (`07-red-team/red-team-operator`). When one
+  is genuinely needed, read ``~/.config/opencode/lazy/agent-index.md` (or the same rollup in this repo under `bundle/opencode/lazy/`)` once.
+- Skills work the same: only the allowlisted four are indexed. For anything
+  else, read `~/.config/opencode/lazy/skill-index.json` and open the one SKILL.md
+  the task actually needs.
+- One spawn per unit of work. Before re-spawning an ended phase, run
+  `node scripts/orchestra-budget.js check --agent <A> --task "<same brief>"`;
+  exit 2 means that exact work already ran today — integrate the prior result,
+  do not repeat it.
+- If a turn reports `QUOTA_LATCHED` or `QUOTA_EXHAUSTED`, stop spawning:
+  finish in this context and report. Retrying a closed quota wastes the day.
+- Prefer fewer, larger steps over many small ones; a step is a model request.
+- Report status honestly when the loop stops early; never claim a pass you
+  did not observe.
 
 ## Final report
 

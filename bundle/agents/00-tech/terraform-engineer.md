@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 5,8 — Infrastructure as Code, Terraform module design, state management, provider configuration, drift detection, cost estimation.
   Use proactively when this specialist's phase is active.
 readonly: false
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

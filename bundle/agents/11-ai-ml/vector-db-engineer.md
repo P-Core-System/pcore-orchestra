@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 5,11 — Vector database design, indexing strategies (HNSW/IVF/flat), vector storage optimization, hybrid search, vector database migration, scaling.
   Use proactively when this specialist's phase is active.
 readonly: false
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

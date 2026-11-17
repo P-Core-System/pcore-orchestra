@@ -5,7 +5,7 @@ description: >-
   management, rules of engagement enforcement, safe-word handling,
   exercise coordination, timeline management.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

@@ -3,16 +3,16 @@ name: architect
 description: >-
   SDLC Stage 1+2 (Plan/Design) — drafts and refines the technical spec.
   Owns spec creation in Plan, spec refinement in Design after Tech Lead
-  feedback. Gates: no spec, no design sign-off.
+  feedback. Gates: no spec, no design sign-off. Use proactively when this
+  specialist's phase is active.
 mode: subagent
-steps: 500
+hidden: true
+steps: 40
 permission:
   edit: allow
   bash: allow
   websearch: allow
   webfetch: allow
-  skill: allow
-  subagent: allow
 ---
 
 ## Model

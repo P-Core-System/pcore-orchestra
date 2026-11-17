@@ -3,6 +3,7 @@ name: detection-engineer
 description: >-
   Enterprise SDLC Phase 6,9 — Detection rule engineering, SIGMA/YARA/Snort rules, detection-as-code, detection coverage, gap analysis, rule optimization.
 readonly: false
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

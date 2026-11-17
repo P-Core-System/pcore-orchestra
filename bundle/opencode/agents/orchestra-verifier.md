@@ -6,7 +6,8 @@ description: >-
   ai-workflow-rules.md verification checklist when present in the target
   project. Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 500
+hidden: true
+steps: 40
 permission:
   edit: deny
   bash: allow

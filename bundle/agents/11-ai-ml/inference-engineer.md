@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 5,9,11 — Model serving infrastructure, inference optimization, quantization, pruning, ONNX conversion, TensorRT, batching strategies, latency optimization.
   Use proactively when this specialist's phase is active.
 readonly: false
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

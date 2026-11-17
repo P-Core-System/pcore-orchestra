@@ -5,7 +5,7 @@ description: >-
   scores them for design readiness (clarity, scope, dependencies, risk).
   Gates Plan completion: unscored issues do not proceed to Design.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 40
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

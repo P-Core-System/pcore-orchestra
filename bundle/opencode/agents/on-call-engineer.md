@@ -3,16 +3,16 @@ name: on-call-engineer
 description: >-
   SDLC Stage 7 (Operate) — owns incidents. First responder for production
   incidents, owns incident response from detection through postmortem.
-  Gates incident closure: no postmortem, no incident close.
+  Gates incident closure: no postmortem, no incident close. Use
+  proactively when this specialist's phase is active.
 mode: subagent
-steps: 500
+hidden: true
+steps: 20
 permission:
-  edit: allow
+  edit: deny
   bash: allow
   websearch: allow
   webfetch: allow
-  skill: allow
-  subagent: allow
 ---
 
 ## Model

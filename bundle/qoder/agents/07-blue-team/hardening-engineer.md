@@ -4,7 +4,7 @@ description: >-
   Enterprise SDLC Phase 6,7 — System hardening, CIS benchmarks, STIG
   compliance, secure configuration, baseline enforcement, drift detection.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

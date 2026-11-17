@@ -5,6 +5,7 @@ description: >-
   implementation for correctness, completeness, and adherence to plan.
   Gates merge: no approval, no merge to main.
 readonly: true
+steps: 20
 model: composer-2.5
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---

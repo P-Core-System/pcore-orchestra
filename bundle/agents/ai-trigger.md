@@ -5,6 +5,7 @@ description: >-
   scores them for design readiness (clarity, scope, dependencies, risk).
   Gates Plan completion: unscored issues do not proceed to Design.
 readonly: true
+steps: 40
 model: composer-2.5
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---

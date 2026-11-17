@@ -5,7 +5,7 @@ description: >-
   offensive-defensive collaboration, red+blue exercise design, gap
   remediation, security improvement tracking.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

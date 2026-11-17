@@ -1,4 +1,10 @@
-# Orchestra spawn matrix (Cursor + OpenCode + Qoder + Claude Code + Codex)
+---
+name: orchestra-spawn-matrix
+description: Reference doc, not an agent. Read it; never spawn it.
+mode: subagent
+hidden: true
+---
+# Orchestra spawn matrix (Cursor + OpenCode + Qoder + Claude Code + Codex + DeepAI Code)
 
 ## Cursor IDE
 

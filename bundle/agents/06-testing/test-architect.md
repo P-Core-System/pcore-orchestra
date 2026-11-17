@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 6 — Test strategy design, test pyramid planning, test automation architecture, quality gates, test environment management.
   Use proactively when this specialist's phase is active.
 readonly: false
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

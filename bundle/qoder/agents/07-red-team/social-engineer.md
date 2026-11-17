@@ -5,7 +5,7 @@ description: >-
   simulation, pretexting, physical security testing, human vulnerability
   assessment.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

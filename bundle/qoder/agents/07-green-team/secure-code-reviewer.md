@@ -4,7 +4,7 @@ description: >-
   Enterprise SDLC Phase 6 — Security-focused code review, vulnerability
   detection, secure coding standards, code audit.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

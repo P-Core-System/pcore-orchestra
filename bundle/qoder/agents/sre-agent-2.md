@@ -6,7 +6,7 @@ description: >-
   incident communication. Works with sre-agent (SLO monitoring) for full
   observability coverage.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 40
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

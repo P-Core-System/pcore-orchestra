@@ -4,7 +4,7 @@ description: >-
   Enterprise SDLC Phase 6,9 — SIEM rule design, log analysis, alert
   tuning, correlation rules, security dashboards, compliance reporting.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 
