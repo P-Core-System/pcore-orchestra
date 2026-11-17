@@ -768,11 +768,12 @@
   },
   "compaction": {
     "auto": true,
-    "buffer": 6000
+    "buffer": 16000,
+    "background": false
   },
   "tool_output": {
     "max_lines": 300,
-    "max_bytes": 12288
+    "max_bytes": 65536
   },
   "watcher": {
     "ignore": [
@@ -786,12 +787,8 @@
   "default_agent": "orchestra",
   "snapshots": false,
   "instructions": [
-    "**/AGENTS.md",
-    "**/CLAUDE.md",
-    "**/context/project-overview.md",
-    "**/context/architecture.md",
-    "**/context/code-standards.md",
-    "**/context/progress-tracker.md"
+    "AGENTS.md",
+    "CLAUDE.md"
   ],
   "permissions": [
     {
@@ -1016,5 +1013,6 @@
         }
       }
     }
-  }
+  },
+  "update": "disable"
 }

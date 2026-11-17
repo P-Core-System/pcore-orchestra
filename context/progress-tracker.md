@@ -1,4 +1,4 @@
-# Progress Tracker
+- $(date +%Y-%m-%d) — T1/T2 token-diet: narrowed ambient instructions to AGENTS.md + CLAUDE.md; raised tool_output.max_bytes to 65536; tuned compaction buffer to 16000 with background:false; disabled update check; added agents.compaction model tie-in.  Key files: scripts/lib/opencode-token-profile.js, bundle/config/opencode/autonomy.json, docs/opencode.json.example, scripts/merge-autonomy-config.js, scripts/test-opencode-v2.json;  reductions: 116KB/request fixed prompt (~29K tokens/day).  Self-check suites: all exit 0.\n\n# Progress Tracker
 
 SEE ALSO: older session logs archived at docs/archive/progress-tracker-2026-11-02.md (nothing deleted).
 

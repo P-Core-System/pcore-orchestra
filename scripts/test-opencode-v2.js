@@ -258,6 +258,27 @@ t("hooks dropped, skills object→array, command→commands, tool_output passthr
 });
 
 t("instructions: array passthrough, object form dropped (runtime rejects it)", () => {
+
+  // T1: NARROW_INSTRUCTIONS has no context entries
+  t("NARROW_INSTRUCTIONS has no context/* entries", () => {
+    const cfg = JSON.parse(JSON.stringify(require("opencode").debug()));
+    assert.ok(cfg.instructions.every(i => !i.startsWith("context/")));
+  });
+
+  // T2: compaction buffer and model
+  t("COMPACTION has buffer 16000 and background false", () => {
+    const cfg = JSON.parse(JSON.stringify(require("opencode").debug()));
+    assert.strictEqual(cfg.compaction.buffer, 16000);
+    assert.strictEqual(cfg.compaction.background, false);
+  });
+
+  t("agents.compaction.model set after applyTokenProfile", () => {
+    // exec a quick merge to verify
+    const merge = require("./lib/opencode-v2.js");
+    const out = merge.mergeConfig({ instructions: ["AGENTS.md", "CLAUDE.md"] });
+    assert.ok(out.agents.compaction && out.agents.compaction.model);
+  });
+
   const arr = ["AGENTS.md", "context/architecture.md"];
   const outArr = migrateConfig({ instructions: arr });
   assert.deepStrictEqual(outArr.instructions, arr);

@@ -27,10 +27,6 @@ const BROAD_INSTRUCTION_GLOBS = new Set([
 const NARROW_INSTRUCTIONS = [
   "AGENTS.md",
   "CLAUDE.md",
-  "context/project-overview.md",
-  "context/architecture.md",
-  "context/code-standards.md",
-  "context/progress-tracker.md",
 ];
 
 const ORCHESTRA_SKILLS = {
@@ -74,12 +70,13 @@ const REVIEWER_SKILLS = {
 /** V2 compaction: reserve for compaction output as `buffer` (V1: reserved). */
 const COMPACTION = {
   auto: true,
-  buffer: 6000,
+  buffer: 16000,
+  background: false,
 };
 
 const TOOL_OUTPUT = {
   max_lines: 300,
-  max_bytes: 12288,
+  max_bytes: 65536,
 };
 
 const REASONING = {
@@ -146,6 +143,7 @@ function applyTokenProfile(dest, opts = {}) {
   }
 
   dest.instructions = [...NARROW_INSTRUCTIONS];
+  dest.agents.compaction = { model: dest.agents.title.model };
   changed.push("instructions(narrow)");
 
   dest.permissions = permissionReplaceActions(
