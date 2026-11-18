@@ -277,11 +277,23 @@ Each loop = an isolated, atomic run keyed by (workspace + session + task); a sha
 
 Rules: begin at loop start (`--reuse` keeps same task file across resumes); save task_id+summary after every stage & resume (increment resumeAttempts); resume via who/resume, never restart; complete on final stage pass, fail on needs_human. Concurrent loops in other workspaces/sessions never overwrite this run.
 
+## Ordered improvement algorithm (all routes)
+
+Every route — core loop and 7-stage SDLC — applies these in order before build and confirms them at review. They do not add a phase or replace stage gates.
+
+1. **Question requirements** — name the accountable person and cite source/evidence. An unknown owner is a clarification item, never invented authority.
+2. **Delete unnecessary parts or processes** — require caller/dependency analysis, tests and rollback before removal. The 10% add-back idea is a retrospective heuristic, **not a deletion quota**.
+3. **Simplify and optimize** — only what remains, measured against a baseline and reusing existing components.
+4. **Accelerate cycle time** — shorten feedback loops only after steps 1–3, without skipping verification or approvals.
+5. **Automate last** — only a proven, reversible process, with bounded authority, audit trail and rollback.
+
+PLAN records the decisions; BUILD keeps them in order and reports evidence; REVIEW checks actual execution, not just the stated plan. Never trade safety, security, legal duties, human approval or required gates for speed.
+
 ## Loop — 7-Stage SDLC (strict order — one task at a time)
 
-1. **task** → `ai-trigger` → issue readiness → `ISSUE_READY`
+1. **task** → `ai-trigger` → issue readiness (requirement owners/evidence checked) → `ISSUE_READY`
 2. **task** → `product-owner` → scope approval → `SCOPE_APPROVED`
-3. **task** → `architect` → spec drafting → `SPEC_DRAFTED`
+3. **task** → `architect` → spec drafting (five-step decisions recorded) → `SPEC_DRAFTED`
    → Stage 1 complete: `PLAN_READY`
 4. **task** → `architect` → spec refinement
 5. **task** → `tech-lead` → design sign-off → `DESIGN_SIGNED_OFF`
@@ -292,7 +304,7 @@ Rules: begin at loop start (`--reuse` keeps same task file across resumes); save
 8. **task** → `qa-agent` → test writing/running → `TESTS_PASS` / `TESTS_FAIL`
 9. **task** → `auto-retry` → retry loop → `TESTS_PASSING` (max 3 fix loops) / `TESTS_FAILED_MAX_RETRIES`
    → Stage 4 complete: `TESTS_PASS`
-10. **task** → `review-agent` → first-pass PR review → `REVIEW_APPROVED` / `REVIEW_REJECTED`
+10. **task** → `review-agent` → first-pass PR review (verified ordered-step evidence) → `REVIEW_APPROVED` / `REVIEW_REJECTED`
     → Stage 5 complete: `REVIEW_APPROVED`
 11. **task** → `release-agent` → flagged rollout → `ROLLOUT_COMPLETE` / `ROLLOUT_FAILED`
 12. **task** → `release-manager` → prod approval → `RELEASE_APPROVED` / `RELEASE_REJECTED`

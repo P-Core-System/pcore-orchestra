@@ -70,6 +70,48 @@ for (const name of CORE) {
   }
 }
 
+// The ordered engineering algorithm belongs in the actual phase prompts.
+const planner = bodyOf(path.join(ROOT, "bundle", "agents", "orchestra-planner.md"));
+const algorithm = [
+  "1. Question requirements",
+  "2. Delete unnecessary parts or processes",
+  "3. Simplify and optimize",
+  "4. Accelerate cycle time",
+  "5. Automate last",
+];
+let previous = -1;
+for (const step of algorithm) {
+  const index = planner.indexOf(step);
+  check(`planner: ordered algorithm ${step}`, index > previous && index !== -1);
+  previous = index;
+}
+check("planner: deletion is not a quota", planner.includes("not a deletion quota"));
+check("planner: unknown requirement owners remain unknown", planner.includes("owner unknown"));
+const reviewer = bodyOf(path.join(ROOT, "bundle", "agents", "orchestra-reviewer.md"));
+check("reviewer: checks ordered algorithm", reviewer.includes("five-step algorithm"));
+check("reviewer: protects safety and quality gates", reviewer.includes("safety and quality gates"));
+
+// Every route and phase must carry the ordered practice, not only the core planner.
+const conductorCursor = fs.readFileSync(path.join(ROOT, "bundle", "agents", "orchestra.md"), "utf8");
+const conductorOpencode = fs.readFileSync(path.join(ROOT, "bundle", "opencode", "agents", "orchestra.md"), "utf8");
+for (const [label, text] of [
+  ["conductor (Cursor)", conductorCursor],
+  ["conductor (OpenCode)", conductorOpencode],
+]) {
+  check(`${label}: ordered algorithm on all routes`, text.includes("## Ordered improvement algorithm (all routes)"));
+  check(`${label}: deletion is not a quota`, text.includes("not a deletion quota"));
+  check(`${label}: review checks actual execution`, text.includes("checks actual execution, not just the stated plan"));
+}
+for (const [name, marker] of [
+  ["ai-trigger", "unknown owner becomes a clarification item"],
+  ["review-agent", "ordered five-step evidence against the actual diff"],
+  ["orchestra-implementer", "## Ordered-step evidence"],
+  ["orchestra-verifier", "steps 1–3 must be supported before step 4 speedups or step 5 automation"],
+]) {
+  const text = bodyOf(path.join(ROOT, "bundle", "agents", `${name}.md`));
+  check(`${name}: carries ordered-step execution evidence`, text.includes(marker));
+}
+
 for (const [name, tokens] of Object.entries(VERDICT_TOKENS)) {
   for (const vault of ["agents", "opencode/agents", "qoder/agents"]) {
     const text = fs.readFileSync(path.join(ROOT, "bundle", vault, `${name}.md`), "utf8");

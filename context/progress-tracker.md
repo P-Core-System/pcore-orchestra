@@ -1,4 +1,8 @@
-- $(date +%Y-%m-%d) — T1/T2 token-diet: narrowed ambient instructions to AGENTS.md + CLAUDE.md; raised tool_output.max_bytes to 65536; tuned compaction buffer to 16000 with background:false; disabled update check; added agents.compaction model tie-in.  Key files: scripts/lib/opencode-token-profile.js, bundle/config/opencode/autonomy.json, docs/opencode.json.example, scripts/merge-autonomy-config.js, scripts/test-opencode-v2.json;  reductions: 116KB/request fixed prompt (~29K tokens/day).  Self-check suites: all exit 0.\n\n# Progress Tracker
+- 2026-11-19 — T1/T2 token-diet: narrowed ambient instructions to AGENTS.md + CLAUDE.md; raised tool_output.max_bytes to 65536; tuned compaction buffer to 16000 with background:false; disabled update check; added agents.compaction model tie-in.  Key files: scripts/lib/opencode-token-profile.js, bundle/config/opencode/autonomy.json, docs/opencode.json.example, scripts/merge-autonomy-config.js, scripts/test-opencode-v2.json;  reductions: 116KB/request fixed prompt (~29K tokens/day).  Self-check suites: all exit 0.
+
+# Progress Tracker
+
+- 2026-11-18 — Integrated the ordered five-step engineering algorithm across every route: core planner/reviewer plus 7-stage conductor, ai-trigger, review-agent, implementer and verifier, with generated host mirrors and propagation checks. Files: `bundle/agents/{orchestra,orchestra-planner,orchestra-implementer,orchestra-verifier,orchestra-reviewer,ai-trigger,review-agent}.md`, OpenCode conductor, generated agents, `scripts/test-agent-sync.js`. Impact: requirement ownership, safe deletion and simplification precede speed/automation, with actual execution evidence checked at review and safety/quality gates preserved. Also fixed Cursor/OpenCode installs (bash + PowerShell) to ship the SDLC stage agents the conductor references, and made uninstall remove them.
 
 SEE ALSO: older session logs archived at docs/archive/progress-tracker-2026-11-02.md (nothing deleted).
 

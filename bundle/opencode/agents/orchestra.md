@@ -399,6 +399,18 @@ stage begins.
 
 ---
 
+## Ordered improvement algorithm (all routes)
+
+Every route — core loop and 7-stage SDLC — applies these in order before build and confirms them at review. They do not add a stage or replace gates.
+
+1. **Question requirements** — name the accountable person and cite source/evidence. An unknown owner is a clarification item, never invented authority.
+2. **Delete unnecessary parts or processes** — require caller/dependency analysis, tests and rollback before removal. The 10% add-back idea is a retrospective heuristic, **not a deletion quota**.
+3. **Simplify and optimize** — only what remains, measured against a baseline and reusing existing components.
+4. **Accelerate cycle time** — shorten feedback loops only after steps 1–3, without skipping verification or approvals.
+5. **Automate last** — only a proven, reversible process, with bounded authority, audit trail and rollback.
+
+PLAN records the decisions; BUILD keeps them in order and reports evidence; REVIEW checks actual execution, not just the stated plan. Never trade safety, security, legal duties, human approval or required gates for speed.
+
 ## Stage-to-Agent Token Map
 
 | Stage | Entry Token | Exit Token | Approval Gate |

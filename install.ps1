@@ -209,8 +209,8 @@ function Install-Cursor {
       Set-Content -Path $stateDest -Value '{}' -Encoding UTF8
     }
   }
-  Copy-Item (Join-Path $Bundle "agents\orchestra.md") (Join-Path $CursorDir "agents\") -Force -ErrorAction SilentlyContinue
-  Copy-Item (Join-Path $Bundle "agents\orchestra-*.md") (Join-Path $CursorDir "agents\") -Force
+  # Conductor + core phases + SDLC stage agents
+  Copy-Item (Join-Path $Bundle "agents\*.md") (Join-Path $CursorDir "agents\") -Force
   $refSrc = Join-Path $Bundle "agents\references"
   if (Test-Path $refSrc) {
     $refDest = Join-Path (Join-Path $CursorDir "agents") "references"
@@ -292,7 +292,7 @@ console.log("  Merged hooks.json ->", destPath);
   # Autonomy: CLI + permissions.json + sandbox.json (preserves auth/model)
   node (Join-Path $Root "scripts\merge-autonomy-config.js") --cursor --cursor-home $CursorDir
 
-  Write-Host "  Cursor agents:   $CursorDir\agents\orchestra-*.md"
+  Write-Host "  Cursor agents:   $CursorDir\agents\ (conductor + core + SDLC stage agents)"
   Write-Host "  Cursor hooks:    $CursorDir\hooks\"
   Write-Host "  Cursor skills:   $CursorDir\skills\ (orchestra-loop + UI + Cloudflare)"
   Write-Host "  Cursor built-in: $CursorDir\skills-cursor\ (17 skills)"
@@ -356,9 +356,8 @@ function Install-OpenCode {
     (Join-Path $OpenCodeDir "plugins")
   ) | ForEach-Object { New-Item -ItemType Directory -Force -Path $_ | Out-Null }
 
-  # Agents (orchestra core + enterprise)
-  Copy-Item (Join-Path $Bundle "opencode\agents\orchestra.md") (Join-Path $OpenCodeDir "agents\") -Force
-  Copy-Item (Join-Path $Bundle "opencode\agents\orchestra-*.md") (Join-Path $OpenCodeDir "agents\") -Force
+  # Agents (conductor + core phases + SDLC stage agents + enterprise)
+  Copy-Item (Join-Path $Bundle "opencode\agents\*.md") (Join-Path $OpenCodeDir "agents\") -Force
   $refSrc = Join-Path $Bundle "agents\references\orchestra-spawn-matrix.md"
   if (Test-Path $refSrc) {
     $refDest = Join-Path (Join-Path $OpenCodeDir "agents") "references"
@@ -492,7 +491,7 @@ function Install-OpenCode {
     }
   }
 
-  Write-Host "  OpenCode agents:  $OpenCodeDir\agents\orchestra-*.md"
+  Write-Host "  OpenCode agents:  $OpenCodeDir\agents\ (conductor + core + SDLC stage agents + enterprise)"
   Write-Host "  OpenCode hooks:   $OpenCodeDir\hooks\"
   Write-Host "  OpenCode lib:     $OpenCodeDir\hooks\lib\ (21 modules)"
   Write-Host "  OpenCode skills:  $OpenCodeDir\skills\ (orchestra-loop + UI + Cloudflare)"

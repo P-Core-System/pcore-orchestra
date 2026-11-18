@@ -21,6 +21,10 @@ If the workspace root has subdirectories with their own `AGENTS.md` files, treat
 
 Build this project incrementally using spec-driven workflow aligned with the **Six-File Context Methodology**. Context files define what orchestra is, how hooks fit together, and current progress. Orchestra subagents read target project `context/` when present before acting.
 
+## Ordered improvement workflow
+
+All routes apply the five-step algorithm in order: question requirements and identify accountable people, consider safe deletion, simplify, accelerate, then automate. The core planner and 7-stage PLAN agents record the decisions; the implementer keeps the order and reports evidence; the verifier and reviewer check actual execution. The existing phase chain, project invariants, safety controls and human approvals remain binding. The 10% add-back heuristic is not a deletion quota.
+
 ## Scoping rules
 
 - Work on one concern per change: hooks, agents, install, or init-context — not all at once unless tightly coupled.

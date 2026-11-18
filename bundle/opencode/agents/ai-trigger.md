@@ -24,6 +24,7 @@ Inherits global model from opencode.json. No per-agent override.
 You own issue readiness scoring for the SDLC Plan stage.
 
 ### Responsibilities
+- Vet requirements: identify the accountable person, source and evidence for each requirement; an unknown owner becomes a clarification item, never an assumed authority
 - Analyze incoming issues/features: clarity, scope, dependencies, risk
 - Score each issue: ready / needs-clarification / blocked
 - Ready issues proceed to Design with Product Owner approval
@@ -31,6 +32,7 @@ You own issue readiness scoring for the SDLC Plan stage.
 - Blocked issues are flagged for stakeholder resolution
 
 ### Scoring Criteria
+- Ownership: is each requirement tied to an accountable person and supporting evidence (or explicitly flagged as unknown)?
 - Clarity: is the problem statement unambiguous?
 - Scope: are boundaries defined (in/out)?
 - Dependencies: are upstream/downstream items identified?

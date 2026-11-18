@@ -146,7 +146,7 @@ User: "fix the login bug"
 ```
 ~/.cursor/
 ├── hooks/                    # 8 hook commands + lib/
-├── agents/                   # conductor + 4 core subagents + 155 specialists + references
+├── agents/                   # conductor + core phases + SDLC stage agents + specialists + references
 ├── skills/orchestra-loop/    # orchestration skill
 ├── rules/orchestra-loop.mdc  # always-on rule
 └── hooks.json                # event bindings
@@ -155,7 +155,7 @@ User: "fix the login bug"
 ### OpenCode CLI
 ```
 ~/.config/opencode/
-├── agents/                   # conductor + 4 core subagents + 155 specialists
+├── agents/                   # conductor + core phases + SDLC stage agents + specialists
 ├── skills/orchestra-loop/    # orchestration skill
 ├── hooks/                    # byte-identical hook mirror + health check
 ├── plugins/orchestra-ambient.js  # session policy injection
@@ -501,8 +501,11 @@ bash install.sh --uninstall --cursor
 bash install.sh --uninstall --all --studio
 
 # Manual fallback (if you prefer, or if you installed from a different clone path):
-rm -rf ~/.cursor/hooks/orchestra-* ~/.cursor/agents/orchestra-* ~/.cursor/ORCHESTRA.md
-rm -rf ~/.qoder/hooks/orchestra-*  ~/.qoder/agents/orchestra-*  ~/.qoder/ORCHESTRA.md
+# The bundle also ships SDLC stage agents whose names are not `orchestra-*`
+# (ai-trigger, review-agent, coding-agent, …). Prefer the installer above so
+# the full shipped set is removed.
+rm -rf ~/.cursor/hooks/orchestra-* ~/.cursor/ORCHESTRA.md
+rm -rf ~/.qoder/hooks/orchestra-*  ~/.qoder/ORCHESTRA.md
 rm -f  ~/.cursor/hooks.json  # then re-add any non-orchestra hooks you had
 ```
 

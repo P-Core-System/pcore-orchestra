@@ -13,6 +13,7 @@
 | Hook runtime | Node.js 18+ | Cross-platform hook scripts |
 | Agent definitions | Markdown frontmatter | `~/.cursor/agents/orchestra-*.md` |
 | Persistent state | JSON file | `~/.cursor/hooks/state/orchestra.json` |
+| Team session store | SQLite + JSON fallback | `team-sessions.db`, `session-store.js`, `team-claims.js`, `team-discussions.js` (partitioned by `project_slug`, JSON fallback when SQLite unavailable) |
 | Project context | Markdown six files | `context/*.md` in target repos |
 | Install | Bash + PowerShell | `install.sh`, `install.ps1`, `scripts/init-context.*`, `scripts/merge-autonomy-config.js` |
 | Free-model ops | Bash + systemd/cron | `scripts/update-free-models.sh` (`--refresh`/`--apply`/`--check`/`--schedule`), `scripts/systemd/pcore-free-models.{service,timer}` (weekly OnCalendar; cron fallback) |
@@ -57,7 +58,7 @@
 | `bundle/hooks/lib/domain/store.js` | safe-write-only JSON store: `appendEvent` (withLock + readJsonSafe + ring cap + writeJson), `loadEvents` (corrupt → `.corrupt-<ts>` quarantine + defaults), `saveCheckpoint`/`loadCheckpoint` (session-filtered) |
 | `bundle/hooks/lib/domain/index.js` | Domain barrel + `recordPhaseOutcome(state, outcome, subagentType)` → `phase.outcome` event + `recordSessionOutcome(claim, action)` → `session.claimed`/`heartbeat`/`released` (store-only, fail-open, invariant 19) |
 | `bundle/opencode/hooks/lib/domain/` | Byte-identical mirror of all eight domain modules |
-| `bundle/agents/` | Subagent prompts: 5 core loop agents + 155 specialists |
+| `bundle/agents/` | Subagent prompts: every route carries the ordered five-step algorithm — planner/ai-trigger/architect record decisions, implementer keeps order and evidence, verifier/reviewer check actual execution; generated host mirrors preserve the guidance |
 | `bundle/agents/00-*/` | Cross-cutting categories (business, domain, policy, tech, workflow) |
 | `bundle/agents/01-idea/` … `14-research/` | SDLC phase categories, including the `07-*` team dirs |
 | `bundle/agents/references/` | Shared spawn matrix and reference docs |

@@ -43,7 +43,7 @@ verdict itself, alone on its line:
 
 1. Read `.cursor/orchestra-plan.md` if present — verify against plan "Done when" criteria. If the handoff shows `(AC: n)`, check all n acceptance criteria individually; report any unverified criterion as a gap.
 2. Read `context/ai-workflow-rules.md` for project-specific verification steps if present.
-3. Run applicable checks from the plan and project conventions (tests, lint, build, health scripts).
+3. Run applicable checks from the plan and project conventions (tests, lint, build, health scripts). Check the implementer's ordered-step evidence: steps 1–3 must be supported before step 4 speedups or step 5 automation, and unsubstantiated deletions or bypassed gates are FAIL.
 4. **Check git status (phase commit gate)** — `git status --porcelain` must be empty (or only `.cursor/orchestra-plan.md`). If uncommitted implementation files exist → **VERIFY_FAIL** and list them. Do not proceed as PASS. If the commit gate says **SKIPPED** (git status unavailable), verify the tree is clean yourself before relying on it.
 5. If the spawn payload carries a `sixFile` field, read `sixFile.missing` — those `context/` files were absent at verify entry. Note them under **Gaps** as "context gaps"; never return VERIFY_FAIL for missing context files alone.
 6. Compare results against plan "Done when" criteria.

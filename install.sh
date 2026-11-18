@@ -276,9 +276,8 @@ install_cursor() {
       echo '{}' > "$CURSOR/hooks/state/orchestra.json"
   fi
 
-  # Agents, rule, docs
-  cp -f "$BUNDLE/agents/orchestra.md" "$CURSOR/agents/" 2>/dev/null || true
-  cp -f "$BUNDLE/agents/"orchestra-*.md "$CURSOR/agents/"
+  # Agents, rule, docs (conductor + core phases + SDLC stage agents)
+  cp -f "$BUNDLE/agents/"*.md "$CURSOR/agents/"
   if [[ -d "$BUNDLE/agents/references" ]]; then
     mkdir -p "$CURSOR/agents/references"
     cp -f "$BUNDLE/agents/references/"*.md "$CURSOR/agents/references/" 2>/dev/null || true
@@ -342,7 +341,7 @@ MERGE
   # Autonomy: CLI + permissions.json + sandbox.json (preserves auth/model)
   node "$ROOT/scripts/merge-autonomy-config.js" --cursor --cursor-home "$CURSOR"
 
-  echo "  Cursor agents:    $CURSOR/agents/orchestra.md + orchestra-*.md"
+  echo "  Cursor agents:    $CURSOR/agents/ (conductor + core + SDLC stage agents)"
   echo "  Cursor hooks:     $CURSOR/hooks/"
   echo "  Cursor skills:    $CURSOR/skills/ (orchestra-loop + intake/verify + UI + Cloudflare)"
   echo "  Cursor built-in:  $CURSOR/skills-cursor/ (17 skills)"
@@ -373,9 +372,8 @@ install_opencode() {
 
   mkdir -p "$OPENCODE/agents" "$OPENCODE/skills" "$OPENCODE/state" "$OPENCODE/hooks" "$OPENCODE/plugins"
 
-  # Copy OpenCode agents (conductor + core + enterprise category dirs)
-  cp -f "$BUNDLE/opencode/agents/orchestra.md" "$OPENCODE/agents/" 2>/dev/null || true
-  cp -f "$BUNDLE/opencode/agents/"orchestra-*.md "$OPENCODE/agents/" 2>/dev/null || true
+  # Copy OpenCode agents (conductor + core phases + SDLC stage agents + enterprise category dirs)
+  cp -f "$BUNDLE/opencode/agents/"*.md "$OPENCODE/agents/" 2>/dev/null || true
   if [[ -d "$BUNDLE/agents/references" ]]; then
     mkdir -p "$OPENCODE/agents/references"
     cp -f "$BUNDLE/agents/references/orchestra-spawn-matrix.md" "$OPENCODE/agents/references/" 2>/dev/null || true
@@ -465,6 +463,20 @@ JS
     echo "      node $ROOT/scripts/orchestra-context-diet.js --apply"
   fi
 
+  # Per-day free-model request budget (free pools are capped by request count, not tokens)
+  if node "$ROOT/scripts/orchestra-budget.js" sync-opencode >/dev/null 2>&1; then
+    echo "  Budget:           sync-opencode ran (reads opencode.db for today's count)"
+  else
+    echo "  Budget:           sync-opencode — may need node online; falls back to charge-per-spawn"
+  fi
+
+  # Startup weight diagnosis (state dirs, inotify, index cost; --repair = safe ops only)
+  if node "$ROOT/scripts/orchestra-startup-doctor.js" --check >/dev/null 2>&1; then
+    echo "  Startup doctor:   weight check complete"
+  else
+    echo "  Startup doctor:   run 'node $ROOT/scripts/orchestra-startup-doctor.js --repair' for fixes"
+  fi
+
   # Weekly free-model schedule: systemd user timer; cron fallback if missing
   if bash "$ROOT/scripts/update-free-models.sh" --schedule; then
     echo "  Free-model schedule: weekly refresh+apply installed"
@@ -473,7 +485,7 @@ JS
     echo "      17 4 * * 1 bash $ROOT/scripts/update-free-models.sh --refresh --apply"
   fi
 
-  echo "  OpenCode agents:  $OPENCODE/agents/ (core + enterprise)"
+  echo "  OpenCode agents:  $OPENCODE/agents/ (conductor + core + SDLC stage agents + enterprise)"
   echo "  OpenCode skills:  $OPENCODE/skills/ (orchestra-loop + intake/verify + UI + Cloudflare)"
   echo "  OpenCode state:   $OPENCODE/state/orchestra.json"
   echo "  OpenCode plugins: $OPENCODE/plugins/ (orchestra-ambient default export)"
@@ -890,7 +902,7 @@ uninstall_cursor() {
   echo "==> Uninstalling Orchestra from $CURSOR"
   rm -f "$CURSOR/hooks/"orchestra-*.js
   rm -rf "$CURSOR/hooks/lib" "$CURSOR/hooks/state"
-  rm -f "$CURSOR/agents/orchestra.md" "$CURSOR/agents/"orchestra-*.md
+  for a in "$BUNDLE/agents"/*.md; do [ -f "$a" ] && rm -f "$CURSOR/agents/$(basename "$a")"; done
   rm -rf "$CURSOR/agents/references"
   _rm_bundle_dirs "$CURSOR/agents" "$BUNDLE/agents"
   _rm_bundle_dirs "$CURSOR/skills" "$BUNDLE/skills"
@@ -906,7 +918,7 @@ uninstall_opencode() {
   echo "==> Uninstalling Orchestra from $OPENCODE"
   rm -f "$OPENCODE/hooks/"orchestra-*.js
   rm -rf "$OPENCODE/hooks/lib" "$OPENCODE/hooks/state" "$OPENCODE/state"
-  rm -f "$OPENCODE/agents/orchestra.md" "$OPENCODE/agents/"orchestra-*.md
+  for a in "$BUNDLE/opencode/agents"/*.md; do [ -f "$a" ] && rm -f "$OPENCODE/agents/$(basename "$a")"; done
   rm -rf "$OPENCODE/agents/references"
   _rm_bundle_dirs "$OPENCODE/agents" "$BUNDLE/opencode/agents"
   _rm_bundle_dirs "$OPENCODE/skills" "$BUNDLE/opencode/skills"
@@ -929,6 +941,9 @@ uninstall_qoder() {
   echo "==> Uninstalling Orchestra from $QODER"
   rm -f "$QODER/hooks/"orchestra-*.js
   rm -rf "$QODER/hooks/lib" "$QODER/hooks/state"
+  if [ -d "$BUNDLE/qoder/agents" ]; then
+    for a in "$BUNDLE/qoder/agents"/*.md; do [ -f "$a" ] && rm -f "$QODER/agents/$(basename "$a")"; done
+  fi
   _rm_bundle_dirs "$QODER/agents" "$BUNDLE/qoder"
   rm -f "$QODER/agents/orchestra.md" "$QODER/agents/"orchestra-*.md
   _rm_bundle_dirs "$QODER/skills" "$BUNDLE/skills"
