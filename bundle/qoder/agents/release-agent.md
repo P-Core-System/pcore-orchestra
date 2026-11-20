@@ -6,7 +6,7 @@ description: >-
   flagged rollout, canary analysis. Gates Deploy completion: no rollout,
   no Deploy sign-off.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 40
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

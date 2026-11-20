@@ -3,6 +3,7 @@ name: incident-commander
 description: >-
   Enterprise SDLC Phase 6,9 — Incident command, crisis management, communication coordination, stakeholder management, post-incident review.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

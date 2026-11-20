@@ -5,6 +5,7 @@ description: >-
   incidents, owns incident response from detection through postmortem.
   Gates incident closure: no postmortem, no incident close.
 readonly: true
+steps: 20
 model: composer-2.5
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---

@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 5,9,11 — Data quality frameworks, quality metrics, data observability, data lineage, data cataloging, data SLA management, quality dashboards.
   Use proactively when this specialist's phase is active.
 readonly: false
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

@@ -3,6 +3,7 @@ name: shift-left-engineer
 description: >-
   Enterprise SDLC Phase 0,2,5 — Shift-left security, early security integration, security requirements in design, developer security training, security champions.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

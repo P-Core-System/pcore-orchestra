@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 0,24 — Policy design, organizational policy creation, governance frameworks, policy enforcement mechanisms, policy versioning, policy compliance monitoring.
   Use proactively when this specialist's phase is active.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

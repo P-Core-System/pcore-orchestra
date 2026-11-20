@@ -5,7 +5,8 @@ description: >-
   investigation, anomaly detection, threat landscape analysis, IOC/IOA
   development. Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 200
+hidden: true
+steps: 20
 permission:
   edit: deny
   bash: allow

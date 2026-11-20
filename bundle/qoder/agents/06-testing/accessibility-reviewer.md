@@ -4,7 +4,7 @@ description: >-
   Enterprise SDLC Phase 24 — Accessibility audit. Ensures WCAG 2.1+ AA
   compliance. Use proactively when this specialist's phase is active.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

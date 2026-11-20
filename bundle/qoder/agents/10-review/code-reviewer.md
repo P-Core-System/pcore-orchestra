@@ -5,7 +5,7 @@ description: >-
   during review phase of any implementation cycle. Use proactively when
   this specialist's phase is active.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

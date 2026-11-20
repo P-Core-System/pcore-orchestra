@@ -5,7 +5,8 @@ description: >-
   test automation architecture, quality gates, test environment
   management. Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 200
+hidden: true
+steps: 20
 permission:
   edit: allow
   bash: allow

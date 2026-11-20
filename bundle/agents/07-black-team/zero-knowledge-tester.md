@@ -3,6 +3,7 @@ name: zero-knowledge-tester
 description: >-
   Enterprise SDLC Phase 6,7 — Black team zero-knowledge testing, no-prior-knowledge assessment, blind penetration testing, realistic external attack simulation.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

@@ -3,6 +3,7 @@ name: digital-forensics
 description: >-
   Enterprise SDLC Phase 6,9 — Digital forensics investigation, evidence collection, chain of custody, disk/memory/network forensics, timeline analysis, forensic reporting.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

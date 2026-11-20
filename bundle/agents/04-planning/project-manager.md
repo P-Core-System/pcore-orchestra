@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 15-17 — Sprint planning, milestone planning, task breakdown.
   Creates actionable work items from requirements. Use proactively when this specialist's phase is active.
 readonly: true
+steps: 20
 model: composer-2.5
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---

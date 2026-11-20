@@ -149,20 +149,29 @@ function toCodexToml(raw, fallbackName) {
   ].join("\n");
 }
 
-/** Flat `<name>.toml` → generated content. Throws on duplicate basenames. */
+/**
+ * Flat `<name>.toml` → generated content.
+ * Basename conflicts resolve shallowest-source-wins (see dedupeFlat) rather
+ * than throwing, so a root 7-stage agent and a same-named phase-folder
+ * specialist cannot break the Codex install.
+ */
 function generate() {
-  const out = new Map();
+  const entries = [];
   for (const src of walkMarkdown(SRC)) {
     const rel = path.relative(SRC, src);
     if (rel.startsWith("references" + path.sep)) continue;
     const stem = path.basename(src, ".md");
     const fileName = `${stem}.toml`;
-    if (out.has(fileName)) {
-      throw new Error(`duplicate agent basename "${stem}" — Codex agents are flat`);
-    }
-    out.set(fileName, toCodexToml(fs.readFileSync(src, "utf8"), stem));
+    entries.push({ fileName, rel, value: toCodexToml(fs.readFileSync(src, "utf8"), stem) });
   }
-  return out;
+  const { map, conflicts } = require("./lib/context-budget.js").dedupeFlat(entries);
+  if (conflicts.length) {
+    console.error(
+      `note: ${conflicts.length} flat-name conflict(s) resolved shallowest-first, e.g. ` +
+        conflicts.slice(0, 3).map((c) => `${c.fileName}: ${c.winner} over ${c.loser}`).join(" | ")
+    );
+  }
+  return map;
 }
 
 function walkToml(dir, files = []) {

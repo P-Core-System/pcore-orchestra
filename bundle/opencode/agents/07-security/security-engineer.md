@@ -5,7 +5,8 @@ description: >-
   vulnerability scanning. Enforces OWASP Top 10 and secure-by-design
   principles. Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 200
+hidden: true
+steps: 20
 permission:
   edit: deny
   bash: allow

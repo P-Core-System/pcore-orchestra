@@ -3,16 +3,16 @@ name: auto-retry
 description: >-
   SDLC Stage 4 (Test) — loops until all checks pass. Wraps the verify/test
   cycle with automatic retry: on failure, feeds errors back to implementer
-  and re-runs until checks pass or max retries exhausted.
+  and re-runs until checks pass or max retries exhausted. Use proactively
+  when this specialist's phase is active.
 mode: subagent
-steps: 500
+hidden: true
+steps: 20
 permission:
-  edit: allow
+  edit: deny
   bash: allow
   websearch: allow
   webfetch: allow
-  skill: allow
-  subagent: allow
 ---
 
 ## Model

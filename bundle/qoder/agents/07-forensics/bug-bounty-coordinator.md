@@ -5,7 +5,7 @@ description: >-
   definition, reward structure, triage process, responsible disclosure,
   vulnerability intake.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

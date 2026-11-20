@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 0,5,11 — Text corpus construction, document collection, deduplication, tokenization, corpus statistics, domain-specific corpus design for NLP/LLM training.
   Use proactively when this specialist's phase is active.
 readonly: false
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

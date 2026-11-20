@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 0,5,11 — Multi-source data harvesting, data lake population, ETL from heterogeneous sources, batch and streaming ingestion, data format conversion.
   Use proactively when this specialist's phase is active.
 readonly: false
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 0,24 — Technology evaluation, vendor landscape analysis, POC coordination, build vs buy decisions, technical due diligence.
   Use proactively when this specialist's phase is active.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

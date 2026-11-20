@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 5,11 — Model training pipeline design, hyperparameter optimization, distributed training, mixed precision, gradient accumulation, training monitoring, checkpoint management.
   Use proactively when this specialist's phase is active.
 readonly: false
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

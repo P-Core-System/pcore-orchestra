@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 0,5,11 — Financial technology domain, PCI-DSS compliance, payment processing, financial regulations, risk modeling, fraud detection.
   Use proactively when this specialist's phase is active.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

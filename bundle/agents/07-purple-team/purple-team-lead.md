@@ -3,6 +3,7 @@ name: purple-team-lead
 description: >-
   Enterprise SDLC Phase 6,7 — Purple team coordination, offensive-defensive collaboration, red+blue exercise design, gap remediation, security improvement tracking.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

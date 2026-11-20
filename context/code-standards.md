@@ -83,6 +83,8 @@ node scripts/test-team-discussion.js
 node scripts/test-session-wake.js
 node scripts/test-team-roundtrip.js
 node scripts/test-learning-loop.js
+node scripts/test-request-budget.js
+node scripts/orchestra-context-diet.js --check
 node scripts/test-team-hod.js
 node scripts/test-resume-collision.js
 node scripts/test-google-workspace.js

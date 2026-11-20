@@ -4,16 +4,16 @@ description: >-
   SDLC Stage 7 (Operate) — incident escalation and SRE backup. Monitors
   alert channels, escalates SLO breaches to On-call engineer, manages
   incident communication. Works with sre-agent (SLO monitoring) for full
-  observability coverage.
+  observability coverage. Use proactively when this specialist's phase is
+  active.
 mode: subagent
-steps: 500
+hidden: true
+steps: 40
 permission:
-  edit: allow
+  edit: deny
   bash: allow
   websearch: allow
   webfetch: allow
-  skill: allow
-  subagent: allow
 ---
 
 ## Model

@@ -12,6 +12,13 @@ const ROOT = path.join(__dirname, "..");
 const SRC = path.join(ROOT, "bundle", "agents");
 const DEST = path.join(ROOT, "bundle", "opencode", "agents");
 
+const {
+  isIndexHidden,
+  buildSpecialistIndex,
+  clampSteps,
+  JUNK_AGENT_BASENAMES,
+} = require("./lib/context-budget.js");
+
 const CORE_NAMES = new Set([
   "orchestra-planner.md",
   "orchestra-implementer.md",
@@ -96,12 +103,20 @@ function toOpenCodeMarkdown(raw, fallbackSteps) {
   const name = fields.name || "unnamed";
   const description = ensureProactive(fields.description || "");
   const readonly = fields.readonly === true;
-  const steps = parseInt(fields.steps, 10) || fallbackSteps || 200;
+  // Free model pools are capped per day by REQUEST COUNT, so steps are the
+  // quota dial: never ship a specialist that may burn 200–500 calls on one turn.
+  const steps = clampSteps(name, parseInt(fields.steps, 10) || fallbackSteps);
 
   // Agents inherit the main/global model — do not emit per-agent model.
   // Preserve invested OpenCode-only settings (steps, no-ask bash, search) so
   // re-running the sync never clobbers them back to ask/stale budgets.
-  let front = `---\nname: ${name}\ndescription: >-\n${foldDescription(description)}\nmode: subagent\nsteps: ${steps}\n`;
+  let front = `---\nname: ${name}\ndescription: >-\n${foldDescription(description)}\nmode: subagent\n`;
+  // hidden:true keeps the agent out of the per-request prompt index while
+  // staying spawnable by name (same mechanism the 4 phase agents already use).
+  // Omitting this line is what inlined every specialist description into
+  // every call of every session.
+  if (isIndexHidden(name, "subagent")) front += "hidden: true\n";
+  front += `steps: ${steps}\n`;
   front += `permission:\n  edit: ${readonly ? "deny" : "allow"}\n  bash: allow\n  websearch: allow\n  webfetch: allow\n`;
   front += `---\n\n`;
   return front + body;
@@ -134,17 +149,53 @@ function generate() {
   const refSrc = path.join(SRC, "references");
   for (const name of ["orchestra-spawn-matrix.md"]) {
     const srcPath = path.join(refSrc, name);
-    if (fs.existsSync(srcPath)) out.set(path.join("references", name), fs.readFileSync(srcPath, "utf8"));
+    if (fs.existsSync(srcPath)) {
+      // OpenCode registers EVERY .md under agents/ as an agent, so a reference
+      // doc dropped in that tree becomes a prompt-visible "agent" and a
+      // registry entry with no agent file. Keep the Cursor SSOT a plain doc and
+      // make only the OpenCode copy inert. Cursor does not scan references/ as
+      // agents, so nothing is lost on that side.
+      const raw = fs.readFileSync(srcPath, "utf8");
+      out.set(path.join("references", name), inertDocAgent(name, raw));
+    }
   }
   for (const src of walk(SRC)) {
     const rel = path.relative(SRC, src);
     if (rel.startsWith("references" + path.sep)) continue;
+    if (JUNK_AGENT_BASENAMES.has(path.basename(src))) continue; // probes never install
     // Cursor's primary conductor has no OpenCode mirror.
     if (path.basename(src) === "orchestra.md") continue;
     const dest = path.join(DEST, rel);
     out.set(rel, toOpenCodeMarkdown(fs.readFileSync(src, "utf8"), existingSteps(dest)));
   }
+  // NOTE: the specialist routing index is deliberately NOT written under
+  // agents/ — OpenCode registers every .md in that tree as an agent (that is how
+  // agents/references/*.md became five prompt-visible "agents"). orchestra-context-diet.js
+  // generates <config>/lazy/agent-index.md instead, outside any scanned tree.
   return out;
+}
+
+/**
+ * Frontmatter that turns a reference doc into a hidden, never-spawned agent
+ * entry, for trees the host scans as agent definitions.
+ * @param {string} fileName e.g. "orchestra-spawn-matrix.md"
+ * @param {string} raw doc body (may already carry frontmatter)
+ * @returns {string}
+ */
+function inertDocAgent(fileName, raw) {
+  const name = path.basename(fileName, ".md");
+  const body = splitFrontmatter(raw).body ?? raw;
+  return (
+    [
+      "---",
+      `name: ${name}`,
+      "description: Reference doc, not an agent. Read it; never spawn it.",
+      "mode: subagent",
+      "hidden: true",
+      "---",
+      "",
+    ].join("\n") + body.replace(/^\n/, "")
+  );
 }
 
 function main() {
@@ -181,6 +232,7 @@ function main() {
   let written = 0;
   let unchanged = 0;
   let skipped = 0;
+  let pruned = 0;
   for (const [rel, content] of expected) {
     const dest = path.join(DEST, rel);
     const isCore = CORE_NAMES.has(path.basename(rel));
@@ -198,8 +250,25 @@ function main() {
     console.log("wrote", path.relative(ROOT, dest));
   }
 
-  console.log(`\nDone. wrote=${written} unchanged=${unchanged} skipped_core_existing=${skipped}`);
+  // Prune generated-tree files that no longer have a source, using the same
+  // rule --check uses to report them. Without this, a migration that moves an
+  // agent into a phase folder leaves a hand-maintained root copy behind, which
+  // silently shadows the foldered one by name and drifts forever.
+  if (fs.existsSync(DEST)) {
+    for (const file of walk(DEST)) {
+      const rel = path.relative(DEST, file);
+      if (rel === "orchestra.md" || expected.has(rel)) continue;
+      if (/^references[\\/]orchestra-.*-identity\.md$/.test(rel)) continue;
+      fs.rmSync(file, { force: true });
+      pruned++;
+      console.log("pruned stale", path.relative(ROOT, file));
+    }
+  }
+  console.log(`\nDone. wrote=${written} unchanged=${unchanged} pruned=${pruned} skipped_core_existing=${skipped}`);
   if (skipped > 0) console.log("Tip: re-run with --force-core to overwrite core agents.");
 }
 
-main();
+// Guarded so importing this module for inspection does not mutate the mirror tree.
+if (require.main === module) main();
+
+module.exports = { toOpenCodeMarkdown, generate, splitFrontmatter, parseFmFields };

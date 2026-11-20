@@ -3,6 +3,7 @@ name: accessibility-reviewer
 description: >-
   Enterprise SDLC Phase 24 — Accessibility audit. Ensures WCAG 2.1+ AA compliance. Use proactively when this specialist's phase is active.
 readonly: true
+steps: 20
 model: composer-2.5
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---

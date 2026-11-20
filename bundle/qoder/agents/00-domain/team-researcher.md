@@ -5,7 +5,7 @@ description: >-
   scored with team-research.js, whitepaper output human-gated. Use
   proactively when a technology or vendor choice needs evidence.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

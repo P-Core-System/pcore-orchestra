@@ -5,6 +5,7 @@ description: >-
   sizing, trend analysis. Provides data-driven input for product decisions.
   Use proactively when this specialist's phase is active.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

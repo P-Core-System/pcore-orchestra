@@ -5,7 +5,7 @@ description: >-
   communication, board reporting, security investment justification,
   security culture.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

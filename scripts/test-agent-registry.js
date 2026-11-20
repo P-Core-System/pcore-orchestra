@@ -132,15 +132,37 @@ check("registry.agents sorted + unique", eqSortedUnique(reg.agents), `${(reg.age
 
 const cursorAgents = agentNamesFrom(path.join(ROOT, "bundle", "agents"));
 const opencodeAgents = agentNamesFrom(path.join(ROOT, "bundle", "opencode", "agents"));
+// Hosts key agents by NAME, and the flat trees dedupe same-named sources, so
+// the registry counts unique names. File count is reported separately.
 check(
-  "registry counts agentFiles == agent files with a name: (cursor)",
-  reg.counts.agentFiles === cursorAgents.length,
-  `${reg.counts && reg.counts.agentFiles} vs ${cursorAgents.length}`
+  "registry counts unique agent names == cursor tree unique names",
+  reg.counts.agentFiles === new Set(cursorAgents).size,
+  `${reg.counts && reg.counts.agentFiles} vs ${new Set(cursorAgents).size} unique (${cursorAgents.length} files)`
 );
 check(
-  "cursor and opencode agent sets match",
-  setEq(cursorAgents, opencodeAgents),
-  `${cursorAgents.length} vs ${opencodeAgents.length}`
+  "cursor tree duplicate names are only the 4 flat-host stage overlaps",
+  cursorAgents.length - new Set(cursorAgents).size === 4,
+  `${cursorAgents.length - new Set(cursorAgents).size} duplicate name rows`
+);
+// OpenCode registers every .md under agents/ as an agent, so reference docs
+// that live in that tree must carry inert hidden frontmatter there. That makes
+// them appear as agents on OpenCode only — by design, and accounted for here.
+const OPCODE_ONLY_DOC_AGENTS = new Set(["orchestra-spawn-matrix"]);
+const opencodeReal = opencodeAgents.filter((n) => !OPCODE_ONLY_DOC_AGENTS.has(n));
+check(
+  "cursor and opencode agent sets match (excluding opencode-only inert docs)",
+  setEq(cursorAgents, opencodeReal),
+  `${cursorAgents.length} vs ${opencodeReal.length} (opencode also carries ${opencodeAgents.length - opencodeReal.length} inert doc agent(s))`
+);
+check(
+  "opencode-only inert docs are hidden, never spawnable-as-agent",
+  opencodeAgents
+    .filter((n) => OPCODE_ONLY_DOC_AGENTS.has(n))
+    .every((n) => {
+      const t = fs.readFileSync(path.join(ROOT, "bundle", "opencode", "agents", "references", `${n}.md`), "utf8");
+      return /^hidden:\s*true/m.test(t);
+    }),
+  "orchestra-spawn-matrix must stay hidden in the OpenCode tree"
 );
 check(
   "every registry agent resolves to a cursor file",

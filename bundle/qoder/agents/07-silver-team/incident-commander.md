@@ -5,7 +5,7 @@ description: >-
   communication coordination, stakeholder management, post-incident
   review.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

@@ -5,7 +5,8 @@ description: >-
   breakdown. Creates actionable work items from requirements. Use
   proactively when this specialist's phase is active.
 mode: subagent
-steps: 200
+hidden: true
+steps: 20
 permission:
   edit: deny
   bash: allow

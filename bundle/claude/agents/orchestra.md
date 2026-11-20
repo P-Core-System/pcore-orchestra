@@ -97,11 +97,23 @@ Each loop = an isolated, atomic run keyed by (workspace + session + task); a sha
 
 Rules: begin at loop start (`--reuse` keeps same task file across resumes); save task_id+summary after every stage & resume (increment resumeAttempts); resume via who/resume, never restart; complete on final stage pass, fail on needs_human. Concurrent loops in other workspaces/sessions never overwrite this run.
 
+## Ordered improvement algorithm (all routes)
+
+Every route — core loop and 7-stage SDLC — applies these in order before build and confirms them at review. They do not add a phase or replace stage gates.
+
+1. **Question requirements** — name the accountable person and cite source/evidence. An unknown owner is a clarification item, never invented authority.
+2. **Delete unnecessary parts or processes** — require caller/dependency analysis, tests and rollback before removal. The 10% add-back idea is a retrospective heuristic, **not a deletion quota**.
+3. **Simplify and optimize** — only what remains, measured against a baseline and reusing existing components.
+4. **Accelerate cycle time** — shorten feedback loops only after steps 1–3, without skipping verification or approvals.
+5. **Automate last** — only a proven, reversible process, with bounded authority, audit trail and rollback.
+
+PLAN records the decisions; BUILD keeps them in order and reports evidence; REVIEW checks actual execution, not just the stated plan. Never trade safety, security, legal duties, human approval or required gates for speed.
+
 ## Loop — 7-Stage SDLC (strict order — one task at a time)
 
-1. **task** → `ai-trigger` → issue readiness → `ISSUE_READY`
+1. **task** → `ai-trigger` → issue readiness (requirement owners/evidence checked) → `ISSUE_READY`
 2. **task** → `product-owner` → scope approval → `SCOPE_APPROVED`
-3. **task** → `architect` → spec drafting → `SPEC_DRAFTED`
+3. **task** → `architect` → spec drafting (five-step decisions recorded) → `SPEC_DRAFTED`
    → Stage 1 complete: `PLAN_READY`
 4. **task** → `architect` → spec refinement
 5. **task** → `tech-lead` → design sign-off → `DESIGN_SIGNED_OFF`
@@ -112,7 +124,7 @@ Rules: begin at loop start (`--reuse` keeps same task file across resumes); save
 8. **task** → `qa-agent` → test writing/running → `TESTS_PASS` / `TESTS_FAIL`
 9. **task** → `auto-retry` → retry loop → `TESTS_PASSING` (max 3 fix loops) / `TESTS_FAILED_MAX_RETRIES`
    → Stage 4 complete: `TESTS_PASS`
-10. **task** → `review-agent` → first-pass PR review → `REVIEW_APPROVED` / `REVIEW_REJECTED`
+10. **task** → `review-agent` → first-pass PR review (verified ordered-step evidence) → `REVIEW_APPROVED` / `REVIEW_REJECTED`
     → Stage 5 complete: `REVIEW_APPROVED`
 11. **task** → `release-agent` → flagged rollout → `ROLLOUT_COMPLETE` / `ROLLOUT_FAILED`
 12. **task** → `release-manager` → prod approval → `RELEASE_APPROVED` / `RELEASE_REJECTED`
@@ -194,6 +206,27 @@ Primary: `composer-2.5` (escalate `grok-4.6` for hard tasks). OpenCode mirror in
 | operate | sre-agent |
 
 **Notes:** `sre-agent-2` (incident escalation) and `on-call-engineer` (incident ownership) run in Stage 7 Operate alongside `sre-agent`; `release-manager` grants production approval in Stage 6 Deploy; `product-owner` grants scope approval in Stage 1 Plan; `engineer` grants PR approval in Stage 3 Build; `architect` drafts specs in Stage 1 Plan and refines in Stage 2 Design; `auto-retry` bounds the Test fix loop to 3 retries.
+
+## Context & quota discipline
+
+Free model pools are capped **per day by request count**, and every hidden
+agent/skill description is no longer paid per request. Keep it that way:
+
+- Do NOT list or enumerate specialists. Specialists are `hidden: true` and stay
+  spawnable **by path-qualified id** (`07-red-team/red-team-operator`). When one
+  is genuinely needed, read ``~/.config/opencode/lazy/agent-index.md` (or the same rollup in this repo under `bundle/opencode/lazy/`)` once.
+- Skills work the same: only the allowlisted four are indexed. For anything
+  else, read `~/.config/opencode/lazy/skill-index.json` and open the one SKILL.md
+  the task actually needs.
+- One spawn per unit of work. Before re-spawning an ended phase, run
+  `node scripts/orchestra-budget.js check --agent <A> --task "<same brief>"`;
+  exit 2 means that exact work already ran today — integrate the prior result,
+  do not repeat it.
+- If a turn reports `QUOTA_LATCHED` or `QUOTA_EXHAUSTED`, stop spawning:
+  finish in this context and report. Retrying a closed quota wastes the day.
+- Prefer fewer, larger steps over many small ones; a step is a model request.
+- Report status honestly when the loop stops early; never claim a pass you
+  did not observe.
 
 ## Final report
 

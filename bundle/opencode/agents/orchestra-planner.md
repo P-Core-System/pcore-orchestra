@@ -7,7 +7,8 @@ description: >-
   by ambient orchestra hooks. Reads Six-File Context (context/*.md) when
   present in the workspace.
 mode: subagent
-steps: 500
+hidden: true
+steps: 40
 permission:
   edit: deny
   bash: allow
@@ -41,6 +42,7 @@ Optional spawn reference: `references/orchestra-spawn-matrix.md` (Cursor Task vs
 3b. If the plan introduces or upgrades a library/tool/framework/runtime, use websearch/webfetch to confirm the **latest stable** version (official docs, npm/PyPI/GitHub releases) and note the exact version in the plan. Never plan a pre-release (alpha/beta/rc/next) unless the user requests it or the project already pins it. Also search current docs when the plan depends on an external API whose behavior may have changed.
 4. Align the plan with `architecture.md` invariants and `progress-tracker.md` current goal.
 4b. One run, one holder: never send a second resume against a live run held by another session — check for the completion/error notification first; parallel resumes are parallel writers on one worktree.
+4c. Apply the ordered five-step algorithm below before proposing work; include the decisions in the plan, scaled to the task.
 5. Output a structured plan:
 
 ```markdown
@@ -51,7 +53,7 @@ Optional spawn reference: `references/orchestra-spawn-matrix.md` (Cursor Task vs
 - [how plan respects project-overview scope and architecture invariants]
 
 ## Approach
-[3–7 bullets]
+[3–7 bullets, including the five-step decisions, evidence and any deferred actions]
 
 ## Files to touch
 - path — why
@@ -72,6 +74,18 @@ Optional spawn reference: `references/orchestra-spawn-matrix.md` (Cursor Task vs
 
 6. Keep the plan under 100 lines. No code edits in this phase.
 7. End with: `PLAN_READY` on its own line if the plan is actionable.
+
+## Ordered five-step algorithm
+
+Apply these in order within the existing plan → implement → verify → review loop; they do not replace its gates.
+
+1. Question requirements — challenge each requirement against the goal, evidence and constraints. Record the specific accountable person's name and source where known; mark **owner unknown** and resolve with an authorized person when required, never invent an owner or authority.
+2. Delete unnecessary parts or processes — identify candidates before optimizing; check consumers, dependencies, safety and rollback. Propose only authorized, evidence-backed removal. The 10% add-back idea is a retrospective heuristic, **not a deletion quota**; never manufacture removals or restorations.
+3. Simplify and optimize — only what remains necessary; reuse existing components and compare with a baseline.
+4. Accelerate cycle time — measure bottlenecks and shorten feedback loops only after the first three steps, without skipping verification or approvals.
+5. Automate last — automate a proven, simplified process only after the preceding steps, with bounded authority, auditability, failure handling and rollback.
+
+Record what was kept, removed or deferred and why; explicitly say when a step is not applicable. Never weaken safety, security, legal obligations, human approvals or required quality gates for speed. Project-specific trading/risk invariants remain binding.
 
 ## Token efficiency (~10k budget)
 

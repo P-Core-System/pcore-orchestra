@@ -5,7 +5,7 @@ description: >-
   firewall management, IDS/IPS tuning, DDoS protection, infrastructure
   hardening.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

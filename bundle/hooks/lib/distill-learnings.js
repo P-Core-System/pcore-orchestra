@@ -273,10 +273,140 @@ function approveCandidate(dir, id, opts) {
   return { ok: true, candidate: updated };
 }
 
+/**
+ * Self-improvement tiers.
+ *
+ * The original rule was "a candidate can never self-apply". That is safe but
+ * it also means nothing is ever learned: the queue grows and the next session
+ * behaves exactly like the last. The refinement here keeps the hard gate for
+ * anything that could hurt and automates only the reversible operational
+ * lessons, which is what "learn and relearn" actually needs to be useful.
+ *
+ * auto  — coordination/flow preferences (throttling, retry shape, batching).
+ *         Reversible: it only changes what the conductor suggests to itself.
+ * human — anything touching secrets, permissions, destructive commands,
+ *         deployment, money, auth, a quality gate, or an invariant — including
+ *         lessons that would reduce how often the agent asks the user.
+ */
+const GATED_KEYWORDS = [
+  "secret", "token", "api key", "apikey", "credential", "password", "private key",
+  "permission", "approve", "approval", "sandbox", "auto-approve", "yolo", "full access",
+  "rm -rf", "delete", "drop table", "force push", "reset --hard", "migrate",
+  "deploy", "production", "release", "rollback", "payment", "refund",
+  "invariant", "security", "vulnerability", "exploit", "auth", "authorization",
+  // Gate integrity. "Save time by skipping review" is exactly the kind of
+  // lesson a self-improving loop will happily discover, and it quietly removes
+  // the only thing standing between a fast answer and a wrong one.
+  "gate", "skip", "bypass", "disable", "downgrade", "weaken", "shorten the",
+  "reviewer", "verifier", "qa-agent", "do not verify", "no need to test",
+  "ask the user", "without asking", "stop asking", "never flag", "ignore warning",
+];
+
+/** Candidate kinds that may be adopted without a human round-trip. */
+const AUTO_KINDS = new Set(["wake-throttle", "thread-resolved", "escalation", "session-lesson"]);
+
+/**
+ * @param {{kind?:string, lesson?:string, topic?:string}} candidate
+ * @returns {{risk:"auto"|"human", reason:string}}
+ */
+function classifyRisk(candidate) {
+  const c = candidate || {};
+  const text = `${c.topic || ""} ${c.lesson || ""}`.toLowerCase();
+  const hit = GATED_KEYWORDS.find((k) => text.includes(k));
+  if (hit) return { risk: "human", reason: `touches "${hit}"` };
+  if (!AUTO_KINDS.has(c.kind)) return { risk: "human", reason: `kind "${c.kind || "unknown"}" is not auto-adoptable` };
+  return { risk: "auto", reason: "reversible coordination preference" };
+}
+
+/**
+ * Adopt every pending low-risk candidate, leave the rest for a human.
+ *
+ * `opts.applyFn(pref, candidate)` is the sink (typically
+ * memory-manager.recordUserPreferences) and is injected so this module keeps
+ * no dependency cycle on the memory layer and tests can capture calls.
+ *
+ * @param {string} dir
+ * @param {{applyFn?:(pref:string, candidate:object)=>any, limit?:number, at?:Date}} opts
+ * @returns {{applied:object[], gated:object[], failures:number}}
+ */
+function autoApply(dir, opts = {}) {
+  const at = opts.at instanceof Date ? opts.at : new Date();
+  const limit = Number.isFinite(opts.limit) ? opts.limit : 20;
+  const file = candidatesFile(dir);
+  if (!dir) return { applied: [], gated: [], failures: 0 };
+  ensureCandidatesDir(file);
+  const applied = [];
+  let failures = 0;
+  const all = (() => {
+    try {
+      return withLock(file, () => {
+        const raw = readJsonSafe(file, []);
+        const current = Array.isArray(raw) ? raw : [];
+        for (const c of current) {
+          if (!c || c.status !== "pending") continue;
+          const risk = classifyRisk(c);
+          if (risk.risk !== "human" && applied.length < limit) {
+            c.status = "applied";
+            c.appliedBy = "orchestra:auto";
+            c.appliedAt = at.toISOString();
+            c.autoReason = risk.reason;
+            applied.push(c);
+            if (typeof opts.applyFn === "function") {
+              try {
+                opts.applyFn(String(c.lesson || c.topic || "").trim(), c);
+              } catch {
+                failures++;
+              }
+            }
+          }
+        }
+        writeJson(file, current);
+        return current;
+      }, []);
+    } catch {
+      // Contended lock or unreadable queue: never break the caller's turn.
+      return null;
+    }
+  })();
+  if (all === null) return { applied: [], gated: [], failures: failures + 1, locked: true };
+  const gated = (all || []).filter((c) => c && c.status === "pending" && classifyRisk(c).risk === "human");
+  return { applied, gated, failures };
+}
+
+/**
+ * Relearn sweep: a lesson that has not been confirmed again in `ttlDays` stops
+ * being asserted. Patterns that were true about an old codebase are the main
+ * way a learning system quietly gets worse, so decay is part of learning.
+ * @param {object[]} candidates
+ * @param {{at?:Date, ttlDays?:number}} [opts]
+ * @returns {{expired:object[], kept:object[]}}
+ */
+function decayStale(candidates, opts = {}) {
+  const at = opts.at instanceof Date ? opts.at : new Date();
+  const ttl = (Number.isFinite(opts.ttlDays) ? opts.ttlDays : 45) * 86400000;
+  const expired = [];
+  const kept = [];
+  for (const c of candidates || []) {
+    if (!c || !c.id) continue;
+    const t = Date.parse(c.appliedAt || c.decidedAt || c.created || c.ts || "");
+    if (Number.isFinite(t) && at.getTime() - t > ttl && c.status === "applied") {
+      expired.push(c);
+    } else {
+      kept.push(c);
+    }
+  }
+  return { expired, kept };
+}
+
 module.exports = {
   LEARN_CAP,
   CANDIDATES_FILE,
   LEARNING_NEEDS_HUMAN,
+  GATED_KEYWORDS,
+  AUTO_KINDS,
+  classifyRisk,
+  autoApply,
+  decayStale,
   newCandidateId,
   candidatesFile,
   recordLearning,

@@ -21,11 +21,12 @@ You own first-pass PR review for the SDLC Review stage.
 - Check conventions: code-standards.md compliance
 - Check completeness: all plan items implemented?
 - Check scope: no scope creep beyond plan
+- Check the ordered five-step evidence against the actual diff: named requirement owners (or flagged unknown), deletion/dependency and rollback evidence, simplification before speed, and proven/reversible process before automation
 - Approve or reject PR — rejected returns to Build stage
 
 ### Approval Gate
 - **PASS**: PR correct, complete, convention-compliant, no scope creep
-- **FAIL**: PR has issues — returns to Build for fixes
+- **FAIL**: PR has issues — returns to Build for fixes. Unsubstantiated removals, acceleration/automation ahead of steps 1–3, or bypassed safety/quality gates are FAIL.
 
 ### Output
 - `REVIEW_APPROVED` — PR approved, ready for Deploy

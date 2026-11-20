@@ -6,6 +6,7 @@ description: >-
   rollout, canary analysis. Gates Deploy completion: no rollout, no Deploy
   sign-off.
 readonly: true
+steps: 40
 model: composer-2.5
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---

@@ -6,6 +6,7 @@ description: >-
   changelogs, deployment guides, AND telemetry/analytics setup.
   Use proactively when this specialist's phase is active.
 readonly: false
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

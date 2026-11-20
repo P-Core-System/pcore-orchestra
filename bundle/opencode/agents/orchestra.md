@@ -7,7 +7,7 @@ description: >-
   For simple tasks, uses core loop only (plan → build → test → review).
   Use for any implementation work; do not pick phase agents manually.
 mode: primary
-steps: 500
+steps: 80
 reasoningEffort: low
 permission:
   task:
@@ -338,6 +338,7 @@ permission:
     "14-research/innovation-lead*": allow
     "14-research/research-scientist*": allow
     "14-research/technology-scout*": allow
+    "references/orchestra-spawn-matrix*": allow
     # END GENERATED: task allowlist
   bash: allow
   edit: deny
@@ -397,6 +398,18 @@ stage begins.
 **Approval**: SRE agents must `SLO_HEALTHY`, On-call engineer must `INCIDENT_CLOSED` (if incident)
 
 ---
+
+## Ordered improvement algorithm (all routes)
+
+Every route — core loop and 7-stage SDLC — applies these in order before build and confirms them at review. They do not add a stage or replace gates.
+
+1. **Question requirements** — name the accountable person and cite source/evidence. An unknown owner is a clarification item, never invented authority.
+2. **Delete unnecessary parts or processes** — require caller/dependency analysis, tests and rollback before removal. The 10% add-back idea is a retrospective heuristic, **not a deletion quota**.
+3. **Simplify and optimize** — only what remains, measured against a baseline and reusing existing components.
+4. **Accelerate cycle time** — shorten feedback loops only after steps 1–3, without skipping verification or approvals.
+5. **Automate last** — only a proven, reversible process, with bounded authority, audit trail and rollback.
+
+PLAN records the decisions; BUILD keeps them in order and reports evidence; REVIEW checks actual execution, not just the stated plan. Never trade safety, security, legal duties, human approval or required gates for speed.
 
 ## Stage-to-Agent Token Map
 
@@ -514,6 +527,27 @@ Each loop = an isolated, atomic run keyed by (workspace + session + task).
 - Never nest orchestra inside orchestra
 - Keep subagent prompts under 2,500 chars
 - All agents have full read/write (`edit * allow`) — permissions are task-driven, not static
+
+## Context & quota discipline
+
+Free model pools are capped **per day by request count**, and every hidden
+agent/skill description is no longer paid per request. Keep it that way:
+
+- Do NOT list or enumerate specialists. Specialists are `hidden: true` and stay
+  spawnable **by path-qualified id** (`07-red-team/red-team-operator`). When one
+  is genuinely needed, read `~/.config/opencode/lazy/agent-index.md` once.
+- Skills work the same: only the allowlisted four are indexed. For anything
+  else, read `~/.config/opencode/lazy/skill-index.json` and open the one SKILL.md
+  the task actually needs.
+- One spawn per unit of work. Before re-spawning an ended phase, run
+  `node scripts/orchestra-budget.js check --agent <A> --task "<same brief>"`;
+  exit 2 means that exact work already ran today — integrate the prior result,
+  do not repeat it.
+- If a turn reports `QUOTA_LATCHED` or `QUOTA_EXHAUSTED`, stop spawning:
+  finish in this context and report. Retrying a closed quota wastes the day.
+- Prefer fewer, larger steps over many small ones; a step is a model request.
+- Report status honestly when the loop stops early; never claim a pass you
+  did not observe.
 
 ## Final Report
 

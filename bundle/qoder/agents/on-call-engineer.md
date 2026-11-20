@@ -5,7 +5,7 @@ description: >-
   incidents, owns incident response from detection through postmortem.
   Gates incident closure: no postmortem, no incident close.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

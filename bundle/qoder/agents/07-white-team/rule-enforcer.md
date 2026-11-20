@@ -5,7 +5,7 @@ description: >-
   boundary monitoring, violation detection, legal compliance during
   exercises.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

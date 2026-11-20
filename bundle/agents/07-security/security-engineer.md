@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 23 — Security review, threat modeling, vulnerability scanning.
   Enforces OWASP Top 10 and secure-by-design principles. Use proactively when this specialist's phase is active.
 readonly: true
+steps: 20
 model: grok-4.6
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---

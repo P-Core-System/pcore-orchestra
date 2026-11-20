@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 9,15 — API documentation, user guides, tutorials, knowledge base, developer onboarding, changelog management.
   Use proactively when this specialist's phase is active.
 readonly: false
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

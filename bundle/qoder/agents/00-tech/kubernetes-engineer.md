@@ -5,7 +5,7 @@ description: >-
   service mesh, Helm charts, Kustomize, resource management, cluster
   autoscaling. Use proactively when this specialist's phase is active.
 permissionMode: acceptEdits
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 

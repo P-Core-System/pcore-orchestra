@@ -5,7 +5,8 @@ description: >-
   coding standards. Defines technical foundation for implementation. Use
   proactively when this specialist's phase is active.
 mode: subagent
-steps: 200
+hidden: true
+steps: 40
 permission:
   edit: deny
   bash: allow

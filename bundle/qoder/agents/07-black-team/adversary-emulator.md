@@ -5,7 +5,7 @@ description: >-
   simulation, MITRE ATT&CK-based emulation, TTP replication, detection gap
   analysis.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

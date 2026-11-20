@@ -1,18 +1,18 @@
 ---
 name: qa-agent
 description: >-
-  SDLC Stage 4 (Test) — writes and runs tests. Creates test suites per plan,
-  runs them, reports pass/fail with evidence. Gates Test completion: no tests,
-  no test pass.
+  SDLC Stage 4 (Test) — writes and runs tests. Creates test suites per
+  plan, runs them, reports pass/fail with evidence. Gates Test completion:
+  no tests, no test pass. Use proactively when this specialist's phase is
+  active.
 mode: subagent
-steps: 500
+hidden: true
+steps: 40
 permission:
   edit: allow
   bash: allow
   websearch: allow
   webfetch: allow
-  skill: allow
-  subagent: allow
 ---
 
 ## Model

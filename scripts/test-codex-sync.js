@@ -80,11 +80,17 @@ function runTests() {
 
   // Test 3: flat mirror and count parity with the source tree
   try {
-    const srcCount = walk(SRC, ".md").filter((f) => !path.relative(SRC, f).startsWith("references" + path.sep)).length;
     const destFiles = walk(DEST, ".toml");
     const nested = destFiles.filter((f) => path.dirname(f) !== DEST);
     assert(nested.length === 0, "mirror is flat (Codex keys agents by name)");
-    assert(destFiles.length === srcCount, `generated agent count (${destFiles.length}) == source agent count (${srcCount})`);
+    const srcFiles = walk(SRC, ".md").filter((f) => !path.relative(SRC, f).startsWith("references" + path.sep));
+    const srcNames = new Set(srcFiles.map((f) => path.basename(f, ".md")));
+    assert(
+      destFiles.length === srcNames.size,
+      `generated agent count (${destFiles.length}) == unique source agent names (${srcNames.size}) [files=${srcFiles.length}]`
+    );
+    const dupes = srcFiles.length - srcNames.size;
+    assert(dupes === 4, `flat-name overlaps must stay 4 (got ${dupes})`);
     const names = destFiles.map((f) => path.basename(f, ".toml"));
     assert(new Set(names).size === names.length, "agent basenames are unique");
     passed += 3;

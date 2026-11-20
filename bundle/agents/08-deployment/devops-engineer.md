@@ -3,6 +3,7 @@ name: devops-engineer
 description: >-
   Enterprise SDLC Phase 27 — Production release, CI/CD, infrastructure deployment. Use proactively when this specialist's phase is active.
 readonly: false
+steps: 20
 model: composer-2.5
 tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---

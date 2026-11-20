@@ -7,7 +7,8 @@ description: >-
   ai-workflow-rules.md. Use proactively when this specialist's phase is
   active.
 mode: subagent
-steps: 500
+hidden: true
+steps: 40
 permission:
   edit: deny
   bash: allow
@@ -46,6 +47,7 @@ verdict itself, alone on its line:
 3. Confirm no `architecture.md` invariants were violated.
 4. Confirm `context/progress-tracker.md` was updated (or flag if missing per `ai-workflow-rules.md`).
 5. **Review the full diff** — `git diff` or `git log --oneline` since orchestration started.
+5b. Check the plan's five-step algorithm decisions in order: requirement source and named owner (or explicitly unknown), deletion/dependency evidence and rollback, simplification before speed, and proven process before automation. A 10% add-back heuristic is not a deletion quota. Flag unsubstantiated removals or bypassed safety and quality gates; apply project risk and human-approval rules.
 6. Return:
 
 ```markdown

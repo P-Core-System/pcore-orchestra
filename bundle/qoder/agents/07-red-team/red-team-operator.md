@@ -5,7 +5,7 @@ description: >-
   OPSEC, covert channels, persistence mechanisms, evasion techniques,
   operational security.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

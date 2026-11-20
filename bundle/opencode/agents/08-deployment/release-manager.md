@@ -4,7 +4,8 @@ description: >-
   Enterprise SDLC Phase 26 — Release candidate preparation, versioning,
   changelog. Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 200
+hidden: true
+steps: 40
 permission:
   edit: allow
   bash: allow

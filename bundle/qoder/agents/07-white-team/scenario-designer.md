@@ -5,7 +5,7 @@ description: >-
   for exercises, realistic attack paths, progressive difficulty, learning
   objectives.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

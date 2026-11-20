@@ -77,8 +77,10 @@ Usage: bash scripts/team-sessions.sh <command> [flags]
   learning  record --member M [--team T] --lessons L [--outcome O]
             [--thread REF] [--json]                  record a session learning
             distill [--json]                    distill candidates to review
+            auto-adopt [--limit N] [--json]     adopt reversible lessons; gated stay pending
+            relearn [--ttl-days N] [--json]     expire patterns not re-confirmed lately
             approve --id ID --decision approved|rejected --by NAME [--json]
-                                                   human gate, never applies
+                                                   human gate for anything gated
 
   --member takes a comma-separated filter for dispatch ("john,james");
   single member elsewhere. --dry-run plans with zero side effects.
@@ -505,7 +507,9 @@ switch (env.PCORE_CMD) {
   case "learning": {
     if (!learnLib) die("learning channel unavailable");
     const sub = String(env.PCORE_FILES || "").split("\n").map((s) => s.trim()).filter(Boolean)[0] || "";
-    if (sub !== "record" && sub !== "distill" && sub !== "approve") die("learning needs an action: record|distill|approve");
+    if (sub !== "record" && sub !== "distill" && sub !== "approve" && sub !== "auto-adopt" && sub !== "relearn") {
+      die("learning needs an action: record|distill|auto-adopt|approve|relearn");
+    }
     const o = opts();
     const artifactDir = (() => {
       if (env.PCORE_ARTIFACT_DIR) return env.PCORE_ARTIFACT_DIR;
@@ -544,6 +548,36 @@ switch (env.PCORE_CMD) {
       }
       const stored = learnLib.distillAndSave(events, artifactDir);
       out({ json: { dir: artifactDir, count: stored.length, candidates: stored }, text: `OK distill ${stored.length} candidate(s) -> ${artifactDir}` });
+      break;
+    }
+    // auto-adopt: adopt only the reversible coordination lessons; every
+    // gated topic still requires an explicit human decision via `approve`.
+    if (sub === "auto-adopt") {
+      let sink = null;
+      try {
+        const mem = require(learnLib.replace(/distill-learnings\.js$/, "memory-manager.js"));
+        if (typeof mem.recordUserPreferences === "function") {
+          const sid = process.env.PCORE_SESSION_ID || "orchestra-auto";
+          sink = (pref) => { if (pref) mem.recordUserPreferences(sid, [pref]); };
+        }
+      } catch {
+        sink = null; // no memory layer -> still flip candidate status
+      }
+      const res = learnLib.autoApply(artifactDir, { applyFn: sink, limit: Number(env.PCORE_LIMIT || 20) });
+      out({
+        json: { applied: res.applied.map((c) => c.id), gated: res.gated.map((c) => c.id), failures: res.failures },
+        text: `OK auto-adopt ${res.applied.length} candidate(s); ${res.gated.length} still need a human (approve --id ... --decision approved --by NAME)`,
+      });
+      break;
+    }
+    // relearn: stale adopted patterns stop being asserted.
+    if (sub === "relearn") {
+      const cur = learnLib.loadCandidates(artifactDir);
+      const { expired, kept } = learnLib.decayStale(cur, { ttlDays: Number(env.PCORE_TTL_DAYS || 45) });
+      out({
+        json: { expired: expired.map((c) => c.id), keptCount: kept.length },
+        text: `OK relearn: ${expired.length} pattern(s) past ${env.PCORE_TTL_DAYS || 45}d without re-confirmation, ${kept.length} kept`,
+      });
       break;
     }
     // sub === "approve": the human gate — explicit decision + human name,

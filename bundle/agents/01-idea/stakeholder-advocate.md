@@ -6,6 +6,7 @@ description: >-
   fabricates stakeholder approval — only reports actual stakeholder input.
   Use proactively when this specialist's phase is active.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

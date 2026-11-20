@@ -5,7 +5,8 @@ description: >-
   tuning, correlation rules, security dashboards, compliance reporting.
   Use proactively when this specialist's phase is active.
 mode: subagent
-steps: 200
+hidden: true
+steps: 20
 permission:
   edit: deny
   bash: allow

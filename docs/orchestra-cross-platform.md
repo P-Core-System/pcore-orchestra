@@ -86,6 +86,66 @@ spawn_agent(agent_type="orchestra-planner", message="Goal: …\nHandoff: …")
 - Hooks exist (`~/.codex/hooks.json` / `.codex/hooks.json`, gated by `features.hooks`, events include `SubagentStart`/`SubagentStop`) but the installer intentionally leaves them unwired — the conductor drives phases with completion markers
 - AGENTS.md is read natively (global `~/.codex/AGENTS.md` → repo root-down chain, 32 KiB cap); MCP is client-only: `[mcp_servers.name] command=…` or `url=…` + `bearer_token_env_var` in `config.toml`
 
+### DeepAI Code
+
+```text
+delegate_task(task="Goal: …\nPrior findings: …\nHandoff: …", role="implementation", mode="wait")
+```
+
+- Tool name: **`mcp__deepai-code__delegate_task`** (app-owned child agent of the current thread). Discover providers/models first with `mcp__deepai-code__orchestrator_capabilities`, and respect `appOwnedSubagents` / `canRunChildTask` before delegating.
+- **No hooks, no ambient rule, no agent directory.** The conductor is an ordinary top-level thread; the loop reaches it through the `orchestra-loop` skill and the repo's `AGENTS.md`. There is nothing to `install --deepai` beyond the shared surfaces it already reads.
+- **Child history is not copied from the parent.** Each round must restate the original brief + prior findings + unresolved objections in `task`. A follow-up review round is a **new `delegate_task`**, never `deepai_thread_send` on the `childThreadId`.
+- One `clientRequestId` per round, reused across retries **of that round**, so a retry is not a second billable run. This matters: free pools are capped per day by request count.
+- Do not launch a top-level thread just because a task said "subagent" — separate threads are separate work, not delegation.
+- Skill discovery is shared with Codex via `~/.agents/skills`, so the orchestra skills installed by `install.sh` are already visible here.
+- Health: `node scripts/health-deepai.js`.
+
+## Context & quota weight (all hosts)
+
+Two measured facts drive the rules below.
+
+1. **Free model pools are capped per day by REQUEST count**, not tokens:
+   `Rate limit exceeded: free-models-per-day-high-balance` / `Free usage limit reached.`
+   Observed on a live host: 52,624 assistant calls in 7 days (~7.5K/day), with
+   single persistent team sessions reaching 3,859 calls, and 371 quota rejections
+   in one log file.
+2. **Anything prompt-visible is paid on every request.** Before the diet this
+   host inlined 182 agent rows (~10.3K tok) + 106 skill rows (~8.6K tok)
+   = **~18.9K tokens of pure index per call**, and 102 of 106 skills were
+   permission-DENIED, so most of it bought nothing.
+
+Rules the harness enforces:
+
+| Rule | Mechanism |
+|---|---|
+| Specialists never enter the prompt index | every mirrored subagent carries `hidden: true` (`scripts/sync-opencode-agents.js`); hidden agents stay spawnable by id |
+| Hidden things stay findable | `~/.config/opencode/lazy/agent-index.md` + `lazy/skill-index.json`, read on demand — never inlined |
+| Reference docs are not agents | OpenCode registers every `.md` under `agents/`, so the mirror of `orchestra-spawn-matrix.md` carries inert hidden frontmatter |
+| A spawn cannot burn a day of quota | step ceilings by role: conductor 80, phase/stage 40, specialist 20 (was 200–500) |
+| Long sessions stop re-sending everything | `compaction.keep.tokens = 20000` bounds the verbatim tail (measured 127K–327K tok/call before) |
+| Repeated identical work is detected | `node scripts/orchestra-budget.js check --agent A --task "…"` exits 2 on the 3rd dispatch of the same signature |
+| A closed quota is not retried | `observe` latches the pool for the rest of the UTC day; the conductor gets one `QUOTA_LATCHED` line, then stops |
+| No silent quota burn | `warming: false`, `update: disable` (a startup models.dev fetch timed out at 10s repeatedly) |
+| Nothing is claimed without proof | budget line is emitted **only** when constrained, so the guard adds no per-turn boilerplate |
+
+Check and repair:
+
+```bash
+node scripts/orchestra-context-diet.js            # what the index costs now
+node scripts/orchestra-context-diet.js --apply    # hide agents, unindex unused skills
+node scripts/orchestra-context-diet.js --check     # drift gate (used in CI)
+bash install.sh --all                              # install.sh runs the diet for you
+node scripts/orchestra-startup-doctor.js            # state-dir weight, watchers, index, quota
+node scripts/orchestra-startup-doctor.js --repair   # safe only: backups, VACUUM, old logs
+node scripts/orchestra-budget.js sync-opencode       # exact per-day call counts from opencode.db
+node scripts/orchestra-budget.js status
+```
+
+Note on the limit of what orchestra can fix: the skill index is dominated by
+skills this repo does **not** own (~95 foreign rows discovered from
+`~/.agents/skills` and `~/.claude/skills`). Those belong to other hosts and to
+you, so the diet reports them and leaves them alone.
+
 ## Phase flow (shared)
 
 ```text

@@ -3,6 +3,7 @@ name: defense-validator
 description: >-
   Enterprise SDLC Phase 6,9 — Defense validation, control effectiveness testing, security control verification, defense-in-depth assessment, control gap analysis.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

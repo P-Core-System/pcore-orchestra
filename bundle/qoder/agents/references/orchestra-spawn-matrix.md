@@ -1,4 +1,4 @@
-# Orchestra spawn matrix (Cursor + OpenCode + Qoder + Claude Code + Codex)
+# Orchestra spawn matrix (Cursor + OpenCode + Qoder + Claude Code + Codex + DeepAI Code)
 
 ## Cursor IDE
 

@@ -6,7 +6,8 @@ description: >-
   identification, multilingual support. Use proactively when this
   specialist's phase is active.
 mode: subagent
-steps: 200
+hidden: true
+steps: 20
 permission:
   edit: deny
   bash: allow

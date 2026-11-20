@@ -4,7 +4,7 @@ description: >-
   Enterprise SDLC Phase 26 — Release candidate preparation, versioning,
   changelog. Use proactively when this specialist's phase is active.
 permissionMode: acceptEdits
-maxTurns: 200
+maxTurns: 40
 tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 

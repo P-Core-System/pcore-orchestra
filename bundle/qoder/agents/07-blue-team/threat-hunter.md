@@ -5,7 +5,7 @@ description: >-
   investigation, anomaly detection, threat landscape analysis, IOC/IOA
   development.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

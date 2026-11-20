@@ -6,6 +6,7 @@ description: >-
   who writes specifications; product-owner decides WHAT to build and WHY.
   Use proactively when this specialist's phase is active.
 readonly: true
+steps: 40
 model: composer-2.5
 permission:
   edit: deny

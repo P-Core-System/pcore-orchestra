@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 29 — Analytics, performance dashboard, metrics reporting.
   Provides visibility into system and process health. Use proactively when this specialist's phase is active.
 readonly: true
+steps: 20
 model: composer-2.5
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---

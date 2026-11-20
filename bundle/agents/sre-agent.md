@@ -5,6 +5,7 @@ description: >-
   budgets, latency, throughput. Alerts on SLO breaches. Gates Operate stage:
   no SLO health, no steady state.
 readonly: true
+steps: 40
 model: composer-2.5
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---

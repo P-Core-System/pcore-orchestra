@@ -5,7 +5,7 @@ description: >-
   testing, security control verification, defense-in-depth assessment,
   control gap analysis.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

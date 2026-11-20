@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 18 — Database schema, migrations, query optimization.
   Ensures data integrity, performance, and scalability. Use proactively when this specialist's phase is active.
 model: composer-2.5
+steps: 20
 tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 

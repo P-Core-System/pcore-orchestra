@@ -5,7 +5,7 @@ description: >-
   Team, MITRE ATT&CK mapping, attack path validation, breach and attack
   simulation.
 disallowedTools: [Write, Edit, NotebookEdit]
-maxTurns: 200
+maxTurns: 20
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---
 

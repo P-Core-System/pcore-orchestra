@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 5,11 — LLM fine-tuning, LoRA/QLoRA, PEFT, instruction tuning, RLHF, DPO, constitutional AI, alignment techniques, reward modeling.
   Use proactively when this specialist's phase is active.
 readonly: false
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

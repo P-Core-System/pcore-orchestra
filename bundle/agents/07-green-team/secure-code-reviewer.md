@@ -3,6 +3,7 @@ name: secure-code-reviewer
 description: >-
   Enterprise SDLC Phase 6 — Security-focused code review, vulnerability detection, secure coding standards, code audit.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

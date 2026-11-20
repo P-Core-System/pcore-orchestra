@@ -1,7 +1,14 @@
 /**
  * Cross-platform orchestra spawn syntax — Cursor, OpenCode, Qoder,
- * Claude Code, and Codex CLI.
+ * Claude Code, Codex CLI, and DeepAI Code.
  * Installed to ~/.cursor/hooks/lib/ and used by orchestra hooks.
+ *
+ * Host capabilities differ in ways the loop must respect rather than average:
+ *   - Cursor / Qoder / Claude / Codex / OpenCode have an agent surface the
+ *     hooks can chain; DeepAI Code has no hook config and no ambient rule.
+ *   - DeepAI delegation does NOT copy parent history into the child, so every
+ *     round must restate the brief. That is a correctness rule, not a style
+ *     preference.
  */
 "use strict";
 
@@ -61,6 +68,31 @@ const PLATFORMS = {
     health: "node ~/.qoder/hooks/orchestra-health.js",
     fixScript: "bash install.sh --qoder && restart Qoder CLI",
   },
+  deepai: {
+    id: "deepai",
+    label: "DeepAI Code",
+    orchestrator:
+      "Top-level thread acting as conductor (no ambient hooks; AGENTS.md + orchestra-loop skill)",
+    spawnTool: "mcp__deepai-code__delegate_task",
+    spawnSyntax:
+      'delegate_task(task="goal + prior findings + handoff…", role="implementation", mode="wait", clientRequestId="orchestra-implementer-<runId>")',
+    spawnExample:
+      "Delegate one task per phase with delegate_task; role=design|implementation|test|review; check orchestrator_capabilities first",
+    phaseChain:
+      "No auto-chain: the conductor thread runs the phase order itself and re-delegates each round. Children are app-owned subagents of THIS thread, not top-level threads.",
+    entryPoint:
+      "Invoked orchestra-loop skill, or an explicit 'run the orchestra loop on X' in a DeepAI Code thread",
+    statePath: "~/.cursor/hooks/state/orchestra.json (shared; PCORE_STATE_DIR overrides)",
+    health: "node scripts/health-deepai.js",
+    fixScript: "bash install.sh --project (bundle/ + context/ are read in place; skills via ~/.agents/skills)",
+    noAmbient: true,
+    notes: [
+      "Hidden/agent-index diet does not apply: DeepAI resolves agents from its own provider catalog (orchestrator_capabilities), not from ~/.config/opencode/agents.",
+      "A follow-up review round is a NEW delegate_task carrying the original brief + prior findings + unresolved objections; never deepai_thread_send on childThreadId.",
+      "One clientRequestId per round, reused across retries of that round, so a retry is not a second billable run.",
+      "Never launch a top-level thread just because the task said 'subagent'; that is separate work, not delegation.",
+    ],
+  },
   "claude-code": {
     id: "claude-code",
     label: "Claude Code CLI",
@@ -96,19 +128,17 @@ const PLATFORMS = {
 };
 
 function spawnLine(platform, agentId) {
-  if (platform === "opencode") {
-    return `call **subagent** tool → agent \`${agentId}\``;
+  // Data-driven so adding a host to PLATFORMS cannot silently fall through to
+  // the Cursor wording (which is how a DeepAI handoff would tell the conductor
+  // to use Cursor's Task tool).
+  const p = PLATFORMS[platform];
+  if (!p) return `launch **${agentId}** via Cursor **Task** tool (subagent_type)`;
+  if (p.id === "opencode") return `call **${p.spawnTool}** tool → agent \`${agentId}\``;
+  if (p.id === "codex") return `call **${p.spawnTool}** tool → agent_type \`${agentId}\``;
+  if (p.id === "deepai") {
+    return `delegate one task via **${p.spawnTool}** → role+task carries the brief (no history copy)`;
   }
-  if (platform === "codex") {
-    return `call **spawn_agent** tool → agent_type \`${agentId}\``;
-  }
-  if (platform === "claude-code") {
-    return `launch **${agentId}** via Claude Code **Agent** tool (subagent_type)`;
-  }
-  if (platform === "qoder") {
-    return `launch **${agentId}** via Qoder **Agent** tool (subagent_type)`;
-  }
-  return `launch **${agentId}** via Cursor **Task** tool (subagent_type)`;
+  return `launch **${agentId}** via ${p.label} **${p.spawnTool}** tool (subagent_type)`;
 }
 
 function handoffBlock(platform = "cursor") {
@@ -140,16 +170,19 @@ function ambientContextBlock() {
 }
 
 function toolsMatrixMarkdown() {
-  return `| Capability | Cursor | OpenCode | Qoder CLI | Claude Code | Codex CLI |
-|------------|--------|----------|-----------|-------------|-----------|
-| Spawn subagent | \`Task\` + \`subagent_type\` | \`subagent\` tool + agent name | \`Agent\` + \`subagent_type\` | \`Agent\` (alias \`Task\`) + \`subagent_type\` | \`spawn_agent\` + \`agent_type\` |
-| Agent definitions | \`~/.cursor/agents/*.md\` | \`~/.config/opencode/agents/*.md\` | \`~/.qoder/agents/*.md\` | \`.claude/agents/*.md\` (name+description frontmatter) | \`.codex/agents/*.toml\` (name, description, developer_instructions) |
-| Conductor agent | Optional (\`orchestra.md\`) | Required (\`default_agent: orchestra\`) | Optional (\`--agent orchestra\`) | Optional (\`--agent orchestra\`) | AGENTS.md instructions |
-| Phase auto-chain | Hooks (\`subagentStop\`) | Conductor loops subagent calls | Hooks (\`SubagentStop\`, \`settings.json\`) | Hooks (\`SubagentStop\` block+reason) | Not wired yet (hooks gated by \`features.hooks\`) |
-| Hooks config | \`~/.cursor/hooks.json\` (\`version:1\`) | Plugin policy (no hooks) | \`~/.qoder/settings.json\` | \`.claude/settings.json\` / \`~/.claude/settings.json\` | \`~/.codex/hooks.json\` / \`.codex/hooks.json\` |
-| MCP | Cursor MCP config | \`opencode.json\` → \`mcp\` (remote can block startup) | \`settings.json\` mcpServers or \`.mcp.json\` | \`.mcp.json\` + \`claude mcp add\` (also serves \`claude mcp serve\`) | \`config.toml\` \`[mcp_servers.x]\` stdio + \`url=\` HTTP |
-| Plan file | \`.cursor/orchestra-plan.md\` | Same path (shared) | Same path (shared) | Same path (shared) | Same path (shared) |
-| State | \`~/.cursor/hooks/state/orchestra.json\` | \`~/.config/opencode/hooks/state/orchestra.json\` | \`~/.qoder/hooks/state/orchestra.json\` | shared hook state (not installed yet) | not installed yet |`;
+  return `| Capability | Cursor | OpenCode | Qoder CLI | Claude Code | Codex CLI | DeepAI Code |
+|------------|--------|----------|-----------|-------------|-----------|-------------|
+| Spawn subagent | \`Task\` + \`subagent_type\` | \`subagent\` tool + agent name | \`Agent\` + \`subagent_type\` | \`Agent\` (alias \`Task\`) + \`subagent_type\` | \`spawn_agent\` + \`agent_type\` | \`delegate_task\` (+ \`orchestrator_capabilities\` first) |
+| Agent definitions | \`~/.cursor/agents/*.md\` | \`~/.config/opencode/agents/*.md\` | \`~/.qoder/agents/*.md\` | \`.claude/agents/*.md\` (name+description frontmatter) | \`.codex/agents/*.toml\` (name, description, developer_instructions) | none — provider catalog owns models/agents |
+| Conductor agent | Optional (\`orchestra.md\`) | Required (\`default_agent: orchestra\`) | Optional (\`--agent orchestra\`) | Optional (\`--agent orchestra\`) | AGENTS.md instructions | the top-level thread itself |
+| Phase auto-chain | Hooks (\`subagentStop\`) | Conductor loops subagent calls | Hooks (\`SubagentStop\`, \`settings.json\`) | Hooks (\`SubagentStop\` block+reason) | Not wired yet (hooks gated by \`features.hooks\`) | Conductor re-delegates each round |
+| History to child | copied into Task prompt | copied into subagent prompt | copied into Agent prompt | copied into Agent prompt | copied into spawn payload | **NOT copied** — restate the brief every round |
+| Ambient policy | rule \`orchestra-loop.mdc\` | ambient plugin on system prompt | rule + hooks | CLAUDE.md | AGENTS.md | skill \`orchestra-loop\` + AGENTS.md (no ambient) |
+| Hooks config | \`~/.cursor/hooks.json\` (\`version:1\`) | Plugin policy (no hooks) | \`~/.qoder/settings.json\` | \`.claude/settings.json\` / \`~/.claude/settings.json\` | \`~/.codex/hooks.json\` / \`.codex/hooks.json\` | none available |
+| Prompt index diet | skills + agents dir | hidden agents + lazy skills | \`~/.qoder/skills\` | \`~/.claude/skills\` | \`~/.agents/skills\` | \`~/.agents/skills\` (shared with Codex) |
+| MCP | Cursor MCP config | \`opencode.json\` → \`mcp\` (remote can block startup) | \`settings.json\` mcpServers or \`.mcp.json\` | \`.mcp.json\` + \`claude mcp add\` (also serves \`claude mcp serve\`) | \`config.toml\` \`[mcp_servers.x]\` stdio + \`url=\` HTTP | app-managed |
+| Plan file | \`.cursor/orchestra-plan.md\` | Same path (shared) | Same path (shared) | Same path (shared) | Same path (shared) | Same path (shared) |
+| State | \`~/.cursor/hooks/state/orchestra.json\` | \`~/.config/opencode/hooks/state/orchestra.json\` | \`~/.qoder/hooks/state/orchestra.json\` | shared hook state (not installed yet) | not installed yet | shared (\`PCORE_STATE_DIR\`) |`;
 }
 
 module.exports = {

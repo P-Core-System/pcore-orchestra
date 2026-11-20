@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 0,10 — Budgeting, ROI analysis, cost-benefit analysis, financial modeling, unit economics, burn rate tracking.
   Use proactively when this specialist's phase is active.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

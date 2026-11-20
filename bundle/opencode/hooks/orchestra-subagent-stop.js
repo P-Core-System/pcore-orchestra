@@ -39,6 +39,7 @@ const {
   getWorktreePath,
 } = require("./lib/worktree-manager.js");
 const { canRunInParallel } = require("./lib/orchestra-spawn-matrix.js");
+const { charge: chargeBudget, observe: observeBudget, formatBudgetLine: formatBudgetLine } = require("./lib/request-budget.js");
 const { spawn: spawnAdapter, SUPPORTED_HOSTS } = require("./lib/spawn-adapter.js");
 
 // Load agent registry for independence checks
@@ -651,6 +652,30 @@ async function main() {
     const outputSnippet = (input.summary || input.result || input.output || input.text || "")
       .toString()
       .slice(0, 200);
+
+    // Quota accounting. Free model pools are capped per DAY BY REQUEST, so a
+    // stuck loop that keeps re-spawning is what actually exhausts the account.
+    // A real rejection latches the pool for the rest of the day; the latch text
+    // is pushed into the phase summary so the conductor reads it as a stop
+    // signal instead of retrying into a closed door.
+    try {
+      const model = (state.run && state.run.model) || input.model || "";
+      const full = (input.summary || input.result || input.output || input.text || "").toString();
+      const seen = observeBudget({ pool: model, message: full });
+      const st = seen.latched ? seen.status : chargeBudget({ pool: model });
+      const line = formatBudgetLine(st);
+      if (line) {
+        s.memory.phases_completed.push({
+          phase: s.currentPhase,
+          agent: subagentType,
+          summary: line.slice(0, 200),
+          timestamp: new Date().toISOString(),
+        });
+        state.budgetNotice = line;
+      } else {
+        delete state.budgetNotice;
+      }
+    } catch {}
     s.memory.phases_completed.push({
       phase: s.currentPhase,
       agent: subagentType,

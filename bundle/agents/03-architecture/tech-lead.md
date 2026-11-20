@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 12-14 — Technology selection, folder structure, coding standards.
   Defines technical foundation for implementation. Use proactively when this specialist's phase is active.
 readonly: true
+steps: 40
 model: grok-4.6
 tools: Bash, Read, Grep, Glob, WebFetch, WebSearch
 ---

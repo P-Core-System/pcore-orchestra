@@ -4,6 +4,7 @@ description: >-
   Enterprise SDLC Phase 0,24 — IP protection, licensing compliance, contract review, legal risk assessment, open-source license auditing.
   Use proactively when this specialist's phase is active.
 readonly: true
+steps: 20
 model: composer-2.5
 permission:
   edit: deny

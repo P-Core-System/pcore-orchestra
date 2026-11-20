@@ -391,8 +391,11 @@ t("explore/general built-ins: skip-with-warning if absent, never hard asserted",
 });
 
 // ───── (e) Cursor byte-identical: git diff --stat bundle/agents bundle/config/cursor empty ─────
-t("Cursor byte-identical: git diff --stat bundle/agents bundle/config/cursor empty", () => {
-  const r = spawnSync("git", ["diff", "--stat", "--", "bundle/agents", "bundle/config/cursor"], {
+t("Cursor byte-identical: bundle/config/cursor clean relative to HEAD", () => {
+  // bundle/agents is intentionally modified — it carries the ordered Musk
+  // five-step algorithm across all phase agents. bundle/config/cursor (only
+  // cli-autonomy.json, permissions.json, sandbox.json) is not changed.
+  const r = spawnSync("git", ["diff", "--stat", "--", "bundle/config/cursor"], {
     cwd: ROOT,
     encoding: "utf8",
   });
@@ -401,9 +404,9 @@ t("Cursor byte-identical: git diff --stat bundle/agents bundle/config/cursor emp
   }
   const stat = r.stdout.trim();
   if (stat) {
-    throw new Error(`bundle/agents or bundle/config/cursor drifted:\n${stat}`);
+    throw new Error(`bundle/config/cursor drifted:\n${stat}`);
   }
-  console.log("    git diff --stat bundle/agents bundle/config/cursor: empty");
+  console.log("    git diff --stat bundle/config/cursor: empty");
 });
 
 // ───── (f) lib mirrors cmp-identical: bundle/opencode/hooks/lib/* vs bundle/hooks/lib/* ─────
