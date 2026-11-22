@@ -36,3 +36,9 @@ scripts/google-workspace/node_modules/
 **/gws-tokens.json
 **/gws-client*.json
 
+
+# Build probes / one-time scratch from hook dev sessions (never deliverables).
+tmp-*.mjs
+tmp-*.js
+tmp-*.txt
+opencode-oracle-*.json
