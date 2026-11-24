@@ -75,6 +75,24 @@ Existing `activations` rows are inert audit data and may be ignored or removed
 `team-activations.jsonl` in JSON fallback). To stop capturing URLs, omit
 `--server-url` / `PCORE_OPENCODE_SERVER_URL` on new claims.
 
+## Ordered-step evidence (Musk five-step, applied to this feature)
+
+- **Question:** owner unknown → confirmed Peter as owner; checked the
+  synthetic-input contract against the opencode.ai/api docs and the local
+  OpenCode v2.3.0 CLI (`opencode api get/post`) before writing code.
+- **Delete:** nothing removed. `team-sessions.sh watch` / `team-listen.js`
+  and autostart remain intact as the manual WS fallback.
+- **Simplify:** only two new libs (`team-activation.js`, `opencode-synthetic.js`);
+  everything else reuses existing claim rows, the `activations` table and
+  JSONL fallback from `team-claims.js`.
+- **Accelerate:** trigger only after the durable post/wake write succeeds;
+  prove behaviour with injected claims + sender/runner in
+  `scripts/test-team-activation.js` (35 checks, no live server).
+- **Automate last:** once the above held, add the `PCORE_TEAM_ACTIVATE=0` kill
+  switch, pre-send `(eventKind,eventId,recipient,projectSlug)` dedupe,
+  sent/skipped/failed audit, and single-command rollback via `git revert`
+  (no daemon, config file or state migration to operate).
+
 ## Verification
 
 ```bash

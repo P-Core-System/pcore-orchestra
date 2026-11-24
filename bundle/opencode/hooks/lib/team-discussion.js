@@ -39,6 +39,22 @@ const os = require("node:os");
 const path = require("node:path");
 const { withLock, atomicWrite, resolveStateDir } = require("./safe-write.js");
 
+/**
+ * Durable SQLite rows from the primary team-discussions store, if active.
+ * Lazy require breaks the cycle (team-discussions.js delegates to this module
+ * in JSON fallback); a missing/failing store reads as [] so legacy readers
+ * stay fail-open.
+ */
+function readStoreMessages() {
+  try {
+    const store = require("./team-discussions.js");
+    if (!store || typeof store.readStoreMessages !== "function") return [];
+    return store.readStoreMessages();
+  } catch {
+    return [];
+  }
+}
+
 /** Ring cap for the discussion JSONL file: oldest lines trimmed first. */
 const DISCUSSION_CAP = 500;
 
@@ -225,7 +241,9 @@ function readDiscussionLines(file) {
 /**
  * Read all messages (tolerant: bad lines skipped); corrupt/missing -> [].
  * With worktreePath, a legacy worktree-partitioned file is merged in
- * (shared wins on id conflict) so pre-unify threads stay visible.
+ * (shared wins on id conflict) so pre-unify threads stay visible. When the
+ * SQLite-backed team-discussions store is active, its rows are merged too
+ * (store wins on id conflict) so legacy readers see CLI posts written there.
  */
 function readAll(worktreePath) {
   const seen = new Set();
@@ -236,6 +254,9 @@ function readAll(worktreePath) {
       out.push(msg);
     }
   };
+  // Primary store first: a SQLite row wins on id conflict over an older
+  // JSONL copy (e.g. a later resolve/reaction recorded in SQLite).
+  for (const msg of readStoreMessages()) push(msg);
   for (const line of readDiscussionLines(discussionFile(worktreePath))) {
     const msg = parseDiscussionLine(line);
     if (msg) push(msg);

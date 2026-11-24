@@ -198,7 +198,11 @@ function listMessages(filter, worktreePath) {
       clauses.push(`kind = @kind`); params.kind = filter.kind;
     }
     if (typeof filter.team === "string" && filter.team) {
-      clauses.push(`team = @team`); params.team = filter.team;
+      // Stored teams are sanitized claim tokens ("team-alpha"), while the
+      // CLI accepts display names ("Team-Alpha"); the JSON fallback applies
+      // the same sanitizer in matchMessageFilter. kind/topic stay raw so the
+      // SQL branch matches the fallback's exact-kind / substring-topic rules.
+      clauses.push(`team = @team`); params.team = sanitizeDiscussionToken(filter.team);
     }
     if (typeof filter.topic === "string" && filter.topic) {
       clauses.push(`topic LIKE @topic`); params.topic = `%${filter.topic}%`;
@@ -234,6 +238,20 @@ function rowToMessage(rec) {
     reactions,
     projectSlug: rec.project_slug,
   };
+}
+
+/** All durable SQLite messages, oldest first. Read-only, fail-open, and
+ *  deliberately WITHOUT JSON fallback: legacy team-discussion.js merges
+ *  these rows with its JSONL files itself (and a fallback here would recurse). */
+function readStoreMessages() {
+  const db = getDb();
+  if (!db) return [];
+  try {
+    return db.prepare(`SELECT * FROM discussions ORDER BY created_at ASC`)
+      .all().map((rec) => rowToMessage(rec)).filter(Boolean);
+  } catch {
+    return [];
+  }
 }
 
 /** Read one thread: every message whose id, topic, or threadId equals
@@ -312,6 +330,7 @@ module.exports = {
   postMessage,
   listMessages,
   getThread,
+  readStoreMessages,
   readAll: listMessages,
   resolveMessage,
   reactMessage,
