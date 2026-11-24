@@ -200,6 +200,7 @@ function recordDiscussionOutcome(msg, action, worktreePath) {
         to: msg.to || null,
         team: msg.team || null,
         topic: msg.topic || null,
+        body: msg.body || null,
         action,
       },
     });
@@ -223,6 +224,44 @@ function recordDiscussionOutcome(msg, action, worktreePath) {
  * @param {string|null} [worktreePath] optional worktree path for isolation
  * @returns {object|null} the stored event, or null when skipped/failed
  */
+/**
+ * Record a team completion report (`done.reported`) so the HOD / verifier /
+ * member sessions learn about a claimed commit through the domain log and
+ * the live WS stream instead of polling `done list`. Fail-open: any shape
+ * or I/O problem yields null and never throws.
+ *
+ * @param {object|null} report done report row (id, member, team, sha, branch, summary, ...)
+ * @param {string} action "reported"
+ * @param {string|null} [worktreePath] optional worktree path for isolation
+ * @returns {object|null} the stored done.reported event, or null when skipped/failed
+ */
+function recordDoneOutcome(report, action, worktreePath) {
+  const allowed = { reported: "done.reported" };
+  const type = allowed[action];
+  if (!type || !report || typeof report !== "object") return null;
+  if (typeof worktreePath === "object" && worktreePath !== null && !Array.isArray(worktreePath)) {
+    worktreePath = worktreePath.worktreePath;
+  }
+  try {
+    const event = entities.createEvent({
+      type,
+      entityId: typeof report.id === "string" ? report.id : null,
+      payload: {
+        doneId: typeof report.id === "string" ? report.id : null,
+        member: report.member || null,
+        team: report.team || null,
+        sha: report.sha || null,
+        branch: report.branch || null,
+        summary: report.summary || null,
+        reportedAt: report.reportedAt || null,
+      },
+    });
+    return store.appendEvent(event, { worktreePath });
+  } catch {
+    return null;
+  }
+}
+
 function recordWakeOutcome(wake, action, worktreePath) {
   const allowed = { requested: "wake.requested", delivered: "wake.delivered", denied: "wake.denied", throttled: "wake.throttled" };
   const type = allowed[action];
@@ -267,6 +306,7 @@ module.exports = Object.assign(
     recordSessionOutcome,
     recordDiscussionOutcome,
     recordWakeOutcome,
+    recordDoneOutcome,
   },
   constants,
   entities,

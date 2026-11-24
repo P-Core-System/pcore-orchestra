@@ -782,15 +782,20 @@ install_studio() {
 
   # Build studio
   echo "  Building Studio..."
+  (cd "$ROOT" && npm install --omit=dev 2>/dev/null || true)
   (cd "$ROOT/studio" && npm install --legacy-peer-deps && npm run build)
-  # mkdir BOTH studio parents first (#19): `cp -rf dist/ <dest>/` only preserves a
-  # `dist/` level when <dest>/ already exists; otherwise it copies dist's contents
-  # up a level, landing the dashboard at ~/.cursor/studio/index.html, not .../dist/.
-  mkdir -p "$OPENCODE/studio" "$CURSOR/studio"
-  rm -rf "$CURSOR/studio/dist"
-  rm -rf "$OPENCODE/studio/dist"
-  cp -rf "$ROOT/studio/dist" "$CURSOR/studio/"
-  cp -rf "$ROOT/studio/dist" "$OPENCODE/studio/"
+  # Global-only install: ONE dist under ~/.local/share (never per-host, never
+  # per-repo). The server resolves DIST_DIR as global-share > repo studio/dist
+  # > legacy host copies, so older installs keep serving until reinstalled.
+  GLOBAL_DIST="$HOME/.local/share/orchestra-studio/dist"
+  mkdir -p "$(dirname "$GLOBAL_DIST")"
+  rm -rf "$GLOBAL_DIST"
+  cp -rf "$ROOT/studio/dist" "$GLOBAL_DIST"
+  if [[ ! -f "$GLOBAL_DIST/index.html" ]]; then
+    echo "  ERROR: studio dist did not land at $GLOBAL_DIST"
+    return 1
+  fi
+  echo "  Studio dist (global): $GLOBAL_DIST"
 
   # Install and configure service manager
   echo "  Installing service manager..."
@@ -829,8 +834,7 @@ LAUNCHER
   chmod +x "$HOME/.local/bin/orchestra-studio"
   echo "  Launcher:        ~/.local/bin/orchestra-studio (shim -> studio-service.sh)"
   echo "  Service:         studio-service.sh install|start|stop|status|logs|uninstall"
-  echo "  Studio dist:     $CURSOR/studio/dist (Cursor, reference)"
-  echo "  Studio dist:     $OPENCODE/studio/dist (OpenCode, reference)"
+  echo "  Studio dist:    ~/.local/share/orchestra-studio/dist (global-only; one copy)"
 }
 
 ###############################################################################

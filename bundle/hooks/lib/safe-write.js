@@ -52,11 +52,17 @@ function backoffMs(attempt) {
 /**
  * Honor `PCORE_STATE_DIR` so tests/CI can redirect every state write into a
  * temp directory instead of the installed bundle tree.
+ *
+ * Repo scope (global studio, one clone serving many repos): when
+ * `PCORE_REPO_SCOPE` is set, the resolved dir is partitioned to
+ * `<base>/repos/<scope>/` so each repo owns isolated state. Unset = the
+ * legacy unscoped layout, byte-identical to before. Pure scoping lives in
+ * `./studio-scope.js` (shipped in the same lib/ dir, so installs resolve it).
  */
 function resolveStatePath(defaultPath) {
   const dir = process.env.PCORE_STATE_DIR;
   if (dir && typeof dir === "string" && dir.length > 0 && defaultPath) {
-    return path.join(dir, path.basename(defaultPath));
+    return path.join(applyRepoScope(dir), path.basename(defaultPath));
   }
   return defaultPath;
 }
@@ -65,9 +71,24 @@ function resolveStatePath(defaultPath) {
 function resolveStateDir(defaultDir) {
   const dir = process.env.PCORE_STATE_DIR;
   if (dir && typeof dir === "string" && dir.length > 0 && defaultDir) {
-    return dir;
+    return applyRepoScope(dir);
+  }
+  if (defaultDir && process.env.PCORE_REPO_SCOPE) {
+    return applyRepoScope(defaultDir);
   }
   return defaultDir;
+}
+
+/** Append `repos/<scope>` when `PCORE_REPO_SCOPE` names a scope; else identity. */
+function applyRepoScope(baseDir) {
+  try {
+    const scopeLib = require("./studio-scope.js");
+    const scope = scopeLib.envScope();
+    if (!scope) return baseDir;
+    return scopeLib.scopedStateDir(baseDir, scope);
+  } catch {
+    return baseDir; // fail-open: scoping never breaks state resolution
+  }
 }
 
 function serialize(data) {

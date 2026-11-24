@@ -11,6 +11,13 @@ const path = require("node:path");
 const os = require("node:os");
 const { execSync } = require("child_process");
 
+let scopeLib = null;
+try {
+  scopeLib = require("../bundle/hooks/lib/studio-scope.js");
+} catch {
+  scopeLib = null; // fail-open: discovery still works, just unscoped
+}
+
 /** Relative segments of the default global state dir under the user's home. */
 const GLOBAL_STATE_SEGMENTS = [".config", "opencode", "hooks", "state"];
 
@@ -95,13 +102,56 @@ function getRunIdFromWorktree(worktreePath) {
   return undefined;
 }
 
-function discoverStateDirs() {
+/** Active repo scope: explicit arg wins, else `PCORE_REPO_SCOPE`, else "". */
+function activeScope(scope) {
+  if (typeof scope === "string" && scope.trim()) {
+    return scopeLib ? scopeLib.sanitizeScope(scope) : scope.trim();
+  }
+  if (scopeLib) return scopeLib.envScope();
+  const raw = process.env.PCORE_REPO_SCOPE || "";
+  return raw.trim();
+}
+
+/** Repos root holding per-scope partitions (`<global>/repos/`). */
+function reposRoot(globalDir) {
+  const base = globalDir || getEnvStateDir();
+  if (scopeLib) return path.join(base, scopeLib.REPOS_SEGMENT);
+  return path.join(base, "repos");
+}
+
+function discoverStateDirs(scope) {
+  const want = activeScope(scope);
+  // Scoped: pin exactly one dir — the repo's own partition.
+  if (want) {
+    const scoped = scopeLib
+      ? scopeLib.scopedStateDir(getEnvStateDir(), want)
+      : path.join(getEnvStateDir(), "repos", want);
+    return [{ path: canonicalStateDir(scoped), isWorktree: false, scope: want }];
+  }
+
   const dirs = [];
 
   // Global state dir
   const globalStateDir = getEnvStateDir();
   if (fs.existsSync(globalStateDir)) {
     dirs.push({ path: globalStateDir, isWorktree: false });
+  }
+
+  // Per-repo partitions: every existing <global>/repos/<scope>/ shows up as
+  // its own entry so one unscoped dashboard can survey all repos.
+  try {
+    const root = reposRoot(globalStateDir);
+    if (fs.existsSync(root)) {
+      for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        const p = canonicalStateDir(path.join(root, entry.name));
+        if (p !== canonicalStateDir(globalStateDir) && fs.existsSync(p)) {
+          dirs.push({ path: p, isWorktree: false, scope: entry.name });
+        }
+      }
+    }
+  } catch {
+    /* best effort — worktree scan below still runs */
   }
 
   // Worktree state dirs
@@ -120,4 +170,4 @@ function discoverStateDirs() {
   return dirs;
 }
 
-module.exports = { discoverStateDirs, getEnvStateDir };
+module.exports = { discoverStateDirs, getEnvStateDir, activeScope, reposRoot };

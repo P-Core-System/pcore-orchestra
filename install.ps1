@@ -209,8 +209,8 @@ function Install-Cursor {
       Set-Content -Path $stateDest -Value '{}' -Encoding UTF8
     }
   }
-  # Conductor + core phases + SDLC stage agents
-  Copy-Item (Join-Path $Bundle "agents\*.md") (Join-Path $CursorDir "agents\") -Force
+  Copy-Item (Join-Path $Bundle "agents\orchestra.md") (Join-Path $CursorDir "agents\") -Force -ErrorAction SilentlyContinue
+  Copy-Item (Join-Path $Bundle "agents\orchestra-*.md") (Join-Path $CursorDir "agents\") -Force
   $refSrc = Join-Path $Bundle "agents\references"
   if (Test-Path $refSrc) {
     $refDest = Join-Path (Join-Path $CursorDir "agents") "references"
@@ -292,7 +292,7 @@ console.log("  Merged hooks.json ->", destPath);
   # Autonomy: CLI + permissions.json + sandbox.json (preserves auth/model)
   node (Join-Path $Root "scripts\merge-autonomy-config.js") --cursor --cursor-home $CursorDir
 
-  Write-Host "  Cursor agents:   $CursorDir\agents\ (conductor + core + SDLC stage agents)"
+  Write-Host "  Cursor agents:   $CursorDir\agents\orchestra-*.md"
   Write-Host "  Cursor hooks:    $CursorDir\hooks\"
   Write-Host "  Cursor skills:   $CursorDir\skills\ (orchestra-loop + UI + Cloudflare)"
   Write-Host "  Cursor built-in: $CursorDir\skills-cursor\ (17 skills)"
@@ -303,23 +303,6 @@ console.log("  Merged hooks.json ->", destPath);
 ###############################################################################
 # OpenCode installation
 ###############################################################################
-# Resolve a real bash for the free-model refresh/apply + weekly schedule.
-# Git Bash paths first (native Windows paths work); PATH `bash` last because on
-# dev machines that is often WSL, whose bash cannot open D:\ paths directly.
-function Find-GitBash {
-  $candidates = @(
-    (Join-Path ${env:ProgramFiles} "Git\bin\bash.exe"),
-    (Join-Path ${env:ProgramFiles(x86)} "Git\bin\bash.exe"),
-    "C:\Program Files\Git\bin\bash.exe"
-  )
-  foreach ($c in $candidates) {
-    if ($c -and (Test-Path -LiteralPath $c -PathType Leaf)) { return $c }
-  }
-  $cmd = Get-Command bash -ErrorAction SilentlyContinue
-  if ($cmd) { return $cmd.Source }
-  return $null
-}
-
 function Install-OpenCode {
   Write-Host "==> Installing OpenCode Orchestra to $OpenCodeDir"
 
@@ -330,21 +313,14 @@ function Install-OpenCode {
   # Free-model refresh + dynamic apply (before agent copy + autonomy merge so
   # installed files carry the current light/heavy free-pool assignment).
   Write-Host "==> Free-model refresh + apply"
-  $bashExe = Find-GitBash
-  $bashIsWslOnly = $false
-  if ($bashExe -and $bashExe -notmatch 'Git\\bin\\bash\.exe$') {
-    $bashIsWslOnly = $true
-    Write-Host "WARN resolved bash is not Git Bash ($bashExe) - likely WSL, which cannot open D:\ script paths."
-    Write-Host "WARN Install Git for Windows (https://git-scm.com/download/win), then re-run install.ps1 -OpenCode;"
-    Write-Host "WARN or run from Git Bash: bash scripts/update-free-models.sh --refresh --apply"
-  }
-  if ($bashExe -and -not $bashIsWslOnly) {
-    & $bashExe (Join-Path $Root "scripts\update-free-models.sh") --refresh --apply
+  $bashCmd = Get-Command bash -ErrorAction SilentlyContinue
+  if ($bashCmd) {
+    & bash (Join-Path $Root "scripts\update-free-models.sh") --refresh --apply
     if ($LASTEXITCODE -ne 0) {
       Write-Host "WARN free-model refresh/apply failed (offline first-run?) - keeping existing model IDs"
     }
-  } elseif (-not $bashIsWslOnly) {
-    Write-Host "WARN bash not found - skipping free-model refresh (install Git for Windows, or run update-free-models.sh from Git Bash)"
+  } else {
+    Write-Host "WARN bash not found - skipping free-model refresh (run update-free-models.sh from Git Bash)"
   }
 
   @(
@@ -356,8 +332,9 @@ function Install-OpenCode {
     (Join-Path $OpenCodeDir "plugins")
   ) | ForEach-Object { New-Item -ItemType Directory -Force -Path $_ | Out-Null }
 
-  # Agents (conductor + core phases + SDLC stage agents + enterprise)
-  Copy-Item (Join-Path $Bundle "opencode\agents\*.md") (Join-Path $OpenCodeDir "agents\") -Force
+  # Agents (orchestra core + enterprise)
+  Copy-Item (Join-Path $Bundle "opencode\agents\orchestra.md") (Join-Path $OpenCodeDir "agents\") -Force
+  Copy-Item (Join-Path $Bundle "opencode\agents\orchestra-*.md") (Join-Path $OpenCodeDir "agents\") -Force
   $refSrc = Join-Path $Bundle "agents\references\orchestra-spawn-matrix.md"
   if (Test-Path $refSrc) {
     $refDest = Join-Path (Join-Path $OpenCodeDir "agents") "references"
@@ -431,22 +408,12 @@ function Install-OpenCode {
   # Autonomy: merge permission/agent into opencode.json (preserves mcp secrets)
   node (Join-Path $Root "scripts\merge-autonomy-config.js") --opencode --opencode-home $OpenCodeDir
 
-  # Context diet: hide every subagent from the per-request prompt index (they
-  # stay spawnable by id) and move unused orchestra skills into a lazy catalog.
-  # Parity with install.sh; scope is the OpenCode skill root only.
-  node (Join-Path $Root "scripts\orchestra-context-diet.js") --apply
-  if ($LASTEXITCODE -eq 0) {
-    Write-Host "  Context diet:     agents hidden + unused skills lazy-indexed"
-  } else {
-    Write-Host "WARN context diet did not run - index may be heavier than intended: node scripts\orchestra-context-diet.js --apply"
-  }
-
   # Weekly free-model schedule (Windows has no systemd — schtasks Monday 04:17)
   # schtasks cannot parse a spaced repo path inside /TR ("D:/Some Spaced Dir/..." →
   # "Invalid argument/option - 'Web'"), so schedule a no-space wrapper script
   # instead. The wrapper runs the repo script via its WSL /mnt/<drive>/ path
   # (WSL bash cannot open D:\ paths directly).
-  if ($bashExe -and -not $bashIsWslOnly) {
+  if ($bashCmd) {
     $scriptPath = (Join-Path $Root "scripts\update-free-models.sh").Replace('\', '/')
     $wrapperPath = Join-Path $env:USERPROFILE ".local\bin\pcore-free-models.sh"
     $localBinDir = Split-Path -Parent $wrapperPath
@@ -491,7 +458,7 @@ function Install-OpenCode {
     }
   }
 
-  Write-Host "  OpenCode agents:  $OpenCodeDir\agents\ (conductor + core + SDLC stage agents + enterprise)"
+  Write-Host "  OpenCode agents:  $OpenCodeDir\agents\orchestra-*.md"
   Write-Host "  OpenCode hooks:   $OpenCodeDir\hooks\"
   Write-Host "  OpenCode lib:     $OpenCodeDir\hooks\lib\ (21 modules)"
   Write-Host "  OpenCode skills:  $OpenCodeDir\skills\ (orchestra-loop + UI + Cloudflare)"
@@ -705,13 +672,13 @@ function Install-Studio {
   npm run build
   Pop-Location
 
-  # Copy dist to Cursor and OpenCode (for reference, though v2 server serves from repo)
-  $cursorStudioDist = Join-Path $CursorDir "studio\dist"
-  $opencodeStudioDist = Join-Path $OpenCodeDir "studio\dist"
-  if (Test-Path $cursorStudioDist) { Remove-Item $cursorStudioDist -Recurse -Force }
-  if (Test-Path $opencodeStudioDist) { Remove-Item $opencodeStudioDist -Recurse -Force }
-  $null = robocopy (Join-Path $Root "studio\dist") $cursorStudioDist /E /NDL /NJH /NJS /NP
-  $null = robocopy (Join-Path $Root "studio\dist") $opencodeStudioDist /E /NDL /NJH /NJS /NP
+  # Global-only install: ONE dist under ~/.local/share (never per-host, never
+  # per-repo); the server resolves global-share > repo studio/dist > legacy
+  # host copies, so older installs keep serving until reinstalled.
+  $globalDist = Join-Path $env:USERPROFILE ".local\share\orchestra-studio\dist"
+  if (Test-Path $globalDist) { Remove-Item $globalDist -Recurse -Force }
+  New-Item -ItemType Directory -Force -Path (Split-Path $globalDist) | Out-Null
+  $null = robocopy (Join-Path $Root "studio\dist") $globalDist /E /NDL /NJH /NJS /NP
 
   # Install and configure service manager
   Write-Host "  Installing service manager..."
@@ -758,8 +725,7 @@ exit $LASTEXITCODE
   Set-Content -Path $launcherPath -Value $launcherContent -Encoding UTF8
   Write-Host "  Launcher:        $localBin\orchestra-studio.ps1 (shim -> studio-service.sh via bash)"
   Write-Host "  Service:         studio-service.sh install|start|stop|status|logs|uninstall"
-  Write-Host "  Studio dist:     $CursorDir\studio\dist (Cursor, reference)"
-  Write-Host "  Studio dist:     $OpenCodeDir\studio\dist (OpenCode, reference)"
+  Write-Host "  Studio dist:     $env:USERPROFILE\.local\share\orchestra-studio\dist (global-only; one copy)"
 }
 
 ###############################################################################

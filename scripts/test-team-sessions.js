@@ -217,16 +217,35 @@ try {
     JSON.stringify(claimed));
   const listed = JSON.parse(runCli(`bash scripts/team-sessions.sh list --json`, cliEnv));
   check("CLI list --json groups by team", !!listed.groups && !!listed.groups["team-alpha"], Object.keys(listed.groups || {}).join(","));
-  const staleCliKey = claims.claimSession({ member: "StaleCli2", team: "Team-Alpha", sessionId: "sess-stale-cli2", workspace: "/tmp/wsA" }).claimKey;
-  const rawCli = JSON.parse(fs.readFileSync(file, "utf8"));
-  rawCli[staleCliKey].heartbeatAt = new Date(Date.now() - 31 * 60 * 1000).toISOString();
-  fs.writeFileSync(file, JSON.stringify(rawCli, null, 2));
-  const bareList = JSON.parse(runCli(`bash scripts/team-sessions.sh list --json`, cliEnv));
-  check("CLI bare list hides stale", !(bareList.claims || []).some((c) => c.claimKey === staleCliKey));
-  const allList = JSON.parse(runCli(`bash scripts/team-sessions.sh list --all --json`, cliEnv));
-  check("CLI list --all adds stale",
-    (allList.claims || []).some((c) => c.claimKey === staleCliKey && c.stale === true),
-    JSON.stringify((allList.claims || []).length));
+  // ---- stale coverage: JSON backend (test writes JSON, CLI reads JSON) ----
+  const cliEnvJson = Object.assign({}, cliEnv, { PCORE_USE_SQLITE: "0" });
+  const staleJsonKey = claims.claimSession({ member: "StaleJson2", team: "Team-Alpha", sessionId: "sess-stale-json-2", workspace: "/tmp/wsA" }).claimKey;
+  const rawJson = JSON.parse(fs.readFileSync(file, "utf8"));
+  rawJson[staleJsonKey].heartbeatAt = new Date(Date.now() - 31 * 60 * 1000).toISOString();
+  fs.writeFileSync(file, JSON.stringify(rawJson, null, 2));
+  const bareJsonList = JSON.parse(runCli(`bash scripts/team-sessions.sh list --json`, cliEnvJson));
+  check("CLI bare list hides stale (json)", !(bareJsonList.claims || []).some((c) => c.claimKey === staleJsonKey));
+  const allJsonList = JSON.parse(runCli(`bash scripts/team-sessions.sh list --all --json`, cliEnvJson));
+  check("CLI list --all adds stale (json)",
+    (allJsonList.claims || []).some((c) => c.claimKey === staleJsonKey && c.stale === true),
+    JSON.stringify((allJsonList.claims || []).length));
+
+  // ---- stale coverage: SQLite backend (test backdates .db, CLI reads SQLite) ----
+  const cliEnvSqlite = Object.assign({}, cliEnv, { PCORE_WORKSPACE_ROOT: "/tmp/wsA" });
+  const sqlClaims = require("../bundle/hooks/lib/team-claims.js");
+  const staleSqliteKey = sqlClaims.claimSession({ member: "StaleSqlite2", team: "Team-Alpha", sessionId: "sess-stale-sqlite-2", workspace: "/tmp/wsA" }).claimKey;
+  const { DatabaseSync } = require("node:sqlite");
+  const dbPath = path.join(stateDir, "team-sessions.db");
+  const db = new DatabaseSync(dbPath);
+  db.prepare(`UPDATE claims SET heartbeat_at = ? WHERE claim_key = ?`)
+    .run(new Date(Date.now() - 31 * 60 * 1000).toISOString(), staleSqliteKey);
+  db.close();
+  const bareSqliteList = JSON.parse(runCli(`bash scripts/team-sessions.sh list --json`, cliEnvSqlite));
+  check("CLI bare list hides stale (sqlite)", !(bareSqliteList.claims || []).some((c) => c.claimKey === staleSqliteKey));
+  const allSqliteList = JSON.parse(runCli(`bash scripts/team-sessions.sh list --all --json`, cliEnvSqlite));
+  check("CLI list --all adds stale (sqlite)",
+    (allSqliteList.claims || []).some((c) => c.claimKey === staleSqliteKey && c.stale === true),
+    JSON.stringify((allSqliteList.claims || []).length));
   const begunCli = JSON.parse(runCli(`bash scripts/conductor-state.sh begin --goal "cli goal" --member John --team Team-Alpha --json`, cliEnv));
   check("CLI begin --json carries roster", begunCli.run.member === "john" && begunCli.run.teamId === "team-alpha", JSON.stringify(begunCli.run && { member: begunCli.run.member, teamId: begunCli.run.teamId }));
   const who = JSON.parse(runCli(`bash scripts/conductor-state.sh who --json`, cliEnv));

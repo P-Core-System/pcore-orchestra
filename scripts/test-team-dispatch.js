@@ -63,7 +63,13 @@ function stateBefore() {
   const entries = [];
   for (const d of [stateDir, conductorDir]) {
     try {
-      for (const f of fs.readdirSync(d)) entries.push(path.join(d, f));
+      // SQLite plumbing (team-sessions.db + WAL/SHM) is created lazily by
+      // read-only getDb() calls; it is storage, not domain state. Dry-run's
+      // contract is "no domain state mutated", so ignore DB artifacts here.
+      for (const f of fs.readdirSync(d)) {
+        if (/^team-sessions\.db(-wal|-shm)?$/.test(f)) continue;
+        entries.push(path.join(d, f));
+      }
     } catch { /* missing dir = no state */ }
   }
   return entries.sort().join("\n");

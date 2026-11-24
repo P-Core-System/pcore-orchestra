@@ -5,6 +5,10 @@
  * Studio v2 API server (docs/studio-v2-architecture.md §2).
  *
  *   node server/studio-api.js [--port N]     # default 3110, always 127.0.0.1
+ *   node server/studio-api.js --scope NAME [--port N]
+ *     # scoped: state partitions to <global>/repos/<name>/ (PCORE_REPO_SCOPE
+ *     # set for the process, so readers/state-dirs/ws all follow); unscoped
+ *     # keeps the legacy global layout. Invalid --scope refuses to start.
  *
  * One process: Express REST + `/api/ws` (server/ws.js) + static `studio/dist`
  * with SPA fallback. Reads hook state through `server/readers.js` only —
@@ -27,10 +31,30 @@ const store = require("../bundle/hooks/lib/domain/store.js");
 const { discoverStateDirs } = require("./state-dirs.js");
 const entities = require("../bundle/hooks/lib/domain/entities.js");
 const { ALLOWED_TRANSITIONS } = require("../bundle/hooks/lib/domain/constants.js");
+const scopeLib = require("../bundle/hooks/lib/studio-scope.js");
 
 const DEFAULT_PORT = 3110;
-const DIST_DIR = path.join(__dirname, "..", "studio", "dist");
+const GLOBAL_DIST_DIR =
+  process.env.HOME || process.env.USERPROFILE
+    ? path.join(process.env.HOME || process.env.USERPROFILE, ".local", "share", "orchestra-studio", "dist")
+    : "";
+const DIST_CANDIDATES = [
+  GLOBAL_DIST_DIR,
+  path.join(__dirname, "..", "studio", "dist"),
+  path.join(osHomedir(), ".cursor", "studio", "dist"),
+  path.join(osHomedir(), ".config", "opencode", "studio", "dist"),
+].filter(Boolean);
+const DIST_DIR = DIST_CANDIDATES.find((d) => { try { return fs.existsSync(path.join(d, "index.html")); } catch { return false; } })
+  || path.join(__dirname, "..", "studio", "dist");
 const INDEX_HTML = path.join(DIST_DIR, "index.html");
+
+function osHomedir() {
+  try {
+    return require("node:os").homedir();
+  } catch {
+    return "";
+  }
+}
 
 /**
  * The board speaks the studio's 10 TICKET_STATES (TRIAGE / NEEDS_HUMAN) while
@@ -137,11 +161,11 @@ function createApp() {
 
   // --------------------------------------------------- static SPA + fallback
   if (fs.existsSync(INDEX_HTML)) {
-    app.use(express.static(DIST_DIR, { index: "index.html" }));
+    app.use(express.static(DIST_DIR, { index: "index.html", dotfiles: "allow" })); // fixed dist dir (may live under ~/.local) — never user input
     app.use((req, res, next) => {
       if (req.method !== "GET" && req.method !== "HEAD") return next();
       if (req.path.startsWith("/api/")) return next();
-      res.sendFile(INDEX_HTML);
+      res.sendFile(INDEX_HTML, { dotfiles: "allow" });
     });
   }
 
@@ -175,8 +199,36 @@ function parsePort(argv) {
   return port;
 }
 
+/**
+ * Repo scope for this server: `--scope <name>` wins, else `PCORE_REPO_SCOPE`.
+ * Empty = unscoped legacy (global state dir + port default). A scope made only
+ * of punctuation sanitizes to "default", which is a lie about intent — refuse.
+ */
+function parseScope(argv) {
+  const args = Array.isArray(argv) ? argv : [];
+  let raw = null;
+  for (let i = 0; i < args.length; i += 1) {
+    if (args[i] === "--scope") raw = args[i + 1];
+    else if (typeof args[i] === "string" && args[i].startsWith("--scope=")) raw = args[i].slice(8);
+  }
+  if (raw === null || raw === undefined) return "";
+  const s = String(raw).trim();
+  if (!s) return "";
+  if (!/[a-zA-Z0-9]/.test(s)) {
+    throw new Error(`invalid --scope value: ${raw}`);
+  }
+  return scopeLib.sanitizeScope(s);
+}
+
 function main() {
-  const port = parsePort(process.argv.slice(2));
+  const argv = process.argv.slice(2);
+  const scope = parseScope(argv);
+  if (scope) {
+    // Single choke: every readers/state-dirs/ws call below partitions through
+    // this env value, so no call site needs an explicit scope argument.
+    process.env.PCORE_REPO_SCOPE = scope;
+  }
+  const port = parsePort(argv);
   const app = createApp();
   const server = http.createServer(app);
 
@@ -217,4 +269,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { createApp, parsePort, allowedTargets, DEFAULT_PORT };
+module.exports = { createApp, parsePort, parseScope, allowedTargets, DEFAULT_PORT, DIST_DIR };

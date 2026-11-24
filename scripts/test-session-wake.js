@@ -58,7 +58,7 @@ const wake = require("../bundle/hooks/lib/session-wake.js");
 const constants = require("../bundle/hooks/lib/domain/constants.js");
 const domain = require("../bundle/hooks/lib/domain/index.js");
 const store = require("../bundle/hooks/lib/domain/store.js");
-const claims = require("../bundle/hooks/lib/session-claims.js");
+const claims = require("../bundle/hooks/lib/team-claims.js");
 
 let failed = 0;
 function check(name, cond, detail) {
@@ -121,7 +121,12 @@ try {
     res.wake && res.wake.threadId === "pair" && res.wake.messageId === "d_9" && res.wake.topology === "2way" && res.wake.projectSlug === "proj-one");
   const types = store.loadEvents().map((e) => e.type);
   check("requested + delivered domain events", types.indexOf("wake.requested") !== -1 && types.indexOf("wake.delivered") !== -1);
-  check("wakes file exists", fs.existsSync(wake.wakesFile()));
+  // SQLite-primary: persistence lives in team-sessions.db when node:sqlite is
+  // available; the JSONL file is only written on the safe-write fallback path.
+  // Assert the wake is durable in whichever backend is active.
+  check("wake persisted (db or JSONL)",
+    wake.listWakes({}).some((w) => w.id === (res.wake && res.wake.id)) ||
+    fs.existsSync(wake.wakesFile()));
 
   // ---- 4. cross-team (same shared root, different team) ----
   const wsB = mkWorkspace("proj-one");

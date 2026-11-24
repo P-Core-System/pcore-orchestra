@@ -24,6 +24,7 @@ const os = require("node:os");
 const path = require("node:path");
 
 const graphBuilder = require("./graph-builder.js");
+const scopeLib = require("../bundle/hooks/lib/studio-scope.js");
 
 /** Canonical phase chain (docs/studio-v2-architecture.md §4). */
 const PHASE_ORDER = graphBuilder.PHASE_ORDER;
@@ -44,9 +45,19 @@ const TICKET_STATES = [
 
 const DEFAULT_STATE_DIR = path.join(os.homedir(), ".config", "opencode", "hooks", "state");
 
-/** Resolved state dir; `PCORE_STATE_DIR` always wins (tests use a temp dir). */
-function stateDir(dir) {
-  return dir || process.env.PCORE_STATE_DIR || DEFAULT_STATE_DIR;
+/** Resolved state dir; `PCORE_STATE_DIR` always wins (tests use a temp dir).
+ * When `PCORE_REPO_SCOPE` names a repo scope (or `scope` is passed), the dir
+ * is partitioned to `<base>/repos/<scope>/`; unset scope = legacy layout. */
+function stateDir(dir, scope) {
+  const base = dir || process.env.PCORE_STATE_DIR || DEFAULT_STATE_DIR;
+  const s = typeof scope === "string" && scope ? scopeLib.sanitizeScope(scope) : scopeLib.envScope();
+  if (!s) return base;
+  return scopeLib.scopedStateDir(base, s);
+}
+
+/** Active repo scope ("" = unscoped legacy). */
+function repoScope() {
+  return scopeLib.envScope();
 }
 
 function runsDir(dir) {
@@ -579,6 +590,7 @@ module.exports = {
   PHASE_ORDER,
   TICKET_STATES,
   stateDir,
+  repoScope,
   runsDir,
   domainEventsPath,
   tokensPath,

@@ -11,6 +11,7 @@
         <string>@REPO_ROOT@/server/studio-api.js</string>
         <string>--port</string>
         <string>@PORT@</string>
+        <string>@SCOPE_ARGS@</string>
     </array>
     <key>WorkingDirectory</key>
     <string>@REPO_ROOT@</string>

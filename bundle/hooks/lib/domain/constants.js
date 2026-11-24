@@ -81,6 +81,7 @@ const DOMAIN_EVENT_TYPES = Object.freeze([
   "wake.delivered",
   "wake.denied",
   "wake.throttled",
+  "done.reported",
 ]);
 
 /** Ring cap for the domain-events file: oldest events are trimmed first. */

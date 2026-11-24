@@ -10,9 +10,26 @@ LOG_DIR="${XDG_DATA_HOME:-$HOME/.local/log}/orchestra-studio"
 PID_FILE="$RUNTIME_DIR/studio.pid"
 PORT_FILE="$RUNTIME_DIR/studio.port"
 LOG_FILE="$LOG_DIR/studio.log"
-# Repo root = parent of this script (override with PCORE_ORCHESTRA_REPO).
-REPO_ROOT="${PCORE_ORCHESTRA_REPO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+# Repo root = single global clone (override with PCORE_ORCHESTRA_REPO).
+# Resolution: env > /opt/pcore-orchestra > ~/pcore-orchestra > ~/pcore > script parent.
+if [[ -n "${PCORE_ORCHESTRA_REPO:-}" ]]; then
+  REPO_ROOT="$PCORE_ORCHESTRA_REPO"
+elif [[ -d "/opt/pcore-orchestra" ]]; then
+  REPO_ROOT="/opt/pcore-orchestra"
+elif [[ -d "$HOME/pcore-orchestra" ]]; then
+  REPO_ROOT="$HOME/pcore-orchestra"
+elif [[ -d "$HOME/pcore" ]]; then
+  REPO_ROOT="$HOME/pcore"
+else
+  REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+fi
+# Shell scope helpers (sanitize, port registry); fail-open if node is missing.
+if [[ -f "$REPO_ROOT/scripts/lib/repo-scope.sh" ]]; then
+  # shellcheck disable=SC1091
+  source "$REPO_ROOT/scripts/lib/repo-scope.sh"
+fi
 DEFAULT_PORT=3110
+SCOPE=""
 UNIT_NAME="orchestra-studio"
 PLIST_NAME="org.pcore.orchestra-studio"
 
@@ -44,13 +61,17 @@ Commands:
   disable-autostart     Disable autostart on login
 
 Options:
-  --port N              Port to run on (default: 3110)
+  --port N              Port to run on (default: 3110, or the scope's registry port with --scope)
+  --scope NAME          Repo scope: isolated state (<global>/repos/<slug>/) + stable
+                        port (3110+hash, pinned in studio-ports.json). Default repo
+                        slug derives from the current git top-level when set.
   --dry-run             Print actions without executing
   --backend B           Backend: auto|systemd|launchd|nohup (default: auto)
   --help                Show this help
 
 Environment:
-  PCORE_ORCHESTRA_REPO  Override repo root (default: directory of this script)
+  PCORE_ORCHESTRA_REPO  Override repo root (default: /opt/pcore-orchestra, fallback ~/pcore*)
+  PCORE_REPO_SCOPE      Default scope when --scope is not passed
   ORCHESTRA_STUDIO_BACKEND  Force backend: systemd|launchd|nohup
 EOF
 }
@@ -58,6 +79,54 @@ EOF
 # --- Helpers ---
 ensure_dirs() {
   mkdir -p "$RUNTIME_DIR" "$LOG_DIR"
+}
+
+# --- Scope (global studio: one clone, per-repo state/port) ---
+sanitize_slug() {
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]' \
+    | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//' | cut -c1-32 | sed -E 's/-+$//'
+}
+
+# Namespace runtime paths + unit names for a scope; resolve the port from the
+# registry when the caller did not pass --port explicitly.
+SCOPE_ARGS=""
+PORT_EXPLICIT="false"
+apply_scope() {
+  if [[ -z "$SCOPE" ]]; then
+    return 0
+  fi
+  local slug
+  slug=$(sanitize_slug "$SCOPE")
+  if [[ -z "$slug" ]]; then
+    log_err "invalid --scope value: $SCOPE"
+    return 1
+  fi
+  SCOPE="$slug"
+  SCOPE_ARGS="--scope $slug"
+  export PCORE_REPO_SCOPE="$slug"
+  RUNTIME_DIR="${RUNTIME_DIR}-${slug}"
+  LOG_DIR="${LOG_DIR}-${slug}"
+  PID_FILE="$RUNTIME_DIR/studio.pid"
+  PORT_FILE="$RUNTIME_DIR/studio.port"
+  LOG_FILE="$LOG_DIR/studio.log"
+  UNIT_NAME="${UNIT_NAME}-${slug}"
+  PLIST_NAME="${PLIST_NAME}-${slug}"
+  if [[ "$PORT_EXPLICIT" != "true" ]]; then
+    local reg_port=""
+    if command -v node >/dev/null 2>&1; then
+      reg_port=$(node -e '
+        const lib = require(process.argv[1]);
+        const globalDir = process.env.PCORE_STATE_DIR || require("os").homedir() + "/.config/opencode/hooks/state";
+        process.stdout.write(String(lib.allocatePort(process.argv[2], globalDir)));
+      ' "$REPO_ROOT/bundle/hooks/lib/studio-scope.js" "$slug" 2>/dev/null || true)
+    fi
+    if [[ "$reg_port" =~ ^[0-9]+$ ]]; then
+      DEFAULT_PORT="$reg_port"
+    else
+      log_warn "port registry unreachable — falling back to hash candidate"
+      DEFAULT_PORT=3110
+    fi
+  fi
 }
 
 read_port() {
@@ -115,8 +184,12 @@ systemd_render_unit() {
     log_info "Would write systemd unit to $unit_file"
     return
   fi
-  sed -e "s|@REPO_ROOT@|$REPO_ROOT|g" -e "s|@PORT@|$port|g" \
-    "$REPO_ROOT/scripts/systemd/${UNIT_NAME}.service" > "$unit_file"
+  local node_bin node_dir
+  node_bin="$(command -v node || echo /usr/bin/node)"
+  node_dir="$(dirname "$node_bin")"
+  sed -e "s|@REPO_ROOT@|$REPO_ROOT|g" -e "s|@PORT@|$port|g" -e "s|@SCOPE_ARGS@|$SCOPE_ARGS|g" \
+    -e "s|@NODE_BIN@|$node_bin|g" -e "s|@NODE_DIR@|$node_dir|g" \
+    "$REPO_ROOT/scripts/systemd/orchestra-studio.service" > "$unit_file"
   systemctl --user daemon-reload
 }
 
@@ -166,8 +239,12 @@ launchd_render_plist() {
     log_info "Would write launchd plist to $plist_file"
     return
   fi
-  sed -e "s|@REPO_ROOT@|$REPO_ROOT|g" -e "s|@PORT@|$port|g" -e "s|@LOG_DIR@|$LOG_DIR|g" \
-    "$REPO_ROOT/scripts/launchd/${PLIST_NAME}.plist" > "$plist_file"
+  sed -e "s|@REPO_ROOT@|$REPO_ROOT|g" -e "s|@PORT@|$port|g" -e "s|@LOG_DIR@|$LOG_DIR|g" -e "s|@SCOPE_ARGS@|$SCOPE_ARGS|g" -e "s|org\\.pcore\\.orchestra-studio|$PLIST_NAME|g" \
+    "$REPO_ROOT/scripts/launchd/org.pcore.orchestra-studio.plist" > "$plist_file"
+  if [[ -z "$SCOPE_ARGS" ]]; then
+    # Drop the empty scope argv element so unscoped plists stay byte-clean.
+    sed -i '/<string><\/string>/d' "$plist_file"
+  fi
 }
 
 launchd_start() {
@@ -211,11 +288,12 @@ nohup_start() {
   local dry_run="${2:-false}"
   ensure_dirs
   if [[ "$dry_run" == "true" ]]; then
-    log_info "Would start: nohup node $REPO_ROOT/server/studio-api.js --port $port >> $LOG_FILE 2>&1 &"
+    log_info "Would start: nohup node $REPO_ROOT/server/studio-api.js --port $port ${SCOPE_ARGS:-} >> $LOG_FILE 2>&1 &"
     return
   fi
   # Start server in background, capture PID properly
-  nohup node "$REPO_ROOT/server/studio-api.js" --port "$port" >> "$LOG_FILE" 2>&1 &
+  # shellcheck disable=SC2086
+  nohup node "$REPO_ROOT/server/studio-api.js" --port "$port" $SCOPE_ARGS >> "$LOG_FILE" 2>&1 &
   local pid=$!
   # Verify process started
   sleep 0.5
@@ -512,7 +590,21 @@ main() {
     case "$1" in
       --port)
         port="$2"
+        PORT_EXPLICIT="true"
         shift 2
+        ;;
+      --port=*)
+        port="${1#--port=}"
+        PORT_EXPLICIT="true"
+        shift
+        ;;
+      --scope)
+        SCOPE="$2"
+        shift 2
+        ;;
+      --scope=*)
+        SCOPE="${1#--scope=}"
+        shift
         ;;
       --dry-run)
         dry_run="true"
@@ -545,8 +637,22 @@ main() {
   for ((i=1; i<${#args[@]}; i++)); do
     if [[ "${args[i]}" == "--port" && $((i+1)) -lt ${#args[@]} ]]; then
       port="${args[i+1]}"
+      PORT_EXPLICIT="true"
+    fi
+    if [[ "${args[i]}" == "--scope" && $((i+1)) -lt ${#args[@]} ]]; then
+      SCOPE="${args[i+1]}"
     fi
   done
+
+  # Default scope from the current repo when neither --scope nor env names one.
+  if [[ -z "$SCOPE" && -n "${PCORE_REPO_SCOPE:-}" ]]; then
+    SCOPE="$PCORE_REPO_SCOPE"
+  fi
+  apply_scope || exit 1
+  # A registry-resolved port becomes the install default.
+  if [[ "$PORT_EXPLICIT" != "true" && "$DEFAULT_PORT" != "3110" ]]; then
+    port="$DEFAULT_PORT"
+  fi
 
   case "$cmd" in
     install)
