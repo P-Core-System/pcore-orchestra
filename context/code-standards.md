@@ -81,6 +81,7 @@ node scripts/test-team-sessions.js
 node scripts/test-slot-reuse.js
 node scripts/test-team-discussion.js
 node scripts/test-session-wake.js
+node scripts/test-team-activation.js
 node scripts/test-team-roundtrip.js
 node scripts/test-learning-loop.js
 node scripts/test-request-budget.js

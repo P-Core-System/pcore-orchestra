@@ -295,3 +295,83 @@ bash scripts/session-claims.sh release "$PWD"
 Claims auto-expire after 30 min without heartbeat (`gc` purges them). Set
 `PCORE_SESSION_ID` in your session env for stable identity across shells.
 
+## Team Session Communication (WS)
+
+Team members communicate over a live WebSocket stream instead of polling.
+The HOD (`scripts/team-sessions.sh watch`) and each member run a WS client
+that receives `discussion.posted`, `wake.*`, and `done.reported` events as
+they happen — sessions never miss each other's connections.
+
+Claims made with `--server-url` (or `PCORE_OPENCODE_SERVER_URL`) also get an
+**automatic** synthetic activation on durable post/wake: each same-team
+recipient (or explicit `--to` / `wake.to` target) is activated once per event
+via `POST /api/session/{id}/synthetic`; the sender is excluded, stale/URL-less
+claims are skipped, and the flow is fail-open with an audit trail. Use
+`PCORE_TEAM_ACTIVATE=0` to disable it and keep the WS listener as the fallback.
+See `docs/team-auto-activation.md`.
+
+### Start the WS server (once, per machine)
+```bash
+node server/studio-api.js --port 3110   # binds 127.0.0.1 only
+```
+
+### Member listen (one terminal per member)
+```bash
+node scripts/team-listen.js --member <name> --team Alpha --port 3110
+```
+
+Or via the team-sessions wrapper:
+```bash
+bash scripts/team-sessions.sh watch --member <name> --team Alpha --port 3110
+```
+
+- `--types discussion.posted,wake.delivered,done.reported` — filter kinds
+- `--once N` — print N events then exit (tests)
+- `--no-snapshot` — skip reading backlog, live events only
+
+### HOD fan-out / assign (l2m star push)
+```bash
+bash scripts/team-sessions.sh discuss post --member Hod --team Alpha   --kind l2m --to John --body "Scope bundle/hooks/lib, ready for tasks"   --topic persistence
+```
+
+### Member report back (m2l star pull leg)
+```bash
+bash scripts/team-sessions.sh discuss post --member John --team Alpha   --kind m2l --to Hod --body "SHA abc1234 gates PASS" --topic persistence
+```
+
+### Member-to-member peer pair (2way)
+```bash
+bash scripts/team-sessions.sh discuss post --member John --team Alpha   --kind m2m --to Mark --body "Gateway PR ready for QA" --topic persistence
+```
+
+### Team broadcast (group)
+```bash
+bash scripts/team-sessions.sh discuss post --member Hod --team Alpha   --kind group --body "Fill-list set, stand by for assignments" --topic kickoff
+```
+
+### Wake a teammate (nudge)
+```bash
+bash scripts/team-sessions.sh wake request --member Hod --team Alpha --to John   --topic kickoff --body "Please review Mark's QA PR"
+# Target acks:
+bash scripts/team-sessions.sh wake ack --id w_xxx --member John --team Alpha
+```
+
+### Report completion (commit-discipline, invariant 26)
+Member commits on their per-member branch, then reports:
+```bash
+bash scripts/team-sessions.sh done report --member John --team Alpha   --sha abc1234def5678 --branch member/alpha/john   --summary "Gateway PR ready for QA"
+```
+
+### See all team activity
+```bash
+bash scripts/team-sessions.sh discuss list --team Alpha       # live messages
+bash scripts/team-sessions.sh wake list --team Alpha           # pending wakes
+bash scripts/team-sessions.sh done list --team Alpha           # SHA reports
+bash scripts/team-sessions.sh who --team Alpha                 # live roster
+```
+
+WS events are keyed by team — same-team `m2l`/`l2m` star legs and `group`
+broadcasts are visible to member-filtered lists; `m2m`/`l2l` stay pairwise
+private. A member filter without a team never leaks another team's star legs.
+
+

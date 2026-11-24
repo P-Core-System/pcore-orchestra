@@ -174,7 +174,27 @@ const DELIVERY_EXTRA_AGENTS = [
   "infrastructure-engineer",
 ];
 
+// --- Team auto-activation (post/wake -> OpenCode synthetic input) ---
+/** Kill switch: PCORE_TEAM_ACTIVATE=0 disables the automation entirely. */
+const TEAM_ACTIVATE_ENV = "PCORE_TEAM_ACTIVATE";
+/** Server URL override used at claim time and when sending synthetic input. */
+const TEAM_ACTIVATION_URL_ENV = "PCORE_OPENCODE_SERVER_URL";
+/** Activation audit cap per state dir (oldest trimmed first). */
+const TEAM_ACTIVATION_CAP = 500;
+/** Max characters in one synthetic activation text. */
+const TEAM_ACTIVATION_TEXT_MAX = 2000;
+/** Timeout for `opencode api` info/send calls, in milliseconds. */
+const TEAM_ACTIVATION_TIMEOUT_MS = 10000;
+/** Activation event kinds (dedupe key prefix). */
+const TEAM_ACTIVATION_EVENTS = Object.freeze(["post", "wake"]);
+
 module.exports = {
+  TEAM_ACTIVATE_ENV,
+  TEAM_ACTIVATION_URL_ENV,
+  TEAM_ACTIVATION_CAP,
+  TEAM_ACTIVATION_TEXT_MAX,
+  TEAM_ACTIVATION_TIMEOUT_MS,
+  TEAM_ACTIVATION_EVENTS,
   LIFECYCLE_MAX_EVENTS,
   MEMORY_MAX_COMPLETED,
   MEMORY_MAX_RECENT_FILES,

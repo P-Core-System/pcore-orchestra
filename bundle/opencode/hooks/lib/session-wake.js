@@ -1,51 +1,33 @@
 "use strict";
 
 /**
- * Session wake requests (Wave3 teammate nudge channel).
+ * Session wake requests (teammate nudge channel) — SQLite-primary with
+ * safe-write JSON fallback.
  *
  * A wake is a directed, attributable nudge from one live team-session slot
  * to another: `from` and `to` are claim keys (`team/member/slug/sessionId`
- * from session-claims.js), so every wake renders with a live author and a
- * live target. Wakes carry the discussion context that caused them
+ * from team-claims.js). Wakes carry the discussion context that caused them
  * (`threadId` / `messageId` / `topic` / `topology`) without mutating the
- * discussion store — the wake is a pointer, the thread stays the record.
+ * discussion store.
  *
- * Scope rule: a wake is requested only between two live slots of the SAME
- * team (fail-closed on team, fail-open on plumbing). Same-team slots pair
- * across workspaces and projects — the shared state dir is the trust root,
- * so one team's sessions always see each other. A team mismatch returns
- * `{ok:false, code:"WAKE_CROSS_SCOPE"}`, stores nothing, and appends a
- * `wake.denied` domain audit — no delivery, never a throw.
+ * Scope rule: same team only (fail-closed on team, fail-open on plumbing).
+ * Rate rule: at most WAKE_RATE_MAX (5) requested wakes per `from` claim key
+ * per rolling hour.
  *
- * Rate rule: at most WAKE_RATE_MAX (5) requested wakes per `from` claim
- * key per rolling hour; the excess returns `{ok:false,
- * code:"WAKE_THROTTLED"}` with a `wake.throttled` event. Delivery is
- * same-box file state, so a passed request is stored `delivered` at once
- * (`wake.requested` + `wake.delivered` domain events, fail-open).
- *
- * Storage: `<state>/team-wakes.jsonl` — always the shared team dir
- * (carve-out from invariants 30/31: nudges need one shared inbox across
- * sessions; conductor runs and domain events stay partitioned).
- * `worktreePath` is accepted for legacy import only: a pre-unify
- * `<worktree>/.pcore/state/team-wakes.jsonl` is merged into reads
- * (shared wins on id conflict), writes always go shared.
- * lines (oldest trimmed first). Every write goes through safe-write.js
- * (withLock + atomicWrite) — never raw fs writes on shared state
- * (invariant 15). Bad lines read as skipped, never fatal.
- *
- * Triggers (all fail-open, never throw): discussion `@mention` wakes
- * (`triggerWakesForDiscussion`), dispatch-grant assign wakes
- * (`triggerWakeForGrant`), and phase-outcome block/escalate wakes to the
- * team leader/HOD (`wakeForPhaseOutcome`, called from
- * `recordPhaseOutcome` via a lazy guarded require).
+ * SQLite-primary: wakes live in the `wakes` table partitioned by
+ * `project_slug`. Safe-write JSON fallback writes `team-wakes.jsonl` via
+ * safe-write.js when SQLite is unavailable.
  */
 
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { withLock, atomicWrite, resolveStateDir } = require("./safe-write.js");
+const { getDb, resolveProjectSlug } = require("./session-store.js");
+const claims = require("./team-claims.js");
+const { withLock, readJsonSafe, writeJson, resolveStateDir } = require("./safe-write.js");
+const { activateEvent } = require("./team-activation.js");
 
-/** Ring cap for the wakes JSONL file: oldest lines trimmed first. */
+/** Ring cap for wakes per project. */
 const WAKE_CAP = 500;
 
 /** Max requested wakes per `from` claim key per rolling hour. */
@@ -54,42 +36,31 @@ const WAKE_RATE_MAX = 5;
 /** Rolling rate window: one hour in milliseconds. */
 const WAKE_RATE_WINDOW_MS = 60 * 60 * 1000;
 
-const WAKES_FILE = "team-wakes.jsonl";
-
-/** Deny code when from/to slots span workspaces or projects (no delivery). */
+/** Deny codes. */
 const WAKE_CROSS_SCOPE = "WAKE_CROSS_SCOPE";
-
-/** Deny code when either slot holds no live claim. */
 const WAKE_NO_CLAIM = "WAKE_NO_CLAIM";
-
-/** Deny code when the acker is not the wake target. */
 const WAKE_DENIED = "WAKE_DENIED";
-
-/** Deny code when the sender exceeded the hourly rate ring. */
 const WAKE_THROTTLED = "WAKE_THROTTLED";
 
-let seq = 0;
+const WAKES_FILE = "team-wakes.jsonl";
 
-/** Default shared state dir (alongside the other state writers). */
+let _seq = 0;
+
 function defaultStateDir() {
   return path.join(os.homedir(), ".config", "opencode", "hooks", "state");
 }
 
-/** Resolved state dir: always the shared team dir (worktreePath is legacy-import only). */
-function wakesDir(worktreePath) {
-  void worktreePath;
-  return resolveStateDir(defaultStateDir());
+function resolveStateDir_() {
+  const dir = process.env.PCORE_STATE_DIR;
+  if (dir && typeof dir === "string" && dir.length > 0) return dir;
+  return defaultStateDir();
 }
 
-function wakesFile(worktreePath) {
-  return path.join(wakesDir(worktreePath), WAKES_FILE);
+function wakesFile() {
+  return path.join(resolveStateDir_(), WAKES_FILE);
 }
 
-/**
- * Legacy worktree-partitioned wakes file (pre-unify layout). Read for
- * import only — writes never target it.
- * @returns {string|null} legacy file path, or null without a worktree
- */
+/** Legacy pre-unify wake file (read-only import). Null without a worktree. */
 function legacyWakesFile(worktreePath) {
   if (worktreePath && typeof worktreePath === "string" && worktreePath.length > 0) {
     return path.join(worktreePath, ".pcore", "state", WAKES_FILE);
@@ -97,23 +68,12 @@ function legacyWakesFile(worktreePath) {
   return null;
 }
 
-function ensureWakesDir(file) {
-  try {
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-  } catch {
-    /* best effort — safe-write surfaces a real error */
-  }
-}
-
-/** Sortable wake id: `w_<time36><seq><rand>`. */
 function newWakeId() {
-  seq += 1;
+  _seq += 1;
   const rand = Math.random().toString(36).slice(2, 8);
-  return `w_${Date.now().toString(36)}${seq.toString(36)}${rand}`;
+  return `w_${Date.now().toString(36)}${_seq.toString(36)}${rand}`;
 }
 
-/** Lowercase slug form (mirrors session-claims.sanitizeName; kept inline so
- * this module stays dependency-light at load). */
 function sanitizeWakeToken(raw) {
   if (raw === undefined || raw === null) return "";
   return String(raw)
@@ -123,59 +83,31 @@ function sanitizeWakeToken(raw) {
     .replace(/^-+|-+$/g, "");
 }
 
-/** Member slug of a claim key (`team/member/slug/session`). */
 function memberOfClaimKey(claimKey) {
   const parts = String(claimKey || "").split("/");
   return sanitizeWakeToken(parts[1] || "");
 }
 
-/** Team slug of a claim key. */
 function teamOfClaimKey(claimKey) {
   const parts = String(claimKey || "").split("/");
   return sanitizeWakeToken(parts[0] || "");
 }
 
-/**
- * True when the claim record is live (present + heartbeat inside the
- * threshold). Pure; a null claim is never live.
- */
 function isLiveClaim(claim, staleMs) {
   if (!claim || typeof claim !== "object") return false;
-  try {
-    const claims = require("./session-claims.js");
-    return !claims.isStaleClaim(claim, Date.now(), staleMs);
-  } catch {
-    return false;
-  }
+  return !claims.isStaleClaim(claim, Date.now(), staleMs);
 }
 
-/**
- * Project slug for a workspace root, read from `<root>/project.yaml`.
- * Fail-open: null when missing/unreadable — the scope check then compares
- * workspace slugs only.
- */
-function resolveProjectSlug(workspaceRoot) {
-  if (!workspaceRoot || typeof workspaceRoot !== "string") return null;
-  try {
-    const identity = require("./project-identity.js");
-    if (!identity || typeof identity.loadProjectIdentity !== "function") return null;
-    const loaded = identity.loadProjectIdentity(workspaceRoot);
-    const slug = loaded && loaded.project && loaded.project.slug;
-    return typeof slug === "string" && slug ? slug : null;
-  } catch {
-    return null;
-  }
+function resolveProjectSlug_(workspaceRoot) {
+  return resolveProjectSlug(workspaceRoot);
 }
 
-/**
- * Build (but do not store) a wake record. Pure: no fs, no clock beyond the
- * timestamp it stamps. Throws on empty from/to.
- */
+/** Build (but do not store) a wake record. Pure. Throws on empty from/to. */
 function buildWake(input) {
   const o = input || {};
   const from = String(o.from || "");
   const to = String(o.to || "");
-  if (!from) throw new Error("session-wake: request needs a live author claim (--member/--team claim first)");
+  if (!from) throw new Error("session-wake: request needs a live author claim");
   if (!to) throw new Error("session-wake: request needs a live target claim");
   const now = new Date().toISOString();
   return {
@@ -199,7 +131,6 @@ function buildWake(input) {
   };
 }
 
-/** Parse one JSONL line; null when blank/torn/non-wake. Never throws. */
 function parseWakeLine(line) {
   const s = String(line).trim();
   if (!s) return null;
@@ -212,54 +143,61 @@ function parseWakeLine(line) {
   }
 }
 
-/** Read raw lines of a wakes file; missing/unreadable -> []. */
-function readWakeLines(file) {
+function readWakeLinesFile() {
   let raw = "";
-  try {
-    raw = fs.readFileSync(file, "utf8");
-  } catch {
-    return [];
-  }
+  try { raw = fs.readFileSync(wakesFile(), "utf8"); } catch { return []; }
   return String(raw).split("\n");
 }
 
-/**
- * Read all wakes (tolerant: bad lines skipped); corrupt/missing -> [].
- * With worktreePath, a legacy worktree-partitioned file is merged in
- * (shared wins on id conflict) so pre-unify nudges stay visible.
- */
-function readAll(worktreePath) {
+function readAllWakesJson(worktreePath) {
   const seen = new Set();
   const out = [];
-  const push = (w) => {
-    if (w && !seen.has(w.id)) {
-      seen.add(w.id);
-      out.push(w);
-    }
-  };
-  for (const line of readWakeLines(wakesFile(worktreePath))) {
-    const w = parseWakeLine(line);
-    if (w) push(w);
-  }
+  const push = (w) => { if (w && !seen.has(w.id)) { seen.add(w.id); out.push(w); } };
+  for (const line of readWakeLinesFile()) push(parseWakeLine(line));
   const legacy = legacyWakesFile(worktreePath);
   if (legacy) {
-    for (const line of readWakeLines(legacy)) {
-      const w = parseWakeLine(line);
-      if (w) push(w);
-    }
+    try {
+      for (const line of String(fs.readFileSync(legacy, "utf8")).split(/\r?\n/)) {
+        push(parseWakeLine(line));
+      }
+    } catch { /* legacy file absent — fail-open */ }
   }
   return out;
 }
 
-/** Serialize + ring-cap (keep newest). Pure. */
-function capLines(wakes, cap) {
+function capLinesJson(wakes, cap) {
   const list = Array.isArray(wakes) ? wakes : [];
   const n = Number.isInteger(cap) && cap > 0 ? cap : WAKE_CAP;
   const kept = list.length > n ? list.slice(list.length - n) : list.slice();
   return kept.map((w) => JSON.stringify(w)).join("\n") + (kept.length > 0 ? "\n" : "");
 }
 
-/** Requested wakes by one author inside the rolling hour. Pure. */
+/** Fail-open activation of the wake recipient after durable delivery. */
+function activateForWake(wake, o) {
+  try {
+    const targetClaim = claims.getClaim(wake.to);
+    return activateEvent("wake", wake, {
+      workspace: (o && o.workspace) || (targetClaim && targetClaim.workspace) || wake.workspaceSlug || undefined,
+      worktreePath: o && o.worktreePath,
+      senderSessionId: (o && o.sessionId) || undefined,
+    });
+  } catch {
+    return null;
+  }
+}
+
+/** Fail-open domain emit: wake.requested/delivered/denied/throttled. */
+function emitWakeOutcome(wake, action) {
+  try {
+    const domain = require("./domain/index.js");
+    if (domain && typeof domain.recordWakeOutcome === "function") {
+      return domain.recordWakeOutcome(wake, action);
+    }
+  } catch { /* fail-open */ }
+  return null;
+}
+
+/** Rate count for one author inside the rolling hour (pure). */
 function rateCount(wakes, fromClaimKey, nowMs) {
   const now = Number.isFinite(nowMs) ? nowMs : Date.now();
   let n = 0;
@@ -271,98 +209,64 @@ function rateCount(wakes, fromClaimKey, nowMs) {
   return n;
 }
 
-/** Fail-open domain emit: wake.requested/delivered/denied/throttled. */
-function emitWakeOutcome(wake, action, worktreePath) {
-  try {
-    const domain = require("./domain/index.js");
-    if (domain && typeof domain.recordWakeOutcome === "function") {
-      return domain.recordWakeOutcome(wake, action, worktreePath);
-    }
-  } catch {
-    /* fail-open — the wake store is the record, the domain log is bonus */
-  }
-  return null;
-}
-
-/**
- * Resolve an identity (claim object, claim key, or {member, team, ...})
- * to a live claim record. Returns null when missing or stale.
- */
-function resolveLiveClaim(ref, worktreePath, staleMs) {
-  let claims = null;
-  try {
-    claims = require("./session-claims.js");
-  } catch {
-    return null;
-  }
+/** Resolve an identity to a live claim record via team-claims (SQLite or JSON fallback). */
+function resolveLiveClaim(ref, staleMs, opts) {
+  const o = opts && typeof opts === "object" ? opts : {};
   let claim = null;
   try {
     if (typeof ref === "string" && ref.indexOf("/") !== -1) {
-      claim = claims.getClaim(ref, worktreePath);
+      claim = claims.getClaim(ref);
     } else if (ref && typeof ref === "object" && typeof ref.claimKey === "string") {
-      claim = claims.getClaim(ref.claimKey, worktreePath);
+      claim = claims.getClaim(ref.claimKey);
     } else if (ref && typeof ref === "object") {
-      claim = claims.findClaim(Object.assign({}, ref, { worktreePath }));
-      if (claim && ref.worktreePath === undefined && worktreePath !== undefined) {
-        claim = claims.getClaim(claim.claimKey, worktreePath);
-      }
+      claim = claims.findClaim(Object.assign({}, ref, { workspace: ref.workspace || o.workspace }));
     } else if (typeof ref === "string") {
-      const live = typeof claims.listClaims === "function"
-        ? claims.listClaims({ worktreePath, includeStale: true })
-        : [];
       const want = sanitizeWakeToken(ref);
-      claim = live.find((c) => c && sanitizeWakeToken(c.member) === want) || null;
+      // Bare member names must resolve inside the caller's project. listClaims()
+      // partitions by project_slug, so an unscoped scan misses cross-project
+      // teammates (e.g. the CLI `wake request --to bob` path).
+      claim = (typeof claims.findLiveSlot === "function"
+        ? claims.findLiveSlot({ member: want, team: o.team, workspace: o.workspace,
+            includeStale: true, staleMs })
+        : null) || null;
+      if (!claim) {
+        const live = claims.listClaims({ includeStale: true, workspace: o.workspace, staleMs });
+        claim = live.find((c) => c && sanitizeWakeToken(c.member) === want) || null;
+      }
     }
-  } catch {
-    return null;
-  }
+  } catch { return null; }
   if (!claim || claims.isStaleClaim(claim, Date.now(), staleMs)) return null;
   return claim;
 }
 
 /**
  * Request a wake from one live slot to another.
- *
- * Same team only: a team mismatch returns
- * `{ok:false, code:WAKE_CROSS_SCOPE}` with a `wake.denied` audit and no
- * delivery. Missing/stale slots return `{ok:false, code:WAKE_NO_CLAIM}`.
- * Past WAKE_RATE_MAX requests/hour from the same author returns
- * `{ok:false, code:WAKE_THROTTLED}`. Never throws — every denial is a
- * value, and domain emits are fail-open.
- *
- * @param {object} opts {from, to, team?, worktreePath?, workspace?,
- *   projectSlug?, topic?, threadId?, messageId?, topology?, reason?, staleMs?}
- * @returns {{ok:boolean, code?:string, wake?:object, detail?:string}}
+ * Returns {ok:true, wake} or {ok:false, code}. Never throws.
  */
 function requestWake(opts) {
   const o = opts && typeof opts === "object" ? opts : {};
-  const worktreePath = typeof o.worktreePath === "string" ? o.worktreePath : undefined;
   const staleMs = Number.isFinite(o.staleMs) ? o.staleMs : undefined;
   let fromClaim = null;
   let toClaim = null;
   try {
-    fromClaim = resolveLiveClaim(o.from, worktreePath, staleMs);
+    fromClaim = resolveLiveClaim(o.from, staleMs, o);
     if (!fromClaim && o.from !== undefined) {
-      const claims = require("./session-claims.js");
       const ident = o.fromIdentity && typeof o.fromIdentity === "object" ? o.fromIdentity : {};
       fromClaim = resolveLiveClaim(Object.assign({}, ident, {
         workspace: o.workspace || ident.workspace,
         sessionId: o.sessionId || ident.sessionId,
-        worktreePath,
-      }), worktreePath, staleMs);
+      }), staleMs);
     }
-    toClaim = resolveLiveClaim(
-      o.to !== undefined ? o.to : null, worktreePath, staleMs
-    );
+    toClaim = resolveLiveClaim(o.to !== undefined ? o.to : null, staleMs, o);
     if (!toClaim && (o.toMember || o.member)) {
-      toClaim = resolveLiveClaim({ member: o.toMember || o.member, team: o.team, worktreePath }, worktreePath, staleMs);
+      toClaim = resolveLiveClaim({ member: o.toMember || o.member, team: o.team, workspace: o.workspace }, staleMs, o);
     }
   } catch {
     return { ok: false, code: WAKE_NO_CLAIM, detail: "lookup-failed" };
   }
   if (!fromClaim) return { ok: false, code: WAKE_NO_CLAIM, detail: "from" };
   if (!toClaim) {
-    emitWakeOutcome({ id: null, from: claimKeyOf(o.from), to: claimKeyOf(o.to), team: teamOfClaimKey(claimKeyOf(o.to)) || null, reason: "no-live-target" }, "denied", worktreePath);
+    emitWakeOutcome({ id: null, from: claimKeyOf(o.from), to: claimKeyOf(o.to), team: teamOfClaimKey(claimKeyOf(o.to)) || null, reason: "no-live-target" }, "denied");
     return { ok: false, code: WAKE_NO_CLAIM, detail: "to" };
   }
 
@@ -372,8 +276,8 @@ function requestWake(opts) {
   // unteamed (solo) slots pair only in the same workspace, as before.
   const fromWs = fromClaim.workspaceSlug || null;
   const toWs = toClaim.workspaceSlug || null;
-  const fromProj = resolveProjectSlug(fromClaim.workspace) || (typeof o.projectSlug === "string" ? o.projectSlug : null);
-  const toProj = resolveProjectSlug(toClaim.workspace) || null;
+  const fromProj = resolveProjectSlug_(fromClaim.workspace) || (typeof o.projectSlug === "string" ? o.projectSlug : null);
+  const toProj = resolveProjectSlug_(toClaim.workspace) || null;
   const fromTeam = sanitizeWakeToken(fromClaim.teamId || fromClaim.team);
   const toTeam = sanitizeWakeToken(toClaim.teamId || toClaim.team);
   const sameTeam = !!fromTeam && fromTeam === toTeam;
@@ -384,34 +288,88 @@ function requestWake(opts) {
     emitWakeOutcome({
       id: null, from: fromClaim.claimKey, to: toClaim.claimKey,
       team: toClaim.teamId || toClaim.team || null, reason: WAKE_CROSS_SCOPE,
-    }, "denied", worktreePath);
+    }, "denied");
     return { ok: false, code: WAKE_CROSS_SCOPE, detail: crossProject ? "project" : (crossWorkspace ? "workspace" : "team") };
   }
 
-  // Rate ring: at most WAKE_RATE_MAX requested wakes per author per hour.
-  const file = wakesFile(worktreePath);
-  ensureWakesDir(file);
+  const db = getDb();
+  if (db) {
+    // Rate ring via SQLite
+    const rows = db.prepare(`SELECT created_at FROM wakes WHERE from_claim = @from AND project_slug = @projectSlug`)
+      .all({ from: fromClaim.claimKey, projectSlug: fromProj || "root" });
+    const now = Date.now();
+    let n = 0;
+    for (const r of rows) {
+      const at = Date.parse(r.created_at || "");
+      if (!Number.isNaN(at) && now - at < WAKE_RATE_WINDOW_MS) n += 1;
+    }
+    if (n >= WAKE_RATE_MAX) {
+      emitWakeOutcome({ id: null, from: fromClaim.claimKey, to: toClaim.claimKey, team: toClaim.teamId || toClaim.team || null, reason: WAKE_THROTTLED }, "throttled");
+      return { ok: false, code: WAKE_THROTTLED };
+    }
+
+    let wake = null;
+    try {
+      wake = buildWake({
+        from: fromClaim.claimKey, to: toClaim.claimKey,
+        fromMember: fromClaim.member, toMember: toClaim.member,
+        team: sanitizeWakeToken(o.team) || toClaim.teamId || toClaim.team || teamOfClaimKey(toClaim.claimKey),
+        topic: typeof o.topic === "string" ? o.topic : null,
+        threadId: typeof o.threadId === "string" ? o.threadId : (typeof o.topic === "string" ? o.topic : null),
+        messageId: typeof o.messageId === "string" ? o.messageId : null,
+        topology: typeof o.topology === "string" ? o.topology : null,
+        reason: typeof o.reason === "string" ? o.reason : "nudge",
+        projectSlug: fromProj,
+        workspaceSlug: fromWs,
+      });
+    } catch {
+      return { ok: false, code: WAKE_NO_CLAIM, detail: "build-failed" };
+    }
+
+    try {
+      db.prepare(`
+        INSERT INTO wakes (
+          id, project_slug, from_claim, to_claim, from_member, to_member, team,
+          topic, thread_id, message_id, topology, reason, workspace_slug,
+          status, created_at, acked_at, acked_by
+        ) VALUES (
+          @id, @projectSlug, @from, @to, @fromMember, @toMember, @team,
+          @topic, @threadId, @messageId, @topology, @reason, @workspaceSlug,
+          @status, @createdAt, @ackedAt, @ackedBy
+        )
+      `).run({
+        id: wake.id, projectSlug: wake.projectSlug || "root", from: wake.from, to: wake.to,
+        fromMember: wake.fromMember, toMember: wake.toMember, team: wake.team,
+        topic: wake.topic, threadId: wake.threadId, messageId: wake.messageId,
+        topology: wake.topology, reason: wake.reason, workspaceSlug: wake.workspaceSlug,
+        status: wake.status, createdAt: wake.createdAt, ackedAt: wake.ackedAt, ackedBy: wake.ackedBy,
+      });
+      // Enforce ring cap
+      pruneCapSqlite(db, wake.projectSlug || "root");
+    } catch {
+      return { ok: false, code: WAKE_NO_CLAIM, detail: "store-failed" };
+    }
+    emitWakeOutcome(wake, "requested");
+    emitWakeOutcome(wake, "delivered");
+    activateForWake(wake, o);
+    return { ok: true, wake };
+  }
+
+  // JSON fallback path
   let current = [];
-  try {
-    current = readAll(worktreePath);
-  } catch {
+  try { current = readAllWakesJson(); } catch {
     return { ok: false, code: WAKE_NO_CLAIM, detail: "read-failed" };
   }
   if (rateCount(current, fromClaim.claimKey, Date.now()) >= WAKE_RATE_MAX) {
-    emitWakeOutcome({
-      id: null, from: fromClaim.claimKey, to: toClaim.claimKey,
-      team: toClaim.teamId || toClaim.team || null, reason: WAKE_THROTTLED,
-    }, "throttled", worktreePath);
+    emitWakeOutcome({ id: null, from: fromClaim.claimKey, to: toClaim.claimKey, team: toClaim.teamId || toClaim.team || null, reason: WAKE_THROTTLED }, "throttled");
     return { ok: false, code: WAKE_THROTTLED };
   }
 
   let wake = null;
   try {
     wake = buildWake({
-      from: fromClaim.claimKey,
-      to: toClaim.claimKey,
-      fromMember: fromClaim.member,
-      toMember: toClaim.member,
+      from: fromClaim.claimKey, to: toClaim.claimKey,
+      fromMember: fromClaim.member, toMember: toClaim.member,
       team: sanitizeWakeToken(o.team) || toClaim.teamId || toClaim.team || teamOfClaimKey(toClaim.claimKey),
       topic: typeof o.topic === "string" ? o.topic : null,
       threadId: typeof o.threadId === "string" ? o.threadId : (typeof o.topic === "string" ? o.topic : null),
@@ -425,48 +383,87 @@ function requestWake(opts) {
     return { ok: false, code: WAKE_NO_CLAIM, detail: "build-failed" };
   }
   try {
-    withLock(file, () => {
-      const live = readAll(worktreePath);
+    withLock(wakesFile(), () => {
+      const live = readAllWakesJson();
       live.push(wake);
-      atomicWrite(file, capLines(live));
+      const capped = live.slice(-WAKE_CAP);
+      writeJson(wakesFile(), capped.map((w) => JSON.stringify(w)).join("\n") + (capped.length > 0 ? "\n" : ""));
     }, {});
   } catch {
     return { ok: false, code: WAKE_NO_CLAIM, detail: "store-failed" };
   }
-  emitWakeOutcome(wake, "requested", worktreePath);
-  emitWakeOutcome(wake, "delivered", worktreePath);
+  emitWakeOutcome(wake, "requested");
+  emitWakeOutcome(wake, "delivered");
+  activateForWake(wake, o);
   return { ok: true, wake };
 }
 
-/** Best-effort claim-key string for audit payloads (never throws). */
+function pruneCapSqlite(db, projectSlug) {
+  const rows = db.prepare(`SELECT id, created_at FROM wakes WHERE project_slug = @projectSlug ORDER BY created_at DESC`)
+    .all({ projectSlug });
+  if (rows.length > WAKE_CAP) {
+    for (const r of rows.slice(WAKE_CAP)) {
+      db.prepare(`DELETE FROM wakes WHERE id = @id AND project_slug = @projectSlug`).run({ id: r.id, projectSlug });
+    }
+  }
+}
+
 function claimKeyOf(ref) {
   try {
     if (typeof ref === "string") return ref;
     if (ref && typeof ref === "object" && typeof ref.claimKey === "string") return ref.claimKey;
-  } catch {
-    /* fall through */
-  }
+  } catch { /* fall through */ }
   return null;
 }
 
-/**
- * List wakes matching a filter (see matchWakeFilter), oldest first.
- * @param {object} [filter] {member, team, topic, threadId, includeAcked}
- * @param {string} [worktreePath]
- */
+/** List wakes matching a filter, oldest first. */
 function listWakes(filter, worktreePath) {
-  if (filter && typeof filter === "object" && typeof filter.worktreePath === "string" && worktreePath === undefined) {
-    worktreePath = filter.worktreePath;
+  const f = filter && typeof filter === "object" ? filter : {};
+  const db = getDb();
+  if (db) {
+    let sql = `SELECT * FROM wakes`;
+    const params = {};
+    const clauses = [];
+    if (typeof f.projectSlug === "string" && f.projectSlug) {
+      clauses.push(`project_slug = @projectSlug`); params.projectSlug = f.projectSlug;
+    }
+    if (typeof f.team === "string" && f.team) {
+      clauses.push(`team = @team`);
+      params.team = sanitizeWakeToken(f.team); // CLI may pass "Team-Sea"; stored is "team-sea"
+    }
+    if (typeof f.topic === "string" && f.topic) { clauses.push(`topic LIKE @topic`); params.topic = `%${f.topic}%`; }
+    if (typeof f.threadId === "string" && f.threadId) { clauses.push(`thread_id = @threadId`); params.threadId = f.threadId; }
+    if (clauses.length > 0) sql += ` WHERE ` + clauses.join(` AND `);
+    sql += ` ORDER BY created_at ASC`;
+    const rows = db.prepare(sql).all(params);
+    const out = rows.map((r) => wakeRowToRecord(r)).filter((w) => matchWakeFilter(w, f));
+    // Merge read-only legacy wakes from a worktree (pre-unify import).
+    if (legacyWakesFile(worktreePath)) {
+      const seen = new Set(out.map((w) => w.id));
+      for (const w of readAllWakesJson(worktreePath)) {
+        if (!seen.has(w.id) && matchWakeFilter(w, f)) { seen.add(w.id); out.push(w); }
+      }
+      out.sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+    }
+    return out;
   }
-  return readAll(worktreePath).filter((w) => matchWakeFilter(w, filter));
+  const wakes = readAllWakesJson(worktreePath);
+  return wakes.filter((w) => matchWakeFilter(w, f));
 }
 
-/**
- * Pure filter predicate for one wake. All fields optional: member matches
- * either endpoint's member slug, team/topic/threadId substring-or-exact
- * match, includeAcked (default hides acked). Never throws; null never
- * matches.
- */
+function wakeRowToRecord(rec) {
+  if (!rec) return null;
+  return {
+    id: rec.id, from: rec.from_claim, to: rec.to_claim,
+    fromMember: rec.from_member, toMember: rec.to_member, team: rec.team,
+    topic: rec.topic, threadId: rec.thread_id, messageId: rec.message_id,
+    topology: rec.topology, reason: rec.reason, projectSlug: rec.project_slug,
+    workspaceSlug: rec.workspace_slug, status: rec.status,
+    createdAt: rec.created_at, ackedAt: rec.acked_at, ackedBy: rec.acked_by,
+  };
+}
+
+/** Pure filter predicate for one wake. */
 function matchWakeFilter(wake, filter) {
   if (!wake || typeof wake !== "object") return false;
   const f = filter && typeof filter === "object" ? filter : {};
@@ -485,42 +482,48 @@ function matchWakeFilter(wake, filter) {
   return true;
 }
 
-/**
- * Acknowledge a wake. Only the target slot's holder can ack (same member
- * identity, live claim); anyone else gets `{ok:false, code:WAKE_DENIED}`.
- * Never throws.
- * @returns {{ok:boolean, code?:string, wake?:object}}
- */
-function ackWake(id, opts, worktreePath) {
+/** Acknowledge a wake. Only the target slot's holder can ack. Never throws. */
+function ackWake(id, opts) {
   const o = opts && typeof opts === "object" ? opts : {};
-  if (o && typeof o.worktreePath === "string" && worktreePath === undefined) worktreePath = o.worktreePath;
   if (!id) return { ok: false, code: WAKE_DENIED, detail: "no-id" };
-  const file = wakesFile(worktreePath);
-  ensureWakesDir(file);
   let acker = null;
   try {
-    acker = resolveLiveClaim(o.by !== undefined ? o.by : null, worktreePath, o.staleMs);
+    acker = resolveLiveClaim(o.by !== undefined ? o.by : null, o.staleMs, o);
     if (!acker && (o.member || o.claimKey)) {
-      acker = resolveLiveClaim(Object.assign({}, o, { worktreePath }), worktreePath, o.staleMs);
+      acker = resolveLiveClaim(Object.assign({}, o), o.staleMs, o);
     }
   } catch {
     return { ok: false, code: WAKE_DENIED, detail: "lookup-failed" };
   }
   if (!acker) return { ok: false, code: WAKE_DENIED, detail: "no-live-acker" };
+
+  const db = getDb();
+  if (db) {
+    const row = db.prepare(`SELECT * FROM wakes WHERE id = @id`).get({ id });
+    if (!row) return { ok: false, code: WAKE_DENIED, detail: "WAKE_UNKNOWN" };
+    const wake = wakeRowToRecord(row);
+    if (acker.claimKey !== wake.to &&
+      memberOfClaimKey(wake.to) !== sanitizeWakeToken(acker.member) &&
+      sanitizeWakeToken(wake.toMember) !== sanitizeWakeToken(acker.member)) {
+      return { ok: false, code: WAKE_DENIED, detail: "not-target" };
+    }
+    const now = new Date().toISOString();
+    db.prepare(`
+      UPDATE wakes SET status = 'acked', acked_at = @ackedAt, acked_by = @ackedBy
+      WHERE id = @id
+    `).run({ ackedAt: now, ackedBy: acker.claimKey, id });
+    return { ok: true, wake: Object.assign({}, wake, { status: "acked", ackedAt: now, ackedBy: acker.claimKey }) };
+  }
+
+  // JSON fallback
   let updated = null;
   let denied = WAKE_DENIED;
   try {
-    withLock(file, () => {
-      const current = readAll(worktreePath);
+    withLock(wakesFile(), () => {
+      const current = readAllWakesJson();
       const idx = current.findIndex((w) => w && w.id === id);
-      if (idx === -1) {
-        denied = "WAKE_UNKNOWN";
-        return;
-      }
+      if (idx === -1) { denied = "WAKE_UNKNOWN"; return; }
       const wake = current[idx];
-      // Holder-first: the exact target slot acks outright. Otherwise the
-      // same-member fallback still acks (a renewed slot keeps its key, so
-      // the exact hit is the common path; the fallback covers siblings).
       if (acker.claimKey !== wake.to &&
         memberOfClaimKey(wake.to) !== sanitizeWakeToken(acker.member) &&
         sanitizeWakeToken(wake.toMember) !== sanitizeWakeToken(acker.member)) {
@@ -529,7 +532,7 @@ function ackWake(id, opts, worktreePath) {
       const now = new Date().toISOString();
       current[idx] = Object.assign({}, wake, { status: "acked", ackedAt: now, ackedBy: acker.claimKey });
       updated = current[idx];
-      atomicWrite(file, capLines(current));
+      writeJson(wakesFile(), current.map((w) => JSON.stringify(w)).join("\n") + (current.length > 0 ? "\n" : ""));
     }, {});
   } catch {
     return { ok: false, code: WAKE_DENIED, detail: "store-failed" };
@@ -538,10 +541,7 @@ function ackWake(id, opts, worktreePath) {
   return { ok: true, wake: updated };
 }
 
-/**
- * Extract `@member` mentions from a discussion body. Returns unique
- * lowercase member slugs in first-seen order; never throws.
- */
+/** Extract `@member` mentions from a discussion body. */
 function parseMentions(body) {
   const out = [];
   const seen = new Set();
@@ -550,20 +550,12 @@ function parseMentions(body) {
   let m = null;
   while ((m = re.exec(text)) !== null) {
     const slug = sanitizeWakeToken(m[2]);
-    if (slug && !seen.has(slug)) {
-      seen.add(slug);
-      out.push(slug);
-    }
+    if (slug && !seen.has(slug)) { seen.add(slug); out.push(slug); }
   }
   return out;
 }
 
-/**
- * Discussion-post trigger: every `@member` in the message body (except the
- * author) gets a wake carrying the message's thread context
- * (threadId/topic/messageId/topology). Fail-open: returns an array of
- * `{mention, result}` (empty when no mentions); never throws.
- */
+/** Discussion-post trigger: every @member gets a wake. Fail-open. */
 function triggerWakesForDiscussion(msg, opts) {
   try {
     const o = opts && typeof opts === "object" ? opts : {};
@@ -571,41 +563,25 @@ function triggerWakesForDiscussion(msg, opts) {
     const mentions = parseMentions(msg.body);
     if (mentions.length === 0) return [];
     const authorMember = memberOfClaimKey(msg.from);
-    const worktreePath = typeof o.worktreePath === "string" ? o.worktreePath : undefined;
     const out = [];
     for (const mention of mentions) {
       if (mention === authorMember) continue;
       let result = null;
       try {
         result = requestWake({
-          from: msg.from,
-          to: mention,
-          team: msg.team,
-          topic: msg.topic,
-          threadId: msg.threadId || msg.topic,
-          messageId: msg.id,
-          topology: msg.topology,
-          reason: "mention",
-          workspace: o.workspace,
-          worktreePath,
+          from: msg.from, to: mention, team: msg.team, topic: msg.topic,
+          threadId: msg.threadId || msg.topic, messageId: msg.id,
+          topology: msg.topology, reason: "mention",
+          workspace: o.workspace, worktreePath: o.worktreePath,
         });
-      } catch {
-        result = { ok: false, code: WAKE_NO_CLAIM, detail: "trigger-failed" };
-      }
+      } catch { result = { ok: false, code: WAKE_NO_CLAIM, detail: "trigger-failed" }; }
       out.push({ mention, result });
     }
     return out;
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
-/**
- * Dispatch-grant trigger: a granted backlog item wakes the assignee
- * (`reason: "assign"`). `opts.from` (the dispatching leader's claim or
- * identity) is required — without an attributable author the wake is
- * skipped fail-open. Never throws.
- */
+/** Dispatch-grant trigger: a granted backlog item wakes the assignee. */
 function triggerWakeForGrant(grant, opts) {
   try {
     const o = opts && typeof opts === "object" ? opts : {};
@@ -614,30 +590,16 @@ function triggerWakeForGrant(grant, opts) {
     const member = typeof grant.member === "string" ? grant.member : null;
     if (!member) return null;
     return requestWake({
-      from: o.from,
-      to: member,
-      team: grant.team,
-      topic: o.topic || null,
-      threadId: o.threadId || o.topic || null,
-      messageId: o.messageId || null,
-      topology: o.topology || null,
-      reason: "assign",
-      workspace: o.workspace,
+      from: o.from, to: member, team: grant.team, topic: o.topic || null,
+      threadId: o.threadId || o.topic || null, messageId: o.messageId || null,
+      topology: o.topology || null, reason: "assign", workspace: o.workspace,
       worktreePath: typeof o.worktreePath === "string" ? o.worktreePath : undefined,
     });
-  } catch {
-    return { ok: false, code: WAKE_NO_CLAIM, detail: "trigger-failed" };
-  }
+  } catch { return { ok: false, code: WAKE_NO_CLAIM, detail: "trigger-failed" }; }
 }
 
-/**
- * Phase-outcome trigger: a `block` / `needs_human` outcome wakes the team's
- * leader/HOD slot so a person triages the stall. `from` is the run's own
- * claim context (`state.claimKey` / `outcome.claimKey`); without an
- * attributable author or a live leader slot there is no wake (null,
- * fail-open). Never throws.
- */
-function wakeForPhaseOutcome(state, outcome, worktreePath) {
+/** Phase-outcome trigger: block/needs_human wakes the team leader/HOD. */
+function wakeForPhaseOutcome(state, outcome) {
   try {
     const s = state && typeof state === "object" ? state : {};
     const oc = outcome && typeof outcome === "object" ? outcome : {};
@@ -646,16 +608,10 @@ function wakeForPhaseOutcome(state, outcome, worktreePath) {
     if (!needsHuman) return null;
     const fromRef = s.claimKey || oc.claimKey || null;
     if (!fromRef) return null;
-    const fromClaim = resolveLiveClaim(fromRef, worktreePath);
+    const fromClaim = resolveLiveClaim(fromRef);
     if (!fromClaim) return null;
     const team = sanitizeWakeToken(oc.team || s.team || fromClaim.teamId || fromClaim.team) || null;
-    let claims = null;
-    try {
-      claims = require("./session-claims.js");
-    } catch {
-      return null;
-    }
-    const live = claims.listClaims({ worktreePath });
+    const live = claims.listClaims({ workspace: fromClaim.workspace, includeStale: false });
     const leaders = live
       .filter((c) => c && (c.role === "leader" || c.role === "hod") &&
         (!team || sanitizeWakeToken(c.teamId || c.team) === team) &&
@@ -665,52 +621,27 @@ function wakeForPhaseOutcome(state, outcome, worktreePath) {
     const to = leaders[0];
     if (to.claimKey === fromClaim.claimKey) return null;
     const res = requestWake({
-      from: fromClaim.claimKey,
-      to: to.claimKey,
-      team: team,
-      topic: oc.phase || s.currentPhase || null,
-      threadId: null,
-      messageId: null,
-      topology: null,
-      reason: "escalate",
+      from: fromClaim.claimKey, to: to.claimKey, team, topic: oc.phase || null,
+      threadId: null, messageId: null, topology: null, reason: "escalate",
       workspace: fromClaim.workspace,
-      worktreePath,
     });
     return res && res.ok ? res : null;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
+}
+
+/** Record a wake outcome (domain event). Fail-open. */
+function recordWakeOutcome(wake, action) {
+  return emitWakeOutcome(wake, action);
 }
 
 module.exports = {
-  WAKE_CAP,
-  WAKE_RATE_MAX,
-  WAKE_RATE_WINDOW_MS,
-  WAKES_FILE,
-  WAKE_CROSS_SCOPE,
-  WAKE_NO_CLAIM,
-  WAKE_DENIED,
-  WAKE_THROTTLED,
-  defaultStateDir,
-  wakesDir,
-  wakesFile,
-  legacyWakesFile,
-  sanitizeWakeToken,
-  memberOfClaimKey,
-  teamOfClaimKey,
-  isLiveClaim,
-  resolveProjectSlug,
-  buildWake,
-  readAll,
-  capLines,
-  rateCount,
-  resolveLiveClaim,
-  requestWake,
-  listWakes,
-  matchWakeFilter,
-  ackWake,
-  parseMentions,
-  triggerWakesForDiscussion,
-  triggerWakeForGrant,
-  wakeForPhaseOutcome,
+  WAKE_CAP, WAKE_RATE_MAX, WAKE_RATE_WINDOW_MS, WAKES_FILE,
+  WAKE_CROSS_SCOPE, WAKE_NO_CLAIM, WAKE_DENIED, WAKE_THROTTLED,
+  defaultStateDir, resolveStateDir: resolveStateDir_, wakesFile,
+  sanitizeWakeToken, memberOfClaimKey, teamOfClaimKey, isLiveClaim,
+  resolveProjectSlug: resolveProjectSlug_, buildWake,
+  readAllWakesJson, readAll: readAllWakesJson, legacyWakesFile, capLinesJson, rateCount, resolveLiveClaim,
+  requestWake, listWakes, matchWakeFilter, ackWake,
+  parseMentions, triggerWakesForDiscussion, triggerWakeForGrant,
+  wakeForPhaseOutcome, recordWakeOutcome,
 };

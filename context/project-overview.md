@@ -36,6 +36,11 @@ P-Core Orchestra is a portable, ambient multi-agent workflow for **Cursor**, **O
 - **Registry-gate tool-surface access control**: tool access restrictions are enforced by a descriptor flag (`saleOnly`) on tool registration + a single-preset gate key in `checkPermissions`, keyed by slug with no role escape. The dispatch layer (`executeTools`, `getJsonSchemas`) is never edited for access control; the system prompt is aligned to the actual tool surface. Reference: a sibling project's product-search tools marked `saleOnly: true`, removed from general context (absent, not refusal-guarded).
 - **Studio dashboard**: Separate read-only React/Vite app (`studio/`) that visualizes WorkItems, conductor runs, gate evidence, human reviews, and token usage. Discovers global and worktree-partitioned state directories. Installs via `install.sh --studio`, launches via `orchestra-studio` (serves on http://localhost:3110).
 
+### Team sessions
+
+- Named cross-CLI slots (`team/member/slug/sessionId`) with discussion, wake, and done-report channels.
+- **Auto-activation**: claiming with `--server-url` / `PCORE_OPENCODE_SERVER_URL` makes durable posts and wakes activate each eligible recipient's OpenCode session once via synthetic input (sender excluded, stale/URL-less skipped, at-most-once dedupe, audit trail, fail-open). `PCORE_TEAM_ACTIVATE=0` disables it; the WS watch client remains the manual fallback. See `docs/team-auto-activation.md`.
+
 ### Context integration
 
 - Detect `context/` six files in workspace roots at session start.

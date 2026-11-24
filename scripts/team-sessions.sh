@@ -37,10 +37,11 @@ unset PCORE_MEMBER_NAME PCORE_TEAM_NAME PCORE_MEMBER_ROLE PCORE_WS \
       PCORE_WORKTREE PCORE_SCOPE PCORE_FILES PCORE_DRY_RUN PCORE_WORKTREE_BASE \
       PCORE_KIND PCORE_TO PCORE_TOPIC PCORE_BODY PCORE_EMOJI PCORE_MSG_ID \
       PCORE_TOPOLOGY PCORE_ALL PCORE_FREE_ONLY PCORE_NEW_SLOT PCORE_REASON PCORE_THREAD \
-      PCORE_MESSAGE PCORE_DECISION PCORE_BY PCORE_OUTCOME PCORE_LESSONS 2>/dev/null || true
+      PCORE_MESSAGE PCORE_DECISION PCORE_BY PCORE_OUTCOME PCORE_LESSONS \
+      PCORE_SHA PCORE_SUMMARY PCORE_BRANCH PCORE_SERVER_URL 2>/dev/null || true
 
 case "$CMD" in
-  claim|heartbeat|release|list|who|check|gc|dispatch|discuss|request|wake|learning|supervise|queue|done)
+  claim|heartbeat|release|list|who|check|gc|dispatch|discuss|request|wake|learning|supervise|queue|done|watch)
     ;;
   -h|--help|help)
     cat <<'EOF'
@@ -48,6 +49,8 @@ Usage: bash scripts/team-sessions.sh <command> [flags]
 
   claim     --member M [--team T] [--role R] [--scope S] [--workspace W]   claim/renew slot
           [--new-slot] hatches a parallel slot instead of renewing the live one
+          [--server-url URL] OpenCode server for auto-activation of this slot
+          [--use-sqlite 0|1] use SQLite storage (default 1; falls back to JSON if unavailable)
   heartbeat --member M [--team T] [--workspace W]              touch heartbeat
   release   --member M [--team T] [--workspace W]               drop claim
   list      [--team T]                                         live claims (grouped)
@@ -70,6 +73,11 @@ Usage: bash scripts/team-sessions.sh <command> [flags]
   done      report --member M [--team T] --sha SHA [--branch B] [--summary S]
                                                  report completion w/ commit SHA
             list [--team T] [--json]             latest report per member
+  watch     --team T [--member M] [--types T1,T2] [--port N] [--scope S]
+            [--once N] [--no-snapshot]           live WS feed of discussion/wake/done
+            (--scope = repo scope: dials the scope's registry port and reads
+            the scope partition; --port overrides. --scope elsewhere is the
+            claim file scope and is unchanged.)
   wake      request --member M --to N [--team T] [--reason R] [--topic T]
             [--thread REF] [--message ID] [--topology X] [--json]  teammate nudge
             list [--member M] [--team T] [--topic T] [--thread REF] [--all] [--json]
@@ -103,6 +111,9 @@ Usage: bash scripts/team-sessions.sh <command> [flags]
   --json adds machine-readable JSON. --claim KEY selects a claim directly.
   PCORE_MEMBER_NAME / PCORE_TEAM_NAME / PCORE_MEMBER_ROLE set identity via env.
   PCORE_WORKTREE selects worktree-isolated state.
+  --server-url (or PCORE_OPENCODE_SERVER_URL) is stored on the claim and used
+  to POST /api/session/{id}/synthetic for teammates on post/wake. Activation
+  is fail-open; PCORE_TEAM_ACTIVATE=0 disables it entirely.
 EOF
     exit 0
     ;;
@@ -121,17 +132,21 @@ while [ $# -gt 0 ]; do
     --workspace) PCORE_WS="${2:-}"; shift 2 ;;
     --claim) PCORE_CLAIM_KEY="${2:-}"; shift 2 ;;
     --session) PCORE_SESSION_OVERRIDE="${2:-}"; shift 2 ;;
+    --server-url) PCORE_SERVER_URL="${2:-}"; shift 2 ;;
     --stale-min) PCORE_STALE_MIN="${2:-}"; shift 2 ;;
     --worktree) PCORE_WORKTREE="${2:-}"; shift 2 ;;
     --worktree-base) PCORE_WORKTREE_BASE="${2:-}"; shift 2 ;;
     --dry-run) PCORE_DRY_RUN=1; shift ;;
     --free-only) PCORE_FREE_ONLY=1; shift ;;
     --new-slot) PCORE_NEW_SLOT=1; shift ;;
+    --use-sqlite) PCORE_USE_SQLITE="${2:-1}"; shift 2 ;;
     --all) PCORE_ALL=1; shift ;;
     --scope) PCORE_SCOPE="${2:-}"; shift 2 ;;
     --kind) PCORE_KIND="${2:-}"; shift 2 ;;
     --to) PCORE_TO="${2:-}"; shift 2 ;;
     --topic) PCORE_TOPIC="${2:-}"; shift 2 ;;
+    --types) PCORE_TYPES="${2:-}"; shift 2 ;;
+    --port) PCORE_PORT="${2:-}"; shift 2 ;;
     --body) PCORE_BODY="${2:-}"; shift 2 ;;
     --emoji) PCORE_EMOJI="${2:-}"; shift 2 ;;
     --id) PCORE_MSG_ID="${2:-}"; shift 2 ;;
@@ -154,25 +169,41 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-export PCORE_MEMBER_NAME PCORE_TEAM_NAME PCORE_MEMBER_ROLE PCORE_WS \
+export PCORE_MEMBER_NAME PCORE_TEAM_NAME PCORE_MEMBER_ROLE PCORE_WS PCORE_PORT PCORE_SERVER_URL \
        PCORE_CLAIM_KEY PCORE_SESSION_OVERRIDE PCORE_JSON PCORE_STALE_MIN \
        PCORE_WORKTREE PCORE_SCOPE PCORE_FILES PCORE_DRY_RUN PCORE_WORKTREE_BASE \
-       PCORE_KIND PCORE_TO PCORE_TOPIC PCORE_BODY PCORE_EMOJI PCORE_MSG_ID \
+       PCORE_KIND PCORE_TO PCORE_TOPIC PCORE_TYPES PCORE_BODY PCORE_EMOJI PCORE_MSG_ID \
        PCORE_TOPOLOGY PCORE_ALL PCORE_FREE_ONLY PCORE_NEW_SLOT PCORE_REASON PCORE_THREAD \
        PCORE_MESSAGE PCORE_DECISION PCORE_BY PCORE_OUTCOME PCORE_LESSONS \
-       PCORE_SHA PCORE_SUMMARY PCORE_BRANCH
+       PCORE_SHA PCORE_SUMMARY PCORE_BRANCH PCORE_USE_SQLITE
 export PCORE_CMD="$CMD"
 
 NODE_PROGRAM=$(cat <<'NODEOF'
 "use strict";
-const claims = require("LIB_PATH_PLACEHOLDER");
+const store = (() => { try { return require("STORE_PATH_PLACEHOLDER"); } catch { return null; } })();
+let sqliteAvailable = false;
+if (store && typeof store.getDb === "function" && typeof store.isAvailable === "function") {
+  try { store.getDb(); } catch {} // fail-open: populate dbReady before checking
+  sqliteAvailable = store.isAvailable();
+}
+const useSqlite = process.env.PCORE_USE_SQLITE !== "0" && sqliteAvailable;
+let claims, discussion, wakeLib, doneLib;
+if (useSqlite) {
+  claims = require("TEAM_CLAIMS_PATH_PLACEHOLDER");
+  discussion = require("TEAM_DISCUSSIONS_PATH_PLACEHOLDER");
+  wakeLib = require("SESSION_WAKE_PATH_PLACEHOLDER");
+  doneLib = require("TEAM_DONE_PATH_PLACEHOLDER");
+} else {
+  claims = require("LIB_PATH_PLACEHOLDER");
+  discussion = (() => { try { return require("DISCUSSION_PATH_PLACEHOLDER"); } catch { return null; } })();
+  wakeLib = (() => { try { return require("WAKE_PATH_PLACEHOLDER"); } catch { return null; } })();
+  doneLib = (() => { try { return require("DONE_PATH_PLACEHOLDER"); } catch { return null; } })();
+}
 const domain = (() => { try { return require("DOMAIN_PATH_PLACEHOLDER"); } catch { return null; } })();
-const wakeLib = (() => { try { return require("WAKE_PATH_PLACEHOLDER"); } catch { return null; } })();
 const learnLib = (() => { try { return require("LEARN_PATH_PLACEHOLDER"); } catch { return null; } })();
 const artifactLib = (() => { try { return require("ARTIFACT_PATH_PLACEHOLDER"); } catch { return null; } })();
 const supervisorLib = (() => { try { return require("SUPERVISOR_PATH_PLACEHOLDER"); } catch { return null; } })();
 const queueLib = (() => { try { return require("QUEUE_PATH_PLACEHOLDER"); } catch { return null; } })();
-const doneLib = (() => { try { return require("DONE_PATH_PLACEHOLDER"); } catch { return null; } })();
 const env = process.env;
 
 function out(obj) {
@@ -193,6 +224,7 @@ function opts() {
     sessionId: env.PCORE_SESSION_OVERRIDE || undefined,
     claimKey: env.PCORE_CLAIM_KEY || undefined,
     scope: env.PCORE_SCOPE || undefined,
+    serverUrl: env.PCORE_SERVER_URL || env.PCORE_OPENCODE_SERVER_URL || undefined,
     worktreePath: env.PCORE_WORKTREE || undefined,
     newSlot: env.PCORE_NEW_SLOT === "1" ? true : undefined,
   };
@@ -337,7 +369,8 @@ switch (env.PCORE_CMD) {
     break;
   }
   case "discuss": {
-    const discussion = require("DISCUSSION_PATH_PLACEHOLDER");
+    // Use the top-level store-aware module (SQLite-primary, JSON fallback)
+    // so durable posts trigger team auto-activation.
     const sub = String(env.PCORE_FILES || "").split("\n").map((s) => s.trim()).filter(Boolean)[0] || "";
     if (sub !== "post" && sub !== "list" && sub !== "react" && sub !== "resolve") die("discuss needs an action: post|list|react|resolve");
     const recordDiscussion = (action, msg) => {
@@ -736,16 +769,42 @@ ARTIFACT_LIB="${LIB_PATH%session-claims.js}plan-artifact.js"
 SUPERVISOR_LIB="${LIB_PATH%session-claims.js}team-supervisor.js"
 QUEUE_LIB="${LIB_PATH%session-claims.js}team-requests.js"
 DONE_LIB="${LIB_PATH%session-claims.js}team-done.js"
+STORE_LIB="${LIB_PATH%session-claims.js}session-store.js"
+TEAM_CLAIMS_LIB="${LIB_PATH%session-claims.js}team-claims.js"
+TEAM_DISCUSSIONS_LIB="${LIB_PATH%session-claims.js}team-discussions.js"
 NODE_PROGRAM="${NODE_PROGRAM//LIB_PATH_PLACEHOLDER/"$LIB_PATH"}"
 NODE_PROGRAM="${NODE_PROGRAM//DOMAIN_PATH_PLACEHOLDER/"$DOMAIN_LIB"}"
 NODE_PROGRAM="${NODE_PROGRAM//DISPATCH_PATH_PLACEHOLDER/"$DISPATCH_LIB"}"
 NODE_PROGRAM="${NODE_PROGRAM//PM_PATH_PLACEHOLDER/"$PM_LIB"}"
 NODE_PROGRAM="${NODE_PROGRAM//DISCUSSION_PATH_PLACEHOLDER/"$DISCUSSION_LIB"}"
-NODE_PROGRAM="${NODE_PROGRAM//WAKE_PATH_PLACEHOLDER/"$WAKE_LIB"}"
 NODE_PROGRAM="${NODE_PROGRAM//LEARN_PATH_PLACEHOLDER/"$LEARN_LIB"}"
 NODE_PROGRAM="${NODE_PROGRAM//ARTIFACT_PATH_PLACEHOLDER/"$ARTIFACT_LIB"}"
 NODE_PROGRAM="${NODE_PROGRAM//SUPERVISOR_PATH_PLACEHOLDER/"$SUPERVISOR_LIB"}"
 NODE_PROGRAM="${NODE_PROGRAM//QUEUE_PATH_PLACEHOLDER/"$QUEUE_LIB"}"
-NODE_PROGRAM="${NODE_PROGRAM//DONE_PATH_PLACEHOLDER/"$DONE_LIB"}"
+NODE_PROGRAM="${NODE_PROGRAM//STORE_PATH_PLACEHOLDER/"$STORE_LIB"}"
+NODE_PROGRAM="${NODE_PROGRAM//TEAM_CLAIMS_PATH_PLACEHOLDER/"$TEAM_CLAIMS_LIB"}"
+NODE_PROGRAM="${NODE_PROGRAM//TEAM_DISCUSSIONS_PATH_PLACEHOLDER/"$TEAM_DISCUSSIONS_LIB"}"
+NODE_PROGRAM="${NODE_PROGRAM//SESSION_WAKE_PATH_PLACEHOLDER/"$WAKE_LIB"}"
+NODE_PROGRAM="${NODE_PROGRAM//TEAM_DONE_PATH_PLACEHOLDER/"$DONE_LIB"}"
+
+# watch runs the live WS listen client (long-running; not part of the node program)
+if [ "$CMD" = "watch" ]; then
+  # watch --scope names a REPO scope (registry port + snapshot partition), not
+  # a claim file scope: watch claims nothing, so the claim path never sees it.
+  if [ -n "${PCORE_SCOPE:-}" ]; then
+    export PCORE_REPO_SCOPE="$PCORE_SCOPE"
+    unset PCORE_SCOPE
+  fi
+  WATCH_ARGS=(--member "${PCORE_MEMBER_NAME:-}" --team "${PCORE_TEAM_NAME:-}" --types "${PCORE_TYPES:-}")
+  if [ -n "${PCORE_PORT:-}" ]; then
+    WATCH_ARGS+=(--port "$PCORE_PORT")
+  elif [ -n "${PCORE_REPO_SCOPE:-}" ]; then
+    WATCH_ARGS+=(--scope "$PCORE_REPO_SCOPE")
+  else
+    WATCH_ARGS+=(--port 3110)
+  fi
+  node "$REPO_ROOT/scripts/team-listen.js" "${WATCH_ARGS[@]}"
+  exit $?
+fi
 
 node -e "$NODE_PROGRAM"

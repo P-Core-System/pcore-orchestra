@@ -265,6 +265,11 @@ function claimSession(opts) {
   const workspaceSlug = sanitizeName(o.workspaceSlug) || ws.slug;
   const key = claimKey({ team, member, workspaceSlug, sessionId });
   const shown = displayFor({ team, member, workspaceSlug });
+  // Server URL for team auto-activation. Normalized once at claim time so
+  // the synthetic sender never receives a malformed or untrusted endpoint.
+  const serverUrl = typeof o.serverUrl === "string" && o.serverUrl.trim()
+    ? o.serverUrl.trim().replace(/\/+$/, "")
+    : null;
   let reuse = null;
   if (!o.newSlot) {
     const candidate = findLiveSlot({
@@ -349,6 +354,7 @@ function claimSession(opts) {
           workspace: base.workspace,
           workspaceSlug: base.workspaceSlug,
           host: o.host || base.host || null,
+          serverUrl: serverUrl || base.serverUrl || null,
           createdAt: base.createdAt || now,
           updatedAt: now,
           heartbeatAt: now,
@@ -368,6 +374,7 @@ function claimSession(opts) {
           workspace: o.workspace || (prev && prev.workspace) || ws.root,
           workspaceSlug,
           host: o.host || (prev && prev.host) || null,
+          serverUrl: serverUrl || (prev && prev.serverUrl) || null,
           createdAt: (prev && prev.createdAt) || now,
           updatedAt: now,
           heartbeatAt: now,

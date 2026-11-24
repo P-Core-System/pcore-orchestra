@@ -24,8 +24,10 @@ Start with the [README](../README.md) for install and quick start, then:
 | [mcp-chatgpt.md](mcp-chatgpt.md) | MCP knowledge server: docs/context read tools, share inbox, Streamable HTTP front for ChatGPT connectors |
 | [token-optimization.md](token-optimization.md) | Token spend reduction, cache-hit measurement, budgets |
 | [concurrency-tracking.md](concurrency-tracking.md) | Session claims and multi-session isolation |
+| [team-auto-activation.md](team-auto-activation.md) | Auto-activate recipient OpenCode sessions on team post/wake; env vars, dedupe, rollback, watch fallback |
 | [greenfield-and-gaps.md](greenfield-and-gaps.md) | Greenfield intake flow and gap analysis |
 | [studio-v2-architecture.md](studio-v2-architecture.md) / [studio-v2-design-spec.md](studio-v2-design-spec.md) | Studio dashboard backend architecture and design spec |
+| [studio-repo-scope.md](studio-repo-scope.md) | Global studio: one clone, per-repo state/port/service isolation |
 | [agent-harness-recommendations.md](agent-harness-recommendations.md) | Harness/loop/prompt recommendations |
 | [agent-orchestra-rag-research.md](agent-orchestra-rag-research.md) | RAG/context research and roadmap |
 | [plan-signal-watcher.md](plan-signal-watcher.md) | Cross-repo plan signal watcher usage |
