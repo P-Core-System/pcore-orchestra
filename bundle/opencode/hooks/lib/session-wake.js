@@ -176,10 +176,11 @@ function capLinesJson(wakes, cap) {
 function activateForWake(wake, o) {
   try {
     const targetClaim = claims.getClaim(wake.to);
+    const fromClaim = claims.getClaim(wake.from);
     return activateEvent("wake", wake, {
       workspace: (o && o.workspace) || (targetClaim && targetClaim.workspace) || wake.workspaceSlug || undefined,
       worktreePath: o && o.worktreePath,
-      senderSessionId: (o && o.sessionId) || undefined,
+      senderSessionId: (o && o.sessionId) || (fromClaim && fromClaim.sessionId) || undefined,
     });
   } catch {
     return null;

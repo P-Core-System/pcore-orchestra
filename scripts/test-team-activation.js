@@ -245,6 +245,56 @@ const woke = JSON.parse(runCli([
 const wakeAudit = activation.listActivations({ eventKind: "wake" }).filter((row) => row.event_id === woke.id);
 check("durable wake triggers an activation audit (no live send)", wakeAudit.length === 1 && wakeAudit[0].status === "skipped" && wakeAudit[0].reason === "no-url", JSON.stringify(wakeAudit));
 
+/* --- 8b. wiring: sender session inherited from the sender claim --------- */
+const wiringDir = freshState("sender-session");
+dirs.push(wiringDir);
+store.closeDb();
+process.env.PCORE_STATE_DIR = wiringDir;
+delete process.env.PCORE_USE_SQLITE;
+
+const senderClaim = claim({ claimKey: "team-alpha/sender/ws/s-same", member: "sender", sessionId: "s-same" });
+const siblingClaim = claim({ claimKey: "team-alpha/sibling/ws/s-same", member: "sibling", sessionId: "s-same" });
+const otherClaim = claim({ claimKey: "team-alpha/other/ws/s-other", member: "other", sessionId: "s-other" });
+const wiringRoster = [senderClaim, siblingClaim, otherClaim];
+const pureSiblingPlans = activation.planActivations(
+  "post", event("post", "d_wiring_pure", { from: senderClaim.claimKey }),
+  wiringRoster, "team-alpha", senderClaim.claimKey, senderClaim.sessionId
+);
+check("planner excludes sibling claim on the sender session", pureSiblingPlans.length === 1 && pureSiblingPlans[0].claimKey === otherClaim.claimKey, JSON.stringify(pureSiblingPlans.map((p) => p.claimKey)));
+
+const postWiringSent = [];
+const postWiring = activation.activateEvent(
+  "post", event("post", "d_wiring_post", { from: senderClaim.claimKey }),
+  { claims: wiringRoster, send: recorder(postWiringSent) }
+);
+check("post wiring derives sender session and sends only to the other claim", postWiring.sent.length === 1 && postWiring.sent[0].claimKey === otherClaim.claimKey && postWiringSent.length === 1 && postWiringSent[0].sessionId === "s-other", JSON.stringify(postWiring));
+check("post wiring never sends to the sender's sibling claim", postWiring.sent.every((s) => s.claimKey !== siblingClaim.claimKey) && postWiring.skipped.every((s) => s.claimKey !== siblingClaim.claimKey), JSON.stringify(postWiring));
+
+const wakeWiringSent = [];
+const wakeWiring = activation.activateEvent(
+  "wake", event("wake", "w_wiring_wake", { from: senderClaim.claimKey }),
+  { claims: wiringRoster, send: recorder(wakeWiringSent) }
+);
+check("wake wiring derives sender session and excludes the sibling claim", wakeWiring.sent.length === 1 && wakeWiring.sent[0].claimKey === otherClaim.claimKey && wakeWiringSent.length === 1 && wakeWiringSent[0].sessionId === "s-other", JSON.stringify(wakeWiring));
+
+const storedSender = claimsLib.claimSession({
+  member: "WireSender", team: "team-alpha", workspace: wiringDir,
+  sessionId: "s-store", serverUrl: "http://127.0.0.1:4096",
+});
+const storeSent = [];
+const storeWiring = activation.activateEvent(
+  "post", event("post", "d_wiring_store", { from: storedSender.claimKey }),
+  { claims: [claim({ claimKey: "team-alpha/store-sibling/ws/s-store", member: "store-sibling", sessionId: "s-store" }), otherClaim], send: recorder(storeSent) }
+);
+check("claims-store sender session excludes sibling without an explicit id", storeWiring.sent.length === 1 && storeWiring.sent[0].claimKey === otherClaim.claimKey, JSON.stringify(storeWiring));
+
+const explicitSent = [];
+const explicitWiring = activation.activateEvent(
+  "post", event("post", "d_wiring_explicit", { from: senderClaim.claimKey }),
+  { claims: wiringRoster, senderSessionId: "s-other", send: recorder(explicitSent) }
+);
+check("explicit senderSessionId still overrides the derived session", explicitWiring.sent.length === 1 && explicitWiring.sent[0].claimKey === siblingClaim.claimKey && explicitSent.length === 1, JSON.stringify(explicitWiring));
+
 /* --- 9. kill switch ------------------------------------------------------ */
 const killSent = [];
 const killResult = activation.activateEvent("post", event("post", "d_kill"), {

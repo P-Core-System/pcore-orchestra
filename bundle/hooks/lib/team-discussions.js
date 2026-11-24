@@ -164,6 +164,7 @@ function postMessage(input, worktreePath) {
     activateEvent("post", stored, {
       workspace: (input && input.workspace) || (authorClaim && authorClaim.workspace) || undefined,
       worktreePath,
+      senderSessionId: authorClaim && authorClaim.sessionId,
     });
   } catch { /* activation never breaks a discussion post */ }
   return stored;

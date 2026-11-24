@@ -288,6 +288,28 @@ function resolveClaims(o, ev) {
 }
 
 /**
+ * Resolve the sender's session from the same roster/store used for recipients.
+ * Injected claim lists win (tests + already-resolved workspace); otherwise the
+ * claims store is consulted with resolveClaims' workspace/worktree resolution.
+ * Any failure fails open: no session means no extra exclusion.
+ */
+function resolveSenderSession(o, ev, roster, senderKey) {
+  if (o.senderSessionId) return o.senderSessionId;
+  if (!senderKey) return undefined;
+  const fromRoster = (Array.isArray(roster) ? roster : []).find(
+    (claim) => claim && claim.claimKey === senderKey
+  );
+  if (fromRoster && fromRoster.sessionId) return fromRoster.sessionId;
+  try {
+    const claimOpts = { workspace: ev.workspace || o.workspace, worktreePath: o.worktreePath };
+    const senderClaim = require("./team-claims.js").getClaim(senderKey, claimOpts.worktreePath);
+    return (senderClaim && senderClaim.sessionId) || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Fail-open orchestrator. `opts` may inject `claims` / `listClaims`,
  * `send` (synthetic sender), `buildText`, and `env` for tests.
  * Never throws; returns `{ok, sent, skipped, failed, disabled}`.
@@ -302,9 +324,11 @@ function activateEvent(eventKind, event, opts) {
   }
   try {
     const ev = event && typeof event === "object" ? event : {};
+    const roster = resolveClaims(o, ev);
+    const senderKey = o.senderClaimKey || ev.from;
+    const senderSessionId = resolveSenderSession(o, ev, roster, senderKey);
     const plans = planActivations(
-      eventKind, ev, resolveClaims(o, ev), o.team || ev.team,
-      o.senderClaimKey || ev.from, o.senderSessionId
+      eventKind, ev, roster, o.team || ev.team, senderKey, senderSessionId
     );
     if (plans.length === 0 && typeof ev.to === "string" && ev.to.trim()) {
       const missing = {
