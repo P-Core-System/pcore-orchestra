@@ -52,6 +52,21 @@ Update this file after every meaningful implementation change.
   Key files: `scripts/lib/{context-budget,opencode-token-profile}.js`, `scripts/{sync-opencode-agents,orchestra-context-diet,orchestra-budget,orchestra-startup-doctor,health-deepai}.js`, `bundle/hooks/lib/request-budget.js` (+ mirror), `bundle/hooks/orchestra-{subagent-stop,prompt}.js` (+ mirrors), `bundle/hooks/lib/{orchestra-spawn-matrix,spawn-adapter,distill-learnings}.js` (+ mirrors), `bundle/agents/{qa-agent,tech-lead,architect,product-owner,release-manager,orchestra}.md`, `bundle/config/opencode/autonomy.json`, `install.sh`, `install.ps1`, `scripts/team-sessions.sh`, `scripts/test-request-budget.js`, `.github/workflows/ci.yml`, `docs/orchestra-cross-platform.md`, `context/{architecture,code-standards,progress-tracker}.md`.
   Impact: the daily free-model limit stops being burned by unbounded steps and repeated dispatches; every request stops paying ~10K tokens for a specialist directory it cannot use; startup weight has a measured, repairable surface; and one more editor (DeepAI Code) runs the same loop with its own delegation contract instead of a guess.
 
+## 2026-11-17 — tool-call routing and agent tool ownership
+
+- Sibling `pcore-assistant-ce12181-check`: `.gitignore:9` label `wetechmm crawler` → `pcore crawler`; committed `chore(ignore): rename product catalog cache crawler label`. Verify: `git -C "<sibling>" diff --numstat -- .gitignore` = `1	1	.gitignore`; clean tree after commit.
+- `bundle/opencode/agents/orchestra.md` (`## Conductor Rules`): removed contradictory "all agents have full read/write" bullet; replaced with file-edits-belong-to-implementer ownership bullet.
+- `bundle/agents/orchestra.md` (`## Conductor rules`): added same ownership bullet after `- Tools:` line; frontmatter/`permission.task` generated block untouched.
+- `bundle/agents/orchestra-{planner,implementer,verifier,reviewer}.md`: inserted `## Tool ownership` before `## When invoked` on each phase agent; read-only for planner/verifier/reviewer, sole native-`edit` writer for implementer.
+- Five-host mirrors regenerated via `sync-opencode-agents.js --force-core` + `sync-qoder-agents.js` / `sync-claude-agents.js` / `sync-codex-agents.js` (frontmatter unchanged; no registry regeneration needed).
+- `docs/layer-diagram.md`: new `## Tool ownership (agent scaffold)` section with 5-row ownership table + violation example 5 (edit via shell/Code-Mode/browse instead of native `edit`).
+- `context/code-standards.md`: new `### Tool-call routing (edits)` section — native `edit` only + four verbatim anti-patterns.
+- `context/architecture.md`: invariant 42 added after invariant 41 (native `edit` sole file-edit path; links to layer-diagram + code-standards); core 4-phase loop tokens and hook logic unchanged (invariant 18 mirrors untouched).
+- `bundle/config/opencode/autonomy.json` + `docs/opencode.json.example`: five `agents.*.description` string value updates (orchestra, planner, implementer, verifier, reviewer); no `permissions[]` changes; surgical value-only edits on LF copy, EOL preserved.
+- `docs/autonomous-workflow.md`: note that browse/file-root env vars + `files.read` are read/inspection surfaces only, not an edit-tool substitute; implementer edits via native `edit`.
+- `bundle/skills/orchestra-loop/SKILL.md` + `bundle/opencode/skills/orchestra-loop/SKILL.md`: one-line tool-ownership note after `FIX_REQUIRED` line in `## Phases`.
+  Key files: `pcore-assistant-ce12181-check/.gitignore`, `bundle/opencode/agents/orchestra.md`, `bundle/agents/orchestra.md`, `bundle/agents/orchestra-{planner,implementer,verifier,reviewer}.md`, `bundle/opencode/agents/orchestra-{planner,implementer,verifier,reviewer}.md`, `bundle/qoder/agents/orchestra-{planner,implementer,verifier,reviewer}.md`, `bundle/claude/agents/orchestra-{planner,implementer,verifier,reviewer}.md`, `bundle/codex/agents/orchestra-{planner,implementer,verifier,reviewer}.toml`, `docs/layer-diagram.md`, `context/code-standards.md`, `context/architecture.md`, `context/progress-tracker.md`, `bundle/config/opencode/autonomy.json`, `docs/opencode.json.example`, `docs/autonomous-workflow.md`, `bundle/skills/orchestra-loop/SKILL.md`, `bundle/opencode/skills/orchestra-loop/SKILL.md`.
+  Impact: establishes per-layer tool ownership (native `edit` = implementer only; conductor/analysis read-only), removes the conductor's contradictory full-read/write bullet, and syncs docs + config across all five hosts; zero hook logic changes, backward-compatible with core 4-phase loop.
 
 ## 2026-11-16 — SDLC 7-stage hook-library foundation
 
@@ -274,6 +289,18 @@ Update this file after every meaningful implementation change.
 - Updated `scripts/team-sessions.sh`: `--use-sqlite` flag (default true), routes claim/discuss/wake/done through SQLite when available, falls back to JSON when SQLite unavailable.
   Key files: `bundle/hooks/lib/{session-store,team-claims,team-discussions,session-wake,team-done}.js`, `scripts/team-sessions.sh`, `context/progress-tracker.md`.
   Impact: team session state (claims, discussions, wakes, done reports) is stored in SQLite partitioned per project, works across all CLIs (Cursor, OpenCode, Qoder, Claude, Codex), with automatic safe-write JSON fallback when SQLite is unavailable.
+
+## 2026-11-16 — Documented amazonwebservices.aws-startup-advisor v1.0.17 Cursor extension
+
+- `README.md`: Added "Recommended VS Code/Cursor Extensions" section after the Commands table documenting `amazonwebservices.aws-startup-advisor` v1.0.17 (already installed globally via `cursor --install-extension`): purpose (AWS startup guidance, Well-Architected reviews, cost optimization), install command, global Cursor scope.
+- `context/progress-tracker.md`: This entry.
+  Key files: `README.md`, `context/progress-tracker.md`.
+  Impact: users/agents know the AWS startup advisor extension is installed globally for AWS startup guidance, Well-Architected reviews, and cost optimization.
+## 2026-11-17 SQLite session-store layer + SDLC 7-stage test suite
+- Fixed missing SQLite session-store files
+- Added --use-sqlite flag to team-sessions.sh
+- Created SDLC 7-stage test suite
+- Updated architecture.md, code-standards.md
 
 ## 2026-11-24 — Team auto-activation on post/wake (OpenCode synthetic input)
 

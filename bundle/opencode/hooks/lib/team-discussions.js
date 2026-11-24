@@ -317,7 +317,28 @@ function reactMessage(id, opts, worktreePath) {
   return discussionLib.reactMessage(id, o, worktreePath);
 }
 
+/** Prune a project's discussion store (remote SQLite line compatibility). */
+function pruneDiscussion(opts, worktreePath) {
+  const o = opts && typeof opts === "object" ? opts : {};
+  if (o && typeof o.worktreePath === "string" && worktreePath === undefined) worktreePath = o.worktreePath;
+  const db = getDb();
+  if (!db) return discussionLib.pruneDiscussion(o, worktreePath);
+  const projectSlug = resolveProjectSlug(o.workspace || (o.filter && o.filter.workspace) || undefined);
+  const countSql = `SELECT COUNT(*) AS n FROM discussions WHERE project_slug = @projectSlug`;
+  const before = Number(db.prepare(countSql).get({ projectSlug }).n);
+  pruneCapSqlite(db, projectSlug);
+  const after = Number(db.prepare(countSql).get({ projectSlug }).n);
+  return { pruned: Math.max(0, before - after), kept: after };
+}
+
 module.exports = {
+  DISCUSSION_FILE: discussionLib.DISCUSSION_FILE,
+  defaultStateDir: discussionLib.defaultStateDir,
+  discussionDir: discussionLib.discussionDir,
+  discussionFile: discussionLib.discussionFile,
+  sanitizeToken: sanitizeDiscussionToken,
+  matchDiscussionFilter: matchMessageFilter,
+  pruneDiscussion,
   DISCUSSION_CAP,
   DISCUSSION_KINDS,
   DISCUSSION_TOPOLOGIES,

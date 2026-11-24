@@ -453,7 +453,23 @@ function findScopeConflicts(opts) {
   return claimsLib.findScopeConflicts(opts);
 }
 
+/** List claims by options (remote SQLite line compatibility). */
+function getClaims(opts) {
+  return listClaims(opts);
+}
+
+/** Capitalize for display (remote SQLite line compatibility). */
+function capName(slug) {
+  if (!slug) return "";
+  return String(slug).charAt(0).toUpperCase() + String(slug).slice(1);
+}
+
 module.exports = {
+  CLAIMS_FILE: claimsLib.CLAIMS_FILE,
+  claimsFile: claimsLib.claimsFile,
+  capName,
+  resolveProjectSlug,
+  getClaims,
   STALE_MS,
   claimSession,
   findLiveSlot,

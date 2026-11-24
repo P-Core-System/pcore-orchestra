@@ -35,6 +35,9 @@ let db = null;
 let dbReady = false;
 let dbPathCached = null;
 
+/** Shared DB filename (remote SQLite line compatibility). */
+const DB_NAME = "team-sessions.db";
+
 /** Default shared state dir (alongside other state writers). */
 function defaultStateDir() {
   return path.join(os.homedir(), ".config", "opencode", "hooks", "state");
@@ -49,12 +52,22 @@ function resolveStateDir() {
 
 /** Default DB path: <PCORE_STATE_DIR>/team-sessions.db */
 function getDbPath() {
-  return path.join(resolveStateDir(), "team-sessions.db");
+  return path.join(resolveStateDir(), DB_NAME);
 }
 
 /** True when `node:sqlite` loaded and a DB handle could be opened. */
 function isAvailable() {
   return dbReady === true && db !== null;
+}
+
+/** Lowercase slug form (remote SQLite line compatibility). */
+function sanitizeSlug(raw) {
+  if (raw === undefined || raw === null) return "";
+  return String(raw)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 /** Derive the project slug for partitioning. Prefers project.yaml
@@ -68,12 +81,7 @@ function resolveProjectSlug(workspace) {
   } catch {
     /* fall through to basename slug */
   }
-  const base = path.basename(String(root));
-  return base
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, "") || "root";
+  return sanitizeSlug(path.basename(String(root))) || "root";
 }
 
 /** Lazy-open the SQLite DB and run schema. Never throws.
@@ -106,6 +114,8 @@ function getDb() {
 }
 
 function initDb(db) {
+  // Remote SQLite line exposed initDb() with no argument: open via getDb().
+  if (!db) return getDb();
   db.exec("PRAGMA journal_mode = WAL;");
   db.exec(`
     CREATE TABLE IF NOT EXISTS teams (
@@ -253,6 +263,7 @@ function closeDb() {
 }
 
 module.exports = {
+  DB_NAME,
   defaultStateDir,
   resolveStateDir,
   getDbPath,
@@ -261,6 +272,7 @@ module.exports = {
   closeDb,
   initDb,
   resolveProjectSlug,
+  sanitizeSlug,
   sqlite,
   loadErr,
 };
